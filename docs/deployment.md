@@ -5,7 +5,7 @@
 ## 1. 흐름
 
 ```
-GitHub main 푸시
+GitHub develop 푸시
   → CodePipeline (Source)
   → CodeBuild        buildspec.yml   : ./gradlew bootJar → app.jar
   → S3 아티팩트
@@ -66,7 +66,8 @@ SETTY_FRONT_BASE_URL=https://<CloudFront 도메인>
 
 - **CodeBuild**: 이미지에 Java 21(`corretto21`) 런타임이 있는 표준 이미지. 아티팩트는 S3.
 - **CodeDeploy**: 애플리케이션 + 배포 그룹(In-place). 대상은 `ec2-setty-1` (`i-0634a9c06aa1a2fc4`).
-- **CodePipeline**: Source(GitHub, `main`) → Build(CodeBuild) → Deploy(CodeDeploy).
+- **CodePipeline**: Source(GitHub, **`develop`**) → Build(CodeBuild) → Deploy(CodeDeploy).
+  배포 대상이 DEV EC2이므로 개발 통합 브랜치를 따라간다(DEC-025·DEC-026). `main` 병합은 배포를 트리거하지 않는다.
 - **IAM**
   - EC2 인스턴스 프로파일 `ec2-project`: 아티팩트 S3 버킷에 `s3:GetObject`. 에이전트가 번들을 받는 데 필요하다.
   - CodeBuild 서비스 역할: 아티팩트 S3 쓰기, CloudWatch Logs
