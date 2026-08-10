@@ -6,8 +6,6 @@ export interface CreateEstimateRequestPayload {
   tradeArea: string;
   itemType: string;
   highValueItem: boolean;
-  privacyConsent: true;
-  privacyPolicyVersion: string;
 }
 
 export interface CreateEstimateRequestResponse {

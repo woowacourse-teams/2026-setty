@@ -1,0 +1,29 @@
+.button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: var(--setty-control-height);
+  border: 0;
+  border-radius: var(--setty-control-radius);
+  background: var(--setty-color-brand);
+  color: var(--setty-color-surface);
+  font-size: var(--setty-font-size-action);
+  font-weight: var(--setty-font-weight-action);
+  cursor: pointer;
+}
+
+.button:hover:not(:disabled) {
+  background: var(--setty-color-brand-hover);
+}
+
+.button:focus-visible {
+  outline: 3px solid rgb(2 189 121 / 28%);
+  outline-offset: 3px;
+}
+
+/* 시안에 disabled 상태 값이 없어 공통 토큰을 만들지 않고 flow 안에서만 정의한다. */
+.button:disabled {
+  background: var(--setty-color-text-subtle);
+  cursor: not-allowed;
+}
