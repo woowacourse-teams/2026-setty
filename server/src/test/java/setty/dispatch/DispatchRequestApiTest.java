@@ -522,6 +522,101 @@ class DispatchRequestApiTest {
                 .andExpect(status().isUnauthorized());
     }
 
+    @Test
+    @DisplayName("구매자가 승인하면 배차 대기가 되고 운영자가 배차 완료로 바꾼다")
+    void buyerApprovalThenOperatorCompletionMovesStatusForward() throws Exception {
+        final String created = createDispatchRequest();
+        submitSellerInput(sellerToken(created));
+        recordFinalAmount(latestDispatchRequestId());
+
+        mockMvc.perform(post("/api/dispatch-requests/{buyerToken}/approval", buyerToken(created)))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(get("/api/dispatch-requests/{buyerToken}", buyerToken(created)))
+                .andExpect(jsonPath("$.status").value("DISPATCH_PENDING"));
+
+        mockMvc.perform(post("/api/operator/dispatch-requests/{id}/completion", latestDispatchRequestId())
+                        .header(OperatorAuthInterceptor.OPERATOR_SECRET_HEADER, OPERATOR_SECRET))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(get("/api/operator/dispatch-requests/{id}", latestDispatchRequestId())
+                        .header(OperatorAuthInterceptor.OPERATOR_SECRET_HEADER, OPERATOR_SECRET))
+                .andExpect(jsonPath("$.status").value("DISPATCH_COMPLETED"))
+                .andExpect(jsonPath("$.amountCheckedAt").isNotEmpty());
+
+        mockMvc.perform(get("/api/dispatch-requests/{buyerToken}", buyerToken(created)))
+                .andExpect(jsonPath("$.status").value("DISPATCH_COMPLETED"));
+    }
+
+    @Test
+    @DisplayName("승인을 중복 클릭해도 오류 없이 배차 대기 상태를 유지한다")
+    void approvalIsIdempotentWhileDispatchPending() throws Exception {
+        final String created = createDispatchRequest();
+        submitSellerInput(sellerToken(created));
+        recordFinalAmount(latestDispatchRequestId());
+        mockMvc.perform(post("/api/dispatch-requests/{buyerToken}/approval", buyerToken(created)))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(post("/api/dispatch-requests/{buyerToken}/approval", buyerToken(created)))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(get("/api/dispatch-requests/{buyerToken}", buyerToken(created)))
+                .andExpect(jsonPath("$.status").value("DISPATCH_PENDING"));
+    }
+
+    @Test
+    @DisplayName("최종 금액이 저장되기 전에는 승인할 수 없다")
+    void rejectsApprovalBeforeFinalAmountIsRecorded() throws Exception {
+        final String created = createDispatchRequest();
+
+        mockMvc.perform(post("/api/dispatch-requests/{buyerToken}/approval", buyerToken(created)))
+                .andExpect(status().isConflict());
+    }
+
+    @Test
+    @DisplayName("구매자가 승인한 뒤에는 최종 금액을 수정할 수 없다")
+    void rejectsFinalAmountEditAfterApproval() throws Exception {
+        final String created = createDispatchRequest();
+        submitSellerInput(sellerToken(created));
+        recordFinalAmount(latestDispatchRequestId());
+        mockMvc.perform(post("/api/dispatch-requests/{buyerToken}/approval", buyerToken(created)))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(put("/api/operator/dispatch-requests/{id}/final-amount", latestDispatchRequestId())
+                        .header(OperatorAuthInterceptor.OPERATOR_SECRET_HEADER, OPERATOR_SECRET)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(FINAL_AMOUNT_PAYLOAD))
+                .andExpect(status().isConflict());
+    }
+
+    @Test
+    @DisplayName("승인 전 요청은 배차 완료로 바꿀 수 없다")
+    void rejectsCompletionBeforeBuyerApproval() throws Exception {
+        final String created = createDispatchRequest();
+        submitSellerInput(sellerToken(created));
+        recordFinalAmount(latestDispatchRequestId());
+
+        mockMvc.perform(post("/api/operator/dispatch-requests/{id}/completion", latestDispatchRequestId())
+                        .header(OperatorAuthInterceptor.OPERATOR_SECRET_HEADER, OPERATOR_SECRET))
+                .andExpect(status().isConflict());
+    }
+
+    @Test
+    @DisplayName("배차 완료 전환도 비밀 헤더가 없으면 접근을 막는다")
+    void completionEndpointRejectsRequestsWithoutSecret() throws Exception {
+        createDispatchRequest();
+
+        mockMvc.perform(post("/api/operator/dispatch-requests/{id}/completion", latestDispatchRequestId()))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 구매자 토큰으로는 승인할 수 없다")
+    void returnsNotFoundWhenApprovingWithUnknownBuyerToken() throws Exception {
+        mockMvc.perform(post("/api/dispatch-requests/{buyerToken}/approval", "존재하지-않는-토큰"))
+                .andExpect(status().isNotFound());
+    }
+
     private void recordFinalAmount(final Integer dispatchRequestId) throws Exception {
         mockMvc.perform(put("/api/operator/dispatch-requests/{id}/final-amount", dispatchRequestId)
                         .header(OperatorAuthInterceptor.OPERATOR_SECRET_HEADER, OPERATOR_SECRET)

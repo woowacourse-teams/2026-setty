@@ -69,6 +69,14 @@ public class OperatorDispatchService {
         return new OperatorFinalAmountResponse(buyerStatusUrlFactory.create(dispatchRequest.getBuyerToken()));
     }
 
+    @Transactional
+    public void completeDispatch(final Long id) {
+        final DispatchRequest dispatchRequest = dispatchRequestRepository.findById(id)
+                .orElseThrow(DispatchRequestNotFoundException::new);
+
+        dispatchRequest.completeDispatch();
+    }
+
     private String buyerConfirmUrl(final DispatchRequest dispatchRequest) {
         if (dispatchRequest.getFinalQuotedAmount() == null) {
             return null;

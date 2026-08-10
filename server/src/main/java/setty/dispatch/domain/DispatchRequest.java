@@ -109,6 +109,21 @@ public class DispatchRequest {
         this.status = DispatchStatus.FINAL_AMOUNT_CONFIRM_PENDING;
     }
 
+    public void approveFinalAmount() {
+        if (status != DispatchStatus.FINAL_AMOUNT_CONFIRM_PENDING) {
+            throw new DispatchStatusTransitionException(status, DispatchStatus.DISPATCH_PENDING);
+        }
+        this.amountCheckedAt = SeoulDateTime.now();
+        this.status = DispatchStatus.DISPATCH_PENDING;
+    }
+
+    public void completeDispatch() {
+        if (status != DispatchStatus.DISPATCH_PENDING) {
+            throw new DispatchStatusTransitionException(status, DispatchStatus.DISPATCH_COMPLETED);
+        }
+        this.status = DispatchStatus.DISPATCH_COMPLETED;
+    }
+
     public Long getId() {
         return id;
     }
