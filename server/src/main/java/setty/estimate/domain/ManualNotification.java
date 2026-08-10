@@ -32,30 +32,30 @@ public class ManualNotification {
     @Column(nullable = false)
     private boolean transportFeasible;
 
-    private Long estimatedAmount;
-
     @Column(nullable = false)
     private LocalDateTime notifiedAt;
 
     private ManualNotification(
             final Long estimateRequestId,
             final String messageContent,
-            final boolean transportFeasible,
-            final Long estimatedAmount
+            final boolean transportFeasible
     ) {
         this.estimateRequestId = estimateRequestId;
         this.messageContent = messageContent;
         this.transportFeasible = transportFeasible;
-        this.estimatedAmount = estimatedAmount;
         this.notifiedAt = LocalDateTime.now(SEOUL_ZONE_ID);
     }
 
     public static ManualNotification create(
             final Long estimateRequestId,
             final String messageContent,
-            final boolean transportFeasible,
-            final Long estimatedAmount
+            final boolean transportFeasible
     ) {
-        return new ManualNotification(estimateRequestId, messageContent, transportFeasible, estimatedAmount);
+        return new ManualNotification(estimateRequestId, messageContent, transportFeasible);
+    }
+
+    public void update(final String messageContent, final boolean transportFeasible) {
+        this.messageContent = messageContent;
+        this.transportFeasible = transportFeasible;
     }
 }

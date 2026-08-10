@@ -59,14 +59,22 @@ public class OperatorEstimateRequestService {
             final RecordManualNotificationCommand command
     ) {
         final EstimateRequest estimateRequest = findEstimateRequest(estimateRequestId);
-        estimateRequest.markEstimateNotified();
 
-        manualNotificationRepository.save(ManualNotification.create(
-                estimateRequestId,
-                command.messageContent(),
-                command.transportFeasible(),
-                command.estimatedAmount()
-        ));
+        manualNotificationRepository.findByEstimateRequestId(estimateRequestId)
+                .ifPresentOrElse(
+                        manualNotification -> manualNotification.update(
+                                command.messageContent(),
+                                command.transportFeasible()
+                        ),
+                        () -> {
+                            estimateRequest.markEstimateNotified();
+                            manualNotificationRepository.save(ManualNotification.create(
+                                    estimateRequestId,
+                                    command.messageContent(),
+                                    command.transportFeasible()
+                            ));
+                        }
+                );
     }
 
     private EstimateRequest findEstimateRequest(final Long estimateRequestId) {
@@ -88,9 +96,7 @@ public class OperatorEstimateRequestService {
     private ManualNotificationResult toManualNotificationResult(final ManualNotification manualNotification) {
         return new ManualNotificationResult(
                 manualNotification.getMessageContent(),
-                manualNotification.isTransportFeasible(),
-                manualNotification.getEstimatedAmount(),
-                toOffsetDateTime(manualNotification.getNotifiedAt())
+                manualNotification.isTransportFeasible()
         );
     }
 

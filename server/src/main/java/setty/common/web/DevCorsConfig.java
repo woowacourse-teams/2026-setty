@@ -19,7 +19,7 @@ public class DevCorsConfig implements WebMvcConfigurer {
     public void addCorsMappings(final CorsRegistry registry) {
         registry.addMapping("/api/**")
                 .allowedOrigins(allowedOrigin)
-                .allowedMethods("GET", "POST")
+                .allowedMethods("GET", "POST", "PUT")
                 .allowedHeaders("*");
     }
 }
