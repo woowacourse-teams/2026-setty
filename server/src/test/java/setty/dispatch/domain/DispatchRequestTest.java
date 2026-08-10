@@ -173,4 +173,21 @@ class DispatchRequestTest {
         assertThatThrownBy(dispatchRequest::completeDispatch)
                 .isInstanceOf(DispatchStatusTransitionException.class);
     }
+
+    @Test
+    @DisplayName("안내 문자 기록은 상태와 관계없이 언제든 수정할 수 있다")
+    void updatesMessageContentRegardlessOfStatus() {
+        final DispatchRequest dispatchRequest = newDispatchRequest();
+
+        dispatchRequest.updateMessageContent("발송 전 초안입니다.");
+        assertThat(dispatchRequest.getMessageContent()).isEqualTo("발송 전 초안입니다.");
+
+        dispatchRequest.completeSellerInput(newSellerInput());
+        dispatchRequest.recordFinalAmount(30000);
+        dispatchRequest.approveFinalAmount();
+        dispatchRequest.completeDispatch();
+
+        dispatchRequest.updateMessageContent("배차 완료 후 정정한 문자입니다.");
+        assertThat(dispatchRequest.getMessageContent()).isEqualTo("배차 완료 후 정정한 문자입니다.");
+    }
 }

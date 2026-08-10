@@ -142,6 +142,10 @@ public class DispatchRequest {
         this.status = DispatchStatus.DISPATCH_COMPLETED;
     }
 
+    public void updateMessageContent(final String message) {
+        this.messageContent = message;
+    }
+
     public Long getId() {
         return id;
     }

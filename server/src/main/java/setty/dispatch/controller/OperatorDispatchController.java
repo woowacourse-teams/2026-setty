@@ -15,6 +15,7 @@ import setty.dispatch.domain.DispatchStatus;
 import setty.dispatch.dto.operator.OperatorDispatchRequestDetailResponse;
 import setty.dispatch.dto.operator.OperatorDispatchRequestSummaryResponse;
 import setty.dispatch.dto.operator.OperatorFinalAmountRequest;
+import setty.dispatch.dto.operator.OperatorMessageRequest;
 import setty.dispatch.dto.operator.OperatorFinalAmountResponse;
 import setty.dispatch.service.OperatorDispatchService;
 
@@ -45,6 +46,15 @@ public class OperatorDispatchController {
             @Valid @RequestBody final OperatorFinalAmountRequest request
     ) {
         return ResponseEntity.ok(operatorDispatchService.recordFinalAmount(id, request));
+    }
+
+    @PutMapping("/{id}/message")
+    public ResponseEntity<Void> updateMessage(
+            @PathVariable final Long id,
+            @Valid @RequestBody final OperatorMessageRequest request
+    ) {
+        operatorDispatchService.updateMessageContent(id, request);
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/{id}/completion")

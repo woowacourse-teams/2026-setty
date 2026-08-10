@@ -689,6 +689,87 @@ class DispatchRequestApiTest {
                 .andExpect(jsonPath("$.itemImageUrls").doesNotExist());
     }
 
+    @Test
+    @DisplayName("운영자가 보낸 문자 내용을 기록하고 상세에서 확인한다")
+    void recordsMessageContentAndShowsItInDetail() throws Exception {
+        final String created = createDispatchRequest();
+        submitSellerInput(sellerToken(created));
+        recordFinalAmount(latestDispatchRequestId());
+
+        mockMvc.perform(put("/api/operator/dispatch-requests/{id}/message", latestDispatchRequestId())
+                        .header(OperatorAuthInterceptor.OPERATOR_SECRET_HEADER, OPERATOR_SECRET)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "messageContent": "최종 운송비는 30000원입니다. 링크에서 확인해 주세요."
+                                }
+                                """))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(get("/api/operator/dispatch-requests/{id}", latestDispatchRequestId())
+                        .header(OperatorAuthInterceptor.OPERATOR_SECRET_HEADER, OPERATOR_SECRET))
+                .andExpect(jsonPath("$.messageContent")
+                        .value("최종 운송비는 30000원입니다. 링크에서 확인해 주세요."));
+    }
+
+    @Test
+    @DisplayName("구매자 승인과 배차 완료 후에도 문자 기록을 수정할 수 있다")
+    void allowsEditingMessageContentAfterApprovalAndCompletion() throws Exception {
+        final String created = createDispatchRequest();
+        submitSellerInput(sellerToken(created));
+        recordFinalAmount(latestDispatchRequestId());
+        mockMvc.perform(post("/api/dispatch-requests/{buyerToken}/approval", buyerToken(created)))
+                .andExpect(status().isNoContent());
+        mockMvc.perform(post("/api/operator/dispatch-requests/{id}/completion", latestDispatchRequestId())
+                        .header(OperatorAuthInterceptor.OPERATOR_SECRET_HEADER, OPERATOR_SECRET))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(put("/api/operator/dispatch-requests/{id}/message", latestDispatchRequestId())
+                        .header(OperatorAuthInterceptor.OPERATOR_SECRET_HEADER, OPERATOR_SECRET)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "messageContent": "배차 완료 후 정정한 안내입니다."
+                                }
+                                """))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(get("/api/operator/dispatch-requests/{id}", latestDispatchRequestId())
+                        .header(OperatorAuthInterceptor.OPERATOR_SECRET_HEADER, OPERATOR_SECRET))
+                .andExpect(jsonPath("$.messageContent").value("배차 완료 후 정정한 안내입니다."));
+    }
+
+    @Test
+    @DisplayName("문자 내용이 비면 기록을 거절한다")
+    void rejectsBlankMessageContent() throws Exception {
+        createDispatchRequest();
+
+        mockMvc.perform(put("/api/operator/dispatch-requests/{id}/message", latestDispatchRequestId())
+                        .header(OperatorAuthInterceptor.OPERATOR_SECRET_HEADER, OPERATOR_SECRET)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "messageContent": " "
+                                }
+                                """))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("문자 기록도 비밀 헤더가 없으면 접근을 막는다")
+    void messageEndpointRejectsRequestsWithoutSecret() throws Exception {
+        createDispatchRequest();
+
+        mockMvc.perform(put("/api/operator/dispatch-requests/{id}/message", latestDispatchRequestId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "messageContent": "테스트 문자입니다."
+                                }
+                                """))
+                .andExpect(status().isUnauthorized());
+    }
+
     private void recordFinalAmount(final Integer dispatchRequestId) throws Exception {
         mockMvc.perform(put("/api/operator/dispatch-requests/{id}/final-amount", dispatchRequestId)
                         .header(OperatorAuthInterceptor.OPERATOR_SECRET_HEADER, OPERATOR_SECRET)
