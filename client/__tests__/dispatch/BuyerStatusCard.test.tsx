@@ -90,7 +90,7 @@ afterEach(() => {
 });
 
 describe('Issue #14 구매자 상태 카드', () => {
-  it('요청 생성 후 구매자 직접 URL로 이동하고 조회 응답의 링크를 표시한다', async () => {
+  it('요청 생성 후 구매자 직접 URL로 이동해 대기 화면을 조회한다', async () => {
     const user = userEvent.setup();
     mockFetch
       .mockResolvedValueOnce(
@@ -112,9 +112,6 @@ describe('Issue #14 구매자 상태 카드', () => {
     ).toBeInTheDocument();
     expect(screen.getByTestId('route-path')).toHaveTextContent(
       `/dispatch/${BUYER_TOKEN}`,
-    );
-    expect(screen.getByRole('textbox', { name: '판매자 입력 링크' })).toHaveValue(
-      SELLER_INPUT_URL,
     );
     expect(mockFetch).toHaveBeenLastCalledWith(
       `${API_ORIGIN}/api/dispatch-requests/${BUYER_TOKEN}`,
@@ -162,9 +159,6 @@ describe('Issue #14 구매자 상태 카드', () => {
     expect(
       await screen.findByRole('heading', { name: '판매자를 기다리고 있어요' }),
     ).toBeInTheDocument();
-    expect(screen.getByRole('textbox', { name: '판매자 입력 링크' })).toHaveValue(
-      SELLER_INPUT_URL,
-    );
 
     firstVisit.unmount();
     renderAt(`/dispatch/${BUYER_TOKEN}`);
@@ -172,59 +166,27 @@ describe('Issue #14 구매자 상태 카드', () => {
     expect(
       await screen.findByRole('heading', { name: '판매자를 기다리고 있어요' }),
     ).toBeInTheDocument();
-    expect(screen.getByRole('textbox', { name: '판매자 입력 링크' })).toHaveValue(
-      SELLER_INPUT_URL,
-    );
     expect(mockFetch).toHaveBeenCalledTimes(2);
   });
 
-  it('카드에서 판매자 입력 링크를 복사하고 성공을 안내한다', async () => {
+  it('시안대로 안내와 홈 이동만 두고 링크 카드·상태 pill을 두지 않는다', async () => {
     mockFetch.mockResolvedValue(jsonResponse(200, PENDING_REQUEST));
     renderAt(`/dispatch/${BUYER_TOKEN}`);
 
     await screen.findByRole('heading', { name: '판매자를 기다리고 있어요' });
-    await userEvent.click(screen.getByRole('button', { name: '링크 복사' }));
 
-    expect(clipboardWriteText).toHaveBeenCalledWith(SELLER_INPUT_URL);
-    expect(await screen.findByText('판매자 입력 링크를 복사했어요.')).toHaveAttribute(
-      'role',
-      'status',
-    );
-  });
+    expect(
+      screen.getByText(/판매자가 사진·주소를 입력하면/, { exact: false }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '홈으로 돌아가기' })).toBeInTheDocument();
 
-  it('Clipboard API가 실패해도 링크를 직접 선택할 수 있게 유지한다', async () => {
-    clipboardWriteText.mockRejectedValueOnce(new Error('FAKE_CLIPBOARD_ERROR'));
-    mockFetch.mockResolvedValue(jsonResponse(200, PENDING_REQUEST));
-    renderAt(`/dispatch/${BUYER_TOKEN}`);
-
-    await screen.findByRole('heading', { name: '판매자를 기다리고 있어요' });
-    await userEvent.click(screen.getByRole('button', { name: '링크 복사' }));
-
-    expect(await screen.findByRole('alert')).toHaveTextContent(
-      '링크를 직접 선택해 복사해 주세요.',
-    );
-    expect(screen.getByRole('textbox', { name: '판매자 입력 링크' })).toHaveValue(
-      SELLER_INPUT_URL,
-    );
-  });
-
-  it('Clipboard API를 지원하지 않는 브라우저에서도 수동 복사 링크를 제공한다', async () => {
-    Object.defineProperty(navigator, 'clipboard', {
-      configurable: true,
-      value: undefined,
-    });
-    mockFetch.mockResolvedValue(jsonResponse(200, PENDING_REQUEST));
-    renderAt(`/dispatch/${BUYER_TOKEN}`);
-
-    await screen.findByRole('heading', { name: '판매자를 기다리고 있어요' });
-    await userEvent.click(screen.getByRole('button', { name: '링크 복사' }));
-
-    expect(await screen.findByRole('alert')).toHaveTextContent(
-      '링크를 직접 선택해 복사해 주세요.',
-    );
-    expect(screen.getByRole('textbox', { name: '판매자 입력 링크' })).toHaveValue(
-      SELLER_INPUT_URL,
-    );
+    // 링크 재전달 수단은 링크 생성 화면에만 둔다.
+    expect(
+      screen.queryByRole('textbox', { name: '판매자 입력 링크' }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '링크 복사' })).not.toBeInTheDocument();
+    expect(screen.queryByText(SELLER_INPUT_URL)).not.toBeInTheDocument();
+    expect(screen.queryByText('판매자 정보를 기다리고 있어요')).not.toBeInTheDocument();
   });
 
   it('5초 폴링으로 완료 상태를 갱신하고 완료 후에는 폴링을 멈춘다', async () => {
@@ -245,10 +207,6 @@ describe('Issue #14 구매자 상태 카드', () => {
     expect(
       await screen.findByRole('heading', { name: '판매자 입력이 완료됐어요' }),
     ).toBeInTheDocument();
-    expect(screen.getByText('배송 조건을 확인하고 있어요')).toBeInTheDocument();
-    expect(
-      screen.queryByRole('textbox', { name: '판매자 입력 링크' }),
-    ).not.toBeInTheDocument();
     expect(mockFetch).toHaveBeenCalledTimes(2);
 
     await act(async () => {
@@ -290,9 +248,6 @@ describe('Issue #14 구매자 상태 카드', () => {
       await screen.findByRole('heading', { name: '판매자를 기다리고 있어요' }),
     ).toBeInTheDocument();
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
-    expect(screen.getByRole('textbox', { name: '판매자 입력 링크' })).toHaveValue(
-      SELLER_INPUT_URL,
-    );
     expect(mockFetch).toHaveBeenCalledTimes(2);
   });
 

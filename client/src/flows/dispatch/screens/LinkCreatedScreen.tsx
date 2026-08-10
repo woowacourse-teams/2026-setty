@@ -5,6 +5,7 @@ import BrandHeader from '../components/BrandHeader';
 import MobileScreen from '../components/MobileScreen';
 import PrimaryButton from '../components/PrimaryButton';
 import ResultMessage from '../components/ResultMessage';
+import SecondaryButton from '../components/SecondaryButton';
 import { ErrorMessage, LoadingMessage } from '../components/StatusMessage';
 import TextButton from '../components/TextButton';
 import styles from './LinkCreatedScreen.module.css';
@@ -186,8 +187,14 @@ export default function LinkCreatedScreen({
       footer={
         <>
           <PrimaryButton onClick={() => void handleShare()}>링크 공유하기</PrimaryButton>
-          <TextButton onClick={() => void handleCopy()}>링크 복사</TextButton>
-          <TextButton onClick={onNext}>판매자 입력 상태 확인하기</TextButton>
+          <SecondaryButton onClick={() => void handleCopy()}>링크 복사</SecondaryButton>
+          {/*
+           * 시안은 두 버튼만 두지만 공유·복사가 모두 실패하면 다음 화면으로 갈 수단이 없다.
+           * 실패했을 때만 대체 동선을 보여준다.
+           */}
+          {error ? (
+            <TextButton onClick={onNext}>판매자 입력 상태 확인하기</TextButton>
+          ) : null}
         </>
       }
     >

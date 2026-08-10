@@ -202,6 +202,31 @@ describe('링크 생성 화면 복구', () => {
     );
   });
 
+  it('시안대로 공유·복사 두 버튼만 두고 실패 전에는 대체 동선을 두지 않는다', async () => {
+    mockFetch.mockResolvedValue(
+      jsonResponse(200, {
+        status: 'SELLER_INPUT_PENDING',
+        buyerName: '가상구매자',
+        buyerPhoneNumber: '010-0000-0000',
+        deliveryAddress: '가상시 가상구 가상로 1',
+        itemType: '3인용 소파',
+        highValueItem: false,
+        sellerInputCompleted: false,
+        createdAt: '2026-08-07T10:00:00+09:00',
+        sellerInputUrl: SELLER_INPUT_URL,
+      }),
+    );
+
+    renderAt(`/dispatch/${BUYER_TOKEN}/link`);
+
+    expect(await screen.findByText('거래가 시작됐어요')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '링크 공유하기' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '링크 복사' })).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: '판매자 입력 상태 확인하기' }),
+    ).not.toBeInTheDocument();
+  });
+
   it('조회 실패를 오류로 보여주고 링크를 지어내지 않는다', async () => {
     mockFetch.mockResolvedValue(
       jsonResponse(404, { message: '배차 요청을 찾을 수 없습니다.' }),
