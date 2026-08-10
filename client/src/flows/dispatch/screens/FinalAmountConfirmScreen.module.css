@@ -5,6 +5,11 @@
   padding: 40px 24px 0;
 }
 
+/* 시안에서 제목 중 금액만 브랜드 색으로 강조한다. */
+.amount {
+  color: var(--setty-color-brand);
+}
+
 /* 설명 아래 현재 상태 문구. 시안에 없는 요소라 flow 안에서만 쓰는 값이다. */
 .status {
   margin: 20px 0 0;
@@ -15,14 +20,4 @@
   font-size: 13.5px;
   font-weight: 700;
   line-height: 19.58px;
-}
-
-/* 비활성 action의 이유를 알리는 보조 문구. 시안에 없어 flow 안에서만 쓰는 값이다. */
-.actionNote {
-  margin: 0;
-  color: var(--setty-color-text-muted);
-  font-size: 13.5px;
-  font-weight: var(--setty-font-weight-body);
-  line-height: 19.58px;
-  text-align: center;
 }

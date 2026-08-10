@@ -18,6 +18,10 @@ export const findBuyerDispatchRequest = (buyerToken: string) =>
     `${BUYER_PATH}/${encodeURIComponent(buyerToken)}`,
   );
 
+/** 구매자가 운영자의 최종 금액에 동의한다. 거절은 server 계약이 없다. */
+export const approveFinalAmount = (buyerToken: string) =>
+  dispatchClient.post<void>(`${BUYER_PATH}/${encodeURIComponent(buyerToken)}/approval`);
+
 export const findSellerInputSession = (token: string) =>
   dispatchClient.get<SellerInputSessionResponse>(
     `${SELLER_SESSION_PATH}/${encodeURIComponent(token)}`,

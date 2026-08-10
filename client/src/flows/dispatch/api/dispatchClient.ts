@@ -74,7 +74,8 @@ export const dispatchClient = {
   get<TResponse>(path: string): Promise<TResponse> {
     return request<TResponse>(path);
   },
-  post<TResponse>(path: string, body: unknown): Promise<TResponse> {
+  /** 본문 없는 상태 전환 POST가 있어 `body`는 선택이다. */
+  post<TResponse>(path: string, body?: unknown): Promise<TResponse> {
     return request<TResponse>(path, { method: 'POST', body });
   },
 };

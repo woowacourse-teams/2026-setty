@@ -4,7 +4,8 @@ import styles from './ResultMessage.module.css';
 interface ResultMessageProps {
   /** 시안의 큰 이모지 */
   emoji: string;
-  title: string;
+  /** 시안처럼 제목 일부만 강조해야 하는 화면이 있어 node를 허용한다. */
+  title: ReactNode;
   /** 줄바꿈은 `\n`으로 넣는다. */
   description: string;
   /** 설명 아래 추가로 보여줄 내용 */

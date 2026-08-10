@@ -45,6 +45,8 @@ export interface BuyerDispatchRequestResponse {
   sellerInputCompleted: boolean;
   createdAt: string;
   sellerInputUrl: string;
+  /** 운영자가 기록하기 전에는 `null`이다. */
+  finalQuotedAmount: number | null;
 }
 
 /** GET /api/dispatch-requests/seller-sessions/{token} */

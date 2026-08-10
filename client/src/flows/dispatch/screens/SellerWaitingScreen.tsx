@@ -14,6 +14,11 @@ interface SellerWaitingScreenProps {
   /** POST /api/dispatch-requests 응답의 buyerToken */
   buyerToken: string;
   onGoHome: () => void;
+  /**
+   * 운영자가 최종 금액을 기록한 뒤 안내하는 링크는 이 화면 경로다.
+   * 확인할 금액이 생기면 대기 화면 대신 최종 금액 확인 화면으로 보낸다.
+   */
+  onFinalAmountReady?: () => void;
 }
 
 const DEFAULT_ERROR_MESSAGE = '요청을 처리하지 못했어요. 잠시 후 다시 시도해 주세요.';
@@ -48,6 +53,7 @@ const COMPLETED_MESSAGE = {
 export default function SellerWaitingScreen({
   buyerToken,
   onGoHome,
+  onFinalAmountReady,
 }: SellerWaitingScreenProps) {
   const [request, setRequest] = useState<BuyerDispatchRequestResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -67,6 +73,13 @@ export default function SellerWaitingScreen({
             return;
           }
           setRequest(response);
+          if (
+            response.status === 'FINAL_AMOUNT_CONFIRM_PENDING' &&
+            response.finalQuotedAmount !== null
+          ) {
+            onFinalAmountReady?.();
+            return;
+          }
           // 판매자 입력이 끝나면 더 조회할 이유가 없다.
           if (!response.sellerInputCompleted) {
             timerId = setTimeout(poll, POLL_INTERVAL_MS);
@@ -96,7 +109,7 @@ export default function SellerWaitingScreen({
       active = false;
       clearTimeout(timerId);
     };
-  }, [buyerToken, retryCount]);
+  }, [buyerToken, onFinalAmountReady, retryCount]);
 
   /** 조회 상태 초기화는 effect 본문이 아니라 재시도 event에서 한다. */
   const handleRetry = useCallback(() => {

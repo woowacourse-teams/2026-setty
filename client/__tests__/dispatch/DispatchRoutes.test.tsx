@@ -486,29 +486,127 @@ describe('판매자 흐름', () => {
 });
 
 describe('최종 금액 확인 화면', () => {
-  it('상태만 조회하고 동의·거절 action은 server 계약이 없어 비활성이다', async () => {
+  const buyerRequest = (overrides: Record<string, unknown>) => ({
+    status: 'FINAL_AMOUNT_CONFIRM_PENDING',
+    buyerName: '가상구매자',
+    buyerPhoneNumber: '010-0000-0000',
+    deliveryAddress: '가상시 가상구 가상로 1',
+    itemType: '3인용 소파',
+    highValueItem: true,
+    sellerInputCompleted: true,
+    createdAt: '2026-08-06T10:00:00+09:00',
+    sellerInputUrl: SELLER_INPUT_URL,
+    finalQuotedAmount: 9900,
+    ...overrides,
+  });
+
+  it('운영자가 기록한 최종 금액을 보여주고 진행하기로 동의를 보낸다', async () => {
+    const user = userEvent.setup();
+    mockFetch
+      .mockResolvedValueOnce(jsonResponse(200, buyerRequest({})))
+      .mockResolvedValueOnce(emptyResponse(204))
+      .mockResolvedValueOnce(
+        jsonResponse(200, buyerRequest({ status: 'DISPATCH_PENDING' })),
+      );
+
+    renderAt(`/final-amount/${BUYER_TOKEN}`);
+
+    expect(
+      await screen.findByRole('heading', { name: /9,900원\s*이면 배달돼요/ }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('진행하면 안전하게 배송이 시작돼요.')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: '진행하기' }));
+
+    await waitFor(() =>
+      expect(lastRequest().url).toBe(
+        `${API_ORIGIN}/api/dispatch-requests/${BUYER_TOKEN}`,
+      ),
+    );
+    expect(mockFetch.mock.calls[1][0]).toBe(
+      `${API_ORIGIN}/api/dispatch-requests/${BUYER_TOKEN}/approval`,
+    );
+    expect(mockFetch.mock.calls[1][1]?.method).toBe('POST');
+
+    expect(
+      await screen.findByRole('heading', { name: '진행하기로 확인했어요' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '진행하기' })).not.toBeInTheDocument();
+  });
+
+  it('금액을 확인하는 동안에는 시안의 두 action만 보여준다', async () => {
+    mockFetch.mockResolvedValue(jsonResponse(200, buyerRequest({})));
+
+    renderAt(`/final-amount/${BUYER_TOKEN}`);
+
+    // 거래 취소는 연결할 server 계약이 없어 비활성이다.
+    expect(await screen.findByRole('button', { name: '거래 취소' })).toBeDisabled();
+    expect(screen.getAllByRole('button')).toHaveLength(2);
+    expect(
+      screen.queryByRole('button', { name: '홈으로 돌아가기' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('이미 종료된 요청에는 동의 action을 보여주지 않는다', async () => {
     mockFetch.mockResolvedValue(
-      jsonResponse(200, {
-        status: 'FINAL_AMOUNT_CONFIRM_PENDING',
-        buyerName: '가상구매자',
-        buyerPhoneNumber: '01000000000',
-        deliveryAddress: '가상시 가상구 가상로 1',
-        itemType: '3인용 소파',
-        highValueItem: true,
-        sellerInputCompleted: true,
-        createdAt: '2026-08-06T10:00:00',
-      }),
+      jsonResponse(200, buyerRequest({ status: 'FINAL_AMOUNT_REJECTED' })),
     );
 
     renderAt(`/final-amount/${BUYER_TOKEN}`);
 
     expect(
-      await screen.findByRole('heading', { name: '최종 금액 확인이 필요해요' }),
+      await screen.findByRole('heading', { name: '진행이 종료됐어요' }),
     ).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '진행하기' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: '거래 취소' })).toBeDisabled();
+    expect(screen.getByText('최종 금액을 거절해 종료됐어요')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '진행하기' })).not.toBeInTheDocument();
+  });
+
+  it('운영자가 안내하는 구매자 상태 링크에서 최종 금액 화면으로 이동한다', async () => {
+    mockFetch.mockResolvedValue(jsonResponse(200, buyerRequest({})));
+
+    renderAt(`/dispatch/${BUYER_TOKEN}`);
+
+    expect(
+      await screen.findByRole('heading', { name: /9,900원\s*이면 배달돼요/ }),
+    ).toBeInTheDocument();
+    expect(currentPath()).toBe(`/final-amount/${BUYER_TOKEN}`);
+  });
+
+  it('최종 금액이 아직 없으면 동의·취소 action을 보여주지 않는다', async () => {
+    mockFetch.mockResolvedValue(
+      jsonResponse(
+        200,
+        buyerRequest({ status: 'FINAL_REVIEW_PENDING', finalQuotedAmount: null }),
+      ),
+    );
+
+    renderAt(`/final-amount/${BUYER_TOKEN}`);
+
+    expect(
+      await screen.findByRole('heading', { name: '최종 금액을 확인하고 있어요' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '진행하기' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '거래 취소' })).not.toBeInTheDocument();
 
     // 구매자 화면에 판매자 정보를 노출하지 않는다.
     expect(screen.queryByText(/010-/)).not.toBeInTheDocument();
+  });
+
+  it('동의 요청이 실패하면 오류를 그대로 보여주고 화면을 넘기지 않는다', async () => {
+    const user = userEvent.setup();
+    mockFetch
+      .mockResolvedValueOnce(jsonResponse(200, buyerRequest({})))
+      .mockResolvedValueOnce(
+        jsonResponse(409, { message: '이미 처리된 요청이에요.' }),
+      );
+
+    renderAt(`/final-amount/${BUYER_TOKEN}`);
+
+    await user.click(await screen.findByRole('button', { name: '진행하기' }));
+
+    expect(await screen.findByText('이미 처리된 요청이에요.')).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: /9,900원\s*이면 배달돼요/ }),
+    ).toBeInTheDocument();
   });
 });
