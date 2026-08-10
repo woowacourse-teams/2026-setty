@@ -81,13 +81,31 @@ function DispatchIntroRoute() {
   );
 }
 
+/**
+ * 동의 안내 화면은 같은 경로에 history 항목만 더해 연다.
+ * 별도 경로로 이동하면 폼이 언마운트돼 입력값이 사라지고,
+ * 화면 state로만 열면 히스토리가 쌓이지 않아 브라우저 뒤로가기가 사이트 밖으로 나간다.
+ */
+interface BuyerFormState {
+  privacyNotice?: boolean;
+}
+
 function BuyerRequestFormRoute() {
   const navigate = useNavigate();
+  const { state } = useLocation();
   const goBack = useGoBack(DISPATCH_PATH.home);
+  const isPrivacyNoticeOpen = (state as BuyerFormState | null)?.privacyNotice === true;
 
   return (
     <BuyerRequestFormScreen
       onBack={goBack}
+      isPrivacyNoticeOpen={isPrivacyNoticeOpen}
+      onOpenPrivacyNotice={() =>
+        navigate(DISPATCH_PATH.buyerForm, {
+          state: { privacyNotice: true } satisfies BuyerFormState,
+        })
+      }
+      onClosePrivacyNotice={() => navigate(-1)}
       onCreated={(result) =>
         /*
          * 제출한 폼을 히스토리에 남기지 않는다.

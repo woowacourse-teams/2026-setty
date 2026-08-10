@@ -1,0 +1,96 @@
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.consent {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  cursor: pointer;
+}
+
+/* 네이티브 체크박스를 접근성 트리에만 남기고 시안의 사각 체크로 대체한다. */
+.input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 21px;
+  height: 21px;
+  border-radius: 7px;
+  background: var(--setty-color-surface-muted);
+}
+
+.input:checked + .box {
+  background: var(--setty-color-brand);
+}
+
+.input:focus-visible + .box {
+  outline: 3px solid rgb(2 189 121 / 28%);
+  outline-offset: 3px;
+}
+
+.checkIcon {
+  width: 12px;
+  height: 12px;
+  /* 체크 전에는 회색 배경만 보인다. */
+  visibility: hidden;
+}
+
+.input:checked + .box .checkIcon {
+  visibility: visible;
+}
+
+.text {
+  color: var(--setty-color-text-body);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: -0.2px;
+}
+
+.noticeLink {
+  flex: 0 0 auto;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--setty-color-text-subtle);
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.noticeLink:focus-visible {
+  outline: 3px solid rgb(2 189 121 / 28%);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* 시안에 error 색이 없어 공통 토큰을 만들지 않고 flow 안에서만 쓴다. */
+.error {
+  margin: 0;
+  color: #f04452;
+  font-size: 13.5px;
+  font-weight: 500;
+}

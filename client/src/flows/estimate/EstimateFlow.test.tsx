@@ -33,12 +33,15 @@ function renderAt(path: string) {
   );
 }
 
+const PRIVACY_CONSENT_NAME = '(필수) 개인정보 수집·이용 동의';
+
 async function fillValidEstimateForm() {
   const user = userEvent.setup();
   await user.type(screen.getByLabelText('상품명'), '테스트 의자');
   await user.type(screen.getByLabelText('거래 지역'), '테스트구 테스트동');
   await user.type(screen.getByLabelText('이름'), '테스트사용자');
   await user.type(screen.getByLabelText('연락처'), '010-0000-0000');
+  await user.click(screen.getByRole('checkbox', { name: PRIVACY_CONSENT_NAME }));
   return user;
 }
 
@@ -84,6 +87,48 @@ test('필수 입력을 확인하고 사용자에게 각 필드 오류를 표시�
   expect(screen.getByText('거래 지역을 입력해 주세요.')).toBeInTheDocument();
   expect(screen.getByText('상품명을 입력해 주세요.')).toBeInTheDocument();
   expect(fetchMock).not.toHaveBeenCalled();
+});
+
+test('개인정보 수집·이용에 동의하지 않으면 요청을 보내지 않는다', async () => {
+  renderAt('/estimate');
+  const user = userEvent.setup();
+  await user.type(screen.getByLabelText('상품명'), '테스트 의자');
+  await user.type(screen.getByLabelText('거래 지역'), '테스트구 테스트동');
+  await user.type(screen.getByLabelText('이름'), '테스트사용자');
+  await user.type(screen.getByLabelText('연락처'), '010-0000-0000');
+
+  await user.click(screen.getByRole('button', { name: '예상 견적 요청하기' }));
+
+  expect(screen.getByText('개인정보 수집·이용에 동의해 주세요.')).toBeInTheDocument();
+  expect(fetchMock).not.toHaveBeenCalled();
+});
+
+test('보기로 연 동의 화면에서 동의하면 입력값을 유지한 채 체크된다', async () => {
+  renderAt('/estimate');
+  const user = userEvent.setup();
+  await user.type(screen.getByLabelText('상품명'), '테스트 의자');
+
+  await user.click(screen.getByRole('button', { name: '보기' }));
+
+  expect(
+    screen.getByRole('heading', { name: /아래 정보를 수집해요/ }),
+  ).toBeInTheDocument();
+  expect(screen.getByText('이름, 연락처, 거래 지역, 물품 종류, 50만 원 초과 여부')).toBeInTheDocument();
+
+  await user.click(screen.getByRole('button', { name: '동의하고 계속하기' }));
+
+  expect(screen.getByRole('checkbox', { name: PRIVACY_CONSENT_NAME })).toBeChecked();
+  expect(screen.getByLabelText('상품명')).toHaveValue('테스트 의자');
+});
+
+test('동의 화면의 뒤로 가기는 동의하지 않고 폼으로 돌아온다', async () => {
+  renderAt('/estimate');
+  const user = userEvent.setup();
+
+  await user.click(screen.getByRole('button', { name: '보기' }));
+  await user.click(screen.getByRole('button', { name: '뒤로 가기' }));
+
+  expect(screen.getByRole('checkbox', { name: PRIVACY_CONSENT_NAME })).not.toBeChecked();
 });
 
 test('견적 요청을 정규화해 제출하고 접수 완료 화면으로 이동한다', async () => {

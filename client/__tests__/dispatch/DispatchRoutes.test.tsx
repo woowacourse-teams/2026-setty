@@ -10,6 +10,7 @@ import { API_ORIGIN } from '@/shared/api/http';
  * 개인정보를 남기지 않도록 명백한 가상 데이터만 쓴다.
  */
 
+const PRIVACY_CONSENT_NAME = '(필수) 개인정보 수집·이용 동의';
 const BUYER_TOKEN = 'buyer-token-test';
 const SELLER_TOKEN = 'seller-token-test';
 const SELLER_INPUT_URL = 'http://localhost:5173/seller-input/seller-token-test';
@@ -85,6 +86,7 @@ describe('구매자 흐름', () => {
     await user.type(screen.getByLabelText('연락처'), '01000000000');
     await user.type(screen.getByLabelText('받는 주소'), '가상시 가상구 가상로 1');
     await user.click(screen.getByRole('button', { name: /50만원 이상/ }));
+    await user.click(screen.getByRole('checkbox', { name: PRIVACY_CONSENT_NAME }));
     await user.click(screen.getByRole('button', { name: '링크 생성하기' }));
 
     await waitFor(() => expect(mockFetch).toHaveBeenCalled());
@@ -116,6 +118,7 @@ describe('구매자 흐름', () => {
     await user.type(screen.getByLabelText('구매자 이름'), '가상구매자');
     await user.type(screen.getByLabelText('연락처'), '01000000000');
     await user.type(screen.getByLabelText('받는 주소'), '가상시 가상구 가상로 1');
+    await user.click(screen.getByRole('checkbox', { name: PRIVACY_CONSENT_NAME }));
     await user.click(screen.getByRole('button', { name: '링크 생성하기' }));
 
     expect(
@@ -123,6 +126,39 @@ describe('구매자 흐름', () => {
     ).toBeInTheDocument();
     expect(screen.queryByText('거래가 시작됐어요')).not.toBeInTheDocument();
     expect(currentPath()).toBe('/dispatch/new');
+  });
+
+  it('개인정보 수집·이용에 동의하지 않으면 API를 호출하지 않는다', async () => {
+    const user = userEvent.setup();
+
+    renderAt('/dispatch/new');
+
+    await user.type(screen.getByLabelText('상품명'), '3인용 소파');
+    await user.type(screen.getByLabelText('구매자 이름'), '가상구매자');
+    await user.type(screen.getByLabelText('연락처'), '01000000000');
+    await user.type(screen.getByLabelText('받는 주소'), '가상시 가상구 가상로 1');
+    await user.click(screen.getByRole('button', { name: '링크 생성하기' }));
+
+    expect(screen.getByText('개인정보 수집·이용에 동의해 주세요.')).toBeInTheDocument();
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it('보기로 연 동의 화면에서 동의하면 입력값을 유지한 채 체크된다', async () => {
+    const user = userEvent.setup();
+
+    renderAt('/dispatch/new');
+    await user.type(screen.getByLabelText('상품명'), '3인용 소파');
+
+    await user.click(screen.getByRole('button', { name: '보기' }));
+
+    expect(screen.getByRole('heading', { name: /아래 정보를 수집해요/ })).toBeInTheDocument();
+    expect(screen.getByText('이름, 연락처, 받는 주소, 거래 정보')).toBeInTheDocument();
+    expect(currentPath()).toBe('/dispatch/new');
+
+    await user.click(screen.getByRole('button', { name: '동의하고 계속하기' }));
+
+    expect(screen.getByRole('checkbox', { name: PRIVACY_CONSENT_NAME })).toBeChecked();
+    expect(screen.getByLabelText('상품명')).toHaveValue('3인용 소파');
   });
 
   it('연락처 형식이 server @Pattern과 다르면 API를 호출하지 않는다', async () => {

@@ -1,0 +1,57 @@
+.content {
+  /* 시안 좌우 여백 32px */
+  padding: 20px 32px 32px;
+}
+
+.title {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  color: var(--setty-color-text-strong);
+  font-size: var(--setty-font-size-title);
+  font-weight: var(--setty-font-weight-title);
+  letter-spacing: -0.5px;
+  line-height: var(--setty-line-height-title);
+}
+
+.titleLine {
+  display: block;
+}
+
+.sections {
+  margin: 36px 0 0;
+}
+
+.section + .section {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid var(--setty-color-border);
+}
+
+.sectionLabel {
+  margin: 0 0 8px;
+  color: var(--setty-color-brand);
+  font-size: 13.5px;
+  font-weight: 700;
+  letter-spacing: -0.2px;
+}
+
+.sectionText,
+.sectionTextStrong {
+  margin: 0;
+  color: var(--setty-color-text-strong);
+  font-size: var(--setty-font-size-body);
+  font-weight: var(--setty-font-weight-body);
+  line-height: 1.6;
+}
+
+/* 시안에서 수집 항목만 굵게 강조된다. */
+.sectionTextStrong {
+  font-size: 16.5px;
+  font-weight: 700;
+}
+
+.footer {
+  /* MobileScreen footer 기본 좌우 여백 20px + 12px = 시안 32px */
+  margin: 0 12px;
+}

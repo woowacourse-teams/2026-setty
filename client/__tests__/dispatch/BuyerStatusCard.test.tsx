@@ -69,6 +69,7 @@ async function submitBuyerRequest(user: ReturnType<typeof userEvent.setup>) {
   await user.type(screen.getByLabelText('구매자 이름'), '가상구매자');
   await user.type(screen.getByLabelText('연락처'), '01000000000');
   await user.type(screen.getByLabelText('받는 주소'), '가상시 가상구 가상로 1');
+  await user.click(screen.getByRole('checkbox', { name: '(필수) 개인정보 수집·이용 동의' }));
   await user.click(screen.getByRole('button', { name: '링크 생성하기' }));
 }
 
