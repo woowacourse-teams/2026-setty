@@ -64,7 +64,7 @@ public class OperatorDispatchService {
         final DispatchRequest dispatchRequest = dispatchRequestRepository.findById(id)
                 .orElseThrow(DispatchRequestNotFoundException::new);
 
-        dispatchRequest.recordFinalAmount(request.finalQuotedAmount(), request.messageContent());
+        dispatchRequest.recordFinalAmount(request.finalQuotedAmount());
 
         return new OperatorFinalAmountResponse(buyerStatusUrlFactory.create(dispatchRequest.getBuyerToken()));
     }

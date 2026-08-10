@@ -118,13 +118,12 @@ public class DispatchRequest {
         return sellerInput != null && sellerInput.isPresent();
     }
 
-    public void recordFinalAmount(final int amount, final String message) {
+    public void recordFinalAmount(final int amount) {
         if (status != DispatchStatus.FINAL_REVIEW_PENDING
                 && status != DispatchStatus.FINAL_AMOUNT_CONFIRM_PENDING) {
             throw new DispatchStatusTransitionException(status, DispatchStatus.FINAL_AMOUNT_CONFIRM_PENDING);
         }
         this.finalQuotedAmount = amount;
-        this.messageContent = message;
         this.status = DispatchStatus.FINAL_AMOUNT_CONFIRM_PENDING;
     }
 

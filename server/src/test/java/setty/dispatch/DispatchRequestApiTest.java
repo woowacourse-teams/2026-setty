@@ -63,8 +63,7 @@ class DispatchRequestApiTest {
 
     private static final String FINAL_AMOUNT_PAYLOAD = """
             {
-              "finalQuotedAmount": 30000,
-              "messageContent": "최종 운송비는 30000원입니다."
+              "finalQuotedAmount": 30000
             }
             """;
 
@@ -415,7 +414,7 @@ class DispatchRequestApiTest {
     }
 
     @Test
-    @DisplayName("운영자가 최종 금액과 안내 문자를 저장하면 확인 대기가 되고 구매자 확인 링크를 돌려준다")
+    @DisplayName("운영자가 최종 금액을 저장하면 확인 대기가 되고 구매자 확인 링크를 돌려준다")
     void recordingFinalAmountMovesToConfirmPendingAndReturnsBuyerConfirmUrl() throws Exception {
         final String created = createDispatchRequest();
         submitSellerInput(sellerToken(created));
@@ -432,7 +431,6 @@ class DispatchRequestApiTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("FINAL_AMOUNT_CONFIRM_PENDING"))
                 .andExpect(jsonPath("$.finalQuotedAmount").value(30000))
-                .andExpect(jsonPath("$.messageContent").value("최종 운송비는 30000원입니다."))
                 .andExpect(jsonPath("$.buyerConfirmUrl").value(containsString(buyerToken(created))));
     }
 
@@ -450,7 +448,7 @@ class DispatchRequestApiTest {
     }
 
     @Test
-    @DisplayName("구매자 승인 전에는 최종 금액과 안내 문자를 다시 수정할 수 있다")
+    @DisplayName("구매자 승인 전에는 최종 금액을 다시 수정할 수 있다")
     void allowsEditingFinalAmountWhileConfirmPending() throws Exception {
         final String created = createDispatchRequest();
         submitSellerInput(sellerToken(created));
@@ -461,16 +459,14 @@ class DispatchRequestApiTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "finalQuotedAmount": 35000,
-                                  "messageContent": "최종 운송비를 35000원으로 정정합니다."
+                                  "finalQuotedAmount": 35000
                                 }
                                 """))
                 .andExpect(status().isOk());
 
         mockMvc.perform(get("/api/operator/dispatch-requests/{id}", latestDispatchRequestId())
                         .header(OperatorAuthInterceptor.OPERATOR_SECRET_HEADER, OPERATOR_SECRET))
-                .andExpect(jsonPath("$.finalQuotedAmount").value(35000))
-                .andExpect(jsonPath("$.messageContent").value("최종 운송비를 35000원으로 정정합니다."));
+                .andExpect(jsonPath("$.finalQuotedAmount").value(35000));
     }
 
     @Test
@@ -486,7 +482,7 @@ class DispatchRequestApiTest {
     }
 
     @Test
-    @DisplayName("최종 금액이 없거나 안내 문자가 비면 저장을 거절한다")
+    @DisplayName("최종 금액이 없으면 저장을 거절한다")
     void rejectsFinalAmountWithInvalidInput() throws Exception {
         final String created = createDispatchRequest();
         submitSellerInput(sellerToken(created));
@@ -496,19 +492,7 @@ class DispatchRequestApiTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "finalQuotedAmount": null,
-                                  "messageContent": "최종 운송비 안내입니다."
-                                }
-                                """))
-                .andExpect(status().isBadRequest());
-
-        mockMvc.perform(put("/api/operator/dispatch-requests/{id}/final-amount", latestDispatchRequestId())
-                        .header(OperatorAuthInterceptor.OPERATOR_SECRET_HEADER, OPERATOR_SECRET)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {
-                                  "finalQuotedAmount": 30000,
-                                  "messageContent": " "
+                                  "finalQuotedAmount": null
                                 }
                                 """))
                 .andExpect(status().isBadRequest());
