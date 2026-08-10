@@ -241,12 +241,10 @@ describe('예상 견적 flow 뒤로가기', () => {
     renderAt('/');
     await user.click(screen.getByRole('button', { name: '예상 견적 확인하기' }));
 
+    await user.type(screen.getByLabelText('상품명'), '원목 의자');
+    await user.type(screen.getByLabelText('거래 지역'), '가상구 가상동');
     await user.type(screen.getByLabelText('이름'), '가상사용자');
     await user.type(screen.getByLabelText('연락처'), '010-0000-0000');
-    await user.type(screen.getByLabelText('거래 지역'), '가상구 가상동');
-    await user.type(screen.getByLabelText('물품 종류'), '원목 의자');
-    await user.click(screen.getByRole('radio', { name: '아니요' }));
-    await user.click(screen.getByRole('checkbox'));
     await user.click(screen.getByRole('button', { name: '예상 견적 요청하기' }));
 
     expect(
