@@ -35,12 +35,14 @@ class EstimateRequestCreateServiceTest {
                 "01000000000",
                 "서울성북구",
                 "원목의자",
-                false
+                false,
+                "https://www.daangn.com/articles/test-1"
         ));
 
         verify(estimateRequestRepository).save(estimateRequestCaptor.capture());
         final EstimateRequest savedEstimateRequest = estimateRequestCaptor.getValue();
         assertThat(savedEstimateRequest.getPhoneNumber()).isEqualTo("01000000000");
+        assertThat(savedEstimateRequest.getProductLink()).isEqualTo("https://www.daangn.com/articles/test-1");
         assertThat(savedEstimateRequest.getStatus()).isEqualTo(EstimateRequestStatus.PENDING_REVIEW);
         assertThat(savedEstimateRequest.getCreatedAt()).isNotNull();
     }

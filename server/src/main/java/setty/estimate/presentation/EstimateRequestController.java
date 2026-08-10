@@ -30,7 +30,8 @@ public class EstimateRequestController {
                         request.phoneNumber(),
                         request.tradeArea(),
                         request.itemType(),
-                        request.highValueItem()
+                        request.highValueItem(),
+                        request.productLink()
                 )
         );
 

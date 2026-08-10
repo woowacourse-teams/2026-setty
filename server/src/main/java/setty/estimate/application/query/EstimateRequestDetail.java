@@ -10,6 +10,7 @@ public record EstimateRequestDetail(
         String tradeArea,
         String itemType,
         boolean highValueItem,
+        String productLink,
         EstimateRequestStatus status,
         OffsetDateTime createdAt,
         ManualNotificationResult manualNotification

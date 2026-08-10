@@ -90,6 +90,7 @@ class OperatorEstimateRequestControllerTest {
                 "서울성북구",
                 "원목의자",
                 false,
+                "https://www.daangn.com/articles/test-1",
                 EstimateRequestStatus.ESTIMATE_NOTIFIED,
                 CREATED_AT,
                 new ManualNotificationResult("예상 운송비는 30000원입니다.", true)
@@ -99,6 +100,7 @@ class OperatorEstimateRequestControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name").value("테스트사용자"))
                 .andExpect(jsonPath("$.phoneNumber").value("010-0000-0000"))
+                .andExpect(jsonPath("$.productLink").value("https://www.daangn.com/articles/test-1"))
                 .andExpect(jsonPath("$.manualNotification.messageContent").value("예상 운송비는 30000원입니다."))
                 .andExpect(jsonPath("$.manualNotification.transportFeasible").value(true))
                 .andExpect(jsonPath("$.manualNotification.estimatedAmount").doesNotExist())

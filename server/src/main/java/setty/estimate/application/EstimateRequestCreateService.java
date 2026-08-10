@@ -23,7 +23,8 @@ public class EstimateRequestCreateService {
                 command.phoneNumber(),
                 command.tradeArea(),
                 command.itemType(),
-                command.highValueItem()
+                command.highValueItem(),
+                command.productLink()
         );
         final EstimateRequest savedEstimateRequest = estimateRequestRepository.save(estimateRequest);
 

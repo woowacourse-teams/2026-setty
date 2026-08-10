@@ -12,6 +12,7 @@ public record EstimateRequestDetailResponse(
         String tradeArea,
         String itemType,
         boolean highValueItem,
+        String productLink,
         EstimateRequestStatus status,
         OffsetDateTime createdAt,
         ManualNotificationResponse manualNotification
@@ -24,6 +25,7 @@ public record EstimateRequestDetailResponse(
                 estimateRequestDetail.tradeArea(),
                 estimateRequestDetail.itemType(),
                 estimateRequestDetail.highValueItem(),
+                estimateRequestDetail.productLink(),
                 estimateRequestDetail.status(),
                 estimateRequestDetail.createdAt(),
                 ManualNotificationResponse.from(estimateRequestDetail.manualNotification())

@@ -27,6 +27,9 @@ public record CreateEstimateRequestRequest(
         String itemType,
 
         @NotNull(message = "50만 원 초과 여부는 필수입니다.")
-        Boolean highValueItem
+        Boolean highValueItem,
+
+        @Size(max = 500, message = "당근 링크는 500자 이하여야 합니다.")
+        String productLink
 ) {
 }

@@ -5,6 +5,7 @@ public record CreateEstimateRequestCommand(
         String phoneNumber,
         String tradeArea,
         String itemType,
-        boolean highValueItem
+        boolean highValueItem,
+        String productLink
 ) {
 }

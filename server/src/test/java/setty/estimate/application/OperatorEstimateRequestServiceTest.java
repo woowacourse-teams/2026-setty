@@ -41,7 +41,8 @@ class OperatorEstimateRequestServiceTest {
                 "01000000000",
                 "서울성북구",
                 "원목의자",
-                false
+                false,
+                "https://www.daangn.com/articles/test-1"
         );
         when(estimateRequestRepository.findById(1L)).thenReturn(Optional.of(estimateRequest));
         when(manualNotificationRepository.findByEstimateRequestId(1L)).thenReturn(Optional.empty());
@@ -73,7 +74,8 @@ class OperatorEstimateRequestServiceTest {
                 "01000000000",
                 "서울성북구",
                 "원목의자",
-                false
+                false,
+                "https://www.daangn.com/articles/test-1"
         );
         estimateRequest.markEstimateNotified();
         final ManualNotification existingManualNotification = ManualNotification.create(
@@ -108,7 +110,8 @@ class OperatorEstimateRequestServiceTest {
                 "01000000000",
                 "서울성북구",
                 "원목의자",
-                false
+                false,
+                "https://www.daangn.com/articles/test-1"
         );
         estimateRequest.markEstimateNotified();
         when(estimateRequestRepository.findById(1L)).thenReturn(Optional.of(estimateRequest));
