@@ -1,0 +1,53 @@
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.label {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--setty-color-text-muted);
+}
+
+.toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid var(--setty-color-border);
+  border-radius: var(--setty-control-radius);
+  background: var(--setty-color-surface);
+  color: var(--setty-color-text-strong);
+  font-size: var(--setty-font-size-body);
+  font-weight: var(--setty-font-weight-body);
+  text-align: left;
+  cursor: pointer;
+}
+
+.toggle[aria-pressed='true'] {
+  border-color: var(--setty-color-brand);
+  font-weight: 700;
+}
+
+.check {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  border-radius: 8px;
+  background: var(--setty-color-surface-muted);
+}
+
+.toggle[aria-pressed='true'] .check {
+  background: var(--setty-color-brand);
+}
+
+.checkIcon {
+  width: 14px;
+  height: 14px;
+}

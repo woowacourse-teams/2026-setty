@@ -3,8 +3,8 @@ export interface EstimateRequestFormValues {
   phoneNumber: string;
   tradeArea: string;
   itemType: string;
-  highValueItem: '' | 'true' | 'false';
-  privacyConsent: boolean;
+  /** server `highValueItem` — 체크하지 않으면 50만 원 초과가 아니라는 뜻이다. */
+  highValueItem: boolean;
 }
 
 export type EstimateRequestField = keyof EstimateRequestFormValues;
@@ -51,14 +51,6 @@ export function validateEstimateRequest(
     errors.itemType = '물품 종류를 입력해 주세요.';
   } else if (itemType.length > 100) {
     errors.itemType = '물품 종류는 100자 이하로 입력해 주세요.';
-  }
-
-  if (!values.highValueItem) {
-    errors.highValueItem = '물품 가격이 50만 원을 초과하는지 선택해 주세요.';
-  }
-
-  if (!values.privacyConsent) {
-    errors.privacyConsent = '개인정보 수집·이용에 동의해 주세요.';
   }
 
   return errors;

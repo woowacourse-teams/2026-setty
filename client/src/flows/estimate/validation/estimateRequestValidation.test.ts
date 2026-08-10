@@ -9,8 +9,7 @@ const VALID_VALUES: EstimateRequestFormValues = {
   phoneNumber: '010-0000-0000',
   tradeArea: '테스트구 테스트동',
   itemType: '테스트 의자',
-  highValueItem: 'false',
-  privacyConsent: true,
+  highValueItem: false,
 };
 
 test('이름의 앞뒤 공백은 제거하고 내부 공백은 허용한다', () => {
@@ -25,8 +24,6 @@ test('공백만 있는 이름은 거절한다', () => {
   );
 });
 
-test('필수 개인정보 동의가 없으면 견적 요청을 검증 통과시키지 않는다', () => {
-  expect(
-    validateEstimateRequest({ ...VALID_VALUES, privacyConsent: false }).privacyConsent,
-  ).toBe('개인정보 수집·이용에 동의해 주세요.');
+test('50만 원 초과 여부는 체크하지 않아도 유효한 값으로 본다', () => {
+  expect(validateEstimateRequest({ ...VALID_VALUES, highValueItem: false })).toEqual({});
 });

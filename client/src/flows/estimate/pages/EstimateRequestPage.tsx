@@ -2,8 +2,11 @@ import { FormEvent, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ApiError } from '@/shared/api/http';
 import { createEstimateRequest } from '@/flows/estimate/api/estimateRequestApi';
-import EstimatePrivacyConsent from '@/flows/estimate/privacy/EstimatePrivacyConsent';
-import { ESTIMATE_PRIVACY_POLICY_VERSION } from '@/flows/estimate/privacy/estimatePrivacyPolicy';
+import FormField from '@/flows/estimate/components/FormField';
+import HighValueToggle from '@/flows/estimate/components/HighValueToggle';
+import MobileScreen from '@/flows/estimate/components/MobileScreen';
+import NavBar from '@/flows/estimate/components/NavBar';
+import PrimaryButton from '@/flows/estimate/components/PrimaryButton';
 import {
   EstimateRequestField,
   EstimateRequestFieldErrors,
@@ -11,15 +14,14 @@ import {
   normalizePhoneNumber,
   validateEstimateRequest,
 } from '@/flows/estimate/validation/estimateRequestValidation';
-import styles from './EstimatePages.module.css';
+import styles from './EstimateRequestPage.module.css';
 
 const INITIAL_VALUES: EstimateRequestFormValues = {
   name: '',
   phoneNumber: '',
   tradeArea: '',
   itemType: '',
-  highValueItem: '',
-  privacyConsent: false,
+  highValueItem: false,
 };
 
 const FIELD_NAMES: EstimateRequestField[] = [
@@ -28,10 +30,9 @@ const FIELD_NAMES: EstimateRequestField[] = [
   'tradeArea',
   'itemType',
   'highValueItem',
-  'privacyConsent',
 ];
 
-type EstimateRequestTextField = Exclude<EstimateRequestField, 'privacyConsent'>;
+type EstimateRequestTextField = Exclude<EstimateRequestField, 'highValueItem'>;
 
 function pickFieldErrors(
   fieldErrors?: Record<string, string>,
@@ -56,23 +57,37 @@ export default function EstimateRequestPage() {
   const [formError, setFormError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  /** 문자 링크로 바로 들어오면 되돌아갈 이력이 없어 홈으로 보낸다. */
+  const handleBack = () => {
+    const historyIndex = (window.history.state as { idx?: number } | null)?.idx;
+    if (typeof historyIndex === 'number' && historyIndex > 0) {
+      navigate(-1);
+      return;
+    }
+    navigate('/');
+  };
+
   const updateValue = (field: EstimateRequestTextField, value: string) => {
     setValues((current) => ({ ...current, [field]: value }));
     setFieldErrors((current) => ({ ...current, [field]: undefined }));
     setFormError('');
   };
 
-  const updatePrivacyConsent = (checked: boolean) => {
-    setValues((current) => ({ ...current, privacyConsent: checked }));
-    setFieldErrors((current) => ({ ...current, privacyConsent: undefined }));
+  const updateHighValueItem = (checked: boolean) => {
+    setValues((current) => ({ ...current, highValueItem: checked }));
     setFormError('');
   };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (isSubmitting) {
+      return;
+    }
+
     const errors = validateEstimateRequest(values);
     if (Object.keys(errors).length > 0) {
       setFieldErrors(errors);
+      setFormError('');
       return;
     }
 
@@ -85,9 +100,7 @@ export default function EstimateRequestPage() {
         phoneNumber: normalizePhoneNumber(values.phoneNumber),
         tradeArea: values.tradeArea.trim(),
         itemType: values.itemType.trim(),
-        highValueItem: values.highValueItem === 'true',
-        privacyConsent: true,
-        privacyPolicyVersion: ESTIMATE_PRIVACY_POLICY_VERSION,
+        highValueItem: values.highValueItem,
       });
       navigate('/estimate/submitted', { replace: true });
     } catch (error) {
@@ -107,172 +120,69 @@ export default function EstimateRequestPage() {
   };
 
   return (
-    <main className={styles.page}>
-      <section className={styles.formCard} aria-labelledby="estimate-title">
-        <header className={styles.header}>
-          <p className={styles.brand}>SETTY</p>
-          <h1 id="estimate-title">예상 견적을 요청해 주세요</h1>
-          <p>
-            중고 가구·가전의 거래 지역과 물품을 알려주시면 운영자가 직접 확인한 뒤 문자로
-            안내해 드려요.
-          </p>
-        </header>
-
-        <form className={styles.form} noValidate onSubmit={handleSubmit}>
-          <div className={styles.field}>
-            <label htmlFor="name">이름</label>
-            <input
-              aria-describedby={fieldErrors.name ? 'name-error' : undefined}
-              aria-invalid={Boolean(fieldErrors.name)}
-              autoComplete="name"
-              id="name"
-              maxLength={10}
-              name="name"
-              placeholder="예: 홍길동"
-              required
-              value={values.name}
-              onChange={(event) => updateValue('name', event.target.value)}
-            />
-            {fieldErrors.name && (
-              <small id="name-error" role="alert">
-                {fieldErrors.name}
-              </small>
-            )}
+    <form className={styles.form} noValidate onSubmit={handleSubmit}>
+      <MobileScreen
+        header={<NavBar title="예상 견적 확인" onBack={handleBack} />}
+        footer={
+          <div className={styles.footer}>
+            {formError ? (
+              <p className={styles.formError} role="alert">
+                {formError}
+              </p>
+            ) : null}
+            <PrimaryButton type="submit" disabled={isSubmitting}>
+              {isSubmitting ? '접수하고 있어요…' : '예상 견적 요청하기'}
+            </PrimaryButton>
+            <p className={styles.operationNote}>
+              운영시간 10:00~20:00, 운영시간 밖 요청은 다음 운영 시작 후 확인해요.
+            </p>
           </div>
-
-          <div className={styles.field}>
-            <label htmlFor="phone-number">연락처</label>
-            <input
-              aria-describedby={
-                fieldErrors.phoneNumber ? 'phone-number-error' : undefined
-              }
-              aria-invalid={Boolean(fieldErrors.phoneNumber)}
-              autoComplete="tel"
-              id="phone-number"
-              inputMode="tel"
-              name="phoneNumber"
-              placeholder="010-0000-0000"
-              required
-              value={values.phoneNumber}
-              onChange={(event) => updateValue('phoneNumber', event.target.value)}
-            />
-            {fieldErrors.phoneNumber && (
-              <small id="phone-number-error" role="alert">
-                {fieldErrors.phoneNumber}
-              </small>
-            )}
-          </div>
-
-          <div className={styles.field}>
-            <label htmlFor="trade-area">거래 지역</label>
-            <input
-              aria-describedby={
-                fieldErrors.tradeArea
-                  ? 'trade-area-hint trade-area-error'
-                  : 'trade-area-hint'
-              }
-              aria-invalid={Boolean(fieldErrors.tradeArea)}
-              id="trade-area"
-              maxLength={100}
-              name="tradeArea"
-              placeholder="예: OO구 OO동"
-              required
-              value={values.tradeArea}
-              onChange={(event) => updateValue('tradeArea', event.target.value)}
-            />
-            <small className={styles.fieldHint} id="trade-area-hint">
-              동·구 정도만 입력하고 상세주소는 입력하지 마세요.
-            </small>
-            {fieldErrors.tradeArea && (
-              <small id="trade-area-error" role="alert">
-                {fieldErrors.tradeArea}
-              </small>
-            )}
-          </div>
-
-          <div className={styles.field}>
-            <label htmlFor="item-type">물품 종류</label>
-            <input
-              aria-describedby={fieldErrors.itemType ? 'item-type-error' : undefined}
-              aria-invalid={Boolean(fieldErrors.itemType)}
-              id="item-type"
-              maxLength={100}
-              name="itemType"
-              placeholder="예: 원목 의자"
-              required
-              value={values.itemType}
-              onChange={(event) => updateValue('itemType', event.target.value)}
-            />
-            {fieldErrors.itemType && (
-              <small id="item-type-error" role="alert">
-                {fieldErrors.itemType}
-              </small>
-            )}
-          </div>
-
-          <fieldset
-            aria-describedby={
-              fieldErrors.highValueItem ? 'high-value-item-error' : undefined
-            }
-            className={styles.choiceGroup}
-            aria-invalid={Boolean(fieldErrors.highValueItem)}
-            aria-required="true"
-          >
-            <legend>물품 가격이 50만 원을 초과하나요?</legend>
-            <div className={styles.choices}>
-              <label>
-                <input
-                  checked={values.highValueItem === 'false'}
-                  name="highValueItem"
-                  required
-                  type="radio"
-                  value="false"
-                  onChange={(event) => updateValue('highValueItem', event.target.value)}
-                />
-                아니요
-              </label>
-              <label>
-                <input
-                  checked={values.highValueItem === 'true'}
-                  name="highValueItem"
-                  required
-                  type="radio"
-                  value="true"
-                  onChange={(event) => updateValue('highValueItem', event.target.value)}
-                />
-                예
-              </label>
-            </div>
-            {fieldErrors.highValueItem && (
-              <small id="high-value-item-error" role="alert">
-                {fieldErrors.highValueItem}
-              </small>
-            )}
-          </fieldset>
-
-          <EstimatePrivacyConsent
-            checked={values.privacyConsent}
-            disabled={isSubmitting}
-            error={fieldErrors.privacyConsent}
-            onChange={updatePrivacyConsent}
+        }
+      >
+        <div className={styles.fields}>
+          <FormField
+            label="상품명"
+            placeholder="예: 원목 의자"
+            maxLength={100}
+            value={values.itemType}
+            error={fieldErrors.itemType}
+            onChange={(event) => updateValue('itemType', event.target.value)}
           />
-
-          {formError && (
-            <div className={styles.formError} role="alert">
-              {formError}
-            </div>
-          )}
-
-          <button className={styles.primaryButton} disabled={isSubmitting} type="submit">
-            {isSubmitting ? '접수하고 있어요…' : '예상 견적 요청하기'}
-          </button>
-        </form>
-
-        <p className={styles.operationNote}>
-          운영시간은 매일 10:00~20:00이며, 운영시간 밖 요청은 다음 운영 시작 후
-          확인합니다.
-        </p>
-      </section>
-    </main>
+          <HighValueToggle
+            checked={values.highValueItem}
+            onChange={updateHighValueItem}
+          />
+          <FormField
+            label="거래 지역"
+            placeholder="예: 서울 강남구"
+            maxLength={100}
+            hint="동·상세주소는 입력하지 않아도 돼요"
+            value={values.tradeArea}
+            error={fieldErrors.tradeArea}
+            onChange={(event) => updateValue('tradeArea', event.target.value)}
+          />
+          <FormField
+            label="이름"
+            placeholder="예: 홍길동"
+            autoComplete="name"
+            maxLength={10}
+            value={values.name}
+            error={fieldErrors.name}
+            onChange={(event) => updateValue('name', event.target.value)}
+          />
+          <FormField
+            label="연락처"
+            type="tel"
+            inputMode="tel"
+            placeholder="010-0000-0000"
+            autoComplete="tel"
+            hint="예상 금액을 문자로 보내드려요"
+            value={values.phoneNumber}
+            error={fieldErrors.phoneNumber}
+            onChange={(event) => updateValue('phoneNumber', event.target.value)}
+          />
+        </div>
+      </MobileScreen>
+    </form>
   );
 }
