@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, useLocation } from 'react-router-dom';
+import { MemoryRouter, useLocation, useNavigate } from 'react-router-dom';
 import App from '@/app/App';
 import { completeOnboarding } from '@/app/onboarding/onboardingStorage';
 
@@ -21,21 +21,33 @@ beforeEach(() => {
   });
 });
 
-function RoutePath() {
+/** 브라우저 뒤로가기를 테스트에서 대신 누르는 장치다. */
+function RouteTools() {
   const { pathname } = useLocation();
+  const navigate = useNavigate();
 
-  return <output data-testid="route-path">{pathname}</output>;
+  return (
+    <>
+      <output data-testid="route-path">{pathname}</output>
+      <button type="button" onClick={() => navigate(-1)}>
+        테스트 뒤로가기
+      </button>
+    </>
+  );
 }
 
 const renderAt = (path: string) =>
   render(
     <MemoryRouter initialEntries={[path]}>
-      <RoutePath />
+      <RouteTools />
       <App />
     </MemoryRouter>,
   );
 
 const currentPath = () => screen.getByTestId('route-path').textContent;
+
+const goBack = (user: ReturnType<typeof userEvent.setup>) =>
+  user.click(screen.getByRole('button', { name: '테스트 뒤로가기' }));
 
 test('처음 방문한 기기는 홈에서 온보딩 첫 화면을 본다', () => {
   renderAt('/');
@@ -71,6 +83,36 @@ test('마지막 화면의 보조 action은 배차 요청 폼으로 이동한다'
   await user.click(screen.getByRole('button', { name: /거래 링크 만들어보기/ }));
 
   expect(currentPath()).toBe('/dispatch/new');
+});
+
+test('예상 견적으로 나간 뒤 뒤로가면 온보딩이 아니라 홈으로 간다', async () => {
+  const user = userEvent.setup();
+  renderAt('/');
+
+  await user.click(screen.getByRole('button', { name: '다음' }));
+  await user.click(screen.getByRole('button', { name: '다음' }));
+  await user.click(screen.getByRole('button', { name: '예상 견적 확인하기' }));
+  expect(currentPath()).toBe('/estimate');
+
+  await goBack(user);
+
+  expect(currentPath()).toBe('/');
+  expect(screen.getByRole('button', { name: '거래 링크 만들기' })).toBeInTheDocument();
+});
+
+test('거래 링크 만들어보기로 나간 뒤 뒤로가면 온보딩이 아니라 홈으로 간다', async () => {
+  const user = userEvent.setup();
+  renderAt('/');
+
+  await user.click(screen.getByRole('button', { name: '다음' }));
+  await user.click(screen.getByRole('button', { name: '다음' }));
+  await user.click(screen.getByRole('button', { name: /거래 링크 만들어보기/ }));
+  expect(currentPath()).toBe('/dispatch/new');
+
+  await goBack(user);
+
+  expect(currentPath()).toBe('/');
+  expect(screen.getByRole('button', { name: '거래 링크 만들기' })).toBeInTheDocument();
 });
 
 test('건너뛰기를 누르면 바로 홈 화면으로 간다', async () => {

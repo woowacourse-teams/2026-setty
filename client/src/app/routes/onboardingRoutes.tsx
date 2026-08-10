@@ -1,7 +1,10 @@
 import { Navigate, type RouteObject, useNavigate, useParams } from 'react-router-dom';
 import OnboardingScreen from '@/app/onboarding/OnboardingScreen';
 import { findOnboardingStep } from '@/app/onboarding/onboardingSteps';
-import { completeOnboarding } from '@/app/onboarding/onboardingStorage';
+import {
+  completeOnboarding,
+  isOnboardingCompleted,
+} from '@/app/onboarding/onboardingStorage';
 
 /**
  * 온보딩 단계도 URL로 표현한다.
@@ -23,6 +26,14 @@ function OnboardingStepRoute() {
   const stepNumber = Number(params.step);
   const step = findOnboardingStep(stepNumber);
 
+  /*
+   * 온보딩을 이미 끝낸 기기는 어떤 단계 URL로 들어와도 홈으로 보낸다.
+   * 온보딩에서 나간 뒤 뒤로가기로 돌아오는 경우도 여기서 홈으로 이어진다.
+   */
+  if (isOnboardingCompleted()) {
+    return <Navigate to={HOME_PATH} replace />;
+  }
+
   // 없는 단계 URL로 들어오면 오류 화면 대신 온보딩 첫 화면으로 되돌린다.
   if (!step) {
     return <Navigate to={ONBOARDING_PATH.step(1)} replace />;
@@ -30,7 +41,7 @@ function OnboardingStepRoute() {
 
   /*
    * 온보딩을 벗어나는 순간 완료로 기록한다.
-   * 이동 뒤 뒤로가기로 온보딩에 돌아오지 않도록 히스토리도 덮어쓴다.
+   * 나간 화면에서 뒤로가면 온보딩 단계가 아니라 홈에 도착한다.
    */
   const leaveOnboarding = (path: string) => {
     completeOnboarding();
