@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, useLocation, useRoutes } from 'react-router-dom';
 import { dispatchRoutes } from '@/app/routes/dispatchRoutes';
 import { API_ORIGIN } from '@/shared/api/http';
+import { completeOnboarding } from '@/app/onboarding/onboardingStorage';
 
 /**
  * 배차 flow의 화면 전환과 server 계약 연결을 확인한다.
@@ -60,6 +61,8 @@ const renderAt = (path: string) =>
 const currentPath = () => screen.getByTestId('route-path').textContent;
 
 beforeEach(() => {
+  // 홈 첫 진입 온보딩은 이 테스트들의 대상이 아니므로 이미 본 기기로 둔다.
+  completeOnboarding();
   mockFetch.mockReset();
   global.fetch = mockFetch as unknown as typeof fetch;
 

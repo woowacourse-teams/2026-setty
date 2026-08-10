@@ -3,8 +3,10 @@ import { estimateRoutes } from '@/flows/estimate/routes';
 import { operatorRoutes } from '@/flows/operator/routes';
 import NotFoundPage from '@/app/not-found/NotFoundPage';
 import { dispatchRoutes } from './dispatchRoutes';
+import { onboardingRoutes } from './onboardingRoutes';
 
 const appRoutes: RouteObject[] = [
+  ...onboardingRoutes,
   ...dispatchRoutes,
   ...estimateRoutes,
   ...operatorRoutes,
