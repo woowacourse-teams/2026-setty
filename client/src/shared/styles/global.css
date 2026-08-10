@@ -34,3 +34,8 @@ a {
 a:hover {
   color: var(--setty-color-brand-hover);
 }
+
+/* 시스템 이모지를 무시하고 Tossface를 강제할 때 사용 */
+.tossface {
+  font-family: var(--setty-font-family-emoji);
+}
