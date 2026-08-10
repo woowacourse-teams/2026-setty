@@ -1,0 +1,4 @@
+# CodeBuild 산출물. 레포에 커밋하지 않는다.
+/app.jar
+
+.DS_Store

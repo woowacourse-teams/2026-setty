@@ -15,6 +15,14 @@ server:
   error:
     include-message: never
     include-stacktrace: never
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
 setty:
   operator:
     secret: ${SETTY_OPERATOR_SECRET:}

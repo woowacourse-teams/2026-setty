@@ -21,6 +21,7 @@
 7. [협업 규칙](team/collaboration-rules.md)
 8. [GitHub 작업 흐름](team/github-workflow.md)
 9. [용어사전](product/glossary.md): 용어가 헷갈릴 때 참고
+10. [백엔드 배포](deployment.md): 배포 파이프라인과 EC2 준비 사항
 
 ## 현재 개발 흐름
 
