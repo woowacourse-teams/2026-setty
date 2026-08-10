@@ -1,18 +1,27 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { findBuyerDispatchRequest } from '../api/dispatchApi';
+import { DispatchApiError } from '../api/dispatchClient';
 import BrandHeader from '../components/BrandHeader';
 import MobileScreen from '../components/MobileScreen';
 import PrimaryButton from '../components/PrimaryButton';
 import ResultMessage from '../components/ResultMessage';
-import { ErrorMessage } from '../components/StatusMessage';
+import { ErrorMessage, LoadingMessage } from '../components/StatusMessage';
 import TextButton from '../components/TextButton';
 import styles from './LinkCreatedScreen.module.css';
 
 interface LinkCreatedScreenProps {
-  /** POST /api/dispatch-requests 응답의 sellerInputUrl */
-  sellerInputUrl: string;
+  /** POST /api/dispatch-requests 응답의 buyerToken */
+  buyerToken: string;
+  /**
+   * 생성 직후 응답으로 이미 알고 있는 sellerInputUrl이다.
+   * 새로고침·뒤로가기로 이 값이 사라지면 buyerToken으로 다시 조회한다.
+   */
+  initialSellerInputUrl?: string;
   /** 공유·복사를 마치거나 직접 선택해 다음 화면(판매자 대기)으로 이동 */
   onNext: () => void;
 }
+
+const DEFAULT_ERROR_MESSAGE = '요청을 처리하지 못했어요. 잠시 후 다시 시도해 주세요.';
 
 /** 공유 시트를 사용자가 닫은 경우로, 실패로 안내하지 않는다. */
 function isAbortError(error: unknown): boolean {
@@ -41,11 +50,64 @@ function canUseClipboard(): boolean {
  * 서버를 호출하지 않고 브라우저 공유·복사만 사용한다.
  */
 export default function LinkCreatedScreen({
-  sellerInputUrl,
+  buyerToken,
+  initialSellerInputUrl,
   onNext,
 }: LinkCreatedScreenProps) {
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const [sellerInputUrl, setSellerInputUrl] = useState(initialSellerInputUrl ?? '');
+  const [loading, setLoading] = useState(!initialSellerInputUrl);
+  const [loadError, setLoadError] = useState('');
+  /** "다시 시도"로 조회를 다시 실행하기 위한 값이다. */
+  const [retryCount, setRetryCount] = useState(0);
+
+  useEffect(() => {
+    // 생성 직후에는 링크를 이미 알고 있어 같은 값을 다시 받아올 이유가 없다.
+    if (initialSellerInputUrl) {
+      return;
+    }
+
+    // StrictMode 이중 마운트와 언마운트 후 setState를 막는다.
+    let active = true;
+
+    findBuyerDispatchRequest(buyerToken)
+      .then((response) => {
+        if (!active) {
+          return;
+        }
+        setSellerInputUrl(response.sellerInputUrl);
+      })
+      .catch((requestError: unknown) => {
+        if (!active) {
+          return;
+        }
+        setSellerInputUrl('');
+        setLoadError(
+          requestError instanceof DispatchApiError
+            ? requestError.message
+            : DEFAULT_ERROR_MESSAGE,
+        );
+      })
+      .finally(() => {
+        if (!active) {
+          return;
+        }
+        setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [buyerToken, initialSellerInputUrl, retryCount]);
+
+  /** 조회 상태 초기화는 effect 본문이 아니라 재시도 event에서 한다. */
+  const retryLoad = useCallback(() => {
+    setLoading(true);
+    setLoadError('');
+    setRetryCount((count) => count + 1);
+  }, []);
 
   const shareSupported = canUseShare();
   const clipboardSupported = canUseClipboard();
@@ -97,6 +159,25 @@ export default function LinkCreatedScreen({
     setNotice(null);
     setError(null);
     await copyLink();
+  }
+
+  if (loading) {
+    return (
+      <MobileScreen header={<BrandHeader />}>
+        <LoadingMessage />
+      </MobileScreen>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <MobileScreen header={<BrandHeader />}>
+        <div className={styles.errorArea}>
+          <ErrorMessage message={loadError} />
+          <TextButton onClick={retryLoad}>다시 시도</TextButton>
+        </div>
+      </MobileScreen>
+    );
   }
 
   return (

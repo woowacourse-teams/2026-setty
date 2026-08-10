@@ -1,10 +1,12 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import DispatchFlow from '@/flows/dispatch/DispatchFlow';
+import { MemoryRouter, useLocation, useRoutes } from 'react-router-dom';
+import { dispatchRoutes } from '@/app/routes/dispatchRoutes';
 import { API_ORIGIN } from '@/shared/api/http';
 
 /**
  * 배차 flow의 화면 전환과 server 계약 연결을 확인한다.
+ * 화면 전환은 URL로 표현하므로 진입도 경로로 한다.
  * 개인정보를 남기지 않도록 명백한 가상 데이터만 쓴다.
  */
 
@@ -30,14 +32,30 @@ const emptyResponse = (status: number): Response =>
 
 const mockFetch = jest.fn<Promise<Response>, [string, RequestInit | undefined]>();
 
-const setPathname = (pathname: string) => {
-  window.history.replaceState({}, '', pathname);
-};
+function RoutesUnderTest() {
+  const element = useRoutes(dispatchRoutes);
+  const { pathname } = useLocation();
+
+  return (
+    <>
+      <output data-testid="route-path">{pathname}</output>
+      {element}
+    </>
+  );
+}
+
+const renderAt = (path: string) =>
+  render(
+    <MemoryRouter initialEntries={[path]}>
+      <RoutesUnderTest />
+    </MemoryRouter>,
+  );
+
+const currentPath = () => screen.getByTestId('route-path').textContent;
 
 beforeEach(() => {
   mockFetch.mockReset();
   global.fetch = mockFetch as unknown as typeof fetch;
-  setPathname('/');
 });
 
 const lastRequest = () => {
@@ -56,10 +74,11 @@ describe('구매자 흐름', () => {
       jsonResponse(201, { buyerToken: BUYER_TOKEN, sellerInputUrl: SELLER_INPUT_URL }),
     );
 
-    render(<DispatchFlow />);
+    renderAt('/');
 
     expect(screen.getByRole('heading', { name: /거래를 시작하세요/ })).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: '거래 링크 만들기' }));
+    expect(currentPath()).toBe('/dispatch/new');
 
     await user.type(screen.getByLabelText('상품명'), '3인용 소파');
     await user.type(screen.getByLabelText('구매자 이름'), '가상구매자');
@@ -82,6 +101,7 @@ describe('구매자 흐름', () => {
     });
 
     expect(await screen.findByText('거래가 시작됐어요')).toBeInTheDocument();
+    expect(currentPath()).toBe(`/dispatch/${BUYER_TOKEN}/link`);
   });
 
   it('server 오류 메시지를 성공으로 바꾸지 않고 그대로 보여준다', async () => {
@@ -90,8 +110,7 @@ describe('구매자 흐름', () => {
       jsonResponse(400, { message: '입력값이 올바르지 않습니다: buyerPhoneNumber' }),
     );
 
-    render(<DispatchFlow />);
-    await user.click(screen.getByRole('button', { name: '거래 링크 만들기' }));
+    renderAt('/dispatch/new');
 
     await user.type(screen.getByLabelText('상품명'), '3인용 소파');
     await user.type(screen.getByLabelText('구매자 이름'), '가상구매자');
@@ -103,13 +122,13 @@ describe('구매자 흐름', () => {
       await screen.findByText('입력값이 올바르지 않습니다: buyerPhoneNumber'),
     ).toBeInTheDocument();
     expect(screen.queryByText('거래가 시작됐어요')).not.toBeInTheDocument();
+    expect(currentPath()).toBe('/dispatch/new');
   });
 
   it('연락처 형식이 server @Pattern과 다르면 API를 호출하지 않는다', async () => {
     const user = userEvent.setup();
 
-    render(<DispatchFlow />);
-    await user.click(screen.getByRole('button', { name: '거래 링크 만들기' }));
+    renderAt('/dispatch/new');
 
     await user.type(screen.getByLabelText('상품명'), '3인용 소파');
     await user.type(screen.getByLabelText('구매자 이름'), '가상구매자');
@@ -122,15 +141,55 @@ describe('구매자 흐름', () => {
   });
 });
 
+describe('링크 생성 화면 복구', () => {
+  it('navigation state 없이 직접 들어오면 buyerToken으로 링크를 다시 조회한다', async () => {
+    mockFetch.mockResolvedValue(
+      jsonResponse(200, {
+        status: 'SELLER_INPUT_PENDING',
+        buyerName: '가상구매자',
+        buyerPhoneNumber: '010-0000-0000',
+        deliveryAddress: '가상시 가상구 가상로 1',
+        itemType: '3인용 소파',
+        highValueItem: false,
+        sellerInputCompleted: false,
+        createdAt: '2026-08-07T10:00:00+09:00',
+        sellerInputUrl: SELLER_INPUT_URL,
+      }),
+    );
+
+    renderAt(`/dispatch/${BUYER_TOKEN}/link`);
+
+    expect(await screen.findByText('거래가 시작됐어요')).toBeInTheDocument();
+    expect(mockFetch).toHaveBeenCalledWith(
+      `${API_ORIGIN}/api/dispatch-requests/${BUYER_TOKEN}`,
+      expect.objectContaining({ method: 'GET' }),
+    );
+  });
+
+  it('조회 실패를 오류로 보여주고 링크를 지어내지 않는다', async () => {
+    mockFetch.mockResolvedValue(
+      jsonResponse(404, { message: '배차 요청을 찾을 수 없습니다.' }),
+    );
+
+    renderAt(`/dispatch/${BUYER_TOKEN}/link`);
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      '배차 요청을 찾을 수 없습니다.',
+    );
+    expect(screen.queryByText('거래가 시작됐어요')).not.toBeInTheDocument();
+  });
+});
+
 describe('판매자 흐름', () => {
   it('판매자 링크로 들어오면 세션을 조회하고 입력을 제출한다', async () => {
     const user = userEvent.setup();
-    setPathname(`/seller-input/${SELLER_TOKEN}`);
     mockFetch
-      .mockResolvedValueOnce(jsonResponse(200, { itemType: '3인용 소파', alreadySubmitted: false }))
+      .mockResolvedValueOnce(
+        jsonResponse(200, { itemType: '3인용 소파', alreadySubmitted: false }),
+      )
       .mockResolvedValueOnce(emptyResponse(204));
 
-    render(<DispatchFlow />);
+    renderAt(`/seller-input/${SELLER_TOKEN}`);
 
     await waitFor(() =>
       expect(mockFetch).toHaveBeenCalledWith(
@@ -160,33 +219,35 @@ describe('판매자 흐름', () => {
     });
 
     expect(await screen.findByText('정보가 제출됐어요')).toBeInTheDocument();
+    expect(currentPath()).toBe(`/seller-input/${SELLER_TOKEN}/submitted`);
   });
 
   it('이미 제출된 세션이면 다시 제출할 수 없다', async () => {
-    setPathname(`/seller-input/${SELLER_TOKEN}`);
     mockFetch.mockResolvedValue(
       jsonResponse(200, { itemType: '3인용 소파', alreadySubmitted: true }),
     );
 
-    render(<DispatchFlow />);
+    renderAt(`/seller-input/${SELLER_TOKEN}`);
 
     expect(await screen.findByText(/이미 제출/)).toBeInTheDocument();
     expect(screen.queryByLabelText('판매자 이름')).not.toBeInTheDocument();
   });
 
   it('세션 조회 실패를 오류로 보여준다', async () => {
-    setPathname(`/seller-input/${SELLER_TOKEN}`);
-    mockFetch.mockResolvedValue(jsonResponse(404, { message: '판매자 입력 세션을 찾을 수 없습니다.' }));
+    mockFetch.mockResolvedValue(
+      jsonResponse(404, { message: '판매자 입력 세션을 찾을 수 없습니다.' }),
+    );
 
-    render(<DispatchFlow />);
+    renderAt(`/seller-input/${SELLER_TOKEN}`);
 
-    expect(await screen.findByText('판매자 입력 세션을 찾을 수 없습니다.')).toBeInTheDocument();
+    expect(
+      await screen.findByText('판매자 입력 세션을 찾을 수 없습니다.'),
+    ).toBeInTheDocument();
   });
 });
 
 describe('최종 금액 확인 화면', () => {
   it('상태만 조회하고 동의·거절 action은 server 계약이 없어 비활성이다', async () => {
-    setPathname(`/final-amount/${BUYER_TOKEN}`);
     mockFetch.mockResolvedValue(
       jsonResponse(200, {
         status: 'FINAL_AMOUNT_CONFIRM_PENDING',
@@ -200,7 +261,7 @@ describe('최종 금액 확인 화면', () => {
       }),
     );
 
-    render(<DispatchFlow />);
+    renderAt(`/final-amount/${BUYER_TOKEN}`);
 
     expect(
       await screen.findByRole('heading', { name: '최종 금액 확인이 필요해요' }),
