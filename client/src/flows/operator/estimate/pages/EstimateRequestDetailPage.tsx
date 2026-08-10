@@ -28,6 +28,15 @@ interface NotificationErrors {
   transportFeasible?: string;
 }
 
+function getSafeHttpUrl(value: string): string | null {
+  try {
+    const url = new URL(value);
+    return url.protocol === 'http:' || url.protocol === 'https:' ? url.href : null;
+  } catch {
+    return null;
+  }
+}
+
 export default function EstimateRequestDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -107,7 +116,9 @@ export default function EstimateRequestDetailPage() {
 
   const handleNotificationSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!id || !request || request.estimateRequestId !== Number(id)) return;
+    if (isSubmitting || !id || !request || request.estimateRequestId !== Number(id)) {
+      return;
+    }
 
     const errors = validateNotification();
     if (Object.keys(errors).length > 0) {
@@ -115,14 +126,14 @@ export default function EstimateRequestDetailPage() {
       return;
     }
 
+    const savedMessageContent = messageContent.trim();
+    const savedTransportFeasible = transportFeasible === 'true';
     setIsSubmitting(true);
     setNotificationErrors({});
     setSubmitError('');
     setSubmitSuccess('');
 
     try {
-      const savedMessageContent = messageContent.trim();
-      const savedTransportFeasible = transportFeasible === 'true';
       await saveManualNotification(id, {
         messageContent: savedMessageContent,
         transportFeasible: savedTransportFeasible,
@@ -142,6 +153,7 @@ export default function EstimateRequestDetailPage() {
           : current,
       );
       setMessageContent(savedMessageContent);
+      setTransportFeasible(savedTransportFeasible ? 'true' : 'false');
       setSubmitSuccess('메시지를 저장했습니다.');
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) {
@@ -208,6 +220,9 @@ export default function EstimateRequestDetailPage() {
     );
   }
 
+  const productLink = request.productLink?.trim() ?? '';
+  const safeProductLink = productLink ? getSafeHttpUrl(productLink) : null;
+
   return (
     <section aria-labelledby="operator-estimate-detail-title">
       <Link className={styles.backLink} to="/operator/estimate-requests">
@@ -249,6 +264,25 @@ export default function EstimateRequestDetailPage() {
               <dd>{request.highValueItem ? '예' : '아니요'}</dd>
             </div>
             <div>
+              <dt>당근 게시물 링크</dt>
+              <dd>
+                {!productLink ? (
+                  <span className={styles.emptyValue}>미입력</span>
+                ) : safeProductLink ? (
+                  <a
+                    className={styles.productLink}
+                    href={safeProductLink}
+                    rel="noopener noreferrer"
+                    target="_blank"
+                  >
+                    당근 게시물 열기
+                  </a>
+                ) : (
+                  productLink
+                )}
+              </dd>
+            </div>
+            <div>
               <dt>접수 시각</dt>
               <dd>{formatKoreanDateTime(request.createdAt)}</dd>
             </div>
@@ -275,6 +309,7 @@ export default function EstimateRequestDetailPage() {
                     : undefined
                 }
                 aria-required="true"
+                disabled={isSubmitting}
               >
                 <legend>운송 가능 여부</legend>
                 <div className={styles.inlineChoices}>
@@ -337,6 +372,7 @@ export default function EstimateRequestDetailPage() {
                   name="messageContent"
                   required
                   rows={7}
+                  disabled={isSubmitting}
                   value={messageContent}
                   onChange={(event) => {
                     setMessageContent(event.target.value);

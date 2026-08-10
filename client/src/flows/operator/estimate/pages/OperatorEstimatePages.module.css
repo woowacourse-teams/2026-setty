@@ -97,6 +97,7 @@
 
 .tableCard a:focus-visible,
 .backLink:focus-visible,
+.productLink:focus-visible,
 .stateCard a:focus-visible,
 .stateCard button:focus-visible,
 .notificationForm button:focus-visible,
@@ -205,6 +206,15 @@
   overflow-wrap: anywhere;
   color: var(--setty-color-text-strong);
   font-weight: 700;
+}
+
+.productLink {
+  color: #006b46;
+}
+
+.emptyValue {
+  color: var(--setty-color-text-muted);
+  font-weight: 500;
 }
 
 .manualNotice,

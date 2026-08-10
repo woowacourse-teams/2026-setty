@@ -1,6 +1,6 @@
 import { beforeEach, expect, jest, test } from '@jest/globals';
 import '@testing-library/jest-dom/jest-globals';
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, useNavigate, useRoutes } from 'react-router-dom';
 import {
@@ -21,6 +21,7 @@ const PENDING_DETAIL = {
   tradeArea: '테스트구 테스트동',
   itemType: '테스트 의자',
   highValueItem: false,
+  productLink: null,
   status: 'PENDING_REVIEW',
   createdAt: '2026-08-06T10:00:00+09:00',
   manualNotification: null,
@@ -38,6 +39,14 @@ function response(body?: unknown, status = 200): Response {
     } as Headers,
     json: async () => body,
   } as unknown as Response;
+}
+
+function deferredResponse() {
+  let resolve!: (value: Response | PromiseLike<Response>) => void;
+  const promise = new Promise<Response>((resolvePromise) => {
+    resolve = resolvePromise;
+  });
+  return { promise, resolve };
 }
 
 function OperatorTestRoutes() {
@@ -236,6 +245,44 @@ test('운영자 상세 404를 일반 서버 오류와 구분한다', async () =>
   ).toBeInTheDocument();
 });
 
+test('운영자 견적 상세에서 안전한 당근 게시물 링크를 새 탭으로 연다', async () => {
+  authenticateTestOperator();
+  const productLink = 'https://www.daangn.com/articles/test-12';
+  fetchMock.mockResolvedValueOnce(response({ ...PENDING_DETAIL, productLink }));
+
+  renderAt('/operator/estimate-requests/12');
+
+  const link = await screen.findByRole('link', { name: '당근 게시물 열기' });
+  expect(link).toHaveAttribute('href', productLink);
+  expect(link).toHaveAttribute('target', '_blank');
+  expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+});
+
+test('당근 게시물 링크가 없으면 운영자 견적 상세에 미입력 상태를 표시한다', async () => {
+  authenticateTestOperator();
+  fetchMock.mockResolvedValueOnce(response(PENDING_DETAIL));
+
+  renderAt('/operator/estimate-requests/12');
+
+  expect(await screen.findByText('미입력')).toBeInTheDocument();
+  expect(screen.queryByRole('link', { name: '당근 게시물 열기' })).not.toBeInTheDocument();
+});
+
+test.each([
+  'javascript:alert("test")',
+  'data:text/html,test',
+  '/articles/relative-test-12',
+])('안전하지 않은 게시물 링크 %s는 실행 링크가 아닌 텍스트로 표시한다', async (productLink) => {
+  authenticateTestOperator();
+  fetchMock.mockResolvedValueOnce(response({ ...PENDING_DETAIL, productLink }));
+
+  renderAt('/operator/estimate-requests/12');
+
+  const unsafeValue = await screen.findByText(productLink);
+  expect(unsafeValue.closest('a')).toBeNull();
+  expect(screen.queryByRole('link', { name: '당근 게시물 열기' })).not.toBeInTheDocument();
+});
+
 test('상세 요청 ID가 바뀌면 이전 요청의 메시지 폼을 새 요청 로딩 중에 숨긴다', async () => {
   authenticateTestOperator();
   const previousMessage = '이전 가상 요청에 저장된 문자입니다.';
@@ -320,6 +367,49 @@ test('운영자가 문자 안내를 최초 저장한 뒤 같은 폼에서 저장
   );
   expectOperatorSecretHeader(0);
   expectOperatorSecretHeader(1);
+});
+
+test('문자 저장 중 입력을 잠그고 성공 후 제출 스냅샷으로 맞춘다', async () => {
+  authenticateTestOperator();
+  const pendingPut = deferredResponse();
+  const savedMessage = '저장할 가상 문자입니다.';
+  fetchMock
+    .mockResolvedValueOnce(response(PENDING_DETAIL))
+    .mockImplementationOnce(() => pendingPut.promise);
+  renderAt('/operator/estimate-requests/12');
+
+  const messageInput = await screen.findByLabelText('문자 안내 및 상황 기록');
+  const transportFeasible = screen.getByRole('radio', { name: '운송 가능' });
+  const transportInfeasible = screen.getByRole('radio', { name: '운송 불가' });
+  const submitButton = screen.getByRole('button', { name: '메시지 저장' });
+  const user = userEvent.setup();
+
+  await user.type(messageInput, `  ${savedMessage}  `);
+  await user.click(transportFeasible);
+  await user.click(submitButton);
+
+  await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+  expect(messageInput).toBeDisabled();
+  expect(transportFeasible).toBeDisabled();
+  expect(transportInfeasible).toBeDisabled();
+  expect(submitButton).toBeDisabled();
+
+  await user.click(transportInfeasible);
+  await user.click(submitButton);
+  expect(fetchMock).toHaveBeenCalledTimes(2);
+  expect(transportFeasible).toBeChecked();
+
+  await act(async () => {
+    pendingPut.resolve(response(undefined, 204));
+    await pendingPut.promise;
+  });
+
+  expect(await screen.findByText('메시지를 저장했습니다.')).toBeInTheDocument();
+  expect(messageInput).toBeEnabled();
+  expect(messageInput).toHaveValue(savedMessage);
+  expect(transportFeasible).toBeEnabled();
+  expect(transportFeasible).toBeChecked();
+  expect(transportInfeasible).not.toBeChecked();
 });
 
 test('안내 완료 기록의 기존 본문과 운송 판단을 수정해 같은 PUT으로 저장한다', async () => {
