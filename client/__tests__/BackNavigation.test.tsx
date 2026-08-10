@@ -194,6 +194,9 @@ describe('배차 flow 뒤로가기', () => {
     await user.type(screen.getByLabelText('연락처'), '01000000001');
     await user.type(screen.getByLabelText('발송 주소'), '가상시 가상구 가상로 2');
     await user.type(screen.getByLabelText('회수 희망 시간'), '평일 오후 2시 이후');
+    await user.click(
+      screen.getByRole('checkbox', { name: '(필수) 개인정보 수집·이용 동의' }),
+    );
     await user.click(screen.getByRole('button', { name: '제출하기' }));
 
     expect(await screen.findByText('정보가 제출됐어요')).toBeInTheDocument();

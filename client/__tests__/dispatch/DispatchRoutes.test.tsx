@@ -33,6 +33,11 @@ const emptyResponse = (status: number): Response =>
 
 const mockFetch = jest.fn<Promise<Response>, [string, RequestInit | undefined]>();
 
+/** jsdom에는 objectURL 구현이 없어 미리보기 URL을 고정값으로 대신한다. */
+const PREVIEW_URL = 'blob:preview-url';
+const createObjectURL = jest.fn(() => PREVIEW_URL);
+const revokeObjectURL = jest.fn();
+
 function RoutesUnderTest() {
   const element = useRoutes(dispatchRoutes);
   const { pathname } = useLocation();
@@ -57,6 +62,11 @@ const currentPath = () => screen.getByTestId('route-path').textContent;
 beforeEach(() => {
   mockFetch.mockReset();
   global.fetch = mockFetch as unknown as typeof fetch;
+
+  createObjectURL.mockClear();
+  revokeObjectURL.mockClear();
+  URL.createObjectURL = createObjectURL as unknown as typeof URL.createObjectURL;
+  URL.revokeObjectURL = revokeObjectURL as unknown as typeof URL.revokeObjectURL;
 });
 
 const lastRequest = () => {
@@ -242,6 +252,20 @@ describe('링크 생성 화면 복구', () => {
 });
 
 describe('판매자 흐름', () => {
+  /** 세션 조회 응답을 받고 입력 가능한 상태까지 기다린다. */
+  const openSellerForm = async () => {
+    renderAt(`/seller-input/${SELLER_TOKEN}`);
+
+    return screen.findByLabelText('판매자 이름');
+  };
+
+  const fillSellerFields = async (user: ReturnType<typeof userEvent.setup>) => {
+    await user.type(screen.getByLabelText('판매자 이름'), '가상판매자');
+    await user.type(screen.getByLabelText('연락처'), '01000000001');
+    await user.type(screen.getByLabelText('발송 주소'), '가상시 가상구 가상로 2');
+    await user.type(screen.getByLabelText('회수 희망 시간'), '평일 오후 2시 이후');
+  };
+
   it('판매자 링크로 들어오면 세션을 조회하고 입력을 제출한다', async () => {
     const user = userEvent.setup();
     mockFetch
@@ -260,10 +284,8 @@ describe('판매자 흐름', () => {
     );
     expect(await screen.findByText('3인용 소파')).toBeInTheDocument();
 
-    await user.type(screen.getByLabelText('판매자 이름'), '가상판매자');
-    await user.type(screen.getByLabelText('연락처'), '01000000001');
-    await user.type(screen.getByLabelText('발송 주소'), '가상시 가상구 가상로 2');
-    await user.type(screen.getByLabelText('회수 희망 시간'), '평일 오후 2시 이후');
+    await fillSellerFields(user);
+    await user.click(screen.getByRole('checkbox', { name: PRIVACY_CONSENT_NAME }));
     await user.click(screen.getByRole('button', { name: '제출하기' }));
 
     await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(2));
@@ -292,6 +314,126 @@ describe('판매자 흐름', () => {
 
     expect(await screen.findByText(/이미 제출/)).toBeInTheDocument();
     expect(screen.queryByLabelText('판매자 이름')).not.toBeInTheDocument();
+  });
+
+  it('물품 상태 사진은 선택 항목이라 첨부하지 않아도 제출된다', async () => {
+    const user = userEvent.setup();
+    mockFetch
+      .mockResolvedValueOnce(
+        jsonResponse(200, { itemType: '3인용 소파', alreadySubmitted: false }),
+      )
+      .mockResolvedValueOnce(emptyResponse(204));
+
+    await openSellerForm();
+
+    await fillSellerFields(user);
+    await user.click(screen.getByRole('checkbox', { name: PRIVACY_CONSENT_NAME }));
+    await user.click(screen.getByRole('button', { name: '제출하기' }));
+
+    await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(2));
+    expect(await screen.findByText('정보가 제출됐어요')).toBeInTheDocument();
+  });
+
+  it('사진을 고르면 미리보기가 뜨고 삭제하면 다시 업로드 상태가 된다', async () => {
+    const user = userEvent.setup();
+    mockFetch.mockResolvedValue(
+      jsonResponse(200, { itemType: '3인용 소파', alreadySubmitted: false }),
+    );
+
+    await openSellerForm();
+
+    await user.upload(
+      screen.getByLabelText('물품 상태 사진'),
+      new File(['가상이미지'], 'item.png', { type: 'image/png' }),
+    );
+
+    expect(await screen.findByAltText('첨부한 물품 상태 사진')).toHaveAttribute(
+      'src',
+      PREVIEW_URL,
+    );
+    expect(screen.queryByText('업로드')).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: '사진 삭제' }));
+
+    expect(screen.queryByAltText('첨부한 물품 상태 사진')).not.toBeInTheDocument();
+    expect(screen.getByText('업로드')).toBeInTheDocument();
+    expect(revokeObjectURL).toHaveBeenCalledWith(PREVIEW_URL);
+  });
+
+  it('이미지가 아닌 파일은 첨부하지 않고 안내한다', async () => {
+    // accept 필터를 지나쳐 온 파일도 화면이 다시 확인하는지 본다.
+    const user = userEvent.setup({ applyAccept: false });
+    mockFetch.mockResolvedValue(
+      jsonResponse(200, { itemType: '3인용 소파', alreadySubmitted: false }),
+    );
+
+    await openSellerForm();
+
+    await user.upload(
+      screen.getByLabelText('물품 상태 사진'),
+      new File(['가상문서'], 'item.pdf', { type: 'application/pdf' }),
+    );
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      '이미지 파일만 첨부할 수 있어요.',
+    );
+    expect(screen.queryByAltText('첨부한 물품 상태 사진')).not.toBeInTheDocument();
+  });
+
+  it('개인정보 수집·이용에 동의하지 않으면 제출 API를 호출하지 않는다', async () => {
+    const user = userEvent.setup();
+    mockFetch.mockResolvedValue(
+      jsonResponse(200, { itemType: '3인용 소파', alreadySubmitted: false }),
+    );
+
+    await openSellerForm();
+
+    await fillSellerFields(user);
+    await user.click(screen.getByRole('button', { name: '제출하기' }));
+
+    expect(screen.getByText('개인정보 수집·이용에 동의해 주세요.')).toBeInTheDocument();
+    // 세션 조회 1회만 남고 제출 요청은 나가지 않는다.
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('보기로 연 동의 화면에서 동의하면 입력값과 사진을 유지한 채 체크된다', async () => {
+    const user = userEvent.setup();
+    mockFetch.mockResolvedValue(
+      jsonResponse(200, { itemType: '3인용 소파', alreadySubmitted: false }),
+    );
+
+    await openSellerForm();
+
+    await user.type(screen.getByLabelText('판매자 이름'), '가상판매자');
+    await user.upload(
+      screen.getByLabelText('물품 상태 사진'),
+      new File(['가상이미지'], 'item.png', { type: 'image/png' }),
+    );
+
+    await user.click(screen.getByRole('button', { name: '보기' }));
+
+    expect(screen.getByRole('heading', { name: /아래 정보를 수집해요/ })).toBeInTheDocument();
+    expect(currentPath()).toBe(`/seller-input/${SELLER_TOKEN}`);
+
+    await user.click(screen.getByRole('button', { name: '동의하고 계속하기' }));
+
+    expect(screen.getByRole('checkbox', { name: PRIVACY_CONSENT_NAME })).toBeChecked();
+    expect(screen.getByLabelText('판매자 이름')).toHaveValue('가상판매자');
+    expect(screen.getByAltText('첨부한 물품 상태 사진')).toBeInTheDocument();
+  });
+
+  it('이미 제출된 세션에는 사진 첨부와 동의 항목을 보여주지 않는다', async () => {
+    mockFetch.mockResolvedValue(
+      jsonResponse(200, { itemType: '3인용 소파', alreadySubmitted: true }),
+    );
+
+    renderAt(`/seller-input/${SELLER_TOKEN}`);
+
+    expect(await screen.findByText(/이미 제출/)).toBeInTheDocument();
+    expect(screen.queryByLabelText('물품 상태 사진')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('checkbox', { name: PRIVACY_CONSENT_NAME }),
+    ).not.toBeInTheDocument();
   });
 
   it('세션 조회 실패를 오류로 보여준다', async () => {
