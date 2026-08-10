@@ -1,5 +1,6 @@
+/* 로고 헤더가 없는 화면이라 헤더가 차지하던 상단 여백을 본문이 갖는다. */
 .content {
-  padding: 40px 24px 0;
+  padding: 88px 24px 0;
 }
 
 .title {
@@ -10,6 +11,10 @@
   line-height: 36.96px;
   letter-spacing: -0.5px;
   color: var(--setty-color-text-strong);
+}
+
+.brand {
+  color: var(--setty-color-brand);
 }
 
 .subtitle {

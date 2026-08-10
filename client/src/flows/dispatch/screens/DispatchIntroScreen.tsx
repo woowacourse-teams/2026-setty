@@ -1,4 +1,3 @@
-import BrandHeader from '../components/BrandHeader';
 import MobileScreen from '../components/MobileScreen';
 import PrimaryButton from '../components/PrimaryButton';
 import TextButton from '../components/TextButton';
@@ -38,8 +37,8 @@ export default function DispatchIntroScreen({
   onCheckEstimate,
 }: DispatchIntroScreenProps) {
   return (
+    /* 홈은 제목의 SETTY가 브랜드를 드러내므로 상단 로고 헤더를 두지 않는다. */
     <MobileScreen
-      header={<BrandHeader />}
       footer={
         <>
           <PrimaryButton onClick={onCreateLink}>거래 링크 만들기</PrimaryButton>
@@ -51,7 +50,7 @@ export default function DispatchIntroScreen({
         <h1 className={styles.title}>
           번거로운 중고 가구 거래,
           <br />
-          SETTY가 도와드려요
+          <span className={styles.brand}>SETTY</span>가 도와드려요
         </h1>
         <p className={styles.subtitle}>
           개인정보 노출도, 지루한 대화도 없이. 조건만 정하면 거래가 끝까지 이어져요.
