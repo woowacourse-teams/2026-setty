@@ -17,6 +17,8 @@ class DispatchRequestTest {
                 "서울특별시 테스트구 테스트로 1",
                 "책상",
                 false,
+                "https://www.daangn.com/articles/test-1",
+                java.util.List.of(),
                 null
         );
     }
