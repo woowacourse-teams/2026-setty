@@ -20,3 +20,4 @@ setty:
     secret: ${SETTY_OPERATOR_SECRET:}
   dispatch:
     seller-input-base-url: ${SETTY_SELLER_INPUT_BASE_URL:http://localhost:5173/seller-input}
+    buyer-status-base-url: ${SETTY_BUYER_STATUS_BASE_URL:http://localhost:5173/dispatch}

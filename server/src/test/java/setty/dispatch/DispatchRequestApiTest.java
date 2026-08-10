@@ -6,6 +6,7 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -53,6 +54,13 @@ class DispatchRequestApiTest {
               "sellerPhoneNumber": "010-0000-0002",
               "pickupAddress": "서울특별시 테스트구 테스트로 2",
               "availablePickupTime": "평일 오후"
+            }
+            """;
+
+    private static final String FINAL_AMOUNT_PAYLOAD = """
+            {
+              "finalQuotedAmount": 30000,
+              "messageContent": "최종 운송비는 30000원입니다."
             }
             """;
 
@@ -400,6 +408,126 @@ class DispatchRequestApiTest {
                         .header(OperatorAuthInterceptor.OPERATOR_SECRET_HEADER, OPERATOR_SECRET))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.createdAt").value(containsString("+09:00")));
+    }
+
+    @Test
+    @DisplayName("운영자가 최종 금액과 안내 문자를 저장하면 확인 대기가 되고 구매자 확인 링크를 돌려준다")
+    void recordingFinalAmountMovesToConfirmPendingAndReturnsBuyerConfirmUrl() throws Exception {
+        final String created = createDispatchRequest();
+        submitSellerInput(sellerToken(created));
+
+        mockMvc.perform(put("/api/operator/dispatch-requests/{id}/final-amount", latestDispatchRequestId())
+                        .header(OperatorAuthInterceptor.OPERATOR_SECRET_HEADER, OPERATOR_SECRET)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(FINAL_AMOUNT_PAYLOAD))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.buyerConfirmUrl").value(containsString(buyerToken(created))));
+
+        mockMvc.perform(get("/api/operator/dispatch-requests/{id}", latestDispatchRequestId())
+                        .header(OperatorAuthInterceptor.OPERATOR_SECRET_HEADER, OPERATOR_SECRET))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("FINAL_AMOUNT_CONFIRM_PENDING"))
+                .andExpect(jsonPath("$.finalQuotedAmount").value(30000))
+                .andExpect(jsonPath("$.messageContent").value("최종 운송비는 30000원입니다."))
+                .andExpect(jsonPath("$.buyerConfirmUrl").value(containsString(buyerToken(created))));
+    }
+
+    @Test
+    @DisplayName("구매자는 저장된 최종 금액을 본인 조회에서 확인한다")
+    void buyerSeesFinalQuotedAmountAfterOperatorRecordsIt() throws Exception {
+        final String created = createDispatchRequest();
+        submitSellerInput(sellerToken(created));
+        recordFinalAmount(latestDispatchRequestId());
+
+        mockMvc.perform(get("/api/dispatch-requests/{buyerToken}", buyerToken(created)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("FINAL_AMOUNT_CONFIRM_PENDING"))
+                .andExpect(jsonPath("$.finalQuotedAmount").value(30000));
+    }
+
+    @Test
+    @DisplayName("구매자 승인 전에는 최종 금액과 안내 문자를 다시 수정할 수 있다")
+    void allowsEditingFinalAmountWhileConfirmPending() throws Exception {
+        final String created = createDispatchRequest();
+        submitSellerInput(sellerToken(created));
+        recordFinalAmount(latestDispatchRequestId());
+
+        mockMvc.perform(put("/api/operator/dispatch-requests/{id}/final-amount", latestDispatchRequestId())
+                        .header(OperatorAuthInterceptor.OPERATOR_SECRET_HEADER, OPERATOR_SECRET)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "finalQuotedAmount": 35000,
+                                  "messageContent": "최종 운송비를 35000원으로 정정합니다."
+                                }
+                                """))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/operator/dispatch-requests/{id}", latestDispatchRequestId())
+                        .header(OperatorAuthInterceptor.OPERATOR_SECRET_HEADER, OPERATOR_SECRET))
+                .andExpect(jsonPath("$.finalQuotedAmount").value(35000))
+                .andExpect(jsonPath("$.messageContent").value("최종 운송비를 35000원으로 정정합니다."));
+    }
+
+    @Test
+    @DisplayName("판매자 입력이 끝나지 않은 요청에는 최종 금액을 저장할 수 없다")
+    void rejectsFinalAmountBeforeSellerInputIsCompleted() throws Exception {
+        createDispatchRequest();
+
+        mockMvc.perform(put("/api/operator/dispatch-requests/{id}/final-amount", latestDispatchRequestId())
+                        .header(OperatorAuthInterceptor.OPERATOR_SECRET_HEADER, OPERATOR_SECRET)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(FINAL_AMOUNT_PAYLOAD))
+                .andExpect(status().isConflict());
+    }
+
+    @Test
+    @DisplayName("최종 금액이 없거나 안내 문자가 비면 저장을 거절한다")
+    void rejectsFinalAmountWithInvalidInput() throws Exception {
+        final String created = createDispatchRequest();
+        submitSellerInput(sellerToken(created));
+
+        mockMvc.perform(put("/api/operator/dispatch-requests/{id}/final-amount", latestDispatchRequestId())
+                        .header(OperatorAuthInterceptor.OPERATOR_SECRET_HEADER, OPERATOR_SECRET)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "finalQuotedAmount": null,
+                                  "messageContent": "최종 운송비 안내입니다."
+                                }
+                                """))
+                .andExpect(status().isBadRequest());
+
+        mockMvc.perform(put("/api/operator/dispatch-requests/{id}/final-amount", latestDispatchRequestId())
+                        .header(OperatorAuthInterceptor.OPERATOR_SECRET_HEADER, OPERATOR_SECRET)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "finalQuotedAmount": 30000,
+                                  "messageContent": " "
+                                }
+                                """))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("최종 금액 저장도 비밀 헤더가 없으면 접근을 막는다")
+    void finalAmountEndpointRejectsRequestsWithoutSecret() throws Exception {
+        final String created = createDispatchRequest();
+        submitSellerInput(sellerToken(created));
+
+        mockMvc.perform(put("/api/operator/dispatch-requests/{id}/final-amount", latestDispatchRequestId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(FINAL_AMOUNT_PAYLOAD))
+                .andExpect(status().isUnauthorized());
+    }
+
+    private void recordFinalAmount(final Integer dispatchRequestId) throws Exception {
+        mockMvc.perform(put("/api/operator/dispatch-requests/{id}/final-amount", dispatchRequestId)
+                        .header(OperatorAuthInterceptor.OPERATOR_SECRET_HEADER, OPERATOR_SECRET)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(FINAL_AMOUNT_PAYLOAD))
+                .andExpect(status().isOk());
     }
 
     private String createDispatchRequest() throws Exception {
