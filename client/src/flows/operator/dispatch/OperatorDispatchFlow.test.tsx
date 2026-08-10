@@ -176,6 +176,37 @@ test('배차 목록을 응답 순서대로 표시하고 운영자 메뉴에서 �
   expectOperatorSecretHeader(0);
 });
 
+test('배차 목록의 ID가 아닌 셀을 클릭해도 상세로 이동한다', async () => {
+  authenticateTestOperator();
+  fetchMock
+    .mockResolvedValueOnce(
+      response([
+        {
+          id: 28,
+          status: 'SELLER_INPUT_PENDING',
+          itemType: '테스트 소파',
+          highValueItem: false,
+          sellerInputCompleted: false,
+          finalQuotedAmount: null,
+          createdAt: '2026-08-07T10:00:00+09:00',
+        },
+      ]),
+    )
+    .mockResolvedValueOnce(response(PENDING_DETAIL));
+  renderAt('/operator/dispatch-requests');
+
+  await userEvent.click(await screen.findByText('테스트 소파'));
+
+  expect(
+    await screen.findByRole('heading', { name: '배차 요청 상세' }),
+  ).toBeInTheDocument();
+  expect(fetchMock.mock.calls[1]?.[0]).toBe(
+    'http://localhost:8080/api/operator/dispatch-requests/28',
+  );
+  expectOperatorSecretHeader(0);
+  expectOperatorSecretHeader(1);
+});
+
 test('상태 필터를 URL과 API query에 반영한다', async () => {
   authenticateTestOperator();
   fetchMock.mockResolvedValueOnce(response([])).mockResolvedValueOnce(response([]));
