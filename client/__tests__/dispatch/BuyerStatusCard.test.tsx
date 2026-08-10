@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, useLocation, useNavigate, useRoutes } from 'react-router-dom';
 import { dispatchRoutes } from '@/app/routes/dispatchRoutes';
 import { API_ORIGIN } from '@/shared/api/http';
+import { completeOnboarding } from '@/app/onboarding/onboardingStorage';
 
 const BUYER_TOKEN = 'buyer-token-test';
 const SELLER_INPUT_URL = 'https://example.test/seller-input/seller-token-test';
@@ -74,6 +75,8 @@ async function submitBuyerRequest(user: ReturnType<typeof userEvent.setup>) {
 }
 
 beforeEach(() => {
+  // 홈 첫 진입 온보딩은 이 테스트들의 대상이 아니므로 이미 본 기기로 둔다.
+  completeOnboarding();
   jest.useRealTimers();
   mockFetch.mockReset();
   clipboardWriteText.mockReset();

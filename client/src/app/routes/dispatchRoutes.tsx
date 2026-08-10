@@ -6,6 +6,7 @@ import {
   useNavigate,
   useParams,
 } from 'react-router-dom';
+import OnboardingGate from '@/app/onboarding/OnboardingGate';
 import BuyerRequestFormScreen from '@/flows/dispatch/screens/BuyerRequestFormScreen';
 import DispatchIntroScreen from '@/flows/dispatch/screens/DispatchIntroScreen';
 import FinalAmountConfirmScreen from '@/flows/dispatch/screens/FinalAmountConfirmScreen';
@@ -219,8 +220,16 @@ function FinalAmountConfirmRoute() {
  */
 export const dispatchRoutes: RouteObject[] = [
   {
+    /*
+     * 홈은 앱의 첫 진입점이라 처음 온 기기에만 온보딩을 먼저 보여준다.
+     * 토큰 링크로 바로 들어오는 아래 경로들은 감싸지 않는다.
+     */
     path: '/',
-    element: <DispatchIntroRoute />,
+    element: (
+      <OnboardingGate>
+        <DispatchIntroRoute />
+      </OnboardingGate>
+    ),
   },
   {
     path: '/dispatch/new',

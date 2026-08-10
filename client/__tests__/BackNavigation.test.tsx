@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, useLocation, useNavigate } from 'react-router-dom';
 import App from '@/app/App';
+import { completeOnboarding } from '@/app/onboarding/onboardingStorage';
 
 /**
  * 브라우저 뒤로가기 회귀 테스트.
@@ -88,6 +89,8 @@ async function submitBuyerRequest(user: ReturnType<typeof userEvent.setup>) {
 }
 
 beforeEach(() => {
+  // 홈 첫 진입 온보딩은 이 테스트들의 대상이 아니므로 이미 본 기기로 둔다.
+  completeOnboarding();
   mockFetch.mockReset();
   clipboardWriteText.mockReset();
   clipboardWriteText.mockResolvedValue(undefined);

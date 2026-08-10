@@ -2,10 +2,13 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import App from '@/app/App';
+import { completeOnboarding } from '@/app/onboarding/onboardingStorage';
 
 const fetchMock = jest.fn() as jest.MockedFunction<typeof fetch>;
 
 beforeEach(() => {
+  // 홈 첫 진입 온보딩은 이 테스트들의 대상이 아니므로 이미 본 기기로 둔다.
+  completeOnboarding();
   fetchMock.mockReset();
   Object.defineProperty(globalThis, 'fetch', {
     configurable: true,
