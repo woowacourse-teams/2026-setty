@@ -253,7 +253,7 @@ describe('예상 견적 flow 뒤로가기', () => {
     await user.click(screen.getByRole('button', { name: '예상 견적 요청하기' }));
 
     expect(
-      await screen.findByRole('heading', { name: '요청이 접수됐어요' }),
+      await screen.findByRole('heading', { name: '견적 요청이 접수됐어요' }),
     ).toBeInTheDocument();
     expect(currentPath()).toBe('/estimate/submitted');
 
