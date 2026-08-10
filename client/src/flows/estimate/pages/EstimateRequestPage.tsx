@@ -13,6 +13,7 @@ import {
   EstimateRequestField,
   EstimateRequestFieldErrors,
   EstimateRequestFormValues,
+  MAX_PRODUCT_LINK,
   normalizePhoneNumber,
   validateEstimateRequest,
 } from '@/flows/estimate/validation/estimateRequestValidation';
@@ -24,6 +25,7 @@ const INITIAL_VALUES: EstimateRequestFormValues = {
   tradeArea: '',
   itemType: '',
   highValueItem: false,
+  productLink: '',
 };
 
 const FIELD_NAMES: EstimateRequestField[] = [
@@ -32,6 +34,7 @@ const FIELD_NAMES: EstimateRequestField[] = [
   'tradeArea',
   'itemType',
   'highValueItem',
+  'productLink',
 ];
 
 type EstimateRequestTextField = Exclude<EstimateRequestField, 'highValueItem'>;
@@ -134,6 +137,8 @@ export default function EstimateRequestPage() {
     setIsSubmitting(true);
     setFormError('');
 
+    const productLink = values.productLink.trim();
+
     try {
       await createEstimateRequest({
         name: values.name.trim(),
@@ -141,6 +146,7 @@ export default function EstimateRequestPage() {
         tradeArea: values.tradeArea.trim(),
         itemType: values.itemType.trim(),
         highValueItem: values.highValueItem,
+        ...(productLink ? { productLink } : {}),
       });
       navigate('/estimate/submitted', { replace: true });
     } catch (error) {
@@ -199,6 +205,17 @@ export default function EstimateRequestPage() {
             value={values.itemType}
             error={fieldErrors.itemType}
             onChange={(event) => updateValue('itemType', event.target.value)}
+          />
+          <FormField
+            label="당근 게시물 링크"
+            inputMode="url"
+            autoComplete="off"
+            placeholder="https://www.daangn.com/articles/..."
+            maxLength={MAX_PRODUCT_LINK}
+            hint="입력하지 않아도 돼요. 넣어 주시면 물품을 더 정확히 확인해요"
+            value={values.productLink}
+            error={fieldErrors.productLink}
+            onChange={(event) => updateValue('productLink', event.target.value)}
           />
           <HighValueToggle
             checked={values.highValueItem}

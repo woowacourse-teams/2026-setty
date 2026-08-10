@@ -24,6 +24,8 @@ export interface BuyerDispatchRequestCreateRequest {
   deliveryAddress: string;
   itemType: string;
   highValueItem: boolean;
+  /** 당근 게시물 링크. server `@NotBlank`라 배차 요청에서는 필수다. */
+  productLink: string;
   estimateRequestId?: number | null;
 }
 

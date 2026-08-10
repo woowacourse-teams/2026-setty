@@ -28,6 +28,7 @@ const PRIVACY_CONSENT_ERROR = '개인정보 수집·이용에 동의해 주세�
 const MAX_BUYER_NAME = 50;
 const MAX_ITEM_TYPE = 100;
 const MAX_DELIVERY_ADDRESS = 255;
+const MAX_PRODUCT_LINK = 500;
 
 /** server `@Pattern(regexp = "^01\\d-?\\d{3,4}-?\\d{4}$")`와 같은 식이다. */
 const PHONE_NUMBER_PATTERN = /^01\d-?\d{3,4}-?\d{4}$/;
@@ -37,6 +38,7 @@ interface FieldErrors {
   buyerName?: string;
   buyerPhoneNumber?: string;
   deliveryAddress?: string;
+  productLink?: string;
 }
 
 const validate = (values: {
@@ -44,6 +46,7 @@ const validate = (values: {
   buyerName: string;
   buyerPhoneNumber: string;
   deliveryAddress: string;
+  productLink: string;
 }): FieldErrors => {
   const errors: FieldErrors = {};
 
@@ -71,6 +74,12 @@ const validate = (values: {
     errors.deliveryAddress = `주소는 ${MAX_DELIVERY_ADDRESS}자까지 입력할 수 있어요.`;
   }
 
+  if (!values.productLink.trim()) {
+    errors.productLink = '당근 게시물 링크를 입력해 주세요.';
+  } else if (values.productLink.trim().length > MAX_PRODUCT_LINK) {
+    errors.productLink = `링크는 ${MAX_PRODUCT_LINK}자까지 입력할 수 있어요.`;
+  }
+
   return errors;
 };
 
@@ -90,6 +99,7 @@ export default function BuyerRequestFormScreen({
   const [buyerName, setBuyerName] = useState('');
   const [buyerPhoneNumber, setBuyerPhoneNumber] = useState('');
   const [deliveryAddress, setDeliveryAddress] = useState('');
+  const [productLink, setProductLink] = useState('');
 
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [submitError, setSubmitError] = useState('');
@@ -113,7 +123,13 @@ export default function BuyerRequestFormScreen({
       return;
     }
 
-    const errors = validate({ itemType, buyerName, buyerPhoneNumber, deliveryAddress });
+    const errors = validate({
+      itemType,
+      buyerName,
+      buyerPhoneNumber,
+      deliveryAddress,
+      productLink,
+    });
     setFieldErrors(errors);
     setPrivacyConsentError(privacyConsent ? '' : PRIVACY_CONSENT_ERROR);
     if (Object.keys(errors).length > 0 || !privacyConsent) {
@@ -131,6 +147,7 @@ export default function BuyerRequestFormScreen({
         deliveryAddress: deliveryAddress.trim(),
         itemType: itemType.trim(),
         highValueItem,
+        productLink: productLink.trim(),
       });
       onCreated(result);
     } catch (error) {
@@ -180,6 +197,17 @@ export default function BuyerRequestFormScreen({
             maxLength={MAX_ITEM_TYPE}
             error={fieldErrors.itemType}
             onChange={(event) => setItemType(event.target.value)}
+          />
+          <FormField
+            label="당근 게시물 링크"
+            inputMode="url"
+            autoComplete="off"
+            placeholder="https://www.daangn.com/articles/..."
+            value={productLink}
+            maxLength={MAX_PRODUCT_LINK}
+            error={fieldErrors.productLink}
+            hint="거래 중인 당근 게시물 링크를 붙여넣어 주세요"
+            onChange={(event) => setProductLink(event.target.value)}
           />
           <HighValueToggle checked={highValueItem} onChange={setHighValueItem} />
           <FormField
