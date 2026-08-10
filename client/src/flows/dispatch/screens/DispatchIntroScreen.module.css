@@ -1,5 +1,6 @@
+/* 로고 헤더가 없는 화면이라 헤더가 차지하던 상단 여백을 본문이 갖는다. */
 .content {
-  padding: 40px 24px 0;
+  padding: 88px 24px 0;
 }
 
 .title {
@@ -12,6 +13,10 @@
   color: var(--setty-color-text-strong);
 }
 
+.brand {
+  color: var(--setty-color-brand);
+}
+
 .subtitle {
   margin: 11px 0 0;
   /* 시안 본문 규격이며 공통 body 토큰과 값이 달라 flow 전용으로 둔다. */
@@ -21,93 +26,33 @@
   color: var(--setty-color-text-body);
 }
 
-.timeline {
-  position: relative;
-  margin: 39px 0 0;
+.benefits {
+  margin: 28px 0 0;
   padding: 0;
   list-style: none;
 }
 
-/* STEP 배지를 잇는 세로선. flow 전용 그라디언트 값이다. */
-.timeline::before {
-  content: '';
-  position: absolute;
-  top: 24px;
-  bottom: 0;
-  left: 17px;
-  width: 2px;
-  background: linear-gradient(180deg, #02bd79 0%, #b8ecd8 100%);
+/*
+ * 가치 소개는 구분선으로만 나눈다. 카드나 배경을 쓰지 않는다.
+ * 마지막 항목 아래에는 선을 두지 않아 목록이 화면 아래로 열려 보인다.
+ */
+.benefit {
+  padding: 18px 0;
+  border-top: 1px solid var(--setty-color-border);
 }
 
-.step {
-  position: relative;
-  display: flex;
-  gap: 16px;
-}
-
-.step + .step {
-  /* 시안의 배지 간격 89.56px에서 배지 높이 36px을 뺀 값 */
-  margin-top: 53.5px;
-}
-
-.badge {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  flex: 0 0 auto;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 18px;
-  font-size: 15px;
-  font-weight: 700;
-}
-
-.badgeCurrent {
-  background: var(--setty-color-brand);
-  color: var(--setty-color-surface);
-  /* 시안의 현재 단계 강조 그림자. flow 전용 값이다. */
-  filter: drop-shadow(0 4px 6px rgba(2, 189, 121, 0.28));
-}
-
-.badgeNext {
-  border: 2px solid var(--setty-color-brand);
-  background: var(--setty-color-surface);
-  color: var(--setty-color-brand);
-}
-
-.badgeLast {
-  /* #b8ecd8은 시안에만 있는 연한 brand 테두리 색이다. flow 전용 값이다. */
-  border: 2px solid #b8ecd8;
-  background: var(--setty-color-surface);
-  color: var(--setty-color-brand-hover);
-}
-
-.stepBody {
-  padding-top: 3px;
-}
-
-.stepLabel {
+.benefitTitle {
   margin: 0;
-  font-size: 11.5px;
-  font-weight: 700;
-  letter-spacing: 1px;
-  color: var(--setty-color-brand);
-}
-
-.stepTitle {
-  margin: 6px 0 0;
-  font-size: 16.5px;
+  font-size: 17px;
   font-weight: 700;
   letter-spacing: -0.3px;
   color: var(--setty-color-text-strong);
 }
 
-.stepDescription {
-  margin: 5px 0 0;
-  font-size: 13.5px;
+.benefitDescription {
+  margin: 6px 0 0;
+  font-size: 15px;
   font-weight: 500;
-  line-height: 19.58px;
-  color: var(--setty-color-text-muted);
+  line-height: 22px;
+  color: var(--setty-color-text-subtle);
 }

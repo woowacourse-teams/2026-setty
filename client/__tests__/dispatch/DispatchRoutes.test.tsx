@@ -90,7 +90,7 @@ describe('구매자 흐름', () => {
 
     renderAt('/');
 
-    expect(screen.getByRole('heading', { name: /거래를 시작하세요/ })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /번거로운 중고 가구 거래/ })).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: '거래 링크 만들기' }));
     expect(currentPath()).toBe('/dispatch/new');
 
