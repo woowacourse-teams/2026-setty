@@ -7,7 +7,6 @@ import PrimaryButton from '../components/PrimaryButton';
 import ResultMessage from '../components/ResultMessage';
 import { ErrorMessage, LoadingMessage } from '../components/StatusMessage';
 import TextButton from '../components/TextButton';
-import { toDispatchStatusLabel } from '../model/dispatchStatusLabel';
 import type { BuyerDispatchRequestResponse } from '../model/dispatchTypes';
 import styles from './SellerWaitingScreen.module.css';
 
@@ -29,8 +28,7 @@ const POLL_INTERVAL_MS = 5000;
 const WAITING_MESSAGE = {
   emoji: '⌛',
   title: '판매자를 기다리고 있어요',
-  description:
-    '판매자에게 입력 링크를 전달해 주세요.\n입력이 완료되면 이 화면에 표시돼요.',
+  description: '판매자가 사진·주소를 입력하면\n문자(SMS)로 알려드릴게요.',
 };
 
 /**
@@ -43,9 +41,6 @@ const COMPLETED_MESSAGE = {
   description: '운영자가 배송 조건을 확인한 뒤\n최종 금액과 조건을 문자로 직접 안내해요.',
 };
 
-type CopyFeedback =
-  { type: 'success'; message: string } | { type: 'error'; message: string } | null;
-
 /**
  * 구매자가 링크를 만든 뒤 판매자 입력을 기다리는 화면이다.
  * 응답의 구매자 본인 정보와 판매자 정보는 이 화면에서 렌더링하지 않는다.
@@ -57,7 +52,6 @@ export default function SellerWaitingScreen({
   const [request, setRequest] = useState<BuyerDispatchRequestResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
-  const [copyFeedback, setCopyFeedback] = useState<CopyFeedback>(null);
   /** "다시 시도"로 조회를 다시 실행하기 위한 값이다. */
   const [retryCount, setRetryCount] = useState(0);
 
@@ -111,32 +105,6 @@ export default function SellerWaitingScreen({
     setRetryCount((count) => count + 1);
   }, []);
 
-  const handleCopyLink = useCallback(async () => {
-    if (!request) {
-      return;
-    }
-
-    setCopyFeedback(null);
-
-    if (typeof navigator.clipboard?.writeText !== 'function') {
-      setCopyFeedback({
-        type: 'error',
-        message: '자동으로 복사하지 못했어요. 링크를 직접 선택해 복사해 주세요.',
-      });
-      return;
-    }
-
-    try {
-      await navigator.clipboard.writeText(request.sellerInputUrl);
-      setCopyFeedback({ type: 'success', message: '판매자 입력 링크를 복사했어요.' });
-    } catch {
-      setCopyFeedback({
-        type: 'error',
-        message: '자동으로 복사하지 못했어요. 링크를 직접 선택해 복사해 주세요.',
-      });
-    }
-  }, [request]);
-
   const message = request?.sellerInputCompleted ? COMPLETED_MESSAGE : WAITING_MESSAGE;
 
   return (
@@ -158,51 +126,7 @@ export default function SellerWaitingScreen({
           emoji={message.emoji}
           title={message.title}
           description={message.description}
-        >
-          {/* 내부 enum 대신 사용자 표시 문구만 노출한다. */}
-          <p className={styles.status}>{toDispatchStatusLabel(request.status)}</p>
-          {!request.sellerInputCompleted ? (
-            <section
-              className={styles.linkCard}
-              aria-labelledby="seller-input-link-title"
-            >
-              <h2 className={styles.linkTitle} id="seller-input-link-title">
-                판매자 입력 링크
-              </h2>
-              <p className={styles.linkDescription}>
-                이 요청에 연결된 판매자에게 아래 링크를 전달해 주세요.
-              </p>
-              <div className={styles.linkControls}>
-                <input
-                  className={styles.linkInput}
-                  aria-label="판매자 입력 링크"
-                  readOnly
-                  value={request.sellerInputUrl}
-                  onFocus={(event) => event.currentTarget.select()}
-                />
-                <button
-                  className={styles.copyButton}
-                  type="button"
-                  onClick={() => void handleCopyLink()}
-                >
-                  링크 복사
-                </button>
-              </div>
-              {copyFeedback ? (
-                <p
-                  className={
-                    copyFeedback.type === 'success'
-                      ? styles.copySuccess
-                      : styles.copyError
-                  }
-                  role={copyFeedback.type === 'success' ? 'status' : 'alert'}
-                >
-                  {copyFeedback.message}
-                </p>
-              ) : null}
-            </section>
-          ) : null}
-        </ResultMessage>
+        />
       ) : null}
     </MobileScreen>
   );
