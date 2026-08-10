@@ -133,16 +133,13 @@ export default function EstimateRequestPage() {
             <PrimaryButton type="submit" disabled={isSubmitting}>
               {isSubmitting ? '접수하고 있어요…' : '예상 견적 요청하기'}
             </PrimaryButton>
-            <p className={styles.operationNote}>
-              운영시간 10:00~20:00, 운영시간 밖 요청은 다음 운영 시작 후 확인해요.
-            </p>
           </div>
         }
       >
         <div className={styles.fields}>
           <FormField
             label="상품명"
-            placeholder="예: 원목 의자"
+            placeholder="원목 의자"
             maxLength={100}
             value={values.itemType}
             error={fieldErrors.itemType}
@@ -154,7 +151,7 @@ export default function EstimateRequestPage() {
           />
           <FormField
             label="거래 지역"
-            placeholder="예: 서울 강남구"
+            placeholder="서울 강남구"
             maxLength={100}
             hint="동·상세주소는 입력하지 않아도 돼요"
             value={values.tradeArea}
@@ -163,7 +160,7 @@ export default function EstimateRequestPage() {
           />
           <FormField
             label="이름"
-            placeholder="예: 홍길동"
+            placeholder="홍길동"
             autoComplete="name"
             maxLength={10}
             value={values.name}

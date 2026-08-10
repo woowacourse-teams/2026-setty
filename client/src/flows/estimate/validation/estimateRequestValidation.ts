@@ -48,9 +48,9 @@ export function validateEstimateRequest(
   }
 
   if (!itemType) {
-    errors.itemType = '물품 종류를 입력해 주세요.';
+    errors.itemType = '상품명을 입력해 주세요.';
   } else if (itemType.length > 100) {
-    errors.itemType = '물품 종류는 100자 이하로 입력해 주세요.';
+    errors.itemType = '상품명은 100자 이하로 입력해 주세요.';
   }
 
   return errors;

@@ -82,7 +82,7 @@ test('필수 입력을 확인하고 사용자에게 각 필드 오류를 표시�
     screen.getByText('010으로 시작하는 휴대전화 번호 11자리를 입력해 주세요.'),
   ).toBeInTheDocument();
   expect(screen.getByText('거래 지역을 입력해 주세요.')).toBeInTheDocument();
-  expect(screen.getByText('물품 종류를 입력해 주세요.')).toBeInTheDocument();
+  expect(screen.getByText('상품명을 입력해 주세요.')).toBeInTheDocument();
   expect(fetchMock).not.toHaveBeenCalled();
 });
 
