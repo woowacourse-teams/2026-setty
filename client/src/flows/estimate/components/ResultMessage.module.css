@@ -1,0 +1,36 @@
+/*
+ * 시안은 브랜드 헤더와 하단 버튼 사이 남는 영역의 가운데에 결과 메시지를 둔다.
+ * 고정 여백 대신 중앙 정렬로 두어 화면 높이가 달라져도 같은 구성을 유지한다.
+ */
+.result {
+  display: flex;
+  min-height: 100%;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 24px;
+  text-align: center;
+}
+
+.emoji {
+  font-size: 88px;
+  line-height: 1;
+}
+
+.title {
+  margin: 28px 0 0;
+  color: var(--setty-color-text-strong);
+  font-size: var(--setty-font-size-title);
+  font-weight: var(--setty-font-weight-title);
+  letter-spacing: -0.5px;
+  line-height: var(--setty-line-height-title);
+}
+
+.description {
+  margin: 18px 0 0;
+  color: var(--setty-color-text-body);
+  font-size: var(--setty-font-size-body);
+  font-weight: var(--setty-font-weight-body);
+  line-height: var(--setty-line-height-body);
+  white-space: pre-line;
+}

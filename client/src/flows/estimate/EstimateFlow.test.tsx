@@ -2,7 +2,7 @@ import { beforeEach, expect, jest, test } from '@jest/globals';
 import '@testing-library/jest-dom/jest-globals';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, useRoutes } from 'react-router-dom';
+import { MemoryRouter, type RouteObject, useRoutes } from 'react-router-dom';
 import { estimateRoutes } from './routes';
 
 const fetchMock = jest.fn<typeof fetch>();
@@ -21,8 +21,14 @@ function response(body?: unknown, status = 200): Response {
   } as unknown as Response;
 }
 
+/** 견적 flow 밖으로 나가는 이동은 경로만 확인한다. */
+const HOME_ROUTE: RouteObject = {
+  path: '/',
+  element: <p>배차 홈</p>,
+};
+
 function EstimateTestRoutes() {
-  return useRoutes(estimateRoutes);
+  return useRoutes([...estimateRoutes, HOME_ROUTE]);
 }
 
 function renderAt(path: string) {
@@ -57,7 +63,22 @@ beforeEach(() => {
 test('견적 접수 완료 직접 URL은 루트 경로와 독립적으로 동작한다', () => {
   renderAt('/estimate/submitted');
 
-  expect(screen.getByRole('heading', { name: '요청이 접수됐어요' })).toBeInTheDocument();
+  expect(
+    screen.getByRole('heading', { name: '견적 요청이 접수됐어요' }),
+  ).toBeInTheDocument();
+  expect(screen.getByText('SETTY')).toBeInTheDocument();
+  expect(
+    screen.getByText('예상 금액을 확인한 뒤 결과를 문자(SMS)로 안내해 드릴게요.'),
+  ).toBeInTheDocument();
+});
+
+test('견적 접수 완료 화면에서 홈으로 돌아간다', async () => {
+  const user = userEvent.setup();
+  renderAt('/estimate/submitted');
+
+  await user.click(screen.getByRole('button', { name: '홈으로 돌아가기' }));
+
+  expect(screen.getByText('배차 홈')).toBeInTheDocument();
 });
 
 test('예상 견적 개인정보 처리 안내 직접 URL이 동작한다', () => {
@@ -145,7 +166,7 @@ test('견적 요청을 정규화해 제출하고 접수 완료 화면으로 이�
   await user.click(screen.getByRole('button', { name: '예상 견적 요청하기' }));
 
   expect(
-    await screen.findByRole('heading', { name: '요청이 접수됐어요' }),
+    await screen.findByRole('heading', { name: '견적 요청이 접수됐어요' }),
   ).toBeInTheDocument();
   expect(fetchMock).toHaveBeenCalledWith(
     'http://localhost:8080/api/estimate-requests',
@@ -178,7 +199,7 @@ test('거래 금액 체크를 켜면 50만 원 초과 여부를 true로 보낸�
   await user.click(screen.getByRole('button', { name: '예상 견적 요청하기' }));
 
   expect(
-    await screen.findByRole('heading', { name: '요청이 접수됐어요' }),
+    await screen.findByRole('heading', { name: '견적 요청이 접수됐어요' }),
   ).toBeInTheDocument();
   expect(fetchMock).toHaveBeenCalledWith(
     'http://localhost:8080/api/estimate-requests',
