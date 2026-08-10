@@ -5,7 +5,7 @@
 ## 1. 흐름
 
 ```
-GitHub main 푸시
+GitHub develop 푸시
   → CodePipeline (Source)
   → CodeBuild        buildspec.yml   : ./gradlew bootJar → app.jar
   → S3 아티팩트
@@ -66,7 +66,25 @@ SETTY_FRONT_BASE_URL=https://<CloudFront 도메인>
 
 - **CodeBuild**: 이미지에 Java 21(`corretto21`) 런타임이 있는 표준 이미지. 아티팩트는 S3.
 - **CodeDeploy**: 애플리케이션 + 배포 그룹(In-place). 대상은 `ec2-setty-1` (`i-0634a9c06aa1a2fc4`).
-- **CodePipeline**: Source(GitHub, `main`) → Build(CodeBuild) → Deploy(CodeDeploy).
+- **CodePipeline**: Source(GitHub, **`develop`**) → Build(CodeBuild) → Deploy(CodeDeploy).
+  배포 대상이 DEV EC2이므로 개발 통합 브랜치를 따라간다(DEC-025·DEC-026).
+  **`main`은 지금 아무것도 트리거하지 않는다.** PROD 파이프라인은 만들지 않았다.
+
+트리거 브랜치는 레포가 아니라 파이프라인 설정에 있다. 콘솔에서 Source 스테이지를 편집하거나, CLI로 바꾼다.
+
+```sh
+# 현재 설정 확인
+aws codepipeline get-pipeline --name <파이프라인명> \
+  --query 'pipeline.stages[0].actions[0].configuration'
+
+# 브랜치만 바꿔서 되돌려 넣기
+aws codepipeline get-pipeline --name <파이프라인명> --query pipeline > pipeline.json
+# pipeline.json에서 BranchName을 develop으로 수정한 뒤
+aws codepipeline update-pipeline --cli-input-json file://pipeline.json
+```
+
+이 값이 레포에 없다는 점이 이 구성의 약점이다. 파이프라인을 IaC로 관리하면 트리거도 코드 리뷰 대상이 되는데,
+지금은 콘솔로 만들고 있어 별도 과제로 남긴다.
 - **IAM**
   - EC2 인스턴스 프로파일 `ec2-project`: 아티팩트 S3 버킷에 `s3:GetObject`. 에이전트가 번들을 받는 데 필요하다.
   - CodeBuild 서비스 역할: 아티팩트 S3 쓰기, CloudWatch Logs

@@ -3,7 +3,9 @@ name: CI
 on:
   pull_request:
   push:
-    branches: [main]
+    # develop만 검사한다. develop이 개발 통합 기준이자 배포 트리거다(DEC-026).
+    # main은 develop에서만 병합되고 그 시점에 이미 검사를 통과했다.
+    branches: [develop]
 
 concurrency:
   group: ci-${{ github.ref }}
