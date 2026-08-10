@@ -42,25 +42,7 @@ export default function DispatchIntroScreen({
       footer={
         <>
           <PrimaryButton onClick={onCreateLink}>거래 링크 만들기</PrimaryButton>
-          <TextButton onClick={onCheckEstimate}>
-            예상 견적 확인하기
-            {/* 다른 흐름으로 넘어가는 이동임을 알리는 표시라 읽히지 않게 둔다. */}
-            <svg
-              className={styles.chevron}
-              viewBox="0 0 8 14"
-              aria-hidden="true"
-              focusable="false"
-            >
-              <path
-                d="M1 1l6 6-6 6"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </TextButton>
+          <TextButton onClick={onCheckEstimate}>예상 견적 확인하기</TextButton>
         </>
       }
     >
