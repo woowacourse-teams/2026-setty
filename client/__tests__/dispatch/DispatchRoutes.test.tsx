@@ -291,32 +291,6 @@ describe('판매자 흐름', () => {
     expect(screen.queryByLabelText('판매자 이름')).not.toBeInTheDocument();
   });
 
-  it('세션 응답이 거래 금액을 주면 읽기 전용으로 보여준다', async () => {
-    mockFetch.mockResolvedValue(
-      jsonResponse(200, {
-        itemType: '3인용 소파',
-        alreadySubmitted: false,
-        highValueItem: true,
-      }),
-    );
-
-    renderAt(`/seller-input/${SELLER_TOKEN}`);
-
-    expect(await screen.findByText('거래 금액')).toBeInTheDocument();
-    expect(screen.getByText('50만원 이상')).toBeInTheDocument();
-  });
-
-  it('세션 응답에 거래 금액이 없으면 값을 지어내지 않는다', async () => {
-    mockFetch.mockResolvedValue(
-      jsonResponse(200, { itemType: '3인용 소파', alreadySubmitted: false }),
-    );
-
-    renderAt(`/seller-input/${SELLER_TOKEN}`);
-
-    expect(await screen.findByText('3인용 소파')).toBeInTheDocument();
-    expect(screen.queryByText('거래 금액')).not.toBeInTheDocument();
-  });
-
   it('물품 상태 사진은 선택 항목이라 첨부하지 않아도 제출된다', async () => {
     const user = userEvent.setup();
     mockFetch

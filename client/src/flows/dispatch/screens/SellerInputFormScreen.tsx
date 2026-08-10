@@ -104,7 +104,7 @@ const toMessage = (error: unknown): string =>
  *
  * 구매자의 이름·연락처·상세주소는 DEC-017에 따라 판매자에게 보여주지 않는다.
  * 세션 응답에도 없으므로 화면에서 추측해 만들지 않는다.
- * 시안의 `거래 금액`은 세션 응답이 `highValueItem`을 줄 때만 표시한다.
+ * 시안의 `거래 금액`은 세션 응답에 대응 필드가 없어 렌더링하지 않는다.
  * `물품 상태 사진`은 선택 항목이며, 판매자 세션용 업로드 계약이 아직 없어
  * 첨부·미리보기까지만 하고 제출 payload에 넣지 않는다.
  */
@@ -321,14 +321,6 @@ export default function SellerInputFormScreen({
               <dt className={styles.summaryLabel}>상품명</dt>
               <dd className={styles.summaryValue}>{session?.itemType ?? '-'}</dd>
             </div>
-            {typeof session?.highValueItem === 'boolean' ? (
-              <div className={styles.summaryRow}>
-                <dt className={styles.summaryLabel}>거래 금액</dt>
-                <dd className={styles.summaryValue}>
-                  {session.highValueItem ? '50만원 이상' : '50만원 미만'}
-                </dd>
-              </div>
-            ) : null}
           </dl>
 
           {alreadySubmitted ? (

@@ -21,11 +21,6 @@
   border-bottom: 1px solid var(--setty-color-border);
 }
 
-/* 시안의 상품명 / 거래 금액 두 줄 간격 */
-.summaryRow + .summaryRow {
-  margin-top: 14px;
-}
-
 .summaryLabel {
   color: var(--setty-color-text-body);
   /* 시안 요약 줄 라벨 규격이라 flow 안에서만 정의한다. */

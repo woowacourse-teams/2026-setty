@@ -49,11 +49,6 @@ export interface BuyerDispatchRequestResponse {
 export interface SellerInputSessionResponse {
   itemType: string;
   alreadySubmitted: boolean;
-  /**
-   * 시안 `거래 금액`. 아직 server 응답에 없어 optional로 두고,
-   * 값이 올 때만 화면에 표시한다. client에서 기본값을 정하지 않는다.
-   */
-  highValueItem?: boolean;
 }
 
 /** POST /api/dispatch-requests/seller-sessions/{token} */
