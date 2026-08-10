@@ -1,5 +1,5 @@
 import { FormEvent, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { ApiError } from '@/shared/api/http';
 import { createEstimateRequest } from '@/flows/estimate/api/estimateRequestApi';
 import FormField from '@/flows/estimate/components/FormField';
@@ -7,6 +7,8 @@ import HighValueToggle from '@/flows/estimate/components/HighValueToggle';
 import MobileScreen from '@/flows/estimate/components/MobileScreen';
 import NavBar from '@/flows/estimate/components/NavBar';
 import PrimaryButton from '@/flows/estimate/components/PrimaryButton';
+import PrivacyConsentField from '@/flows/estimate/components/PrivacyConsentField';
+import PrivacyConsentNoticeScreen from '@/flows/estimate/privacy/PrivacyConsentNoticeScreen';
 import {
   EstimateRequestField,
   EstimateRequestFieldErrors,
@@ -50,12 +52,49 @@ function pickFieldErrors(
   }, {});
 }
 
+const PRIVACY_CONSENT_ERROR = '개인정보 수집·이용에 동의해 주세요.';
+
+/**
+ * 동의 안내 화면은 같은 경로에 history 항목만 더해 연다.
+ * 별도 경로로 이동하면 폼이 언마운트돼 입력값이 사라지고,
+ * 상태로만 열면 히스토리가 쌓이지 않아 브라우저 뒤로가기가 사이트 밖으로 나간다.
+ */
+interface EstimateRequestLocationState {
+  privacyNotice?: boolean;
+}
+
 export default function EstimateRequestPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [values, setValues] = useState(INITIAL_VALUES);
   const [fieldErrors, setFieldErrors] = useState<EstimateRequestFieldErrors>({});
   const [formError, setFormError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [privacyConsent, setPrivacyConsent] = useState(false);
+  const [privacyConsentError, setPrivacyConsentError] = useState('');
+
+  const isPrivacyNoticeOpen =
+    (location.state as EstimateRequestLocationState | null)?.privacyNotice === true;
+
+  const openPrivacyNotice = () => {
+    navigate(location.pathname, {
+      state: { privacyNotice: true } satisfies EstimateRequestLocationState,
+    });
+  };
+
+  const closePrivacyNotice = () => {
+    navigate(-1);
+  };
+
+  const updatePrivacyConsent = (checked: boolean) => {
+    setPrivacyConsent(checked);
+    setPrivacyConsentError('');
+  };
+
+  const agreePrivacyConsent = () => {
+    updatePrivacyConsent(true);
+    closePrivacyNotice();
+  };
 
   /** 문자 링크로 바로 들어오면 되돌아갈 이력이 없어 홈으로 보낸다. */
   const handleBack = () => {
@@ -85,8 +124,9 @@ export default function EstimateRequestPage() {
     }
 
     const errors = validateEstimateRequest(values);
-    if (Object.keys(errors).length > 0) {
-      setFieldErrors(errors);
+    setFieldErrors(errors);
+    setPrivacyConsentError(privacyConsent ? '' : PRIVACY_CONSENT_ERROR);
+    if (Object.keys(errors).length > 0 || !privacyConsent) {
       setFormError('');
       return;
     }
@@ -119,12 +159,27 @@ export default function EstimateRequestPage() {
     }
   };
 
+  if (isPrivacyNoticeOpen) {
+    return (
+      <PrivacyConsentNoticeScreen
+        onBack={closePrivacyNotice}
+        onAgree={agreePrivacyConsent}
+      />
+    );
+  }
+
   return (
     <form className={styles.form} noValidate onSubmit={handleSubmit}>
       <MobileScreen
         header={<NavBar title="예상 견적 확인" onBack={handleBack} />}
         footer={
           <div className={styles.footer}>
+            <PrivacyConsentField
+              checked={privacyConsent}
+              error={privacyConsentError}
+              onChange={updatePrivacyConsent}
+              onOpenNotice={openPrivacyNotice}
+            />
             {formError ? (
               <p className={styles.formError} role="alert">
                 {formError}

@@ -7,14 +7,22 @@ import HighValueToggle from '../components/HighValueToggle';
 import MobileScreen from '../components/MobileScreen';
 import NavBar from '../components/NavBar';
 import PrimaryButton from '../components/PrimaryButton';
+import PrivacyConsentField from '../components/PrivacyConsentField';
 import { ErrorMessage } from '../components/StatusMessage';
 import type { BuyerDispatchRequestCreateResponse } from '../model/dispatchTypes';
+import PrivacyConsentNoticeScreen from './PrivacyConsentNoticeScreen';
 import styles from './BuyerRequestFormScreen.module.css';
 
 interface BuyerRequestFormScreenProps {
   onBack: () => void;
   onCreated: (result: BuyerDispatchRequestCreateResponse) => void;
+  /** 동의 안내 화면이 열려 있는지. 화면 전환은 URL이 결정한다. */
+  isPrivacyNoticeOpen: boolean;
+  onOpenPrivacyNotice: () => void;
+  onClosePrivacyNotice: () => void;
 }
+
+const PRIVACY_CONSENT_ERROR = '개인정보 수집·이용에 동의해 주세요.';
 
 /** server `BuyerDispatchRequestCreateRequest`의 `@Size` 제약과 같은 값이다. */
 const MAX_BUYER_NAME = 50;
@@ -70,7 +78,13 @@ const validate = (values: {
  * 시안 `거래 링크 만들기` — 구매자가 실제 거래 정보를 입력해 배차 요청을 만든다.
  * 시안의 `받을 시간`은 server 계약에 대응 필드가 없어 렌더링하지 않는다.
  */
-export default function BuyerRequestFormScreen({ onBack, onCreated }: BuyerRequestFormScreenProps) {
+export default function BuyerRequestFormScreen({
+  onBack,
+  onCreated,
+  isPrivacyNoticeOpen,
+  onOpenPrivacyNotice,
+  onClosePrivacyNotice,
+}: BuyerRequestFormScreenProps) {
   const [itemType, setItemType] = useState('');
   const [highValueItem, setHighValueItem] = useState(false);
   const [buyerName, setBuyerName] = useState('');
@@ -80,6 +94,18 @@ export default function BuyerRequestFormScreen({ onBack, onCreated }: BuyerReque
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [submitError, setSubmitError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [privacyConsent, setPrivacyConsent] = useState(false);
+  const [privacyConsentError, setPrivacyConsentError] = useState('');
+
+  const updatePrivacyConsent = (checked: boolean) => {
+    setPrivacyConsent(checked);
+    setPrivacyConsentError('');
+  };
+
+  const agreePrivacyConsent = () => {
+    updatePrivacyConsent(true);
+    onClosePrivacyNotice();
+  };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -89,7 +115,8 @@ export default function BuyerRequestFormScreen({ onBack, onCreated }: BuyerReque
 
     const errors = validate({ itemType, buyerName, buyerPhoneNumber, deliveryAddress });
     setFieldErrors(errors);
-    if (Object.keys(errors).length > 0) {
+    setPrivacyConsentError(privacyConsent ? '' : PRIVACY_CONSENT_ERROR);
+    if (Object.keys(errors).length > 0 || !privacyConsent) {
       setSubmitError('');
       return;
     }
@@ -117,12 +144,27 @@ export default function BuyerRequestFormScreen({ onBack, onCreated }: BuyerReque
     }
   };
 
+  if (isPrivacyNoticeOpen) {
+    return (
+      <PrivacyConsentNoticeScreen
+        onBack={onClosePrivacyNotice}
+        onAgree={agreePrivacyConsent}
+      />
+    );
+  }
+
   return (
     <form className={styles.form} onSubmit={handleSubmit} noValidate>
       <MobileScreen
         header={<NavBar title="거래 링크 만들기" onBack={onBack} />}
         footer={
           <div className={styles.footer}>
+            <PrivacyConsentField
+              checked={privacyConsent}
+              error={privacyConsentError}
+              onChange={updatePrivacyConsent}
+              onOpenNotice={onOpenPrivacyNotice}
+            />
             {submitError ? <ErrorMessage message={submitError} /> : null}
             <PrimaryButton type="submit" disabled={submitting}>
               {submitting ? '만드는 중이에요' : '링크 생성하기'}

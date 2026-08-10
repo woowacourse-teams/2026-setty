@@ -5,12 +5,15 @@ Issue #12의 예상 견적 흐름에만 적용한다. 배차 요청은 별도 �
 ## FE가 보장하는 것
 
 - 처리 주체·목적·입력 항목·보유 기간·철회·삭제·문의 방법을 `/estimate/privacy`에서 안내한다.
+- 요청 화면에서 `(필수) 개인정보 수집·이용 동의`를 체크하지 않으면 요청을 전송하지 않는다.
+- `보기`로 여는 동의 안내 화면(`PrivacyConsentNoticeScreen`)의 수집 항목·이용 목적·보유 기간은
+  `estimatePrivacyPolicy.ts` 한곳의 값을 그대로 쓴다.
 
 ## 현재 상태
 
-요청 화면의 개인정보 수집·이용 동의 블록은 제거된 상태다. server `CreateEstimateRequestRequest`에도
-`privacyConsent`·`privacyPolicyVersion` 필드가 없어 FE도 보내지 않는다.
-동의 UI와 동의 증적 계약을 다시 넣으려면 아래 BE·운영 항목과 함께 확정해야 한다.
+동의 UI는 화면에만 있다. server `CreateEstimateRequestRequest`에 `privacyConsent`·`privacyPolicyVersion`
+필드가 없어 FE도 동의 여부와 안내문 버전을 보내지 않는다.
+동의 증적을 실제로 남기려면 아래 BE·운영 항목과 계약을 함께 확정해야 한다.
 
 ## BE·운영이 보장해야 하는 것
 
