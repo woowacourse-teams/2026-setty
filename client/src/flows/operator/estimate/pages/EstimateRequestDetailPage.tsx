@@ -1,13 +1,19 @@
-import { FormEvent, useCallback, useEffect, useState } from 'react';
+import {
+  FormEvent,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { ApiError } from '@/shared/api/http';
 import {
-  completeManualNotification,
   getOperatorEstimateRequest,
   OperatorEstimateRequestDetail,
+  saveManualNotification,
 } from '@/flows/operator/estimate/api/operatorEstimateApi';
 import {
-  formatEstimatedAmount,
   formatKoreanDateTime,
   formatOperatorPhoneNumber,
   getEstimateStatusLabel,
@@ -20,7 +26,6 @@ type FeasibilityValue = '' | 'true' | 'false';
 interface NotificationErrors {
   messageContent?: string;
   transportFeasible?: string;
-  estimatedAmount?: string;
 }
 
 export default function EstimateRequestDetailPage() {
@@ -32,10 +37,15 @@ export default function EstimateRequestDetailPage() {
   const [retryKey, setRetryKey] = useState(0);
   const [messageContent, setMessageContent] = useState('');
   const [transportFeasible, setTransportFeasible] = useState<FeasibilityValue>('');
-  const [estimatedAmount, setEstimatedAmount] = useState('');
   const [notificationErrors, setNotificationErrors] = useState<NotificationErrors>({});
   const [submitError, setSubmitError] = useState('');
+  const [submitSuccess, setSubmitSuccess] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const activeRouteIdRef = useRef(id);
+
+  useLayoutEffect(() => {
+    activeRouteIdRef.current = id;
+  }, [id]);
 
   const moveToLogin = useCallback(() => {
     navigate('/operator/login', {
@@ -53,11 +63,25 @@ export default function EstimateRequestDetailPage() {
 
     void getOperatorEstimateRequest(id, controller.signal)
       .then((response) => {
+        if (activeRouteIdRef.current !== id) return;
+
         setRequest(response);
+        setMessageContent(response.manualNotification?.messageContent ?? '');
+        setTransportFeasible(
+          response.manualNotification
+            ? response.manualNotification.transportFeasible
+              ? 'true'
+              : 'false'
+            : '',
+        );
+        setNotificationErrors({});
+        setSubmitError('');
+        setSubmitSuccess('');
+        setIsSubmitting(false);
         setDetailState('ready');
       })
       .catch((error: unknown) => {
-        if (controller.signal.aborted) return;
+        if (controller.signal.aborted || activeRouteIdRef.current !== id) return;
         if (error instanceof ApiError && error.status === 401) {
           moveToLogin();
           return;
@@ -78,18 +102,12 @@ export default function EstimateRequestDetailPage() {
     if (!transportFeasible) {
       errors.transportFeasible = '운송 가능 여부를 선택해 주세요.';
     }
-    if (transportFeasible === 'true') {
-      const amount = Number(estimatedAmount);
-      if (!/^\d+$/.test(estimatedAmount) || !Number.isSafeInteger(amount)) {
-        errors.estimatedAmount = '예상 금액을 0 이상의 정수로 입력해 주세요.';
-      }
-    }
     return errors;
   };
 
   const handleNotificationSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!id) return;
+    if (!id || !request || request.estimateRequestId !== Number(id)) return;
 
     const errors = validateNotification();
     if (Object.keys(errors).length > 0) {
@@ -98,37 +116,64 @@ export default function EstimateRequestDetailPage() {
     }
 
     setIsSubmitting(true);
+    setNotificationErrors({});
     setSubmitError('');
+    setSubmitSuccess('');
 
     try {
-      await completeManualNotification(id, {
-        messageContent: messageContent.trim(),
-        transportFeasible: transportFeasible === 'true',
-        estimatedAmount: transportFeasible === 'true' ? Number(estimatedAmount) : null,
+      const savedMessageContent = messageContent.trim();
+      const savedTransportFeasible = transportFeasible === 'true';
+      await saveManualNotification(id, {
+        messageContent: savedMessageContent,
+        transportFeasible: savedTransportFeasible,
       });
-      setDetailState('loading');
-      setRetryKey((current) => current + 1);
+      if (activeRouteIdRef.current !== id) return;
+
+      setRequest((current) =>
+        current?.estimateRequestId === Number(id)
+          ? {
+              ...current,
+              status: 'ESTIMATE_NOTIFIED',
+              manualNotification: {
+                messageContent: savedMessageContent,
+                transportFeasible: savedTransportFeasible,
+              },
+            }
+          : current,
+      );
+      setMessageContent(savedMessageContent);
+      setSubmitSuccess('메시지를 저장했습니다.');
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) {
         moveToLogin();
+      } else if (activeRouteIdRef.current !== id) {
+        return;
       } else if (error instanceof ApiError && error.status === 409) {
-        setDetailState('loading');
-        setRetryKey((current) => current + 1);
+        setSubmitError(
+          '요청 상태가 변경되어 메시지를 저장하지 못했습니다. 입력 내용을 유지했으니 필요하면 복사한 뒤 페이지를 새로고침해 주세요.',
+        );
       } else if (error instanceof ApiError && error.status === 400 && error.fieldErrors) {
         setNotificationErrors({
           messageContent: error.fieldErrors.messageContent,
           transportFeasible: error.fieldErrors.transportFeasible,
-          estimatedAmount: error.fieldErrors.estimatedAmount,
         });
       } else {
-        setSubmitError('안내 완료 기록을 저장하지 못했습니다. 다시 시도해 주세요.');
+        setSubmitError('메시지를 저장하지 못했습니다. 다시 시도해 주세요.');
       }
     } finally {
-      setIsSubmitting(false);
+      if (activeRouteIdRef.current === id) {
+        setIsSubmitting(false);
+      }
     }
   };
 
-  if (detailState === 'loading') {
+  if (
+    detailState === 'loading' ||
+    (detailState === 'ready' &&
+      id !== undefined &&
+      request !== null &&
+      request.estimateRequestId !== Number(id))
+  ) {
     return (
       <div className={styles.stateCard} role="status">
         견적 요청을 불러오고 있어요…
@@ -210,12 +255,12 @@ export default function EstimateRequestDetailPage() {
           </dl>
         </article>
 
-        {request.status === 'PENDING_REVIEW' ? (
+        {request.status === 'PENDING_REVIEW' || request.manualNotification !== null ? (
           <article className={styles.notificationCard}>
-            <h2>문자 안내 완료 기록</h2>
+            <h2>문자 안내 기록</h2>
             <p className={styles.manualNotice}>
-              이 화면은 문자를 보내지 않습니다. 사용자에게 문자를 실제로 발송한 뒤 저장해
-              주세요.
+              이 화면은 문자를 보내지 않습니다. 실제로 보낸 문자와 이후 상황을 기존 내용에
+              이어 기록해 주세요.
             </p>
 
             <form
@@ -242,6 +287,8 @@ export default function EstimateRequestDetailPage() {
                       value="true"
                       onChange={(event) => {
                         setTransportFeasible(event.target.value as FeasibilityValue);
+                        setSubmitError('');
+                        setSubmitSuccess('');
                         setNotificationErrors((current) => ({
                           ...current,
                           transportFeasible: undefined,
@@ -259,11 +306,11 @@ export default function EstimateRequestDetailPage() {
                       value="false"
                       onChange={(event) => {
                         setTransportFeasible(event.target.value as FeasibilityValue);
-                        setEstimatedAmount('');
+                        setSubmitError('');
+                        setSubmitSuccess('');
                         setNotificationErrors((current) => ({
                           ...current,
                           transportFeasible: undefined,
-                          estimatedAmount: undefined,
                         }));
                       }}
                     />
@@ -277,44 +324,8 @@ export default function EstimateRequestDetailPage() {
                 )}
               </fieldset>
 
-              {transportFeasible === 'true' && (
-                <label htmlFor="estimatedAmount">
-                  <span>예상 금액</span>
-                  <div className={styles.amountInput}>
-                    <input
-                      aria-describedby={
-                        notificationErrors.estimatedAmount
-                          ? 'estimated-amount-error'
-                          : undefined
-                      }
-                      aria-invalid={Boolean(notificationErrors.estimatedAmount)}
-                      id="estimatedAmount"
-                      inputMode="numeric"
-                      min="0"
-                      name="estimatedAmount"
-                      required
-                      type="number"
-                      value={estimatedAmount}
-                      onChange={(event) => {
-                        setEstimatedAmount(event.target.value);
-                        setNotificationErrors((current) => ({
-                          ...current,
-                          estimatedAmount: undefined,
-                        }));
-                      }}
-                    />
-                    <span>원</span>
-                  </div>
-                  {notificationErrors.estimatedAmount && (
-                    <small id="estimated-amount-error" role="alert">
-                      {notificationErrors.estimatedAmount}
-                    </small>
-                  )}
-                </label>
-              )}
-
               <label htmlFor="messageContent">
-                <span>실제로 보낸 문자 내용</span>
+                <span>문자 안내 및 상황 기록</span>
                 <textarea
                   aria-describedby={
                     notificationErrors.messageContent
@@ -329,6 +340,8 @@ export default function EstimateRequestDetailPage() {
                   value={messageContent}
                   onChange={(event) => {
                     setMessageContent(event.target.value);
+                    setSubmitError('');
+                    setSubmitSuccess('');
                     setNotificationErrors((current) => ({
                       ...current,
                       messageContent: undefined,
@@ -348,47 +361,24 @@ export default function EstimateRequestDetailPage() {
                 </div>
               )}
 
+              {submitSuccess && (
+                <p className={styles.submitSuccess} role="status">
+                  {submitSuccess}
+                </p>
+              )}
+
               <button disabled={isSubmitting} type="submit">
-                {isSubmitting ? '저장하고 있어요…' : '발송 완료로 저장'}
+                {isSubmitting ? '저장하고 있어요…' : '메시지 저장'}
               </button>
             </form>
           </article>
         ) : (
           <article className={styles.notificationCard}>
-            <h2>문자 안내 결과</h2>
-            {request.manualNotification ? (
-              <dl>
-                <div>
-                  <dt>운송 판단</dt>
-                  <dd>
-                    {request.manualNotification.transportFeasible
-                      ? '운송 가능'
-                      : '운송 불가'}
-                  </dd>
-                </div>
-                <div>
-                  <dt>예상 금액</dt>
-                  <dd>
-                    {formatEstimatedAmount(request.manualNotification.estimatedAmount)}
-                  </dd>
-                </div>
-                <div>
-                  <dt>안내 완료 시각</dt>
-                  <dd>{formatKoreanDateTime(request.manualNotification.notifiedAt)}</dd>
-                </div>
-                <div className={styles.fullWidthDefinition}>
-                  <dt>보낸 문자</dt>
-                  <dd className={styles.messageContent}>
-                    {request.manualNotification.messageContent}
-                  </dd>
-                </div>
-              </dl>
-            ) : (
-              <p className={styles.contractWarning} role="alert">
-                안내 완료 상태이지만 저장된 문자 기록을 받지 못했습니다. 서버 응답 계약을
-                확인해 주세요.
-              </p>
-            )}
+            <h2>문자 안내 기록</h2>
+            <p className={styles.contractWarning} role="alert">
+              안내 완료 상태이지만 저장된 문자 기록을 받지 못했습니다. 서버 응답 계약을
+              확인해 주세요.
+            </p>
           </article>
         )}
       </div>

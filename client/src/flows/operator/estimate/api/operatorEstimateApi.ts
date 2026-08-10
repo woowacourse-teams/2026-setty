@@ -15,8 +15,6 @@ export interface OperatorEstimateRequestSummary {
 export interface ManualNotification {
   messageContent: string;
   transportFeasible: boolean;
-  estimatedAmount: number | null;
-  notifiedAt: string;
 }
 
 export interface OperatorEstimateRequestDetail extends OperatorEstimateRequestSummary {
@@ -25,10 +23,9 @@ export interface OperatorEstimateRequestDetail extends OperatorEstimateRequestSu
   manualNotification: ManualNotification | null;
 }
 
-export interface CompleteManualNotificationPayload {
+export interface SaveManualNotificationPayload {
   messageContent: string;
   transportFeasible: boolean;
-  estimatedAmount: number | null;
 }
 
 export function getOperatorEstimateRequests(
@@ -53,20 +50,20 @@ export function getOperatorEstimateRequest(
 function hasKnownNotificationFieldError(
   fieldErrors: Record<string, string> | undefined,
 ): boolean {
-  return ['messageContent', 'transportFeasible', 'estimatedAmount'].some((fieldName) =>
+  return ['messageContent', 'transportFeasible'].some((fieldName) =>
     Boolean(fieldErrors?.[fieldName]),
   );
 }
 
-export async function completeManualNotification(
+export async function saveManualNotification(
   estimateRequestId: string,
-  payload: CompleteManualNotificationPayload,
+  payload: SaveManualNotificationPayload,
 ): Promise<void> {
   try {
     await requestOperatorJson<void>(
       `/api/operator/estimate-requests/${encodeURIComponent(estimateRequestId)}/manual-notification`,
       {
-        method: 'POST',
+        method: 'PUT',
         body: JSON.stringify(payload),
       },
     );

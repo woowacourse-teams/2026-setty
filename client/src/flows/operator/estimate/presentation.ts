@@ -17,10 +17,6 @@ export function formatKoreanDateTime(value: string): string {
   }).format(date);
 }
 
-export function formatEstimatedAmount(amount: number | null): string {
-  return amount === null ? '없음' : `${amount.toLocaleString('ko-KR')}원`;
-}
-
 export function formatOperatorPhoneNumber(phoneNumber: string): string {
   const digits = phoneNumber.replace(/\D/g, '');
   if (!/^010\d{8}$/.test(digits)) {
