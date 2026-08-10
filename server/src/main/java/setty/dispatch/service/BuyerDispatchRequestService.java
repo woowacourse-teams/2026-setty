@@ -39,6 +39,8 @@ public class BuyerDispatchRequestService {
                 request.deliveryAddress(),
                 request.itemType(),
                 request.highValueItem(),
+                request.productLink(),
+                request.itemImageUrlsOrEmpty(),
                 request.estimateRequestId()
         ));
         final SellerInputSession session = sellerInputSessionRepository.save(

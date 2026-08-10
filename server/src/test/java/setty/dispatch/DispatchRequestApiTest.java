@@ -44,7 +44,11 @@ class DispatchRequestApiTest {
               "buyerPhoneNumber": "010-0000-0001",
               "deliveryAddress": "서울특별시 테스트구 테스트로 1",
               "itemType": "책상",
-              "highValueItem": false
+              "highValueItem": false,
+              "productLink": "https://www.daangn.com/articles/test-1",
+              "itemImageUrls": [
+                "https://techcourse-project-2026.s3.ap-northeast-2.amazonaws.com/setty/images/items/test-1.jpg"
+              ]
             }
             """;
 
@@ -615,6 +619,90 @@ class DispatchRequestApiTest {
     void returnsNotFoundWhenApprovingWithUnknownBuyerToken() throws Exception {
         mockMvc.perform(post("/api/dispatch-requests/{buyerToken}/approval", "존재하지-않는-토큰"))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("당근 링크가 없으면 배차 요청을 만들지 않는다")
+    void rejectsCreateWhenProductLinkIsMissing() throws Exception {
+        mockMvc.perform(post("/api/dispatch-requests")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "buyerName": "테스트구매자",
+                                  "buyerPhoneNumber": "010-0000-0001",
+                                  "deliveryAddress": "서울특별시 테스트구 테스트로 1",
+                                  "itemType": "책상",
+                                  "highValueItem": false
+                                }
+                                """))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("물품 사진 없이도 배차 요청을 만들 수 있다")
+    void createsDispatchRequestWithoutItemImages() throws Exception {
+        mockMvc.perform(post("/api/dispatch-requests")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "buyerName": "테스트구매자",
+                                  "buyerPhoneNumber": "010-0000-0001",
+                                  "deliveryAddress": "서울특별시 테스트구 테스트로 1",
+                                  "itemType": "책상",
+                                  "highValueItem": false,
+                                  "productLink": "https://www.daangn.com/articles/test-1"
+                                }
+                                """))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(get("/api/operator/dispatch-requests/{id}", latestDispatchRequestId())
+                        .header(OperatorAuthInterceptor.OPERATOR_SECRET_HEADER, OPERATOR_SECRET))
+                .andExpect(jsonPath("$.itemImageUrls").isEmpty());
+    }
+
+    @Test
+    @DisplayName("물품 사진은 5장까지만 첨부할 수 있다")
+    void rejectsCreateWithMoreThanFiveItemImages() throws Exception {
+        mockMvc.perform(post("/api/dispatch-requests")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "buyerName": "테스트구매자",
+                                  "buyerPhoneNumber": "010-0000-0001",
+                                  "deliveryAddress": "서울특별시 테스트구 테스트로 1",
+                                  "itemType": "책상",
+                                  "highValueItem": false,
+                                  "productLink": "https://www.daangn.com/articles/test-1",
+                                  "itemImageUrls": ["u1", "u2", "u3", "u4", "u5", "u6"]
+                                }
+                                """))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("운영자와 구매자는 당근 링크와 물품 사진을 확인한다")
+    void operatorAndBuyerSeeProductLinkAndItemImages() throws Exception {
+        final String created = createDispatchRequest();
+
+        mockMvc.perform(get("/api/operator/dispatch-requests/{id}", latestDispatchRequestId())
+                        .header(OperatorAuthInterceptor.OPERATOR_SECRET_HEADER, OPERATOR_SECRET))
+                .andExpect(jsonPath("$.productLink").value("https://www.daangn.com/articles/test-1"))
+                .andExpect(jsonPath("$.itemImageUrls[0]").value(containsString("setty/images/items/")));
+
+        mockMvc.perform(get("/api/dispatch-requests/{buyerToken}", buyerToken(created)))
+                .andExpect(jsonPath("$.productLink").value("https://www.daangn.com/articles/test-1"))
+                .andExpect(jsonPath("$.itemImageUrls[0]").value(containsString("setty/images/items/")));
+    }
+
+    @Test
+    @DisplayName("판매자 링크 응답에는 물품 사진과 당근 링크를 담지 않는다")
+    void sellerSessionResponseDoesNotExposeItemImagesAndProductLink() throws Exception {
+        final String sellerToken = sellerToken(createDispatchRequest());
+
+        mockMvc.perform(get("/api/dispatch-requests/seller-sessions/{token}", sellerToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.productLink").doesNotExist())
+                .andExpect(jsonPath("$.itemImageUrls").doesNotExist());
     }
 
     private void recordFinalAmount(final Integer dispatchRequestId) throws Exception {

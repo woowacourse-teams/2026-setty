@@ -27,4 +27,14 @@ public class S3ObjectUploader {
 
         s3Client.putObject(request, RequestBody.fromFile(sourceFile));
     }
+
+    public void upload(final byte[] content, final String contentType, final String key) {
+        final PutObjectRequest request = PutObjectRequest.builder()
+                .bucket(s3Properties.bucketName())
+                .key(key)
+                .contentType(contentType)
+                .build();
+
+        s3Client.putObject(request, RequestBody.fromBytes(content));
+    }
 }

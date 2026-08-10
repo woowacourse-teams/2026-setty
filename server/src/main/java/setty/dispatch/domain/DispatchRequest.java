@@ -1,6 +1,8 @@
 package setty.dispatch.domain;
 
+import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -8,7 +10,11 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.OrderColumn;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import setty.common.time.SeoulDateTime;
 import setty.dispatch.exception.DispatchStatusTransitionException;
 
@@ -35,6 +41,15 @@ public class DispatchRequest {
 
     @Column(nullable = false)
     private boolean highValueItem;
+
+    @Column(length = 500)
+    private String productLink;
+
+    @ElementCollection
+    @CollectionTable(name = "dispatch_request_item_images", joinColumns = @JoinColumn(name = "dispatch_request_id"))
+    @OrderColumn(name = "sort_order")
+    @Column(name = "image_url", length = 500)
+    private List<String> itemImageUrls = new ArrayList<>();
 
     private Long estimateRequestId;
 
@@ -73,6 +88,8 @@ public class DispatchRequest {
             final String deliveryAddress,
             final String itemType,
             final boolean highValueItem,
+            final String productLink,
+            final List<String> itemImageUrls,
             final Long estimateRequestId
     ) {
         this.buyerToken = buyerToken;
@@ -81,6 +98,8 @@ public class DispatchRequest {
         this.deliveryAddress = deliveryAddress;
         this.itemType = itemType;
         this.highValueItem = highValueItem;
+        this.productLink = productLink;
+        this.itemImageUrls = new ArrayList<>(itemImageUrls);
         this.estimateRequestId = estimateRequestId;
         this.status = DispatchStatus.SELLER_INPUT_PENDING;
         this.createdAt = SeoulDateTime.now();
@@ -150,6 +169,14 @@ public class DispatchRequest {
 
     public boolean isHighValueItem() {
         return highValueItem;
+    }
+
+    public String getProductLink() {
+        return productLink;
+    }
+
+    public List<String> getItemImageUrls() {
+        return List.copyOf(itemImageUrls);
     }
 
     public Long getEstimateRequestId() {
