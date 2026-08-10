@@ -9,7 +9,8 @@
   --setty-color-surface: #ffffff;
   --setty-color-surface-muted: #f2f4f6;
   --setty-color-border: #e5e8eb;
-  --setty-font-family: Pretendard, -apple-system, system-ui, sans-serif;
+  --setty-font-family: Tossface, Pretendard, -apple-system, system-ui, sans-serif;
+  --setty-font-family-emoji: Tossface, 'Apple Color Emoji', 'Segoe UI Emoji', sans-serif;
   --setty-font-size-title: 28px;
   --setty-font-weight-title: 800;
   --setty-line-height-title: 1.32;
