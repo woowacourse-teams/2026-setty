@@ -29,6 +29,7 @@ export const DISPATCH_PATH = {
   sellerInput: (sellerToken: string) => `/seller-input/${encodeURIComponent(sellerToken)}`,
   sellerSubmitted: (sellerToken: string) =>
     `/seller-input/${encodeURIComponent(sellerToken)}/submitted`,
+  finalAmount: (buyerToken: string) => `/final-amount/${encodeURIComponent(buyerToken)}`,
 } as const;
 
 /** 예상 견적은 estimate flow 소유다. dispatch는 코드를 import하지 않고 경로만 참조한다. */
@@ -149,6 +150,17 @@ function BuyerStatusRoute() {
   const navigate = useNavigate();
   const { buyerToken } = useParams<{ buyerToken: string }>();
 
+  /*
+   * 운영자가 문자로 보내는 구매자 확인 링크는 server의 `BuyerStatusUrlFactory`가
+   * 만드는 이 경로다. 확인할 최종 금액이 있으면 대기 화면에 머물지 않게 한다.
+   * 대기 화면은 히스토리에 남기지 않는다. 뒤로가기로 돌아와도 다시 이동할 뿐이다.
+   */
+  const goToFinalAmount = useCallback(() => {
+    if (buyerToken) {
+      navigate(DISPATCH_PATH.finalAmount(buyerToken), { replace: true });
+    }
+  }, [buyerToken, navigate]);
+
   if (!buyerToken) {
     return <Navigate to={DISPATCH_PATH.home} replace />;
   }
@@ -158,6 +170,7 @@ function BuyerStatusRoute() {
       key={buyerToken}
       buyerToken={buyerToken}
       onGoHome={() => navigate(DISPATCH_PATH.home)}
+      onFinalAmountReady={goToFinalAmount}
     />
   );
 }
