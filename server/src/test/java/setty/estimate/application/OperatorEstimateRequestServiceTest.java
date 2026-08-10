@@ -3,6 +3,7 @@ package setty.estimate.application;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -43,6 +44,7 @@ class OperatorEstimateRequestServiceTest {
                 false
         );
         when(estimateRequestRepository.findById(1L)).thenReturn(Optional.of(estimateRequest));
+        when(manualNotificationRepository.findByEstimateRequestId(1L)).thenReturn(Optional.empty());
         when(manualNotificationRepository.save(any(ManualNotification.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
         final OperatorEstimateRequestService service = new OperatorEstimateRequestService(
@@ -52,8 +54,7 @@ class OperatorEstimateRequestServiceTest {
 
         service.recordManualNotification(1L, new RecordManualNotificationCommand(
                 "예상 운송비는 30000원입니다.",
-                true,
-                30000L
+                true
         ));
 
         verify(manualNotificationRepository).save(manualNotificationCaptor.capture());
@@ -62,12 +63,46 @@ class OperatorEstimateRequestServiceTest {
         assertThat(savedManualNotification.getEstimateRequestId()).isEqualTo(1L);
         assertThat(savedManualNotification.getMessageContent()).isEqualTo("예상 운송비는 30000원입니다.");
         assertThat(savedManualNotification.isTransportFeasible()).isTrue();
-        assertThat(savedManualNotification.getEstimatedAmount()).isEqualTo(30000L);
         assertThat(savedManualNotification.getNotifiedAt()).isNotNull();
     }
 
     @Test
-    void rejectsManualNotificationForAnAlreadyNotifiedRequest() {
+    void updatesTheExistingManualNotificationWithoutCreatingANewOne() {
+        final EstimateRequest estimateRequest = EstimateRequest.pendingReview(
+                "테스트사용자",
+                "01000000000",
+                "서울성북구",
+                "원목의자",
+                false
+        );
+        estimateRequest.markEstimateNotified();
+        final ManualNotification existingManualNotification = ManualNotification.create(
+                1L,
+                "처음 보낸 테스트 문자입니다.",
+                true
+        );
+        when(estimateRequestRepository.findById(1L)).thenReturn(Optional.of(estimateRequest));
+        when(manualNotificationRepository.findByEstimateRequestId(1L))
+                .thenReturn(Optional.of(existingManualNotification));
+        final OperatorEstimateRequestService service = new OperatorEstimateRequestService(
+                estimateRequestRepository,
+                manualNotificationRepository
+        );
+
+        service.recordManualNotification(1L, new RecordManualNotificationCommand(
+                "정정해서 다시 보낸 테스트 문자입니다.",
+                false
+        ));
+
+        verify(manualNotificationRepository, never()).save(any(ManualNotification.class));
+        assertThat(estimateRequest.getStatus()).isEqualTo(EstimateRequestStatus.ESTIMATE_NOTIFIED);
+        assertThat(existingManualNotification.getMessageContent())
+                .isEqualTo("정정해서 다시 보낸 테스트 문자입니다.");
+        assertThat(existingManualNotification.isTransportFeasible()).isFalse();
+    }
+
+    @Test
+    void rejectsCreatingANotificationForAnAlreadyNotifiedRequestWithoutARecord() {
         final EstimateRequest estimateRequest = EstimateRequest.pendingReview(
                 "테스트사용자",
                 "01000000000",
@@ -77,6 +112,7 @@ class OperatorEstimateRequestServiceTest {
         );
         estimateRequest.markEstimateNotified();
         when(estimateRequestRepository.findById(1L)).thenReturn(Optional.of(estimateRequest));
+        when(manualNotificationRepository.findByEstimateRequestId(1L)).thenReturn(Optional.empty());
         final OperatorEstimateRequestService service = new OperatorEstimateRequestService(
                 estimateRequestRepository,
                 manualNotificationRepository
@@ -84,8 +120,7 @@ class OperatorEstimateRequestServiceTest {
 
         assertThatThrownBy(() -> service.recordManualNotification(1L, new RecordManualNotificationCommand(
                 "이미 안내한 내용입니다.",
-                false,
-                null
+                false
         )))
                 .isInstanceOf(InvalidEstimateRequestStatusException.class);
     }

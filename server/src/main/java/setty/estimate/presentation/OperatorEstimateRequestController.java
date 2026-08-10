@@ -6,7 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -36,7 +36,7 @@ public class OperatorEstimateRequestController {
         return EstimateRequestDetailResponse.from(estimateRequestDetail);
     }
 
-    @PostMapping("/{estimateRequestId}/manual-notification")
+    @PutMapping("/{estimateRequestId}/manual-notification")
     public ResponseEntity<Void> recordManualNotification(
             @PathVariable final Long estimateRequestId,
             @Valid @RequestBody final ManualNotificationRequest request
@@ -45,8 +45,7 @@ public class OperatorEstimateRequestController {
                 estimateRequestId,
                 new RecordManualNotificationCommand(
                         request.messageContent(),
-                        request.transportFeasible(),
-                        request.estimatedAmount()
+                        request.transportFeasible()
                 )
         );
 

@@ -6,7 +6,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -82,7 +82,7 @@ class OperatorEstimateRequestControllerTest {
     }
 
     @Test
-    void returnsEstimateRequestDetailWithManualNotificationRecord() throws Exception {
+    void returnsEstimateRequestDetailWithoutEstimatedAmountAndNotifiedAt() throws Exception {
         when(operatorEstimateRequestService.findById(1L)).thenReturn(new EstimateRequestDetail(
                 1L,
                 "테스트사용자",
@@ -92,14 +92,17 @@ class OperatorEstimateRequestControllerTest {
                 false,
                 EstimateRequestStatus.ESTIMATE_NOTIFIED,
                 CREATED_AT,
-                new ManualNotificationResult("예상 운송비는 30000원입니다.", true, 30000L, CREATED_AT)
+                new ManualNotificationResult("예상 운송비는 30000원입니다.", true)
         ));
 
         mockMvc.perform(get("/api/operator/estimate-requests/1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name").value("테스트사용자"))
                 .andExpect(jsonPath("$.phoneNumber").value("010-0000-0000"))
-                .andExpect(jsonPath("$.manualNotification.estimatedAmount").value(30000));
+                .andExpect(jsonPath("$.manualNotification.messageContent").value("예상 운송비는 30000원입니다."))
+                .andExpect(jsonPath("$.manualNotification.transportFeasible").value(true))
+                .andExpect(jsonPath("$.manualNotification.estimatedAmount").doesNotExist())
+                .andExpect(jsonPath("$.manualNotification.notifiedAt").doesNotExist());
     }
 
     @Test
@@ -113,13 +116,12 @@ class OperatorEstimateRequestControllerTest {
 
     @Test
     void recordsManualNotificationAfterTheOperatorSendsTheMessage() throws Exception {
-        mockMvc.perform(post("/api/operator/estimate-requests/1/manual-notification")
+        mockMvc.perform(put("/api/operator/estimate-requests/1/manual-notification")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
                                   "messageContent": "예상 운송비는 30000원입니다.",
-                                  "transportFeasible": true,
-                                  "estimatedAmount": 30000
+                                  "transportFeasible": true
                                 }
                                 """))
                 .andExpect(status().isNoContent());
@@ -128,18 +130,16 @@ class OperatorEstimateRequestControllerTest {
         final RecordManualNotificationCommand command = commandCaptor.getValue();
         org.assertj.core.api.Assertions.assertThat(command.messageContent()).isEqualTo("예상 운송비는 30000원입니다.");
         org.assertj.core.api.Assertions.assertThat(command.transportFeasible()).isTrue();
-        org.assertj.core.api.Assertions.assertThat(command.estimatedAmount()).isEqualTo(30000L);
     }
 
     @Test
     void rejectsManualNotificationWithoutMessageContent() throws Exception {
-        mockMvc.perform(post("/api/operator/estimate-requests/1/manual-notification")
+        mockMvc.perform(put("/api/operator/estimate-requests/1/manual-notification")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
                                   "messageContent": "",
-                                  "transportFeasible": false,
-                                  "estimatedAmount": null
+                                  "transportFeasible": false
                                 }
                                 """))
                 .andExpect(status().isBadRequest())
@@ -148,48 +148,17 @@ class OperatorEstimateRequestControllerTest {
     }
 
     @Test
-    void rejectsMissingEstimatedAmountWhenTransportIsFeasible() throws Exception {
-        mockMvc.perform(post("/api/operator/estimate-requests/1/manual-notification")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {
-                                  "messageContent": "예상 운송비 안내입니다.",
-                                  "transportFeasible": true,
-                                  "estimatedAmount": null
-                                }
-                                """))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.fieldErrors.estimatedAmount").exists());
-    }
-
-    @Test
-    void rejectsEstimatedAmountWhenTransportIsInfeasible() throws Exception {
-        mockMvc.perform(post("/api/operator/estimate-requests/1/manual-notification")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {
-                                  "messageContent": "현재 조건에서는 운송이 어렵습니다.",
-                                  "transportFeasible": false,
-                                  "estimatedAmount": 30000
-                                }
-                                """))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.fieldErrors.estimatedAmount").exists());
-    }
-
-    @Test
-    void rejectsManualNotificationForAnAlreadyNotifiedRequest() throws Exception {
+    void rejectsManualNotificationWhenTheStatusDoesNotAllowIt() throws Exception {
         doThrow(new InvalidEstimateRequestStatusException())
                 .when(operatorEstimateRequestService)
                 .recordManualNotification(eq(1L), any(RecordManualNotificationCommand.class));
 
-        mockMvc.perform(post("/api/operator/estimate-requests/1/manual-notification")
+        mockMvc.perform(put("/api/operator/estimate-requests/1/manual-notification")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
                                   "messageContent": "이미 안내한 내용입니다.",
-                                  "transportFeasible": false,
-                                  "estimatedAmount": null
+                                  "transportFeasible": false
                                 }
                                 """))
                 .andExpect(status().isConflict())

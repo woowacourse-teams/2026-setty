@@ -44,9 +44,7 @@ public record EstimateRequestDetailResponse(
 
     public record ManualNotificationResponse(
             String messageContent,
-            boolean transportFeasible,
-            Long estimatedAmount,
-            OffsetDateTime notifiedAt
+            boolean transportFeasible
     ) {
         private static ManualNotificationResponse from(final ManualNotificationResult manualNotificationResult) {
             if (manualNotificationResult == null) {
@@ -55,9 +53,7 @@ public record EstimateRequestDetailResponse(
 
             return new ManualNotificationResponse(
                     manualNotificationResult.messageContent(),
-                    manualNotificationResult.transportFeasible(),
-                    manualNotificationResult.estimatedAmount(),
-                    manualNotificationResult.notifiedAt()
+                    manualNotificationResult.transportFeasible()
             );
         }
     }
