@@ -5,7 +5,12 @@ export interface EstimateRequestFormValues {
   itemType: string;
   /** server `highValueItem` — 체크하지 않으면 50만 원 초과가 아니라는 뜻이다. */
   highValueItem: boolean;
+  /** server `productLink` — 당근 게시물 링크. 견적에서는 선택 입력이다. */
+  productLink: string;
 }
+
+/** server `CreateEstimateRequestRequest`의 `@Size(max = 500)`과 같은 값이다. */
+export const MAX_PRODUCT_LINK = 500;
 
 export type EstimateRequestField = keyof EstimateRequestFormValues;
 export type EstimateRequestFieldErrors = Partial<Record<EstimateRequestField, string>>;
@@ -30,6 +35,7 @@ export function validateEstimateRequest(
   const name = values.name.trim();
   const tradeArea = values.tradeArea.trim();
   const itemType = values.itemType.trim();
+  const productLink = values.productLink.trim();
 
   if (!name) {
     errors.name = '이름을 입력해 주세요.';
@@ -51,6 +57,11 @@ export function validateEstimateRequest(
     errors.itemType = '상품명을 입력해 주세요.';
   } else if (itemType.length > 100) {
     errors.itemType = '상품명은 100자 이하로 입력해 주세요.';
+  }
+
+  // 견적의 당근 링크는 선택 입력이라 비어 있어도 오류가 아니다.
+  if (productLink.length > MAX_PRODUCT_LINK) {
+    errors.productLink = `당근 게시물 링크는 ${MAX_PRODUCT_LINK}자 이하로 입력해 주세요.`;
   }
 
   return errors;

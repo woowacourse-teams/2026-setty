@@ -98,6 +98,10 @@ describe('구매자 흐름', () => {
     await user.type(screen.getByLabelText('구매자 이름'), '가상구매자');
     await user.type(screen.getByLabelText('연락처'), '01000000000');
     await user.type(screen.getByLabelText('받는 주소'), '가상시 가상구 가상로 1');
+    await user.type(
+      screen.getByLabelText('당근 게시물 링크'),
+      'https://www.daangn.com/articles/00000000',
+    );
     await user.click(screen.getByRole('button', { name: /50만원 이상/ }));
     await user.click(screen.getByRole('checkbox', { name: PRIVACY_CONSENT_NAME }));
     await user.click(screen.getByRole('button', { name: '링크 생성하기' }));
@@ -113,6 +117,7 @@ describe('구매자 흐름', () => {
       buyerPhoneNumber: '01000000000',
       deliveryAddress: '가상시 가상구 가상로 1',
       highValueItem: true,
+      productLink: 'https://www.daangn.com/articles/00000000',
     });
 
     expect(await screen.findByText('거래가 시작됐어요')).toBeInTheDocument();
@@ -131,6 +136,10 @@ describe('구매자 흐름', () => {
     await user.type(screen.getByLabelText('구매자 이름'), '가상구매자');
     await user.type(screen.getByLabelText('연락처'), '01000000000');
     await user.type(screen.getByLabelText('받는 주소'), '가상시 가상구 가상로 1');
+    await user.type(
+      screen.getByLabelText('당근 게시물 링크'),
+      'https://www.daangn.com/articles/00000000',
+    );
     await user.click(screen.getByRole('checkbox', { name: PRIVACY_CONSENT_NAME }));
     await user.click(screen.getByRole('button', { name: '링크 생성하기' }));
 
@@ -139,6 +148,22 @@ describe('구매자 흐름', () => {
     ).toBeInTheDocument();
     expect(screen.queryByText('거래가 시작됐어요')).not.toBeInTheDocument();
     expect(currentPath()).toBe('/dispatch/new');
+  });
+
+  it('당근 게시물 링크를 입력하지 않으면 API를 호출하지 않는다', async () => {
+    const user = userEvent.setup();
+
+    renderAt('/dispatch/new');
+
+    await user.type(screen.getByLabelText('상품명'), '3인용 소파');
+    await user.type(screen.getByLabelText('구매자 이름'), '가상구매자');
+    await user.type(screen.getByLabelText('연락처'), '01000000000');
+    await user.type(screen.getByLabelText('받는 주소'), '가상시 가상구 가상로 1');
+    await user.click(screen.getByRole('checkbox', { name: PRIVACY_CONSENT_NAME }));
+    await user.click(screen.getByRole('button', { name: '링크 생성하기' }));
+
+    expect(screen.getByText('당근 게시물 링크를 입력해 주세요.')).toBeInTheDocument();
+    expect(mockFetch).not.toHaveBeenCalled();
   });
 
   it('개인정보 수집·이용에 동의하지 않으면 API를 호출하지 않는다', async () => {
@@ -150,6 +175,10 @@ describe('구매자 흐름', () => {
     await user.type(screen.getByLabelText('구매자 이름'), '가상구매자');
     await user.type(screen.getByLabelText('연락처'), '01000000000');
     await user.type(screen.getByLabelText('받는 주소'), '가상시 가상구 가상로 1');
+    await user.type(
+      screen.getByLabelText('당근 게시물 링크'),
+      'https://www.daangn.com/articles/00000000',
+    );
     await user.click(screen.getByRole('button', { name: '링크 생성하기' }));
 
     expect(screen.getByText('개인정보 수집·이용에 동의해 주세요.')).toBeInTheDocument();
@@ -183,6 +212,10 @@ describe('구매자 흐름', () => {
     await user.type(screen.getByLabelText('구매자 이름'), '가상구매자');
     await user.type(screen.getByLabelText('연락처'), '123');
     await user.type(screen.getByLabelText('받는 주소'), '가상시 가상구 가상로 1');
+    await user.type(
+      screen.getByLabelText('당근 게시물 링크'),
+      'https://www.daangn.com/articles/00000000',
+    );
     await user.click(screen.getByRole('button', { name: '링크 생성하기' }));
 
     await waitFor(() => expect(screen.getByLabelText('연락처')).toBeInvalid());

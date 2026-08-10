@@ -184,6 +184,43 @@ test('견적 요청을 정규화해 제출하고 접수 완료 화면으로 이�
   );
 });
 
+test('당근 게시물 링크를 입력하면 요청에 함께 보낸다', async () => {
+  fetchMock.mockResolvedValueOnce(
+    response({
+      estimateRequestId: 14,
+      status: 'PENDING_REVIEW',
+      createdAt: '2026-08-06T10:00:00+09:00',
+    }),
+  );
+  renderAt('/estimate');
+  const user = await fillValidEstimateForm();
+
+  await user.type(
+    screen.getByLabelText('당근 게시물 링크'),
+    'https://www.daangn.com/articles/00000000',
+  );
+  await user.click(screen.getByRole('button', { name: '예상 견적 요청하기' }));
+
+  expect(
+    await screen.findByRole('heading', { name: '견적 요청이 접수됐어요' }),
+  ).toBeInTheDocument();
+  expect(fetchMock).toHaveBeenCalledWith(
+    'http://localhost:8080/api/estimate-requests',
+    expect.objectContaining({
+      body: JSON.stringify({
+        name: '테스트사용자',
+        phoneNumber: '01000000000',
+        tradeArea: '테스트구 테스트동',
+        itemType: '테스트 의자',
+        highValueItem: false,
+        productLink: 'https://www.daangn.com/articles/00000000',
+      }),
+      credentials: 'same-origin',
+      method: 'POST',
+    }),
+  );
+});
+
 test('거래 금액 체크를 켜면 50만 원 초과 여부를 true로 보낸다', async () => {
   fetchMock.mockResolvedValueOnce(
     response({

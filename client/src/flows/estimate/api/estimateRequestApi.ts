@@ -6,6 +6,8 @@ export interface CreateEstimateRequestPayload {
   tradeArea: string;
   itemType: string;
   highValueItem: boolean;
+  /** 당근 게시물 링크. 선택 입력이라 비어 있으면 보내지 않는다. */
+  productLink?: string;
 }
 
 export interface CreateEstimateRequestResponse {
