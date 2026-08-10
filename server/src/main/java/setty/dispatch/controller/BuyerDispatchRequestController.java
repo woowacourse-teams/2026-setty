@@ -34,4 +34,10 @@ public class BuyerDispatchRequestController {
     public ResponseEntity<BuyerDispatchRequestResponse> findByBuyerToken(@PathVariable final String buyerToken) {
         return ResponseEntity.ok(buyerDispatchRequestService.findByBuyerToken(buyerToken));
     }
+
+    @PostMapping("/{buyerToken}/approval")
+    public ResponseEntity<Void> approveFinalAmount(@PathVariable final String buyerToken) {
+        buyerDispatchRequestService.approveFinalAmount(buyerToken);
+        return ResponseEntity.noContent().build();
+    }
 }
