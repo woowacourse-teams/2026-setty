@@ -26,8 +26,14 @@
   color: var(--setty-color-text-body);
 }
 
+.chevron {
+  width: 8px;
+  height: 14px;
+  margin-left: 6px;
+}
+
 .benefits {
-  margin: 46px 0 0;
+  margin: 28px 0 0;
   padding: 0;
   list-style: none;
 }
