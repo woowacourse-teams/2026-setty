@@ -109,7 +109,7 @@ describe('배차 flow 뒤로가기', () => {
     await goBack(user);
 
     expect(currentPath()).toBe('/');
-    expect(screen.getByRole('heading', { name: /거래를 시작하세요/ })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /SETTY가 도와드려요/ })).toBeInTheDocument();
   });
 
   it('화면 안 뒤로가기 버튼도 히스토리를 되감아 홈으로 돌아간다', async () => {
@@ -120,7 +120,7 @@ describe('배차 flow 뒤로가기', () => {
     await user.click(screen.getByRole('button', { name: '뒤로 가기' }));
 
     expect(currentPath()).toBe('/');
-    expect(screen.getByRole('heading', { name: /거래를 시작하세요/ })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /SETTY가 도와드려요/ })).toBeInTheDocument();
   });
 
   it('폼 URL로 바로 들어온 경우 뒤로가기 버튼이 사이트를 벗어나지 않고 홈으로 보낸다', async () => {
@@ -130,7 +130,7 @@ describe('배차 flow 뒤로가기', () => {
     await user.click(screen.getByRole('button', { name: '뒤로 가기' }));
 
     expect(currentPath()).toBe('/');
-    expect(screen.getByRole('heading', { name: /거래를 시작하세요/ })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /SETTY가 도와드려요/ })).toBeInTheDocument();
   });
 
   it('구매자 상태 카드에서 뒤로가면 링크 화면을 거쳐 홈까지 돌아간다', async () => {
@@ -158,7 +158,7 @@ describe('배차 flow 뒤로가기', () => {
 
     await goBack(user);
     expect(currentPath()).toBe('/');
-    expect(screen.getByRole('heading', { name: /거래를 시작하세요/ })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /SETTY가 도와드려요/ })).toBeInTheDocument();
   });
 
   it('제출한 구매자 폼은 히스토리에 남기지 않아 같은 요청을 다시 만들 수 없다', async () => {
@@ -216,7 +216,7 @@ describe('배차 flow 뒤로가기', () => {
 
     await user.click(screen.getByRole('button', { name: '홈으로 돌아가기' }));
     expect(currentPath()).toBe('/');
-    expect(screen.getByRole('heading', { name: /거래를 시작하세요/ })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /SETTY가 도와드려요/ })).toBeInTheDocument();
 
     await goBack(user);
 
@@ -238,7 +238,7 @@ describe('예상 견적 flow 뒤로가기', () => {
     await goBack(user);
 
     expect(currentPath()).toBe('/');
-    expect(screen.getByRole('heading', { name: /거래를 시작하세요/ })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /SETTY가 도와드려요/ })).toBeInTheDocument();
   });
 
   it('접수 완료 화면은 견적 폼을 덮어써 재접수를 막는다', async () => {

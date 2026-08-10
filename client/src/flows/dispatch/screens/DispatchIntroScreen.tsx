@@ -11,41 +11,24 @@ interface DispatchIntroScreenProps {
   onCheckEstimate: () => void;
 }
 
-interface IntroStep {
-  /** 배지에 표시하는 순번 */
-  number: string;
-  label: string;
+interface IntroBenefit {
   title: string;
   description: string;
-  /** 배지 스타일. 시안의 STEP 1·2·3이 서로 다르다. */
-  badgeClassName?: string;
 }
 
 /**
- * 시안 카피 중 결제·에스크로·정산을 뜻하는 표현은 현재 MVP 범위 밖이라
- * 운영자가 배송을 수동 조율한다는 실제 흐름 카피로 대체했다.
+ * 절차(STEP 1·2·3) 대신 SETTY가 대신 해주는 것을 먼저 보여준다.
+ * 카피는 결제·에스크로처럼 MVP 범위 밖 표현을 쓰지 않고
+ * 운영자가 실제로 수행하는 개인정보 중계와 배송 조율만 말한다.
  */
-const INTRO_STEPS: IntroStep[] = [
+const INTRO_BENEFITS: IntroBenefit[] = [
   {
-    number: '1',
-    label: 'STEP 1',
-    title: '거래 링크 만들기',
-    description: '받는 주소·금액을 담아 링크를 생성해요',
-    badgeClassName: styles.badgeCurrent,
+    title: '번호도 주소도 서로 몰라도 돼요',
+    description: '연락처·집주소는 SETTY만 알고 안전하게 연결해요',
   },
   {
-    number: '2',
-    label: 'STEP 2',
-    title: '판매자가 사진·주소 입력',
-    description: '물품 상태와 발송 정보를 등록해요',
-    badgeClassName: styles.badgeNext,
-  },
-  {
-    number: '3',
-    label: 'STEP 3',
-    title: '확인 후 배차 진행',
-    description: '운영자가 최종 금액을 문자로 안내해요',
-    badgeClassName: styles.badgeLast,
+    title: '큰 가구도 용달까지 한 번에',
+    description: '배송 차량 섭외부터 픽업·전달까지 SETTY가',
   },
 ];
 
@@ -66,31 +49,22 @@ export default function DispatchIntroScreen({
     >
       <div className={styles.content}>
         <h1 className={styles.title}>
-          안전하게
+          번거로운 중고 가구 거래,
           <br />
-          거래를 시작하세요
+          SETTY가 도와드려요
         </h1>
         <p className={styles.subtitle}>
-          판매자와 합의한 거래, SETTY 운영자가 배송을 직접 조율해요.
+          개인정보 노출도, 지루한 대화도 없이. 조건만 정하면 거래가 끝까지 이어져요.
         </p>
 
-        <ol className={styles.timeline}>
-          {INTRO_STEPS.map((step) => (
-            <li className={styles.step} key={step.label}>
-              <span
-                className={[styles.badge, step.badgeClassName].filter(Boolean).join(' ')}
-                aria-hidden="true"
-              >
-                {step.number}
-              </span>
-              <div className={styles.stepBody}>
-                <p className={styles.stepLabel}>{step.label}</p>
-                <p className={styles.stepTitle}>{step.title}</p>
-                <p className={styles.stepDescription}>{step.description}</p>
-              </div>
+        <ul className={styles.benefits}>
+          {INTRO_BENEFITS.map((benefit) => (
+            <li className={styles.benefit} key={benefit.title}>
+              <p className={styles.benefitTitle}>{benefit.title}</p>
+              <p className={styles.benefitDescription}>{benefit.description}</p>
             </li>
           ))}
-        </ol>
+        </ul>
       </div>
     </MobileScreen>
   );

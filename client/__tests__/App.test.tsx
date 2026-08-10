@@ -24,7 +24,7 @@ test('루트 경로에서 배차를 시작하거나 예상 견적으로 이동�
     </MemoryRouter>,
   );
 
-  expect(screen.getByRole('heading', { name: /거래를 시작하세요/ })).toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: /SETTY가 도와드려요/ })).toBeInTheDocument();
   expect(screen.getByRole('button', { name: '거래 링크 만들기' })).toBeInTheDocument();
   expect(fetchMock).not.toHaveBeenCalled();
 
