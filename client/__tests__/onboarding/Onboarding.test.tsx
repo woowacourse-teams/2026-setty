@@ -151,6 +151,15 @@ test('온보딩 완료 여부와 무관하게 판매자 입력 링크는 온보�
   expect(currentPath()).toBe('/seller-input/seller-token-test');
 });
 
+test('온보딩을 끝낸 뒤에도 온보딩 주소로 직접 들어가면 다시 볼 수 있다', () => {
+  completeOnboarding();
+
+  renderAt('/onboarding/1');
+
+  expect(currentPath()).toBe('/onboarding/1');
+  expect(screen.getByRole('heading', { name: /SETTY가 도와드려요/ })).toBeInTheDocument();
+});
+
 test('completeOnboarding을 부른 기기는 홈이 바로 열린다', () => {
   completeOnboarding();
 
