@@ -49,6 +49,9 @@ public class DispatchRequest {
 
     private Integer finalQuotedAmount;
 
+    @Column(columnDefinition = "TEXT")
+    private String messageContent;
+
     private LocalDateTime amountCheckedAt;
 
     @Column(length = 500)
@@ -94,6 +97,16 @@ public class DispatchRequest {
 
     public boolean isSellerInputCompleted() {
         return sellerInput != null && sellerInput.isPresent();
+    }
+
+    public void recordFinalAmount(final int amount, final String message) {
+        if (status != DispatchStatus.FINAL_REVIEW_PENDING
+                && status != DispatchStatus.FINAL_AMOUNT_CONFIRM_PENDING) {
+            throw new DispatchStatusTransitionException(status, DispatchStatus.FINAL_AMOUNT_CONFIRM_PENDING);
+        }
+        this.finalQuotedAmount = amount;
+        this.messageContent = message;
+        this.status = DispatchStatus.FINAL_AMOUNT_CONFIRM_PENDING;
     }
 
     public Long getId() {
@@ -142,6 +155,10 @@ public class DispatchRequest {
 
     public Integer getFinalQuotedAmount() {
         return finalQuotedAmount;
+    }
+
+    public String getMessageContent() {
+        return messageContent;
     }
 
     public LocalDateTime getAmountCheckedAt() {

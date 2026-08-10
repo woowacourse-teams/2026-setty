@@ -19,6 +19,8 @@ public record OperatorDispatchRequestDetailResponse(
         String sellerInputUrl,
         OffsetDateTime sellerInputCompletedAt,
         Integer finalQuotedAmount,
+        String messageContent,
+        String buyerConfirmUrl,
         OffsetDateTime amountCheckedAt,
         String operatorNote,
         String closedReason
@@ -40,7 +42,8 @@ public record OperatorDispatchRequestDetailResponse(
 
     public static OperatorDispatchRequestDetailResponse from(
             final DispatchRequest dispatchRequest,
-            final String sellerInputUrl
+            final String sellerInputUrl,
+            final String buyerConfirmUrl
     ) {
         return new OperatorDispatchRequestDetailResponse(
                 dispatchRequest.getId(),
@@ -58,6 +61,8 @@ public record OperatorDispatchRequestDetailResponse(
                 sellerInputUrl,
                 SeoulDateTime.toOffsetDateTime(dispatchRequest.getSellerInputCompletedAt()),
                 dispatchRequest.getFinalQuotedAmount(),
+                dispatchRequest.getMessageContent(),
+                buyerConfirmUrl,
                 SeoulDateTime.toOffsetDateTime(dispatchRequest.getAmountCheckedAt()),
                 dispatchRequest.getOperatorNote(),
                 dispatchRequest.getClosedReason()

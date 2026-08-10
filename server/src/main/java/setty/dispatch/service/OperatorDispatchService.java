@@ -8,6 +8,8 @@ import setty.dispatch.domain.DispatchStatus;
 import setty.dispatch.domain.SellerInputSession;
 import setty.dispatch.dto.operator.OperatorDispatchRequestDetailResponse;
 import setty.dispatch.dto.operator.OperatorDispatchRequestSummaryResponse;
+import setty.dispatch.dto.operator.OperatorFinalAmountRequest;
+import setty.dispatch.dto.operator.OperatorFinalAmountResponse;
 import setty.dispatch.exception.DispatchRequestNotFoundException;
 import setty.dispatch.repository.DispatchRequestRepository;
 import setty.dispatch.repository.SellerInputSessionRepository;
@@ -17,15 +19,18 @@ public class OperatorDispatchService {
     private final DispatchRequestRepository dispatchRequestRepository;
     private final SellerInputSessionRepository sellerInputSessionRepository;
     private final SellerInputUrlFactory sellerInputUrlFactory;
+    private final BuyerStatusUrlFactory buyerStatusUrlFactory;
 
     public OperatorDispatchService(
             final DispatchRequestRepository dispatchRequestRepository,
             final SellerInputSessionRepository sellerInputSessionRepository,
-            final SellerInputUrlFactory sellerInputUrlFactory
+            final SellerInputUrlFactory sellerInputUrlFactory,
+            final BuyerStatusUrlFactory buyerStatusUrlFactory
     ) {
         this.dispatchRequestRepository = dispatchRequestRepository;
         this.sellerInputSessionRepository = sellerInputSessionRepository;
         this.sellerInputUrlFactory = sellerInputUrlFactory;
+        this.buyerStatusUrlFactory = buyerStatusUrlFactory;
     }
 
     @Transactional(readOnly = true)
@@ -44,7 +49,31 @@ public class OperatorDispatchService {
                 .map(sellerInputUrlFactory::create)
                 .orElse(null);
 
-        return OperatorDispatchRequestDetailResponse.from(dispatchRequest, sellerInputUrl);
+        return OperatorDispatchRequestDetailResponse.from(
+                dispatchRequest,
+                sellerInputUrl,
+                buyerConfirmUrl(dispatchRequest)
+        );
+    }
+
+    @Transactional
+    public OperatorFinalAmountResponse recordFinalAmount(
+            final Long id,
+            final OperatorFinalAmountRequest request
+    ) {
+        final DispatchRequest dispatchRequest = dispatchRequestRepository.findById(id)
+                .orElseThrow(DispatchRequestNotFoundException::new);
+
+        dispatchRequest.recordFinalAmount(request.finalQuotedAmount(), request.messageContent());
+
+        return new OperatorFinalAmountResponse(buyerStatusUrlFactory.create(dispatchRequest.getBuyerToken()));
+    }
+
+    private String buyerConfirmUrl(final DispatchRequest dispatchRequest) {
+        if (dispatchRequest.getFinalQuotedAmount() == null) {
+            return null;
+        }
+        return buyerStatusUrlFactory.create(dispatchRequest.getBuyerToken());
     }
 
     private List<DispatchRequest> findSortedByLatest(final DispatchStatus status) {

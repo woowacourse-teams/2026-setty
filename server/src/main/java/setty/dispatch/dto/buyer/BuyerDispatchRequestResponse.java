@@ -15,7 +15,8 @@ public record BuyerDispatchRequestResponse(
         boolean highValueItem,
         boolean sellerInputCompleted,
         OffsetDateTime createdAt,
-        String sellerInputUrl
+        String sellerInputUrl,
+        Integer finalQuotedAmount
 ) {
     public static BuyerDispatchRequestResponse from(
             final DispatchRequest dispatchRequest,
@@ -30,7 +31,8 @@ public record BuyerDispatchRequestResponse(
                 dispatchRequest.isHighValueItem(),
                 dispatchRequest.isSellerInputCompleted(),
                 SeoulDateTime.toOffsetDateTime(dispatchRequest.getCreatedAt()),
-                sellerInputUrl
+                sellerInputUrl,
+                dispatchRequest.getFinalQuotedAmount()
         );
     }
 }
