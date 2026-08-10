@@ -30,9 +30,7 @@ test('루트 경로에서 배차를 시작하거나 예상 견적으로 이동�
 
   await user.click(screen.getByRole('button', { name: '예상 견적 확인하기' }));
 
-  expect(
-    screen.getByRole('heading', { name: '예상 견적을 요청해 주세요' }),
-  ).toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: '예상 견적 확인' })).toBeInTheDocument();
 });
 
 test('알 수 없는 경로는 특정 flow를 권하는 대신 공용 오류를 표시한다', () => {
