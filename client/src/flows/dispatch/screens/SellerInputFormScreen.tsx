@@ -1,14 +1,17 @@
-import { useCallback, useEffect, useState } from 'react';
-import type { FormEvent } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import type { FormEvent, RefObject } from 'react';
 import { findSellerInputSession, submitSellerInput } from '../api/dispatchApi';
 import { DispatchApiError } from '../api/dispatchClient';
 import FormField from '../components/FormField';
+import ItemImageField from '../components/ItemImageField';
 import MobileScreen from '../components/MobileScreen';
 import NavBar from '../components/NavBar';
 import PrimaryButton from '../components/PrimaryButton';
+import PrivacyConsentField from '../components/PrivacyConsentField';
 import { ErrorMessage, LoadingMessage } from '../components/StatusMessage';
 import TextButton from '../components/TextButton';
 import type { SellerInputSessionResponse } from '../model/dispatchTypes';
+import PrivacyConsentNoticeScreen from './PrivacyConsentNoticeScreen';
 import styles from './SellerInputFormScreen.module.css';
 
 interface SellerInputFormScreenProps {
@@ -16,7 +19,14 @@ interface SellerInputFormScreenProps {
   sellerToken: string;
   onBack?: () => void;
   onSubmitted: () => void;
+  /** 동의 안내 화면이 열려 있는지. 화면 전환은 URL이 결정한다. */
+  isPrivacyNoticeOpen: boolean;
+  onOpenPrivacyNotice: () => void;
+  onClosePrivacyNotice: () => void;
 }
+
+const PRIVACY_CONSENT_ERROR = '개인정보 수집·이용에 동의해 주세요.';
+const ITEM_IMAGE_TYPE_ERROR = '이미지 파일만 첨부할 수 있어요.';
 
 /** server `SellerInputSubmitRequest`의 `@Size` 제약과 같은 값이다. */
 const MAX_SELLER_NAME = 50;
@@ -72,6 +82,20 @@ const validate = (values: FormValues): FieldErrors => {
   return errors;
 };
 
+interface SelectedItemImage {
+  file: File;
+  /** `URL.createObjectURL`로 만든 미리보기 주소 */
+  previewUrl: string;
+}
+
+/** 미리보기 URL을 해제해 blob이 탭에 남지 않게 한다. */
+const releaseItemImagePreview = (ref: RefObject<string | null>) => {
+  if (ref.current) {
+    URL.revokeObjectURL(ref.current);
+    ref.current = null;
+  }
+};
+
 const toMessage = (error: unknown): string =>
   error instanceof DispatchApiError ? error.message : FALLBACK_ERROR_MESSAGE;
 
@@ -80,13 +104,17 @@ const toMessage = (error: unknown): string =>
  *
  * 구매자의 이름·연락처·상세주소는 DEC-017에 따라 판매자에게 보여주지 않는다.
  * 세션 응답에도 없으므로 화면에서 추측해 만들지 않는다.
- * 시안의 `거래 금액`은 세션 응답에 대응 필드가 없고, `물품 상태 사진` 업로드는
- * server 계약과 사진 저장 정책이 확정되기 전이라 렌더링하지 않는다.
+ * 시안의 `거래 금액`은 세션 응답이 `highValueItem`을 줄 때만 표시한다.
+ * `물품 상태 사진`은 선택 항목이며, 판매자 세션용 업로드 계약이 아직 없어
+ * 첨부·미리보기까지만 하고 제출 payload에 넣지 않는다.
  */
 export default function SellerInputFormScreen({
   sellerToken,
   onBack,
   onSubmitted,
+  isPrivacyNoticeOpen,
+  onOpenPrivacyNotice,
+  onClosePrivacyNotice,
 }: SellerInputFormScreenProps) {
   const [session, setSession] = useState<SellerInputSessionResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -99,9 +127,17 @@ export default function SellerInputFormScreen({
   const [pickupAddress, setPickupAddress] = useState('');
   const [availablePickupTime, setAvailablePickupTime] = useState('');
 
+  /** 선택 항목인 물품 상태 사진. 파일과 미리보기 URL을 함께 들고 같이 버린다. */
+  const [itemImage, setItemImage] = useState<SelectedItemImage | null>(null);
+  const [itemImageError, setItemImageError] = useState('');
+  /** 언마운트 정리에서 최신 미리보기 URL을 읽기 위한 참조 */
+  const itemImagePreviewUrlRef = useRef<string | null>(null);
+
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [submitError, setSubmitError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [privacyConsent, setPrivacyConsent] = useState(false);
+  const [privacyConsentError, setPrivacyConsentError] = useState('');
 
   useEffect(() => {
     // StrictMode의 이중 마운트에서 먼저 끝난 응답이 늦게 덮어쓰지 않도록 정리한다.
@@ -133,6 +169,46 @@ export default function SellerInputFormScreen({
     };
   }, [sellerToken, reloadCount]);
 
+  /** 화면을 떠날 때 남은 미리보기 URL을 해제한다. */
+  useEffect(
+    () => () => {
+      releaseItemImagePreview(itemImagePreviewUrlRef);
+    },
+    [],
+  );
+
+  const selectItemImage = (file: File) => {
+    releaseItemImagePreview(itemImagePreviewUrlRef);
+
+    // accept 속성은 파일 선택창의 필터일 뿐이라 고른 파일을 다시 확인한다.
+    if (!file.type.startsWith('image/')) {
+      setItemImage(null);
+      setItemImageError(ITEM_IMAGE_TYPE_ERROR);
+      return;
+    }
+
+    const previewUrl = URL.createObjectURL(file);
+    itemImagePreviewUrlRef.current = previewUrl;
+    setItemImage({ file, previewUrl });
+    setItemImageError('');
+  };
+
+  const removeItemImage = () => {
+    releaseItemImagePreview(itemImagePreviewUrlRef);
+    setItemImage(null);
+    setItemImageError('');
+  };
+
+  const updatePrivacyConsent = (checked: boolean) => {
+    setPrivacyConsent(checked);
+    setPrivacyConsentError('');
+  };
+
+  const agreePrivacyConsent = () => {
+    updatePrivacyConsent(true);
+    onClosePrivacyNotice();
+  };
+
   /** 조회 상태 초기화는 effect 본문이 아니라 재시도 event에서 한다. */
   const retryLoad = useCallback(() => {
     setLoading(true);
@@ -157,7 +233,8 @@ export default function SellerInputFormScreen({
     };
     const errors = validate(values);
     setFieldErrors(errors);
-    if (Object.keys(errors).length > 0) {
+    setPrivacyConsentError(privacyConsent ? '' : PRIVACY_CONSENT_ERROR);
+    if (Object.keys(errors).length > 0 || !privacyConsent) {
       setSubmitError('');
       return;
     }
@@ -182,6 +259,19 @@ export default function SellerInputFormScreen({
   };
 
   const header = <NavBar title="물품 정보 입력" onBack={onBack} />;
+
+  if (isPrivacyNoticeOpen) {
+    /*
+     * 폼을 언마운트하면 입력값과 첨부한 사진이 사라지므로 같은 컴포넌트 안에서 화면만 바꾼다.
+     * 열고 닫는 히스토리 관리는 route가 한다.
+     */
+    return (
+      <PrivacyConsentNoticeScreen
+        onBack={onClosePrivacyNotice}
+        onAgree={agreePrivacyConsent}
+      />
+    );
+  }
 
   if (loading) {
     return (
@@ -210,6 +300,14 @@ export default function SellerInputFormScreen({
         header={header}
         footer={
           <div className={styles.footer}>
+            {alreadySubmitted ? null : (
+              <PrivacyConsentField
+                checked={privacyConsent}
+                error={privacyConsentError}
+                onChange={updatePrivacyConsent}
+                onOpenNotice={onOpenPrivacyNotice}
+              />
+            )}
             {submitError ? <ErrorMessage message={submitError} /> : null}
             <PrimaryButton type="submit" disabled={submitting || !canSubmit}>
               {submitting ? '제출하는 중이에요' : '제출하기'}
@@ -223,6 +321,14 @@ export default function SellerInputFormScreen({
               <dt className={styles.summaryLabel}>상품명</dt>
               <dd className={styles.summaryValue}>{session?.itemType ?? '-'}</dd>
             </div>
+            {typeof session?.highValueItem === 'boolean' ? (
+              <div className={styles.summaryRow}>
+                <dt className={styles.summaryLabel}>거래 금액</dt>
+                <dd className={styles.summaryValue}>
+                  {session.highValueItem ? '50만원 이상' : '50만원 미만'}
+                </dd>
+              </div>
+            ) : null}
           </dl>
 
           {alreadySubmitted ? (
@@ -231,6 +337,12 @@ export default function SellerInputFormScreen({
             </p>
           ) : (
             <div className={styles.fields}>
+              <ItemImageField
+                previewUrl={itemImage?.previewUrl ?? null}
+                error={itemImageError}
+                onSelect={selectItemImage}
+                onRemove={removeItemImage}
+              />
               <FormField
                 label="판매자 이름"
                 placeholder="이름을 입력해 주세요"

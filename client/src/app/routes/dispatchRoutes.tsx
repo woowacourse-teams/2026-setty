@@ -25,6 +25,7 @@ export const DISPATCH_PATH = {
   linkCreated: (buyerToken: string) =>
     `/dispatch/${encodeURIComponent(buyerToken)}/link`,
   buyerStatus: (buyerToken: string) => `/dispatch/${encodeURIComponent(buyerToken)}`,
+  sellerInput: (sellerToken: string) => `/seller-input/${encodeURIComponent(sellerToken)}`,
   sellerSubmitted: (sellerToken: string) =>
     `/seller-input/${encodeURIComponent(sellerToken)}/submitted`,
 } as const;
@@ -86,7 +87,7 @@ function DispatchIntroRoute() {
  * 별도 경로로 이동하면 폼이 언마운트돼 입력값이 사라지고,
  * 화면 state로만 열면 히스토리가 쌓이지 않아 브라우저 뒤로가기가 사이트 밖으로 나간다.
  */
-interface BuyerFormState {
+interface PrivacyNoticeState {
   privacyNotice?: boolean;
 }
 
@@ -94,7 +95,7 @@ function BuyerRequestFormRoute() {
   const navigate = useNavigate();
   const { state } = useLocation();
   const goBack = useGoBack(DISPATCH_PATH.home);
-  const isPrivacyNoticeOpen = (state as BuyerFormState | null)?.privacyNotice === true;
+  const isPrivacyNoticeOpen = (state as PrivacyNoticeState | null)?.privacyNotice === true;
 
   return (
     <BuyerRequestFormScreen
@@ -102,7 +103,7 @@ function BuyerRequestFormRoute() {
       isPrivacyNoticeOpen={isPrivacyNoticeOpen}
       onOpenPrivacyNotice={() =>
         navigate(DISPATCH_PATH.buyerForm, {
-          state: { privacyNotice: true } satisfies BuyerFormState,
+          state: { privacyNotice: true } satisfies PrivacyNoticeState,
         })
       }
       onClosePrivacyNotice={() => navigate(-1)}
@@ -163,6 +164,8 @@ function BuyerStatusRoute() {
 function SellerInputFormRoute() {
   const navigate = useNavigate();
   const { sellerToken } = useParams<{ sellerToken: string }>();
+  const { state } = useLocation();
+  const isPrivacyNoticeOpen = (state as PrivacyNoticeState | null)?.privacyNotice === true;
 
   if (!sellerToken) {
     return <Navigate to={DISPATCH_PATH.home} replace />;
@@ -172,6 +175,13 @@ function SellerInputFormRoute() {
     <SellerInputFormScreen
       key={sellerToken}
       sellerToken={sellerToken}
+      isPrivacyNoticeOpen={isPrivacyNoticeOpen}
+      onOpenPrivacyNotice={() =>
+        navigate(DISPATCH_PATH.sellerInput(sellerToken), {
+          state: { privacyNotice: true } satisfies PrivacyNoticeState,
+        })
+      }
+      onClosePrivacyNotice={() => navigate(-1)}
       onSubmitted={() =>
         // 제출 폼으로 되돌아가 중복 제출(server 409)을 시도하게 두지 않는다.
         navigate(DISPATCH_PATH.sellerSubmitted(sellerToken), { replace: true })
