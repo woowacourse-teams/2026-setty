@@ -11,7 +11,8 @@
 - 작업 브랜치는 `develop`에서 만들고 `feature/<issue>-<slug>`, `fix/<issue>-<slug>`, `refactor/<issue>-<slug>`를 사용한다.
 - 기능·일반 수정 PR은 `develop`을 대상으로 한다.
 - 작성자가 아닌 팀원 1명의 리뷰 후 **Merge commit**으로 병합한다.
-- 첫 개발에서는 자동 배포를 만들지 않는다. Vercel 개발 환경과 DEV EC2에 수동으로 배포하고 절차를 재현한다.
+- ~~첫 개발에서는 자동 배포를 만들지 않는다. Vercel 개발 환경과 DEV EC2에 수동으로 배포하고 절차를 재현한다.~~
+  → [DEC-026](DEC-026-backend-auto-deploy.md)이 백엔드 DEV EC2에 한해 대체한다. 프론트 배포는 수동 절차를 유지한다.
 - 설치·실행·테스트·빌드 명령은 실제 레포 설정 후 AGENTS.md와 README에 기록한다.
 
 ## 검토한 선택지

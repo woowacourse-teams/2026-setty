@@ -1,0 +1,37 @@
+version: 0.2
+
+# CodeBuild는 JAR만 만든다. docker build는 EC2에서 CodeDeploy 훅이 수행한다.
+
+phases:
+  install:
+    runtime-versions:
+      java: corretto21
+
+  build:
+    commands:
+      - chmod +x ./server/gradlew
+      # 테스트를 돌리지 않는다. server의 @SpringBootTest들이 실행 중인 MySQL을 요구하는데
+      # CodeBuild 컨테이너에는 MySQL이 없어 컨텍스트 로딩부터 실패한다.
+      # 테스트를 배포 게이트로 쓰려면 먼저 테스트가 DB 없이 돌 수 있어야 한다. docs/deployment.md 참고.
+      - ./server/gradlew -p server --no-daemon clean bootJar
+
+  post_build:
+    commands:
+      # bootJar 산출물에는 버전이 붙고 -plain.jar도 같이 생기므로 이름을 고정한다.
+      - BOOT_JAR="$(find server/build/libs -name '*.jar' ! -name '*-plain.jar' | head -n 1)"
+      - test -n "$BOOT_JAR" || { echo "bootJar 산출물을 찾지 못했습니다"; exit 1; }
+      - cp "$BOOT_JAR" app.jar
+      - ls -lh app.jar
+
+artifacts:
+  files:
+    - appspec.yml
+    - Dockerfile
+    - docker-compose.prod.yml
+    - app.jar
+    - scripts/**/*
+
+cache:
+  paths:
+    - '/root/.gradle/caches/**/*'
+    - '/root/.gradle/wrapper/**/*'

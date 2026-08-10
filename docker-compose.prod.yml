@@ -1,0 +1,58 @@
+# DEV EC2 배포용. 로컬 개발은 docker-compose.yml을 쓴다.
+#
+# name을 고정하지 않으면 compose 프로젝트명이 파일이 놓인 디렉토리명으로 정해지고,
+# 그러면 named volume 이름도 같이 바뀌어 MySQL 데이터가 사라진다. 절대 지우지 말 것.
+name: setty
+
+services:
+  db:
+    image: mysql:8.4.11
+    container_name: setty-mysql
+    restart: unless-stopped
+    env_file:
+      - /opt/setty/.env
+    environment:
+      TZ: Asia/Seoul
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    volumes:
+      - db-data:/var/lib/mysql
+    networks:
+      - setty-net
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 30s
+
+  app:
+    image: setty-app:latest
+    container_name: setty-app
+    restart: unless-stopped
+    env_file:
+      - /opt/setty/.env
+    environment:
+      TZ: Asia/Seoul
+    depends_on:
+      db:
+        condition: service_healthy
+    # nginx가 호스트에 설치되어 있다는 전제로 루프백에만 붙인다.
+    # nginx가 사실 컨테이너였다면 여기로 닿지 못해 502가 난다. 그때는 "8080:8080"으로 바꾼다.
+    ports:
+      - "127.0.0.1:8080:8080"
+    networks:
+      - setty-net
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/actuator/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 12
+      start_period: 40s
+
+volumes:
+  db-data:
+
+networks:
+  setty-net:
