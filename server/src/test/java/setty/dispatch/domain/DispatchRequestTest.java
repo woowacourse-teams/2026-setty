@@ -17,6 +17,8 @@ class DispatchRequestTest {
                 "서울특별시 테스트구 테스트로 1",
                 "책상",
                 false,
+                "https://www.daangn.com/articles/test-1",
+                java.util.List.of(),
                 null
         );
     }
@@ -82,30 +84,28 @@ class DispatchRequestTest {
     }
 
     @Test
-    @DisplayName("최종 검토 대기 요청에 최종 금액과 안내 문자를 기록하면 최종 금액 확인 대기로 넘어간다")
+    @DisplayName("최종 검토 대기 요청에 최종 금액을 기록하면 최종 금액 확인 대기로 넘어간다")
     void movesToFinalAmountConfirmPendingWhenFinalAmountIsRecorded() {
         final DispatchRequest dispatchRequest = newDispatchRequest();
         dispatchRequest.completeSellerInput(newSellerInput());
 
-        dispatchRequest.recordFinalAmount(30000, "최종 운송비는 30000원입니다.");
+        dispatchRequest.recordFinalAmount(30000);
 
         assertThat(dispatchRequest.getStatus()).isEqualTo(DispatchStatus.FINAL_AMOUNT_CONFIRM_PENDING);
         assertThat(dispatchRequest.getFinalQuotedAmount()).isEqualTo(30000);
-        assertThat(dispatchRequest.getMessageContent()).isEqualTo("최종 운송비는 30000원입니다.");
     }
 
     @Test
-    @DisplayName("최종 금액 확인 대기 동안에는 최종 금액과 안내 문자를 계속 수정할 수 있다")
+    @DisplayName("최종 금액 확인 대기 동안에는 최종 금액을 계속 수정할 수 있다")
     void allowsEditingFinalAmountWhileConfirmPending() {
         final DispatchRequest dispatchRequest = newDispatchRequest();
         dispatchRequest.completeSellerInput(newSellerInput());
-        dispatchRequest.recordFinalAmount(30000, "최종 운송비는 30000원입니다.");
+        dispatchRequest.recordFinalAmount(30000);
 
-        dispatchRequest.recordFinalAmount(35000, "최종 운송비를 35000원으로 정정합니다.");
+        dispatchRequest.recordFinalAmount(35000);
 
         assertThat(dispatchRequest.getStatus()).isEqualTo(DispatchStatus.FINAL_AMOUNT_CONFIRM_PENDING);
         assertThat(dispatchRequest.getFinalQuotedAmount()).isEqualTo(35000);
-        assertThat(dispatchRequest.getMessageContent()).isEqualTo("최종 운송비를 35000원으로 정정합니다.");
     }
 
     @Test
@@ -113,7 +113,81 @@ class DispatchRequestTest {
     void rejectsFinalAmountWhenSellerInputIsNotCompleted() {
         final DispatchRequest dispatchRequest = newDispatchRequest();
 
-        assertThatThrownBy(() -> dispatchRequest.recordFinalAmount(30000, "최종 운송비는 30000원입니다."))
+        assertThatThrownBy(() -> dispatchRequest.recordFinalAmount(30000))
                 .isInstanceOf(DispatchStatusTransitionException.class);
+    }
+
+    @Test
+    @DisplayName("구매자가 최종 금액을 승인하면 배차 대기가 되고 확인 시각이 남는다")
+    void movesToDispatchPendingWhenBuyerApprovesFinalAmount() {
+        final DispatchRequest dispatchRequest = newDispatchRequest();
+        dispatchRequest.completeSellerInput(newSellerInput());
+        dispatchRequest.recordFinalAmount(30000);
+
+        dispatchRequest.approveFinalAmount();
+
+        assertThat(dispatchRequest.getStatus()).isEqualTo(DispatchStatus.DISPATCH_PENDING);
+        assertThat(dispatchRequest.getAmountCheckedAt()).isNotNull();
+    }
+
+    @Test
+    @DisplayName("최종 금액 확인 대기가 아닌 요청은 승인할 수 없다")
+    void rejectsApprovalWhenAmountIsNotWaitingForConfirmation() {
+        final DispatchRequest dispatchRequest = newDispatchRequest();
+
+        assertThatThrownBy(dispatchRequest::approveFinalAmount)
+                .isInstanceOf(DispatchStatusTransitionException.class);
+    }
+
+    @Test
+    @DisplayName("구매자가 승인한 뒤에는 최종 금액을 다시 수정할 수 없다")
+    void rejectsFinalAmountEditAfterBuyerApproval() {
+        final DispatchRequest dispatchRequest = newDispatchRequest();
+        dispatchRequest.completeSellerInput(newSellerInput());
+        dispatchRequest.recordFinalAmount(30000);
+        dispatchRequest.approveFinalAmount();
+
+        assertThatThrownBy(() -> dispatchRequest.recordFinalAmount(35000))
+                .isInstanceOf(DispatchStatusTransitionException.class);
+    }
+
+    @Test
+    @DisplayName("배차 대기 요청을 운영자가 배차 완료로 바꾼다")
+    void movesToDispatchCompletedWhenOperatorFinishesDispatch() {
+        final DispatchRequest dispatchRequest = newDispatchRequest();
+        dispatchRequest.completeSellerInput(newSellerInput());
+        dispatchRequest.recordFinalAmount(30000);
+        dispatchRequest.approveFinalAmount();
+
+        dispatchRequest.completeDispatch();
+
+        assertThat(dispatchRequest.getStatus()).isEqualTo(DispatchStatus.DISPATCH_COMPLETED);
+    }
+
+    @Test
+    @DisplayName("배차 대기가 아닌 요청은 배차 완료로 바꿀 수 없다")
+    void rejectsCompletionWhenRequestIsNotWaitingForDispatch() {
+        final DispatchRequest dispatchRequest = newDispatchRequest();
+        dispatchRequest.completeSellerInput(newSellerInput());
+
+        assertThatThrownBy(dispatchRequest::completeDispatch)
+                .isInstanceOf(DispatchStatusTransitionException.class);
+    }
+
+    @Test
+    @DisplayName("안내 문자 기록은 상태와 관계없이 언제든 수정할 수 있다")
+    void updatesMessageContentRegardlessOfStatus() {
+        final DispatchRequest dispatchRequest = newDispatchRequest();
+
+        dispatchRequest.updateMessageContent("발송 전 초안입니다.");
+        assertThat(dispatchRequest.getMessageContent()).isEqualTo("발송 전 초안입니다.");
+
+        dispatchRequest.completeSellerInput(newSellerInput());
+        dispatchRequest.recordFinalAmount(30000);
+        dispatchRequest.approveFinalAmount();
+        dispatchRequest.completeDispatch();
+
+        dispatchRequest.updateMessageContent("배차 완료 후 정정한 문자입니다.");
+        assertThat(dispatchRequest.getMessageContent()).isEqualTo("배차 완료 후 정정한 문자입니다.");
     }
 }

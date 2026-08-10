@@ -1,6 +1,7 @@
 package setty.dispatch.dto.operator;
 
 import java.time.OffsetDateTime;
+import java.util.List;
 import setty.common.phone.PhoneNumbers;
 import setty.common.time.SeoulDateTime;
 import setty.dispatch.domain.DispatchRequest;
@@ -12,6 +13,8 @@ public record OperatorDispatchRequestDetailResponse(
         DispatchStatus status,
         String itemType,
         boolean highValueItem,
+        String productLink,
+        List<String> itemImageUrls,
         Long estimateRequestId,
         OffsetDateTime createdAt,
         Buyer buyer,
@@ -50,6 +53,8 @@ public record OperatorDispatchRequestDetailResponse(
                 dispatchRequest.getStatus(),
                 dispatchRequest.getItemType(),
                 dispatchRequest.isHighValueItem(),
+                dispatchRequest.getProductLink(),
+                dispatchRequest.getItemImageUrls(),
                 dispatchRequest.getEstimateRequestId(),
                 SeoulDateTime.toOffsetDateTime(dispatchRequest.getCreatedAt()),
                 new Buyer(

@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import setty.common.phone.PhoneNumbers;
 import setty.dispatch.domain.DispatchRequest;
+import setty.dispatch.domain.DispatchStatus;
 import setty.dispatch.domain.SellerInputSession;
 import setty.dispatch.dto.buyer.BuyerDispatchRequestCreateRequest;
 import setty.dispatch.dto.buyer.BuyerDispatchRequestCreateResponse;
@@ -38,6 +39,8 @@ public class BuyerDispatchRequestService {
                 request.deliveryAddress(),
                 request.itemType(),
                 request.highValueItem(),
+                request.productLink(),
+                request.itemImageUrlsOrEmpty(),
                 request.estimateRequestId()
         ));
         final SellerInputSession session = sellerInputSessionRepository.save(
@@ -60,5 +63,16 @@ public class BuyerDispatchRequestService {
                 .orElse(null);
 
         return BuyerDispatchRequestResponse.from(dispatchRequest, sellerInputUrl);
+    }
+
+    @Transactional
+    public void approveFinalAmount(final String buyerToken) {
+        final DispatchRequest dispatchRequest = dispatchRequestRepository.findByBuyerToken(buyerToken)
+                .orElseThrow(DispatchRequestNotFoundException::new);
+
+        if (dispatchRequest.getStatus() == DispatchStatus.DISPATCH_PENDING) {
+            return;
+        }
+        dispatchRequest.approveFinalAmount();
     }
 }

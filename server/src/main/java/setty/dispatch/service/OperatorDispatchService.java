@@ -10,6 +10,7 @@ import setty.dispatch.dto.operator.OperatorDispatchRequestDetailResponse;
 import setty.dispatch.dto.operator.OperatorDispatchRequestSummaryResponse;
 import setty.dispatch.dto.operator.OperatorFinalAmountRequest;
 import setty.dispatch.dto.operator.OperatorFinalAmountResponse;
+import setty.dispatch.dto.operator.OperatorMessageRequest;
 import setty.dispatch.exception.DispatchRequestNotFoundException;
 import setty.dispatch.repository.DispatchRequestRepository;
 import setty.dispatch.repository.SellerInputSessionRepository;
@@ -64,9 +65,25 @@ public class OperatorDispatchService {
         final DispatchRequest dispatchRequest = dispatchRequestRepository.findById(id)
                 .orElseThrow(DispatchRequestNotFoundException::new);
 
-        dispatchRequest.recordFinalAmount(request.finalQuotedAmount(), request.messageContent());
+        dispatchRequest.recordFinalAmount(request.finalQuotedAmount());
 
         return new OperatorFinalAmountResponse(buyerStatusUrlFactory.create(dispatchRequest.getBuyerToken()));
+    }
+
+    @Transactional
+    public void updateMessageContent(final Long id, final OperatorMessageRequest request) {
+        final DispatchRequest dispatchRequest = dispatchRequestRepository.findById(id)
+                .orElseThrow(DispatchRequestNotFoundException::new);
+
+        dispatchRequest.updateMessageContent(request.messageContent());
+    }
+
+    @Transactional
+    public void completeDispatch(final Long id) {
+        final DispatchRequest dispatchRequest = dispatchRequestRepository.findById(id)
+                .orElseThrow(DispatchRequestNotFoundException::new);
+
+        dispatchRequest.completeDispatch();
     }
 
     private String buyerConfirmUrl(final DispatchRequest dispatchRequest) {

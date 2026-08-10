@@ -44,7 +44,11 @@ class DispatchRequestApiTest {
               "buyerPhoneNumber": "010-0000-0001",
               "deliveryAddress": "서울특별시 테스트구 테스트로 1",
               "itemType": "책상",
-              "highValueItem": false
+              "highValueItem": false,
+              "productLink": "https://www.daangn.com/articles/test-1",
+              "itemImageUrls": [
+                "https://techcourse-project-2026.s3.ap-northeast-2.amazonaws.com/setty/images/items/test-1.jpg"
+              ]
             }
             """;
 
@@ -59,8 +63,7 @@ class DispatchRequestApiTest {
 
     private static final String FINAL_AMOUNT_PAYLOAD = """
             {
-              "finalQuotedAmount": 30000,
-              "messageContent": "최종 운송비는 30000원입니다."
+              "finalQuotedAmount": 30000
             }
             """;
 
@@ -411,7 +414,7 @@ class DispatchRequestApiTest {
     }
 
     @Test
-    @DisplayName("운영자가 최종 금액과 안내 문자를 저장하면 확인 대기가 되고 구매자 확인 링크를 돌려준다")
+    @DisplayName("운영자가 최종 금액을 저장하면 확인 대기가 되고 구매자 확인 링크를 돌려준다")
     void recordingFinalAmountMovesToConfirmPendingAndReturnsBuyerConfirmUrl() throws Exception {
         final String created = createDispatchRequest();
         submitSellerInput(sellerToken(created));
@@ -428,7 +431,6 @@ class DispatchRequestApiTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("FINAL_AMOUNT_CONFIRM_PENDING"))
                 .andExpect(jsonPath("$.finalQuotedAmount").value(30000))
-                .andExpect(jsonPath("$.messageContent").value("최종 운송비는 30000원입니다."))
                 .andExpect(jsonPath("$.buyerConfirmUrl").value(containsString(buyerToken(created))));
     }
 
@@ -446,7 +448,7 @@ class DispatchRequestApiTest {
     }
 
     @Test
-    @DisplayName("구매자 승인 전에는 최종 금액과 안내 문자를 다시 수정할 수 있다")
+    @DisplayName("구매자 승인 전에는 최종 금액을 다시 수정할 수 있다")
     void allowsEditingFinalAmountWhileConfirmPending() throws Exception {
         final String created = createDispatchRequest();
         submitSellerInput(sellerToken(created));
@@ -457,16 +459,14 @@ class DispatchRequestApiTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "finalQuotedAmount": 35000,
-                                  "messageContent": "최종 운송비를 35000원으로 정정합니다."
+                                  "finalQuotedAmount": 35000
                                 }
                                 """))
                 .andExpect(status().isOk());
 
         mockMvc.perform(get("/api/operator/dispatch-requests/{id}", latestDispatchRequestId())
                         .header(OperatorAuthInterceptor.OPERATOR_SECRET_HEADER, OPERATOR_SECRET))
-                .andExpect(jsonPath("$.finalQuotedAmount").value(35000))
-                .andExpect(jsonPath("$.messageContent").value("최종 운송비를 35000원으로 정정합니다."));
+                .andExpect(jsonPath("$.finalQuotedAmount").value(35000));
     }
 
     @Test
@@ -482,7 +482,7 @@ class DispatchRequestApiTest {
     }
 
     @Test
-    @DisplayName("최종 금액이 없거나 안내 문자가 비면 저장을 거절한다")
+    @DisplayName("최종 금액이 없으면 저장을 거절한다")
     void rejectsFinalAmountWithInvalidInput() throws Exception {
         final String created = createDispatchRequest();
         submitSellerInput(sellerToken(created));
@@ -492,19 +492,7 @@ class DispatchRequestApiTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "finalQuotedAmount": null,
-                                  "messageContent": "최종 운송비 안내입니다."
-                                }
-                                """))
-                .andExpect(status().isBadRequest());
-
-        mockMvc.perform(put("/api/operator/dispatch-requests/{id}/final-amount", latestDispatchRequestId())
-                        .header(OperatorAuthInterceptor.OPERATOR_SECRET_HEADER, OPERATOR_SECRET)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {
-                                  "finalQuotedAmount": 30000,
-                                  "messageContent": " "
+                                  "finalQuotedAmount": null
                                 }
                                 """))
                 .andExpect(status().isBadRequest());
@@ -519,6 +507,266 @@ class DispatchRequestApiTest {
         mockMvc.perform(put("/api/operator/dispatch-requests/{id}/final-amount", latestDispatchRequestId())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(FINAL_AMOUNT_PAYLOAD))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @DisplayName("구매자가 승인하면 배차 대기가 되고 운영자가 배차 완료로 바꾼다")
+    void buyerApprovalThenOperatorCompletionMovesStatusForward() throws Exception {
+        final String created = createDispatchRequest();
+        submitSellerInput(sellerToken(created));
+        recordFinalAmount(latestDispatchRequestId());
+
+        mockMvc.perform(post("/api/dispatch-requests/{buyerToken}/approval", buyerToken(created)))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(get("/api/dispatch-requests/{buyerToken}", buyerToken(created)))
+                .andExpect(jsonPath("$.status").value("DISPATCH_PENDING"));
+
+        mockMvc.perform(post("/api/operator/dispatch-requests/{id}/completion", latestDispatchRequestId())
+                        .header(OperatorAuthInterceptor.OPERATOR_SECRET_HEADER, OPERATOR_SECRET))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(get("/api/operator/dispatch-requests/{id}", latestDispatchRequestId())
+                        .header(OperatorAuthInterceptor.OPERATOR_SECRET_HEADER, OPERATOR_SECRET))
+                .andExpect(jsonPath("$.status").value("DISPATCH_COMPLETED"))
+                .andExpect(jsonPath("$.amountCheckedAt").isNotEmpty());
+
+        mockMvc.perform(get("/api/dispatch-requests/{buyerToken}", buyerToken(created)))
+                .andExpect(jsonPath("$.status").value("DISPATCH_COMPLETED"));
+    }
+
+    @Test
+    @DisplayName("승인을 중복 클릭해도 오류 없이 배차 대기 상태를 유지한다")
+    void approvalIsIdempotentWhileDispatchPending() throws Exception {
+        final String created = createDispatchRequest();
+        submitSellerInput(sellerToken(created));
+        recordFinalAmount(latestDispatchRequestId());
+        mockMvc.perform(post("/api/dispatch-requests/{buyerToken}/approval", buyerToken(created)))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(post("/api/dispatch-requests/{buyerToken}/approval", buyerToken(created)))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(get("/api/dispatch-requests/{buyerToken}", buyerToken(created)))
+                .andExpect(jsonPath("$.status").value("DISPATCH_PENDING"));
+    }
+
+    @Test
+    @DisplayName("최종 금액이 저장되기 전에는 승인할 수 없다")
+    void rejectsApprovalBeforeFinalAmountIsRecorded() throws Exception {
+        final String created = createDispatchRequest();
+
+        mockMvc.perform(post("/api/dispatch-requests/{buyerToken}/approval", buyerToken(created)))
+                .andExpect(status().isConflict());
+    }
+
+    @Test
+    @DisplayName("구매자가 승인한 뒤에는 최종 금액을 수정할 수 없다")
+    void rejectsFinalAmountEditAfterApproval() throws Exception {
+        final String created = createDispatchRequest();
+        submitSellerInput(sellerToken(created));
+        recordFinalAmount(latestDispatchRequestId());
+        mockMvc.perform(post("/api/dispatch-requests/{buyerToken}/approval", buyerToken(created)))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(put("/api/operator/dispatch-requests/{id}/final-amount", latestDispatchRequestId())
+                        .header(OperatorAuthInterceptor.OPERATOR_SECRET_HEADER, OPERATOR_SECRET)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(FINAL_AMOUNT_PAYLOAD))
+                .andExpect(status().isConflict());
+    }
+
+    @Test
+    @DisplayName("승인 전 요청은 배차 완료로 바꿀 수 없다")
+    void rejectsCompletionBeforeBuyerApproval() throws Exception {
+        final String created = createDispatchRequest();
+        submitSellerInput(sellerToken(created));
+        recordFinalAmount(latestDispatchRequestId());
+
+        mockMvc.perform(post("/api/operator/dispatch-requests/{id}/completion", latestDispatchRequestId())
+                        .header(OperatorAuthInterceptor.OPERATOR_SECRET_HEADER, OPERATOR_SECRET))
+                .andExpect(status().isConflict());
+    }
+
+    @Test
+    @DisplayName("배차 완료 전환도 비밀 헤더가 없으면 접근을 막는다")
+    void completionEndpointRejectsRequestsWithoutSecret() throws Exception {
+        createDispatchRequest();
+
+        mockMvc.perform(post("/api/operator/dispatch-requests/{id}/completion", latestDispatchRequestId()))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 구매자 토큰으로는 승인할 수 없다")
+    void returnsNotFoundWhenApprovingWithUnknownBuyerToken() throws Exception {
+        mockMvc.perform(post("/api/dispatch-requests/{buyerToken}/approval", "존재하지-않는-토큰"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("당근 링크가 없으면 배차 요청을 만들지 않는다")
+    void rejectsCreateWhenProductLinkIsMissing() throws Exception {
+        mockMvc.perform(post("/api/dispatch-requests")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "buyerName": "테스트구매자",
+                                  "buyerPhoneNumber": "010-0000-0001",
+                                  "deliveryAddress": "서울특별시 테스트구 테스트로 1",
+                                  "itemType": "책상",
+                                  "highValueItem": false
+                                }
+                                """))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("물품 사진 없이도 배차 요청을 만들 수 있다")
+    void createsDispatchRequestWithoutItemImages() throws Exception {
+        mockMvc.perform(post("/api/dispatch-requests")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "buyerName": "테스트구매자",
+                                  "buyerPhoneNumber": "010-0000-0001",
+                                  "deliveryAddress": "서울특별시 테스트구 테스트로 1",
+                                  "itemType": "책상",
+                                  "highValueItem": false,
+                                  "productLink": "https://www.daangn.com/articles/test-1"
+                                }
+                                """))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(get("/api/operator/dispatch-requests/{id}", latestDispatchRequestId())
+                        .header(OperatorAuthInterceptor.OPERATOR_SECRET_HEADER, OPERATOR_SECRET))
+                .andExpect(jsonPath("$.itemImageUrls").isEmpty());
+    }
+
+    @Test
+    @DisplayName("물품 사진은 5장까지만 첨부할 수 있다")
+    void rejectsCreateWithMoreThanFiveItemImages() throws Exception {
+        mockMvc.perform(post("/api/dispatch-requests")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "buyerName": "테스트구매자",
+                                  "buyerPhoneNumber": "010-0000-0001",
+                                  "deliveryAddress": "서울특별시 테스트구 테스트로 1",
+                                  "itemType": "책상",
+                                  "highValueItem": false,
+                                  "productLink": "https://www.daangn.com/articles/test-1",
+                                  "itemImageUrls": ["u1", "u2", "u3", "u4", "u5", "u6"]
+                                }
+                                """))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("운영자와 구매자는 당근 링크와 물품 사진을 확인한다")
+    void operatorAndBuyerSeeProductLinkAndItemImages() throws Exception {
+        final String created = createDispatchRequest();
+
+        mockMvc.perform(get("/api/operator/dispatch-requests/{id}", latestDispatchRequestId())
+                        .header(OperatorAuthInterceptor.OPERATOR_SECRET_HEADER, OPERATOR_SECRET))
+                .andExpect(jsonPath("$.productLink").value("https://www.daangn.com/articles/test-1"))
+                .andExpect(jsonPath("$.itemImageUrls[0]").value(containsString("setty/images/items/")));
+
+        mockMvc.perform(get("/api/dispatch-requests/{buyerToken}", buyerToken(created)))
+                .andExpect(jsonPath("$.productLink").value("https://www.daangn.com/articles/test-1"))
+                .andExpect(jsonPath("$.itemImageUrls[0]").value(containsString("setty/images/items/")));
+    }
+
+    @Test
+    @DisplayName("판매자 링크 응답에는 물품 사진과 당근 링크를 담지 않는다")
+    void sellerSessionResponseDoesNotExposeItemImagesAndProductLink() throws Exception {
+        final String sellerToken = sellerToken(createDispatchRequest());
+
+        mockMvc.perform(get("/api/dispatch-requests/seller-sessions/{token}", sellerToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.productLink").doesNotExist())
+                .andExpect(jsonPath("$.itemImageUrls").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("운영자가 보낸 문자 내용을 기록하고 상세에서 확인한다")
+    void recordsMessageContentAndShowsItInDetail() throws Exception {
+        final String created = createDispatchRequest();
+        submitSellerInput(sellerToken(created));
+        recordFinalAmount(latestDispatchRequestId());
+
+        mockMvc.perform(put("/api/operator/dispatch-requests/{id}/message", latestDispatchRequestId())
+                        .header(OperatorAuthInterceptor.OPERATOR_SECRET_HEADER, OPERATOR_SECRET)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "messageContent": "최종 운송비는 30000원입니다. 링크에서 확인해 주세요."
+                                }
+                                """))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(get("/api/operator/dispatch-requests/{id}", latestDispatchRequestId())
+                        .header(OperatorAuthInterceptor.OPERATOR_SECRET_HEADER, OPERATOR_SECRET))
+                .andExpect(jsonPath("$.messageContent")
+                        .value("최종 운송비는 30000원입니다. 링크에서 확인해 주세요."));
+    }
+
+    @Test
+    @DisplayName("구매자 승인과 배차 완료 후에도 문자 기록을 수정할 수 있다")
+    void allowsEditingMessageContentAfterApprovalAndCompletion() throws Exception {
+        final String created = createDispatchRequest();
+        submitSellerInput(sellerToken(created));
+        recordFinalAmount(latestDispatchRequestId());
+        mockMvc.perform(post("/api/dispatch-requests/{buyerToken}/approval", buyerToken(created)))
+                .andExpect(status().isNoContent());
+        mockMvc.perform(post("/api/operator/dispatch-requests/{id}/completion", latestDispatchRequestId())
+                        .header(OperatorAuthInterceptor.OPERATOR_SECRET_HEADER, OPERATOR_SECRET))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(put("/api/operator/dispatch-requests/{id}/message", latestDispatchRequestId())
+                        .header(OperatorAuthInterceptor.OPERATOR_SECRET_HEADER, OPERATOR_SECRET)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "messageContent": "배차 완료 후 정정한 안내입니다."
+                                }
+                                """))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(get("/api/operator/dispatch-requests/{id}", latestDispatchRequestId())
+                        .header(OperatorAuthInterceptor.OPERATOR_SECRET_HEADER, OPERATOR_SECRET))
+                .andExpect(jsonPath("$.messageContent").value("배차 완료 후 정정한 안내입니다."));
+    }
+
+    @Test
+    @DisplayName("문자 내용이 비면 기록을 거절한다")
+    void rejectsBlankMessageContent() throws Exception {
+        createDispatchRequest();
+
+        mockMvc.perform(put("/api/operator/dispatch-requests/{id}/message", latestDispatchRequestId())
+                        .header(OperatorAuthInterceptor.OPERATOR_SECRET_HEADER, OPERATOR_SECRET)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "messageContent": " "
+                                }
+                                """))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("문자 기록도 비밀 헤더가 없으면 접근을 막는다")
+    void messageEndpointRejectsRequestsWithoutSecret() throws Exception {
+        createDispatchRequest();
+
+        mockMvc.perform(put("/api/operator/dispatch-requests/{id}/message", latestDispatchRequestId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "messageContent": "테스트 문자입니다."
+                                }
+                                """))
                 .andExpect(status().isUnauthorized());
     }
 
