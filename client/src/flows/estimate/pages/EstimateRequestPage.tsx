@@ -171,7 +171,7 @@ export default function EstimateRequestPage() {
             label="연락처"
             type="tel"
             inputMode="tel"
-            placeholder="010-0000-0000"
+            placeholder="01012345678"
             autoComplete="tel"
             hint="예상 금액을 문자로 보내드려요"
             value={values.phoneNumber}
