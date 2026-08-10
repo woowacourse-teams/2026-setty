@@ -31,6 +31,36 @@ interface FinalAmountErrors {
 }
 
 const MAX_INTEGER_AMOUNT = 2_147_483_647;
+const ITEM_IMAGE_ORIGIN =
+  'https://techcourse-project-2026.s3.ap-northeast-2.amazonaws.com';
+const ITEM_IMAGE_PATH_PREFIX = '/setty/images/items/';
+
+function getSafeHttpUrl(value: string | null): string | null {
+  const trimmedValue = value?.trim();
+  if (!trimmedValue) return null;
+
+  try {
+    const url = new URL(trimmedValue);
+    return url.protocol === 'http:' || url.protocol === 'https:' ? url.toString() : null;
+  } catch {
+    return null;
+  }
+}
+
+function getSafeItemImageUrl(value: string): string | null {
+  try {
+    const url = new URL(value.trim());
+    const isAllowedStorageUrl =
+      url.origin === ITEM_IMAGE_ORIGIN &&
+      !url.username &&
+      !url.password &&
+      url.pathname.startsWith(ITEM_IMAGE_PATH_PREFIX);
+
+    return isAllowedStorageUrl ? url.toString() : null;
+  } catch {
+    return null;
+  }
+}
 
 export default function DispatchRequestDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -55,6 +85,9 @@ export default function DispatchRequestDetailPage() {
   const [completionError, setCompletionError] = useState('');
   const [completionSuccess, setCompletionSuccess] = useState('');
   const [isCompleting, setIsCompleting] = useState(false);
+  const [failedItemImageIndexes, setFailedItemImageIndexes] = useState<Set<number>>(
+    () => new Set(),
+  );
   const activeRouteIdRef = useRef(id);
   const isMutating = isSavingAmount || isSavingMessage || isCompleting;
 
@@ -96,6 +129,7 @@ export default function DispatchRequestDetailPage() {
         setCompletionError('');
         setCompletionSuccess('');
         setIsCompleting(false);
+        setFailedItemImageIndexes(new Set());
         setLoadedRequestId(id);
         setDetailState('ready');
       })
@@ -127,6 +161,14 @@ export default function DispatchRequestDetailPage() {
     } catch {
       updateCopyState('error');
     }
+  };
+
+  const handleItemImageError = (index: number) => {
+    setFailedItemImageIndexes((current) => {
+      const next = new Set(current);
+      next.add(index);
+      return next;
+    });
   };
 
   const validateFinalAmount = (): FinalAmountErrors => {
@@ -331,6 +373,8 @@ export default function DispatchRequestDetailPage() {
     request.status === 'DISPATCH_COMPLETED' ||
     request.status === 'IN_TRANSIT' ||
     request.status === 'DELIVERY_COMPLETED';
+  const productLinkText = request.productLink?.trim() || '미기록';
+  const safeProductLinkUrl = getSafeHttpUrl(request.productLink);
 
   return (
     <section aria-labelledby="operator-dispatch-detail-title">
@@ -364,6 +408,18 @@ export default function DispatchRequestDetailPage() {
               <dt>접수 시각</dt>
               <dd>{formatKoreanDateTime(request.createdAt)}</dd>
             </div>
+            <div className={styles.fullWidthDefinition}>
+              <dt>당근 게시물 링크</dt>
+              <dd>
+                {safeProductLinkUrl ? (
+                  <a href={safeProductLinkUrl} rel="noopener noreferrer" target="_blank">
+                    {productLinkText}
+                  </a>
+                ) : (
+                  productLinkText
+                )}
+              </dd>
+            </div>
             <div>
               <dt>연결된 예상 견적</dt>
               <dd>
@@ -377,6 +433,49 @@ export default function DispatchRequestDetailPage() {
               </dd>
             </div>
           </dl>
+
+          <section
+            aria-labelledby={`operator-dispatch-item-images-${request.id}`}
+            className={styles.itemImagesSection}
+          >
+            <h3 id={`operator-dispatch-item-images-${request.id}`}>물품 사진</h3>
+            {request.itemImageUrls.length === 0 ? (
+              <p className={styles.missingValue}>첨부된 물품 사진이 없습니다.</p>
+            ) : (
+              <ul className={styles.itemImageGallery}>
+                {request.itemImageUrls.map((imageUrl, index) => {
+                  const safeImageUrl = getSafeItemImageUrl(imageUrl);
+                  const isUnavailable =
+                    safeImageUrl === null || failedItemImageIndexes.has(index);
+
+                  return (
+                    <li key={`${imageUrl}-${index}`}>
+                      {isUnavailable ? (
+                        <div className={styles.itemImageFallback}>
+                          물품 사진 {index + 1}: 불러올 수 없습니다.
+                        </div>
+                      ) : (
+                        <a
+                          aria-label={`물품 사진 ${index + 1} 새 탭에서 보기`}
+                          href={safeImageUrl}
+                          rel="noopener noreferrer"
+                          target="_blank"
+                        >
+                          <img
+                            alt={`물품 사진 ${index + 1}`}
+                            loading="lazy"
+                            referrerPolicy="no-referrer"
+                            src={safeImageUrl}
+                            onError={() => handleItemImageError(index)}
+                          />
+                        </a>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </section>
         </article>
 
         <article className={styles.infoCard}>

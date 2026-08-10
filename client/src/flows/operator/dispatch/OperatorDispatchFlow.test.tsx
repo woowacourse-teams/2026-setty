@@ -1,8 +1,8 @@
 import { beforeEach, expect, jest, test } from '@jest/globals';
 import '@testing-library/jest-dom/jest-globals';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, useRoutes } from 'react-router-dom';
+import { MemoryRouter, useNavigate, useRoutes } from 'react-router-dom';
 import {
   clearOperatorSecret,
   getOperatorSecret,
@@ -15,12 +15,19 @@ const clipboardWriteTextMock = jest.fn<(value: string) => Promise<void>>();
 const TEST_OPERATOR_SECRET = 'FAKE_OPERATOR_SECRET_FOR_TESTS';
 const FAKE_SELLER_INPUT_URL = 'https://example.test/seller-input/FAKE_SELLER_INPUT_TOKEN';
 const FAKE_BUYER_CONFIRM_URL = 'https://example.test/dispatch/FAKE_BUYER_TOKEN';
+const FAKE_PRODUCT_LINK = 'https://www.daangn.com/articles/00000000';
+const FAKE_ITEM_IMAGE_URL_ONE =
+  'https://techcourse-project-2026.s3.ap-northeast-2.amazonaws.com/setty/images/items/item-1.jpg';
+const FAKE_ITEM_IMAGE_URL_TWO =
+  'https://techcourse-project-2026.s3.ap-northeast-2.amazonaws.com/setty/images/items/item-2.jpg';
 
 const PENDING_DETAIL = {
   id: 28,
   status: 'SELLER_INPUT_PENDING',
   itemType: '테스트 소파',
   highValueItem: false,
+  productLink: FAKE_PRODUCT_LINK,
+  itemImageUrls: [FAKE_ITEM_IMAGE_URL_ONE, FAKE_ITEM_IMAGE_URL_TWO],
   estimateRequestId: null,
   createdAt: '2026-08-07T10:00:00+09:00',
   buyer: {
@@ -101,10 +108,31 @@ function OperatorTestRoutes() {
   return useRoutes(operatorRoutes);
 }
 
+function DispatchRouteSwitchTestApp() {
+  const navigate = useNavigate();
+
+  return (
+    <>
+      <button type="button" onClick={() => navigate('/operator/dispatch-requests/29')}>
+        배차 요청 #29로 이동
+      </button>
+      <OperatorTestRoutes />
+    </>
+  );
+}
+
 function renderAt(path: string) {
   return render(
     <MemoryRouter initialEntries={[path]}>
       <OperatorTestRoutes />
+    </MemoryRouter>,
+  );
+}
+
+function renderAtWithRouteSwitcher(path: string) {
+  return render(
+    <MemoryRouter initialEntries={[path]}>
+      <DispatchRouteSwitchTestApp />
     </MemoryRouter>,
   );
 }
@@ -308,6 +336,131 @@ test('링크 복사 실패를 성공으로 표시하지 않는다', async () => 
   expect(
     screen.getByRole('button', { name: '판매자 입력 링크 복사' }),
   ).toBeInTheDocument();
+});
+
+test('안전한 상품 링크와 여러 물품 사진을 새 탭 링크로 표시한다', async () => {
+  authenticateTestOperator();
+  fetchMock.mockResolvedValueOnce(
+    response({
+      ...PENDING_DETAIL,
+      itemImageUrls: [
+        FAKE_ITEM_IMAGE_URL_ONE,
+        FAKE_ITEM_IMAGE_URL_TWO,
+        'javascript:FAKE_UNSAFE_IMAGE',
+      ],
+    }),
+  );
+  renderAt('/operator/dispatch-requests/28');
+
+  const productLink = await screen.findByRole('link', { name: FAKE_PRODUCT_LINK });
+  expect(productLink).toHaveAttribute('href', FAKE_PRODUCT_LINK);
+  expect(productLink).toHaveAttribute('target', '_blank');
+  expect(productLink).toHaveAttribute('rel', 'noopener noreferrer');
+
+  const firstImageLink = screen.getByRole('link', {
+    name: '물품 사진 1 새 탭에서 보기',
+  });
+  expect(firstImageLink).toHaveAttribute('href', FAKE_ITEM_IMAGE_URL_ONE);
+  expect(firstImageLink).toHaveAttribute('target', '_blank');
+  expect(firstImageLink).toHaveAttribute('rel', 'noopener noreferrer');
+  expect(
+    within(firstImageLink).getByRole('img', { name: '물품 사진 1' }),
+  ).toHaveAttribute('src', FAKE_ITEM_IMAGE_URL_ONE);
+  expect(
+    within(firstImageLink).getByRole('img', { name: '물품 사진 1' }),
+  ).toHaveAttribute('referrerpolicy', 'no-referrer');
+
+  const secondImageLink = screen.getByRole('link', {
+    name: '물품 사진 2 새 탭에서 보기',
+  });
+  expect(secondImageLink).toHaveAttribute('href', FAKE_ITEM_IMAGE_URL_TWO);
+  expect(
+    within(secondImageLink).getByRole('img', { name: '물품 사진 2' }),
+  ).toHaveAttribute('src', FAKE_ITEM_IMAGE_URL_TWO);
+  expect(screen.getByText('물품 사진 3: 불러올 수 없습니다.')).toBeInTheDocument();
+  expect(
+    screen.queryByRole('link', { name: '물품 사진 3 새 탭에서 보기' }),
+  ).not.toBeInTheDocument();
+  expect(screen.queryByRole('img', { name: '물품 사진 3' })).not.toBeInTheDocument();
+});
+
+test('안전하지 않은 상품 링크는 실행하지 않고 사진이 없으면 빈 상태를 표시한다', async () => {
+  authenticateTestOperator();
+  const unsafeProductLink = 'javascript:FAKE_UNSAFE_PRODUCT_LINK';
+  fetchMock.mockResolvedValueOnce(
+    response({
+      ...PENDING_DETAIL,
+      productLink: unsafeProductLink,
+      itemImageUrls: [],
+    }),
+  );
+  renderAt('/operator/dispatch-requests/28');
+
+  const productLinkText = await screen.findByText(unsafeProductLink);
+  expect(productLinkText.closest('a')).toBeNull();
+  expect(screen.queryByRole('link', { name: unsafeProductLink })).not.toBeInTheDocument();
+  expect(screen.getByText('첨부된 물품 사진이 없습니다.')).toBeInTheDocument();
+});
+
+test('허용된 저장소 밖의 HTTPS와 localhost 사진은 이미지 요청 요소를 만들지 않는다', async () => {
+  authenticateTestOperator();
+  fetchMock.mockResolvedValueOnce(
+    response({
+      ...PENDING_DETAIL,
+      itemImageUrls: [
+        'https://example.test/setty/images/items/untrusted.jpg',
+        'https://localhost/setty/images/items/local.jpg',
+        'https://techcourse-project-2026.s3.ap-northeast-2.amazonaws.com:444/setty/images/items/alternate-port.jpg',
+      ],
+    }),
+  );
+  renderAt('/operator/dispatch-requests/28');
+
+  expect(await screen.findByText('물품 사진 1: 불러올 수 없습니다.')).toBeInTheDocument();
+  expect(screen.getByText('물품 사진 2: 불러올 수 없습니다.')).toBeInTheDocument();
+  expect(screen.getByText('물품 사진 3: 불러올 수 없습니다.')).toBeInTheDocument();
+  expect(screen.queryAllByRole('img')).toHaveLength(0);
+  expect(
+    screen.queryByRole('link', { name: /물품 사진 .* 새 탭에서 보기/ }),
+  ).not.toBeInTheDocument();
+});
+
+test('물품 사진 하나의 로드 실패는 그 사진만 대체 문구로 바꾼다', async () => {
+  authenticateTestOperator();
+  fetchMock.mockResolvedValueOnce(response(PENDING_DETAIL));
+  renderAt('/operator/dispatch-requests/28');
+
+  const firstImage = await screen.findByRole('img', { name: '물품 사진 1' });
+  fireEvent.error(firstImage);
+
+  expect(await screen.findByText('물품 사진 1: 불러올 수 없습니다.')).toBeInTheDocument();
+  expect(screen.queryByRole('img', { name: '물품 사진 1' })).not.toBeInTheDocument();
+  expect(screen.getByRole('img', { name: '물품 사진 2' })).toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: '배차 요청 상세' })).toBeInTheDocument();
+});
+
+test('다른 배차 요청으로 이동하면 물품 사진 실패 상태를 초기화한다', async () => {
+  authenticateTestOperator();
+  fetchMock.mockResolvedValueOnce(response(PENDING_DETAIL)).mockResolvedValueOnce(
+    response({
+      ...PENDING_DETAIL,
+      id: 29,
+      productLink: null,
+    }),
+  );
+  renderAtWithRouteSwitcher('/operator/dispatch-requests/28');
+
+  fireEvent.error(await screen.findByRole('img', { name: '물품 사진 1' }));
+  expect(await screen.findByText('물품 사진 1: 불러올 수 없습니다.')).toBeInTheDocument();
+
+  await userEvent.click(screen.getByRole('button', { name: '배차 요청 #29로 이동' }));
+
+  expect(await screen.findByText('배차 요청 #29')).toBeInTheDocument();
+  expect(screen.getByRole('img', { name: '물품 사진 1' })).toBeInTheDocument();
+  expect(screen.queryByText('물품 사진 1: 불러올 수 없습니다.')).not.toBeInTheDocument();
+  expect(fetchMock.mock.calls[1]?.[0]).toBe(
+    'http://localhost:8080/api/operator/dispatch-requests/29',
+  );
 });
 
 test('배차 완료 요청의 금액은 읽기 전용이고 메시지는 계속 수정할 수 있다', async () => {

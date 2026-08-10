@@ -44,6 +44,8 @@ export interface OperatorDispatchRequestDetail extends Omit<
   OperatorDispatchRequestSummary,
   'sellerInputCompleted'
 > {
+  productLink: string | null;
+  itemImageUrls: string[];
   estimateRequestId: number | null;
   buyer: OperatorDispatchBuyer;
   seller: OperatorDispatchSeller | null;

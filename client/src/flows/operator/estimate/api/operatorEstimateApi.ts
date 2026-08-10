@@ -20,6 +20,7 @@ export interface ManualNotification {
 export interface OperatorEstimateRequestDetail extends OperatorEstimateRequestSummary {
   name: string;
   phoneNumber: string;
+  productLink: string | null;
   manualNotification: ManualNotification | null;
 }
 
