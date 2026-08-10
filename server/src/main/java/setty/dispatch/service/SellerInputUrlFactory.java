@@ -12,6 +12,6 @@ public class SellerInputUrlFactory {
     }
 
     public String create(final String sellerInputToken) {
-        return dispatchProperties.sellerInputBaseUrl() + "/" + sellerInputToken;
+        return dispatchProperties.frontBaseUrl() + "/seller-input/" + sellerInputToken;
     }
 }

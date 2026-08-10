@@ -12,6 +12,6 @@ public class BuyerStatusUrlFactory {
     }
 
     public String create(final String buyerToken) {
-        return dispatchProperties.buyerStatusBaseUrl() + "/" + buyerToken;
+        return dispatchProperties.frontBaseUrl() + "/dispatch/" + buyerToken;
     }
 }
