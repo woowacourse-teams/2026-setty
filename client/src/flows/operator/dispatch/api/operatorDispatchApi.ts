@@ -1,4 +1,5 @@
 import { requestOperatorJson } from '@/flows/operator/auth/operatorAuthApi';
+import { ApiError } from '@/shared/api/http';
 
 export const DISPATCH_STATUSES = [
   'SELLER_INPUT_PENDING',
@@ -48,9 +49,23 @@ export interface OperatorDispatchRequestDetail extends Omit<
   seller: OperatorDispatchSeller | null;
   sellerInputUrl: string | null;
   sellerInputCompletedAt: string | null;
+  messageContent: string | null;
+  buyerConfirmUrl: string | null;
   amountCheckedAt: string | null;
   operatorNote: string | null;
   closedReason: string | null;
+}
+
+export interface SaveFinalAmountPayload {
+  finalQuotedAmount: number;
+}
+
+export interface SaveFinalAmountResponse {
+  buyerConfirmUrl: string;
+}
+
+export interface SaveMessagePayload {
+  messageContent: string;
 }
 
 export function isDispatchStatus(value: string | null): value is DispatchStatus {
@@ -75,5 +90,66 @@ export function getOperatorDispatchRequest(
   return requestOperatorJson<OperatorDispatchRequestDetail>(
     `/api/operator/dispatch-requests/${encodeURIComponent(dispatchRequestId)}`,
     { signal },
+  );
+}
+
+function hasKnownFinalAmountFieldError(
+  fieldErrors: Record<string, string> | undefined,
+): boolean {
+  return Boolean(fieldErrors?.finalQuotedAmount);
+}
+
+export async function saveFinalAmount(
+  dispatchRequestId: string,
+  payload: SaveFinalAmountPayload,
+): Promise<SaveFinalAmountResponse> {
+  try {
+    return await requestOperatorJson<SaveFinalAmountResponse>(
+      `/api/operator/dispatch-requests/${encodeURIComponent(dispatchRequestId)}/final-amount`,
+      {
+        method: 'PUT',
+        body: JSON.stringify(payload),
+      },
+    );
+  } catch (error) {
+    if (
+      error instanceof ApiError &&
+      error.status === 400 &&
+      !hasKnownFinalAmountFieldError(error.fieldErrors)
+    ) {
+      throw new ApiError(400, { code: error.code, message: error.message });
+    }
+    throw error;
+  }
+}
+
+export async function saveMessage(
+  dispatchRequestId: string,
+  payload: SaveMessagePayload,
+): Promise<void> {
+  try {
+    await requestOperatorJson<void>(
+      `/api/operator/dispatch-requests/${encodeURIComponent(dispatchRequestId)}/message`,
+      {
+        method: 'PUT',
+        body: JSON.stringify(payload),
+      },
+    );
+  } catch (error) {
+    if (
+      error instanceof ApiError &&
+      error.status === 400 &&
+      !error.fieldErrors?.messageContent
+    ) {
+      throw new ApiError(400, { code: error.code, message: error.message });
+    }
+    throw error;
+  }
+}
+
+export function completeDispatch(dispatchRequestId: string): Promise<void> {
+  return requestOperatorJson<void>(
+    `/api/operator/dispatch-requests/${encodeURIComponent(dispatchRequestId)}/completion`,
+    { method: 'POST' },
   );
 }
