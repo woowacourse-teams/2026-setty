@@ -47,6 +47,7 @@ public class OperatorEstimateRequestService {
                 estimateRequest.getTradeArea(),
                 estimateRequest.getItemType(),
                 estimateRequest.isHighValueItem(),
+                estimateRequest.getProductLink(),
                 estimateRequest.getStatus(),
                 toOffsetDateTime(estimateRequest.getCreatedAt()),
                 manualNotification

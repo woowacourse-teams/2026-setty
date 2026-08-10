@@ -68,6 +68,55 @@ class EstimateRequestControllerTest {
 
         verify(estimateRequestCreateService).create(commandCaptor.capture());
         assertThat(commandCaptor.getValue().phoneNumber()).isEqualTo("01000000000");
+        assertThat(commandCaptor.getValue().productLink()).isNull();
+    }
+
+    @Test
+    void createsAnEstimateRequestWithOptionalProductLink() throws Exception {
+        when(estimateRequestCreateService.create(any(CreateEstimateRequestCommand.class)))
+                .thenReturn(new CreatedEstimateRequest(
+                        1L,
+                        EstimateRequestStatus.PENDING_REVIEW,
+                        OffsetDateTime.of(2026, 8, 6, 10, 0, 0, 0, ZoneOffset.ofHours(9))
+                ));
+
+        mockMvc.perform(post("/api/estimate-requests")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "name": "테스트사용자",
+                                  "phoneNumber": "010-0000-0000",
+                                  "tradeArea": "서울성북구",
+                                  "itemType": "원목의자",
+                                  "highValueItem": false,
+                                  "productLink": "https://www.daangn.com/articles/test-1"
+                                }
+                                """))
+                .andExpect(status().isCreated());
+
+        verify(estimateRequestCreateService).create(commandCaptor.capture());
+        assertThat(commandCaptor.getValue().productLink())
+                .isEqualTo("https://www.daangn.com/articles/test-1");
+    }
+
+    @Test
+    void rejectsProductLinkLongerThanFiveHundredCharacters() throws Exception {
+        final String tooLongLink = "https://www.daangn.com/articles/" + "a".repeat(501);
+
+        mockMvc.perform(post("/api/estimate-requests")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "name": "테스트사용자",
+                                  "phoneNumber": "010-0000-0000",
+                                  "tradeArea": "서울성북구",
+                                  "itemType": "원목의자",
+                                  "highValueItem": false,
+                                  "productLink": "%s"
+                                }
+                                """.formatted(tooLongLink)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors.productLink").exists());
     }
 
     @Test

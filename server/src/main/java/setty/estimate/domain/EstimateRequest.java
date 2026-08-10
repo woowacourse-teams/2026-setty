@@ -40,6 +40,9 @@ public class EstimateRequest {
     @Column(nullable = false)
     private boolean highValueItem;
 
+    @Column(length = 500)
+    private String productLink;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
     private EstimateRequestStatus status;
@@ -52,13 +55,15 @@ public class EstimateRequest {
             final String phoneNumber,
             final String tradeArea,
             final String itemType,
-            final boolean highValueItem
+            final boolean highValueItem,
+            final String productLink
     ) {
         this.name = name;
         this.phoneNumber = phoneNumber;
         this.tradeArea = tradeArea;
         this.itemType = itemType;
         this.highValueItem = highValueItem;
+        this.productLink = productLink;
         this.status = EstimateRequestStatus.PENDING_REVIEW;
         this.createdAt = LocalDateTime.now(SEOUL_ZONE_ID);
     }
@@ -68,9 +73,14 @@ public class EstimateRequest {
             final String phoneNumber,
             final String tradeArea,
             final String itemType,
-            final boolean highValueItem
+            final boolean highValueItem,
+            final String productLink
     ) {
-        return new EstimateRequest(name, phoneNumber, tradeArea, itemType, highValueItem);
+        return new EstimateRequest(name, phoneNumber, tradeArea, itemType, highValueItem, productLink);
+    }
+
+    public String getProductLink() {
+        return productLink;
     }
 
     public void markEstimateNotified() {
