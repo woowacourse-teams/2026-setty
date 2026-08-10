@@ -22,19 +22,18 @@
 }
 
 .benefits {
-  margin: 39px 0 0;
+  margin: 46px 0 0;
   padding: 0;
   list-style: none;
 }
 
-/* 가치 소개는 구분선으로만 나눈다. 카드나 배경을 쓰지 않는다. */
+/*
+ * 가치 소개는 구분선으로만 나눈다. 카드나 배경을 쓰지 않는다.
+ * 마지막 항목 아래에는 선을 두지 않아 목록이 화면 아래로 열려 보인다.
+ */
 .benefit {
-  padding: 24px 0;
+  padding: 18px 0;
   border-top: 1px solid var(--setty-color-border);
-}
-
-.benefit:last-child {
-  border-bottom: 1px solid var(--setty-color-border);
 }
 
 .benefitTitle {
@@ -46,9 +45,9 @@
 }
 
 .benefitDescription {
-  margin: 8px 0 0;
-  font-size: 14.5px;
+  margin: 6px 0 0;
+  font-size: 15px;
   font-weight: 500;
-  line-height: 21px;
+  line-height: 22px;
   color: var(--setty-color-text-subtle);
 }
