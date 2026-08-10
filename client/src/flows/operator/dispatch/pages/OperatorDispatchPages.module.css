@@ -105,7 +105,12 @@
   border-bottom: 0;
 }
 
-.tableCard tbody tr:hover {
+.tableCard tbody tr {
+  cursor: pointer;
+}
+
+.tableCard tbody tr:hover,
+.tableCard tbody tr:focus-within {
   background: rgb(2 189 121 / 4%);
 }
 
@@ -123,8 +128,12 @@
 .stateCard button:focus-visible,
 .infoCard a:focus-visible,
 .filterBar select:focus-visible,
-.sellerLinkControls input:focus-visible,
-.sellerLinkControls button:focus-visible {
+.linkControls input:focus-visible,
+.linkControls button:focus-visible,
+.operationForm input:focus-visible,
+.operationForm textarea:focus-visible,
+.operationForm button:focus-visible,
+.completionSection button:focus-visible {
   outline: 3px solid rgb(2 189 121 / 28%);
   outline-offset: 3px;
 }
@@ -239,7 +248,8 @@
 }
 
 .infoCard dt,
-.sellerLinkSection label {
+.linkSection label,
+.operationForm label {
   display: block;
   margin-bottom: 7px;
   color: var(--setty-color-text-muted);
@@ -277,19 +287,19 @@
   line-height: 1.5;
 }
 
-.sellerLinkSection {
+.linkSection {
   margin-top: 24px;
   padding-top: 22px;
   border-top: 1px solid var(--setty-color-border);
 }
 
-.sellerLinkControls {
+.linkControls {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 10px;
 }
 
-.sellerLinkControls input {
+.linkControls input {
   min-width: 0;
   min-height: 48px;
   padding: 0 14px;
@@ -301,7 +311,7 @@
   font-size: 13px;
 }
 
-.sellerLinkControls button {
+.linkControls button {
   min-height: 48px;
   padding: 0 16px;
   border: 0;
@@ -313,7 +323,7 @@
   white-space: nowrap;
 }
 
-.sellerLinkControls button:hover {
+.linkControls button:hover {
   background: var(--setty-color-brand-hover);
 }
 
@@ -342,6 +352,162 @@
   padding: 12px 14px;
   border-radius: 12px;
   background: var(--setty-color-surface-muted);
+  color: var(--setty-color-text-body);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.recordSection {
+  margin-top: 24px;
+  padding-top: 22px;
+  border-top: 1px solid var(--setty-color-border);
+}
+
+.recordSection h3 {
+  margin: 0 0 16px;
+  color: var(--setty-color-text-strong);
+  font-size: 16px;
+}
+
+.recordSection .readOnlyNotice,
+.recordSection .operationNotice {
+  margin: 0 0 18px;
+}
+
+.operationNotice {
+  margin: -6px 0 22px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: #fff7e6;
+  color: #7a4d00;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.operationForm {
+  display: grid;
+  gap: 22px;
+}
+
+.fieldGroup {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.amountField {
+  display: grid;
+  align-items: center;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+}
+
+.amountField > span {
+  color: var(--setty-color-text-body);
+  font-weight: 700;
+}
+
+.operationForm input,
+.operationForm textarea {
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid var(--setty-color-border);
+  border-radius: var(--setty-control-radius);
+  outline: none;
+  background: var(--setty-color-surface);
+  color: var(--setty-color-text-strong);
+  font: inherit;
+}
+
+.operationForm input {
+  min-height: 48px;
+}
+
+.operationForm textarea {
+  min-height: 148px;
+  resize: vertical;
+  line-height: 1.55;
+}
+
+.operationForm input:focus,
+.operationForm textarea:focus {
+  border-color: var(--setty-color-brand);
+  box-shadow: 0 0 0 3px rgb(2 189 121 / 14%);
+}
+
+.operationForm input:disabled,
+.operationForm textarea:disabled {
+  background: #f5f6f7;
+  color: var(--setty-color-text-muted);
+  cursor: wait;
+}
+
+.operationForm small {
+  color: #d92d3a;
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+.operationForm > button,
+.completionSection > button {
+  min-height: var(--setty-control-height);
+  padding: 0 18px;
+  border: 0;
+  border-radius: var(--setty-control-radius);
+  background: var(--setty-color-brand);
+  color: var(--setty-color-text-strong);
+  cursor: pointer;
+  font-size: var(--setty-font-size-action);
+  font-weight: var(--setty-font-weight-action);
+}
+
+.operationForm > button:hover:not(:disabled),
+.completionSection > button:hover:not(:disabled) {
+  background: var(--setty-color-brand-hover);
+}
+
+.operationForm > button:disabled,
+.completionSection > button:disabled {
+  background: var(--setty-color-text-subtle);
+  cursor: wait;
+}
+
+.submitError {
+  padding: 14px 16px;
+  border: 1px solid #ffd2d5;
+  border-radius: var(--setty-control-radius);
+  background: #fff5f5;
+  color: #b42328;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.submitSuccess {
+  margin: 14px 0 0;
+  color: #006b46;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.operationForm .submitSuccess {
+  margin: 0;
+}
+
+.completionSection {
+  display: grid;
+  gap: 10px;
+  margin-top: 24px;
+  padding-top: 22px;
+  border-top: 1px solid var(--setty-color-border);
+}
+
+.completionSection strong {
+  color: var(--setty-color-text-strong);
+  font-size: 15px;
+}
+
+.completionSection p {
+  margin: 0 0 4px;
   color: var(--setty-color-text-body);
   font-size: 13px;
   line-height: 1.5;
@@ -381,7 +547,7 @@
     grid-column: auto;
   }
 
-  .sellerLinkControls {
+  .linkControls {
     grid-template-columns: 1fr;
   }
 }

@@ -1,4 +1,4 @@
-import { ChangeEvent, useCallback, useEffect, useState } from 'react';
+import { ChangeEvent, MouseEvent, useCallback, useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { ApiError } from '@/shared/api/http';
 import {
@@ -66,6 +66,21 @@ export default function DispatchRequestListPage() {
     }
 
     setSearchParams(nextSearchParams, { replace: true });
+  };
+
+  const handleRowClick = (
+    event: MouseEvent<HTMLTableRowElement>,
+    dispatchRequestId: number,
+  ) => {
+    if (
+      event.defaultPrevented ||
+      (event.target instanceof Element &&
+        event.target.closest('a, button, input, select, textarea'))
+    ) {
+      return;
+    }
+
+    navigate(`/operator/dispatch-requests/${dispatchRequestId}`);
   };
 
   return (
@@ -144,7 +159,10 @@ export default function DispatchRequestListPage() {
               </thead>
               <tbody>
                 {requests.map((request) => (
-                  <tr key={request.id}>
+                  <tr
+                    key={request.id}
+                    onClick={(event) => handleRowClick(event, request.id)}
+                  >
                     <td>
                       <Link to={`/operator/dispatch-requests/${request.id}`}>
                         #{request.id}
