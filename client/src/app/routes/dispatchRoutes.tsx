@@ -211,20 +211,13 @@ function SellerSubmittedRoute() {
 }
 
 function FinalAmountConfirmRoute() {
-  const navigate = useNavigate();
   const { buyerToken } = useParams<{ buyerToken: string }>();
 
   if (!buyerToken) {
     return <Navigate to={DISPATCH_PATH.home} replace />;
   }
 
-  return (
-    <FinalAmountConfirmScreen
-      key={buyerToken}
-      buyerToken={buyerToken}
-      onGoHome={() => navigate(DISPATCH_PATH.home)}
-    />
-  );
+  return <FinalAmountConfirmScreen key={buyerToken} buyerToken={buyerToken} />;
 }
 
 /**

@@ -14,7 +14,6 @@ import styles from './FinalAmountConfirmScreen.module.css';
 interface FinalAmountConfirmScreenProps {
   /** POST /api/dispatch-requests 응답의 buyerToken */
   buyerToken: string;
-  onGoHome: () => void;
 }
 
 const DEFAULT_ERROR_MESSAGE = '요청을 처리하지 못했어요. 잠시 후 다시 시도해 주세요.';
@@ -54,13 +53,6 @@ const CLOSED_STATUSES: readonly BuyerDispatchRequestResponse['status'][] = [
   'TRANSPORT_INFEASIBLE',
 ];
 
-/**
- * 동의는 `POST /{buyerToken}/approval`이 있지만 거절에 해당하는 엔드포인트는 없다.
- * 계약이 없는 상태에서 요청을 지어내지 않고, 취소는 문자로 받는다고 알린다.
- */
-const CANCEL_NOTE = '거래 취소는 운영자가 보내는 문자로 안내드려요.';
-const CANCEL_NOTE_ID = 'final-amount-cancel-note';
-
 const formatAmount = (amount: number): string => `${amount.toLocaleString('ko-KR')}원`;
 
 const toErrorMessage = (error: unknown): string =>
@@ -72,7 +64,6 @@ const toErrorMessage = (error: unknown): string =>
  */
 export default function FinalAmountConfirmScreen({
   buyerToken,
-  onGoHome,
 }: FinalAmountConfirmScreenProps) {
   const [request, setRequest] = useState<BuyerDispatchRequestResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -159,19 +150,9 @@ export default function FinalAmountConfirmScreen({
                 진행하기
               </PrimaryButton>
               {/* 시안의 두 번째 action이지만 연결할 server 엔드포인트가 없어 비활성이다. */}
-              <TextButton disabled aria-describedby={CANCEL_NOTE_ID}>
-                거래 취소
-              </TextButton>
-              <p className={styles.cancelNote} id={CANCEL_NOTE_ID}>
-                {CANCEL_NOTE}
-              </p>
+              <TextButton disabled>거래 취소</TextButton>
             </>
           ) : null}
-
-          {/* 화면이 막다른 길이 되지 않도록 항상 나가는 길을 둔다. */}
-          <TextButton onClick={onGoHome} disabled={submitting}>
-            홈으로 돌아가기
-          </TextButton>
         </>
       }
     >

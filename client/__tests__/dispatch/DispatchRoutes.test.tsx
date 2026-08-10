@@ -534,15 +534,17 @@ describe('최종 금액 확인 화면', () => {
     expect(screen.queryByRole('button', { name: '진행하기' })).not.toBeInTheDocument();
   });
 
-  it('거래 취소는 연결할 server 계약이 없어 비활성이고 이유를 알린다', async () => {
+  it('금액을 확인하는 동안에는 시안의 두 action만 보여준다', async () => {
     mockFetch.mockResolvedValue(jsonResponse(200, buyerRequest({})));
 
     renderAt(`/final-amount/${BUYER_TOKEN}`);
 
+    // 거래 취소는 연결할 server 계약이 없어 비활성이다.
     expect(await screen.findByRole('button', { name: '거래 취소' })).toBeDisabled();
+    expect(screen.getAllByRole('button')).toHaveLength(2);
     expect(
-      screen.getByText('거래 취소는 운영자가 보내는 문자로 안내드려요.'),
-    ).toBeInTheDocument();
+      screen.queryByRole('button', { name: '홈으로 돌아가기' }),
+    ).not.toBeInTheDocument();
   });
 
   it('이미 종료된 요청에는 동의 action을 보여주지 않는다', async () => {
