@@ -101,7 +101,22 @@ export default function EstimateRequestListPage() {
               </thead>
               <tbody>
                 {requests.map((request) => (
-                  <tr key={request.estimateRequestId}>
+                  <tr
+                    key={request.estimateRequestId}
+                    onClick={(event) => {
+                      if (
+                        event.defaultPrevented ||
+                        (event.target instanceof Element &&
+                          event.target.closest('a, button, input, select, textarea'))
+                      ) {
+                        return;
+                      }
+
+                      navigate(
+                        `/operator/estimate-requests/${request.estimateRequestId}`,
+                      );
+                    }}
+                  >
                     <td>
                       <Link
                         to={`/operator/estimate-requests/${request.estimateRequestId}`}

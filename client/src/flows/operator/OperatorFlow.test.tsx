@@ -157,6 +157,36 @@ test('운영자 목록에는 요약 정보만 표시하고 개인정보를 노�
   expectOperatorSecretHeader(0);
 });
 
+test('운영자 견적 목록의 ID가 아닌 셀을 클릭해도 상세로 이동한다', async () => {
+  authenticateTestOperator();
+  fetchMock
+    .mockResolvedValueOnce(
+      response([
+        {
+          estimateRequestId: 12,
+          tradeArea: '테스트구 테스트동',
+          itemType: '테스트 의자',
+          highValueItem: false,
+          status: 'PENDING_REVIEW',
+          createdAt: '2026-08-06T10:00:00+09:00',
+        },
+      ]),
+    )
+    .mockResolvedValueOnce(response(PENDING_DETAIL));
+  renderAt('/operator/estimate-requests');
+
+  await userEvent.click(await screen.findByText('테스트 의자'));
+
+  expect(
+    await screen.findByRole('heading', { name: '견적 요청 상세' }),
+  ).toBeInTheDocument();
+  expect(fetchMock.mock.calls[1]?.[0]).toBe(
+    'http://localhost:8080/api/operator/estimate-requests/12',
+  );
+  expectOperatorSecretHeader(0);
+  expectOperatorSecretHeader(1);
+});
+
 test('운영자 목록 조회 실패 후 다시 시도해 빈 상태를 확인한다', async () => {
   authenticateTestOperator();
   fetchMock

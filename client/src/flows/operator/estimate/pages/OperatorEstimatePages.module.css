@@ -79,7 +79,12 @@
   border-bottom: 0;
 }
 
-.tableCard tbody tr:hover {
+.tableCard tbody tr {
+  cursor: pointer;
+}
+
+.tableCard tbody tr:hover,
+.tableCard tbody tr:focus-within {
   background: rgb(2 189 121 / 4%);
 }
 
