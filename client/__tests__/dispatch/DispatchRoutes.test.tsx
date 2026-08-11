@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, useLocation, useRoutes } from 'react-router-dom';
 import { dispatchRoutes } from '@/app/routes/dispatchRoutes';
@@ -669,6 +669,13 @@ describe('최종 금액 확인 화면', () => {
 
     await user.click(screen.getByRole('button', { name: '진행하기' }));
 
+    // 되돌릴 수 없는 동의라 확인 시트를 거친 뒤에만 요청이 나간다.
+    const sheet = await screen.findByRole('dialog', { name: '이대로 진행할까요?' });
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    expect(within(sheet).getByText(/9,900원/)).toBeInTheDocument();
+
+    await user.click(within(sheet).getByRole('button', { name: '네, 진행할게요' }));
+
     await waitFor(() =>
       expect(lastRequest().url).toBe(
         `${API_ORIGIN}/api/dispatch-requests/${BUYER_TOKEN}`,
@@ -683,6 +690,32 @@ describe('최종 금액 확인 화면', () => {
       await screen.findByRole('heading', { name: '진행하기로 확인했어요' }),
     ).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: '진행하기' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('확인 시트를 닫으면 동의 요청을 보내지 않는다', async () => {
+    const user = userEvent.setup();
+    mockFetch.mockResolvedValue(jsonResponse(200, buyerRequest({})));
+
+    renderAt(`/final-amount/${BUYER_TOKEN}`);
+
+    await user.click(await screen.findByRole('button', { name: '진행하기' }));
+    await user.click(screen.getByRole('button', { name: '다시 볼게요' }));
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    // 조회 1회만 남고 approval은 나가지 않는다.
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    expect(
+      screen.getByRole('heading', { name: /9,900원\s*이면 배달돼요/ }),
+    ).toBeInTheDocument();
+
+    // Esc로 닫아도 같다.
+    await user.click(screen.getByRole('button', { name: '진행하기' }));
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+    await user.keyboard('{Escape}');
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(mockFetch).toHaveBeenCalledTimes(1);
   });
 
   it('금액을 확인하는 동안에는 시안의 두 action만 보여준다', async () => {
@@ -754,8 +787,12 @@ describe('최종 금액 확인 화면', () => {
     renderAt(`/final-amount/${BUYER_TOKEN}`);
 
     await user.click(await screen.findByRole('button', { name: '진행하기' }));
+    await user.click(await screen.findByRole('button', { name: '네, 진행할게요' }));
 
-    expect(await screen.findByText('이미 처리된 요청이에요.')).toBeInTheDocument();
+    // 실패는 시트 안에서 알리고 그 자리에서 다시 시도할 수 있어야 한다.
+    const sheet = await screen.findByRole('dialog');
+    expect(within(sheet).getByText('이미 처리된 요청이에요.')).toBeInTheDocument();
+    expect(within(sheet).getByRole('button', { name: '네, 진행할게요' })).toBeEnabled();
     expect(
       screen.getByRole('heading', { name: /9,900원\s*이면 배달돼요/ }),
     ).toBeInTheDocument();

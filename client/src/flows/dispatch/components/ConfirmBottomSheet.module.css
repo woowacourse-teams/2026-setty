@@ -1,0 +1,47 @@
+/* 시안의 402px 모바일 프레임 하단에 시트를 붙이고 나머지는 딤으로 가린다. */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  /* 시안에서만 쓰는 딤 값이라 공통 토큰으로 올리지 않는다. */
+  background: rgb(0 0 0 / 45%);
+}
+
+.sheet {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 402px;
+  padding: 28px 20px 20px;
+  border-radius: 20px 20px 0 0;
+  background: var(--setty-color-surface);
+  text-align: center;
+}
+
+.title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: var(--setty-font-weight-title);
+  line-height: 28px;
+  letter-spacing: -0.5px;
+  color: var(--setty-color-text-strong);
+}
+
+.description {
+  margin: 14px 0 0;
+  font-size: var(--setty-font-size-body);
+  font-weight: var(--setty-font-weight-body);
+  line-height: 24.03px;
+  color: var(--setty-color-text-body);
+  white-space: pre-line;
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 26px;
+}

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { approveFinalAmount, findBuyerDispatchRequest } from '../api/dispatchApi';
 import { DispatchApiError } from '../api/dispatchClient';
 import BrandHeader from '../components/BrandHeader';
+import ConfirmBottomSheet from '../components/ConfirmBottomSheet';
 import MobileScreen from '../components/MobileScreen';
 import PrimaryButton from '../components/PrimaryButton';
 import ResultMessage from '../components/ResultMessage';
@@ -25,6 +26,13 @@ const DEFAULT_ERROR_MESSAGE = '요청을 처리하지 못했어요. 잠시 후 �
  */
 const CONFIRM_EMOJI = '🚚';
 const CONFIRM_DESCRIPTION = '진행하면 안전하게 배송이 시작돼요.';
+
+/** 동의는 되돌릴 수 없으므로 요청을 보내기 전에 시안의 바텀 시트로 한 번 더 묻는다. */
+const CONFIRM_SHEET = {
+  title: '이대로 진행할까요?',
+  confirmLabel: '네, 진행할게요',
+  cancelLabel: '다시 볼게요',
+};
 
 /** 아직 운영자가 최종 금액을 기록하지 않은 상태에서 링크로 들어온 경우다. */
 const WAITING_MESSAGE = {
@@ -73,6 +81,8 @@ export default function FinalAmountConfirmScreen({
   /** 같은 동의를 두 번 보내지 않도록 전송 중에는 버튼을 잠근다. */
   const [submitting, setSubmitting] = useState(false);
   const [actionErrorMessage, setActionErrorMessage] = useState('');
+  /** 동의 요청은 확인 바텀 시트를 거친 뒤에만 나간다. */
+  const [confirmSheetOpen, setConfirmSheetOpen] = useState(false);
 
   useEffect(() => {
     // StrictMode 이중 마운트와 언마운트 후 setState를 막는다.
@@ -121,15 +131,28 @@ export default function FinalAmountConfirmScreen({
 
     approveFinalAmount(buyerToken)
       .then(() => {
+        setConfirmSheetOpen(false);
         setReloadCount((count) => count + 1);
       })
       .catch((error: unknown) => {
+        // 실패는 시트를 연 채로 알리고 그 자리에서 다시 시도하게 한다.
         setActionErrorMessage(toErrorMessage(error));
       })
       .finally(() => {
         setSubmitting(false);
       });
   }, [buyerToken]);
+
+  /** 시트를 닫으면 요청을 보내지 않고 확인 화면을 그대로 둔다. */
+  const handleCloseConfirmSheet = useCallback(() => {
+    setConfirmSheetOpen(false);
+    setActionErrorMessage('');
+  }, []);
+
+  const handleOpenConfirmSheet = useCallback(() => {
+    setActionErrorMessage('');
+    setConfirmSheetOpen(true);
+  }, []);
 
   const loaded = !loading && !errorMessage && request !== null;
   /** 금액이 없으면 확인할 대상이 없으므로 상태와 무관하게 대기 안내를 보여준다. */
@@ -141,19 +164,15 @@ export default function FinalAmountConfirmScreen({
     <MobileScreen
       header={<BrandHeader />}
       footer={
-        <>
-          {actionErrorMessage ? <ErrorMessage message={actionErrorMessage} /> : null}
-
-          {confirmable ? (
-            <>
-              <PrimaryButton onClick={handleApprove} disabled={submitting}>
-                진행하기
-              </PrimaryButton>
-              {/* 시안의 두 번째 action이지만 연결할 server 엔드포인트가 없어 비활성이다. */}
-              <TextButton disabled>거래 취소</TextButton>
-            </>
-          ) : null}
-        </>
+        confirmable ? (
+          <>
+            <PrimaryButton onClick={handleOpenConfirmSheet} disabled={submitting}>
+              진행하기
+            </PrimaryButton>
+            {/* 시안의 두 번째 action이지만 연결할 server 엔드포인트가 없어 비활성이다. */}
+            <TextButton disabled>거래 취소</TextButton>
+          </>
+        ) : null
       }
     >
       {loading ? <LoadingMessage /> : null}
@@ -167,6 +186,27 @@ export default function FinalAmountConfirmScreen({
 
       {loaded && request ? (
         <FinalAmountBody status={request.status} finalAmount={finalAmount} />
+      ) : null}
+
+      {confirmable && finalAmount !== null ? (
+        <ConfirmBottomSheet
+          open={confirmSheetOpen}
+          title={CONFIRM_SHEET.title}
+          description={
+            <>
+              {'진행하면 '}
+              {/* 화면에 보여준 값과 같은 server 응답을 그대로 쓴다. */}
+              <span className={styles.sheetAmount}>{formatAmount(finalAmount)}</span>
+              {'으로 배송이 시작되고\n이후에는 취소할 수 없어요.'}
+            </>
+          }
+          confirmLabel={CONFIRM_SHEET.confirmLabel}
+          cancelLabel={CONFIRM_SHEET.cancelLabel}
+          submitting={submitting}
+          errorMessage={actionErrorMessage}
+          onConfirm={handleApprove}
+          onClose={handleCloseConfirmSheet}
+        />
       ) : null}
     </MobileScreen>
   );

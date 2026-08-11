@@ -10,6 +10,12 @@
   color: var(--setty-color-brand);
 }
 
+/* 확인 바텀 시트 설명에서는 금액만 굵게 강조한다. */
+.sheetAmount {
+  font-weight: 700;
+  color: var(--setty-color-text-strong);
+}
+
 /* 설명 아래 현재 상태 문구. 시안에 없는 요소라 flow 안에서만 쓰는 값이다. */
 .status {
   margin: 20px 0 0;
