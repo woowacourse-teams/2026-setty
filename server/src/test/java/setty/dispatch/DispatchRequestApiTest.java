@@ -21,9 +21,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.transaction.annotation.Transactional;
+import setty.common.notification.DiscordWebhookClient;
 import setty.common.operator.OperatorAuthInterceptor;
 
 @SpringBootTest(properties = "setty.operator.secret=" + DispatchRequestApiTest.OPERATOR_SECRET)
@@ -32,6 +34,13 @@ import setty.common.operator.OperatorAuthInterceptor;
 @DisplayName("배차 요청 API")
 class DispatchRequestApiTest {
     static final String OPERATOR_SECRET = "test-operator-secret";
+
+    /**
+     * 테스트가 실제 디스코드 채널로 알림을 보내지 않도록 막는다.
+     * 알림 발행은 커밋 이후에 일어나므로 트랜잭션 테스트인 여기서는 검증하지 않는다.
+     */
+    @MockitoBean
+    private DiscordWebhookClient discordWebhookClient;
 
     private static final String BUYER_NAME = "테스트구매자";
     private static final String SELLER_NAME = "테스트판매자";

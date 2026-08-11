@@ -52,6 +52,10 @@ SPRING_DATASOURCE_PASSWORD=
 # 앱 설정
 SETTY_OPERATOR_SECRET=
 SETTY_FRONT_BASE_URL=https://<CloudFront 도메인>
+
+# 배차 요청 접수 알림을 받을 디스코드 채널 웹훅 URL. URL 자체가 비밀값이다.
+# 비워 두면 알림만 꺼지고 배차 요청 접수는 그대로 동작한다.
+SETTY_DISCORD_WEBHOOK_URL=
 ```
 
 `MYSQL_PASSWORD`와 `SPRING_DATASOURCE_PASSWORD`는 같은 값이어야 한다.
