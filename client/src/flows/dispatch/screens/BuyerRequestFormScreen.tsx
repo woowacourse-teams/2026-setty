@@ -1,15 +1,21 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
-import { createBuyerDispatchRequest } from '../api/dispatchApi';
+import { createBuyerDispatchRequest, uploadDispatchItemImage } from '../api/dispatchApi';
 import { DispatchApiError } from '../api/dispatchClient';
 import FormField from '../components/FormField';
 import HighValueToggle from '../components/HighValueToggle';
+import ItemImageField from '../components/ItemImageField';
 import MobileScreen from '../components/MobileScreen';
 import NavBar from '../components/NavBar';
 import PrimaryButton from '../components/PrimaryButton';
 import PrivacyConsentField from '../components/PrivacyConsentField';
 import { ErrorMessage } from '../components/StatusMessage';
 import type { BuyerDispatchRequestCreateResponse } from '../model/dispatchTypes';
+import {
+  ITEM_IMAGE_TYPE_ERROR,
+  releaseItemImagePreview,
+  type SelectedItemImage,
+} from '../model/itemImage';
 import PrivacyConsentNoticeScreen from './PrivacyConsentNoticeScreen';
 import styles from './BuyerRequestFormScreen.module.css';
 
@@ -83,9 +89,30 @@ const validate = (values: {
   return errors;
 };
 
+const FALLBACK_ERROR_MESSAGE = '요청을 처리하지 못했어요. 잠시 후 다시 시도해 주세요.';
+
+const toMessage = (error: unknown): string =>
+  error instanceof DispatchApiError ? error.message : FALLBACK_ERROR_MESSAGE;
+
+/** 사진 업로드와 요청 생성은 순서대로 일어나므로 진행 중인 단계를 그대로 알린다. */
+const submitLabelOf = (uploading: boolean, submitting: boolean): string => {
+  if (uploading) {
+    return '사진을 올리는 중이에요';
+  }
+  if (submitting) {
+    return '만드는 중이에요';
+  }
+
+  return '링크 생성하기';
+};
+
 /**
  * 시안 `거래 링크 만들기` — 구매자가 실제 거래 정보를 입력해 배차 요청을 만든다.
  * 시안의 `받을 시간`은 server 계약에 대응 필드가 없어 렌더링하지 않는다.
+ *
+ * `물품 상태 사진`은 server `itemImageUrls`가 null을 허용하므로 선택 항목으로 둔다.
+ * DEC-016·DEC-023은 필수로 적었으나 계약과 갈려 Issue #90에서 확정 전이며,
+ * 여기에서 필수 검증을 임의로 만들지 않는다.
  */
 export default function BuyerRequestFormScreen({
   onBack,
@@ -101,11 +128,56 @@ export default function BuyerRequestFormScreen({
   const [deliveryAddress, setDeliveryAddress] = useState('');
   const [productLink, setProductLink] = useState('');
 
+  /** 선택 항목인 물품 상태 사진. 파일과 미리보기 URL을 함께 들고 같이 버린다. */
+  const [itemImage, setItemImage] = useState<SelectedItemImage | null>(null);
+  const [itemImageError, setItemImageError] = useState('');
+  /**
+   * 업로드에 성공한 사진의 URL이다.
+   * 배차 생성이 실패해 다시 제출할 때 같은 파일을 두 번 올리지 않는다.
+   */
+  const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
+  /** 언마운트 정리에서 최신 미리보기 URL을 읽기 위한 참조 */
+  const itemImagePreviewUrlRef = useRef<string | null>(null);
+
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [submitError, setSubmitError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [privacyConsent, setPrivacyConsent] = useState(false);
   const [privacyConsentError, setPrivacyConsentError] = useState('');
+
+  /** 화면을 떠날 때 남은 미리보기 URL을 해제한다. */
+  useEffect(
+    () => () => {
+      releaseItemImagePreview(itemImagePreviewUrlRef);
+    },
+    [],
+  );
+
+  const selectItemImage = (file: File) => {
+    releaseItemImagePreview(itemImagePreviewUrlRef);
+    // 사진이 바뀌면 앞서 올린 URL은 더 이상 이 첨부의 것이 아니다.
+    setUploadedImageUrl(null);
+
+    // accept 속성은 파일 선택창의 필터일 뿐이라 고른 파일을 다시 확인한다.
+    if (!file.type.startsWith('image/')) {
+      setItemImage(null);
+      setItemImageError(ITEM_IMAGE_TYPE_ERROR);
+      return;
+    }
+
+    const previewUrl = URL.createObjectURL(file);
+    itemImagePreviewUrlRef.current = previewUrl;
+    setItemImage({ file, previewUrl });
+    setItemImageError('');
+  };
+
+  const removeItemImage = () => {
+    releaseItemImagePreview(itemImagePreviewUrlRef);
+    setItemImage(null);
+    setItemImageError('');
+    setUploadedImageUrl(null);
+  };
 
   const updatePrivacyConsent = (checked: boolean) => {
     setPrivacyConsent(checked);
@@ -140,6 +212,25 @@ export default function BuyerRequestFormScreen({
     setSubmitting(true);
     setSubmitError('');
 
+    /*
+     * 사진은 배차 요청 본문에 URL로만 들어가므로 생성보다 먼저 올린다.
+     * 업로드가 실패하면 사진 없는 요청을 대신 만들지 않고 여기에서 멈춘다.
+     */
+    let imageUrl = uploadedImageUrl;
+    if (itemImage && !imageUrl) {
+      setUploading(true);
+      try {
+        imageUrl = (await uploadDispatchItemImage(itemImage.file)).imageUrl;
+        setUploadedImageUrl(imageUrl);
+      } catch (error) {
+        setItemImageError(toMessage(error));
+        setSubmitting(false);
+        setUploading(false);
+        return;
+      }
+      setUploading(false);
+    }
+
     try {
       const result = await createBuyerDispatchRequest({
         buyerName: buyerName.trim(),
@@ -148,14 +239,11 @@ export default function BuyerRequestFormScreen({
         itemType: itemType.trim(),
         highValueItem,
         productLink: productLink.trim(),
+        ...(imageUrl ? { itemImageUrls: [imageUrl] } : {}),
       });
       onCreated(result);
     } catch (error) {
-      setSubmitError(
-        error instanceof DispatchApiError
-          ? error.message
-          : '요청을 처리하지 못했어요. 잠시 후 다시 시도해 주세요.',
-      );
+      setSubmitError(toMessage(error));
     } finally {
       setSubmitting(false);
     }
@@ -169,6 +257,8 @@ export default function BuyerRequestFormScreen({
       />
     );
   }
+
+  const submitLabel = submitLabelOf(uploading, submitting);
 
   return (
     <form className={styles.form} onSubmit={handleSubmit} noValidate>
@@ -184,7 +274,7 @@ export default function BuyerRequestFormScreen({
             />
             {submitError ? <ErrorMessage message={submitError} /> : null}
             <PrimaryButton type="submit" disabled={submitting}>
-              {submitting ? '만드는 중이에요' : '링크 생성하기'}
+              {submitLabel}
             </PrimaryButton>
           </div>
         }
@@ -208,6 +298,12 @@ export default function BuyerRequestFormScreen({
             error={fieldErrors.productLink}
             hint="거래 중인 당근 게시물 링크를 붙여넣어 주세요"
             onChange={(event) => setProductLink(event.target.value)}
+          />
+          <ItemImageField
+            previewUrl={itemImage?.previewUrl ?? null}
+            error={itemImageError}
+            onSelect={selectItemImage}
+            onRemove={removeItemImage}
           />
           <HighValueToggle checked={highValueItem} onChange={setHighValueItem} />
           <FormField

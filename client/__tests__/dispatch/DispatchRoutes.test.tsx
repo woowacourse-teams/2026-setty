@@ -223,6 +223,157 @@ describe('구매자 흐름', () => {
   });
 });
 
+describe('구매자 물품 사진 첨부', () => {
+  const ITEM_IMAGE_URL = `${API_ORIGIN}/setty/images/items/item-test.png`;
+
+  const fillRequiredFields = async (user: ReturnType<typeof userEvent.setup>) => {
+    await user.type(screen.getByLabelText('상품명'), '3인용 소파');
+    await user.type(screen.getByLabelText('구매자 이름'), '가상구매자');
+    await user.type(screen.getByLabelText('연락처'), '01000000000');
+    await user.type(screen.getByLabelText('받는 주소'), '가상시 가상구 가상로 1');
+    await user.type(
+      screen.getByLabelText('당근 게시물 링크'),
+      'https://www.daangn.com/articles/00000000',
+    );
+    await user.click(screen.getByRole('checkbox', { name: PRIVACY_CONSENT_NAME }));
+  };
+
+  const attachImage = (user: ReturnType<typeof userEvent.setup>) =>
+    user.upload(
+      screen.getByLabelText('물품 상태 사진'),
+      new File(['가상이미지'], 'item.png', { type: 'image/png' }),
+    );
+
+  const requestsTo = (path: string) =>
+    mockFetch.mock.calls.filter(([url]) => url === `${API_ORIGIN}${path}`);
+
+  it('첨부한 사진을 먼저 올리고 받은 URL을 itemImageUrls로 함께 보낸다', async () => {
+    const user = userEvent.setup();
+    mockFetch
+      .mockResolvedValueOnce(jsonResponse(201, { imageUrl: ITEM_IMAGE_URL }))
+      .mockResolvedValueOnce(
+        jsonResponse(201, { buyerToken: BUYER_TOKEN, sellerInputUrl: SELLER_INPUT_URL }),
+      );
+
+    renderAt('/dispatch/new');
+    await fillRequiredFields(user);
+    await attachImage(user);
+    await user.click(screen.getByRole('button', { name: '링크 생성하기' }));
+
+    expect(await screen.findByText('거래가 시작됐어요')).toBeInTheDocument();
+
+    const [uploadUrl, uploadInit] = mockFetch.mock.calls[0];
+    expect(uploadUrl).toBe(`${API_ORIGIN}/api/dispatch-requests/images`);
+    expect(uploadInit?.method).toBe('POST');
+    // multipart는 브라우저가 boundary를 붙여야 하므로 Content-Type을 지정하지 않는다.
+    expect(uploadInit?.headers).toBeUndefined();
+    expect((uploadInit?.body as FormData).get('image')).toBeInstanceOf(File);
+
+    const { url, init } = lastRequest();
+    expect(url).toBe(`${API_ORIGIN}/api/dispatch-requests`);
+    expect(JSON.parse(String(init?.body)).itemImageUrls).toEqual([ITEM_IMAGE_URL]);
+  });
+
+  it('사진을 첨부하지 않으면 업로드를 호출하지 않고 itemImageUrls도 보내지 않는다', async () => {
+    const user = userEvent.setup();
+    mockFetch.mockResolvedValue(
+      jsonResponse(201, { buyerToken: BUYER_TOKEN, sellerInputUrl: SELLER_INPUT_URL }),
+    );
+
+    renderAt('/dispatch/new');
+    await fillRequiredFields(user);
+    await user.click(screen.getByRole('button', { name: '링크 생성하기' }));
+
+    expect(await screen.findByText('거래가 시작됐어요')).toBeInTheDocument();
+    expect(requestsTo('/api/dispatch-requests/images')).toHaveLength(0);
+
+    const { init } = lastRequest();
+    expect(JSON.parse(String(init?.body))).not.toHaveProperty('itemImageUrls');
+  });
+
+  it('이미지가 아닌 파일은 첨부되지 않고 업로드도 하지 않는다', async () => {
+    // accept 필터를 지나쳐 온 파일도 화면이 다시 확인하는지 본다.
+    const user = userEvent.setup({ applyAccept: false });
+
+    renderAt('/dispatch/new');
+    await user.upload(
+      screen.getByLabelText('물품 상태 사진'),
+      new File(['가상문서'], 'item.pdf', { type: 'application/pdf' }),
+    );
+
+    expect(await screen.findByText('이미지 파일만 첨부할 수 있어요.')).toBeInTheDocument();
+    expect(screen.queryByAltText('첨부한 물품 상태 사진')).not.toBeInTheDocument();
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it('업로드가 실패하면 server 문구를 보여주고 배차 요청을 만들지 않는다', async () => {
+    const user = userEvent.setup();
+    mockFetch.mockResolvedValue(
+      jsonResponse(400, { message: '물품 사진은 10MB 이하만 올릴 수 있습니다.' }),
+    );
+
+    renderAt('/dispatch/new');
+    await fillRequiredFields(user);
+    await attachImage(user);
+    await user.click(screen.getByRole('button', { name: '링크 생성하기' }));
+
+    expect(
+      await screen.findByText('물품 사진은 10MB 이하만 올릴 수 있습니다.'),
+    ).toBeInTheDocument();
+    expect(requestsTo('/api/dispatch-requests')).toHaveLength(0);
+    expect(currentPath()).toBe('/dispatch/new');
+  });
+
+  it('배차 요청 생성이 실패해 다시 제출해도 같은 사진을 두 번 올리지 않는다', async () => {
+    const user = userEvent.setup();
+    mockFetch
+      .mockResolvedValueOnce(jsonResponse(201, { imageUrl: ITEM_IMAGE_URL }))
+      .mockResolvedValueOnce(jsonResponse(500, { message: '요청을 처리하지 못했습니다.' }))
+      .mockResolvedValueOnce(
+        jsonResponse(201, { buyerToken: BUYER_TOKEN, sellerInputUrl: SELLER_INPUT_URL }),
+      );
+
+    renderAt('/dispatch/new');
+    await fillRequiredFields(user);
+    await attachImage(user);
+    await user.click(screen.getByRole('button', { name: '링크 생성하기' }));
+
+    expect(await screen.findByText('요청을 처리하지 못했습니다.')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: '링크 생성하기' }));
+
+    expect(await screen.findByText('거래가 시작됐어요')).toBeInTheDocument();
+    expect(requestsTo('/api/dispatch-requests/images')).toHaveLength(1);
+    expect(JSON.parse(String(lastRequest().init?.body)).itemImageUrls).toEqual([
+      ITEM_IMAGE_URL,
+    ]);
+  });
+
+  it('첨부한 사진을 삭제하면 업로드 없이 제출된다', async () => {
+    const user = userEvent.setup();
+    mockFetch.mockResolvedValue(
+      jsonResponse(201, { buyerToken: BUYER_TOKEN, sellerInputUrl: SELLER_INPUT_URL }),
+    );
+
+    renderAt('/dispatch/new');
+    await fillRequiredFields(user);
+    await attachImage(user);
+
+    expect(await screen.findByAltText('첨부한 물품 상태 사진')).toHaveAttribute(
+      'src',
+      PREVIEW_URL,
+    );
+
+    await user.click(screen.getByRole('button', { name: '사진 삭제' }));
+    expect(revokeObjectURL).toHaveBeenCalledWith(PREVIEW_URL);
+
+    await user.click(screen.getByRole('button', { name: '링크 생성하기' }));
+
+    expect(await screen.findByText('거래가 시작됐어요')).toBeInTheDocument();
+    expect(requestsTo('/api/dispatch-requests/images')).toHaveLength(0);
+  });
+});
+
 describe('링크 생성 화면 복구', () => {
   it('navigation state 없이 직접 들어오면 buyerToken으로 링크를 다시 조회한다', async () => {
     mockFetch.mockResolvedValue(
