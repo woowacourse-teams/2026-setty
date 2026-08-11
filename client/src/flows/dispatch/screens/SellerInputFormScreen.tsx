@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { FormEvent, RefObject } from 'react';
+import type { FormEvent } from 'react';
 import { findSellerInputSession, submitSellerInput } from '../api/dispatchApi';
 import { DispatchApiError } from '../api/dispatchClient';
 import FormField from '../components/FormField';
@@ -11,6 +11,11 @@ import PrivacyConsentField from '../components/PrivacyConsentField';
 import { ErrorMessage, LoadingMessage } from '../components/StatusMessage';
 import TextButton from '../components/TextButton';
 import type { SellerInputSessionResponse } from '../model/dispatchTypes';
+import {
+  ITEM_IMAGE_TYPE_ERROR,
+  releaseItemImagePreview,
+  type SelectedItemImage,
+} from '../model/itemImage';
 import PrivacyConsentNoticeScreen from './PrivacyConsentNoticeScreen';
 import styles from './SellerInputFormScreen.module.css';
 
@@ -26,7 +31,6 @@ interface SellerInputFormScreenProps {
 }
 
 const PRIVACY_CONSENT_ERROR = '개인정보 수집·이용에 동의해 주세요.';
-const ITEM_IMAGE_TYPE_ERROR = '이미지 파일만 첨부할 수 있어요.';
 
 /** server `SellerInputSubmitRequest`의 `@Size` 제약과 같은 값이다. */
 const MAX_SELLER_NAME = 50;
@@ -80,20 +84,6 @@ const validate = (values: FormValues): FieldErrors => {
   }
 
   return errors;
-};
-
-interface SelectedItemImage {
-  file: File;
-  /** `URL.createObjectURL`로 만든 미리보기 주소 */
-  previewUrl: string;
-}
-
-/** 미리보기 URL을 해제해 blob이 탭에 남지 않게 한다. */
-const releaseItemImagePreview = (ref: RefObject<string | null>) => {
-  if (ref.current) {
-    URL.revokeObjectURL(ref.current);
-    ref.current = null;
-  }
 };
 
 const toMessage = (error: unknown): string =>

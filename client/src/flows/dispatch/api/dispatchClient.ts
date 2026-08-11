@@ -43,13 +43,19 @@ async function request<TResponse>(
 ): Promise<TResponse> {
   const method = init?.method ?? 'GET';
   const hasBody = init?.body !== undefined;
+  /*
+   * multipart 요청은 `Content-Type`을 직접 지정하면 boundary가 빠져 server가 본문을 읽지 못한다.
+   * FormData를 그대로 넘겨 브라우저가 헤더를 만들게 둔다.
+   */
+  const isFormData = init?.body instanceof FormData;
+  const body = isFormData ? (init?.body as FormData) : JSON.stringify(init?.body);
 
   let response: Response;
   try {
     response = await fetch(`${API_ORIGIN}${path}`, {
       method,
-      headers: hasBody ? { 'Content-Type': 'application/json' } : undefined,
-      body: hasBody ? JSON.stringify(init?.body) : undefined,
+      headers: hasBody && !isFormData ? { 'Content-Type': 'application/json' } : undefined,
+      body: hasBody ? body : undefined,
     });
   } catch {
     throw new DispatchApiError(0, NETWORK_ERROR_MESSAGE);
@@ -76,6 +82,10 @@ export const dispatchClient = {
   },
   /** 본문 없는 상태 전환 POST가 있어 `body`는 선택이다. */
   post<TResponse>(path: string, body?: unknown): Promise<TResponse> {
+    return request<TResponse>(path, { method: 'POST', body });
+  },
+  /** 파일 업로드용 multipart POST다. */
+  postForm<TResponse>(path: string, body: FormData): Promise<TResponse> {
     return request<TResponse>(path, { method: 'POST', body });
   },
 };

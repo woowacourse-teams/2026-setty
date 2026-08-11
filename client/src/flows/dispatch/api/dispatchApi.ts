@@ -3,15 +3,28 @@ import type {
   BuyerDispatchRequestCreateRequest,
   BuyerDispatchRequestCreateResponse,
   BuyerDispatchRequestResponse,
+  DispatchItemImageResponse,
   SellerInputSessionResponse,
   SellerInputSubmitRequest,
 } from '../model/dispatchTypes';
 
 const BUYER_PATH = '/api/dispatch-requests';
+const ITEM_IMAGE_PATH = '/api/dispatch-requests/images';
 const SELLER_SESSION_PATH = '/api/dispatch-requests/seller-sessions';
 
 export const createBuyerDispatchRequest = (request: BuyerDispatchRequestCreateRequest) =>
   dispatchClient.post<BuyerDispatchRequestCreateResponse>(BUYER_PATH, request);
+
+/**
+ * 물품 사진 한 장을 먼저 올리고 URL을 받는다.
+ * 배차 요청 생성은 이 URL만 `itemImageUrls`로 전달한다.
+ */
+export const uploadDispatchItemImage = (image: File) => {
+  const formData = new FormData();
+  formData.append('image', image);
+
+  return dispatchClient.postForm<DispatchItemImageResponse>(ITEM_IMAGE_PATH, formData);
+};
 
 export const findBuyerDispatchRequest = (buyerToken: string) =>
   dispatchClient.get<BuyerDispatchRequestResponse>(

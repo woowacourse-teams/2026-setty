@@ -26,12 +26,22 @@ export interface BuyerDispatchRequestCreateRequest {
   highValueItem: boolean;
   /** 당근 게시물 링크. server `@NotBlank`라 배차 요청에서는 필수다. */
   productLink: string;
+  /**
+   * 먼저 업로드해 받은 물품 사진 URL이다.
+   * server `@Size(max = 5)`이고 null을 허용해 첨부가 없으면 보내지 않는다.
+   */
+  itemImageUrls?: string[];
   estimateRequestId?: number | null;
 }
 
 export interface BuyerDispatchRequestCreateResponse {
   buyerToken: string;
   sellerInputUrl: string;
+}
+
+/** POST /api/dispatch-requests/images */
+export interface DispatchItemImageResponse {
+  imageUrl: string;
 }
 
 /** GET /api/dispatch-requests/{buyerToken} */
