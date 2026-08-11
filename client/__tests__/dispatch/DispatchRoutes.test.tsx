@@ -503,68 +503,15 @@ describe('판매자 흐름', () => {
     expect(screen.queryByLabelText('판매자 이름')).not.toBeInTheDocument();
   });
 
-  it('물품 상태 사진은 선택 항목이라 첨부하지 않아도 제출된다', async () => {
-    const user = userEvent.setup();
-    mockFetch
-      .mockResolvedValueOnce(
-        jsonResponse(200, { itemType: '3인용 소파', alreadySubmitted: false }),
-      )
-      .mockResolvedValueOnce(emptyResponse(204));
-
-    await openSellerForm();
-
-    await fillSellerFields(user);
-    await user.click(screen.getByRole('checkbox', { name: PRIVACY_CONSENT_NAME }));
-    await user.click(screen.getByRole('button', { name: '제출하기' }));
-
-    await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(2));
-    expect(await screen.findByText('정보가 제출됐어요')).toBeInTheDocument();
-  });
-
-  it('사진을 고르면 미리보기가 뜨고 삭제하면 다시 업로드 상태가 된다', async () => {
-    const user = userEvent.setup();
+  it('물품 상태 사진은 구매자만 첨부하므로 판매자 화면에는 없다', async () => {
     mockFetch.mockResolvedValue(
       jsonResponse(200, { itemType: '3인용 소파', alreadySubmitted: false }),
     );
 
     await openSellerForm();
 
-    await user.upload(
-      screen.getByLabelText('물품 상태 사진'),
-      new File(['가상이미지'], 'item.png', { type: 'image/png' }),
-    );
-
-    expect(await screen.findByAltText('첨부한 물품 상태 사진')).toHaveAttribute(
-      'src',
-      PREVIEW_URL,
-    );
+    expect(screen.queryByLabelText('물품 상태 사진')).not.toBeInTheDocument();
     expect(screen.queryByText('업로드')).not.toBeInTheDocument();
-
-    await user.click(screen.getByRole('button', { name: '사진 삭제' }));
-
-    expect(screen.queryByAltText('첨부한 물품 상태 사진')).not.toBeInTheDocument();
-    expect(screen.getByText('업로드')).toBeInTheDocument();
-    expect(revokeObjectURL).toHaveBeenCalledWith(PREVIEW_URL);
-  });
-
-  it('이미지가 아닌 파일은 첨부하지 않고 안내한다', async () => {
-    // accept 필터를 지나쳐 온 파일도 화면이 다시 확인하는지 본다.
-    const user = userEvent.setup({ applyAccept: false });
-    mockFetch.mockResolvedValue(
-      jsonResponse(200, { itemType: '3인용 소파', alreadySubmitted: false }),
-    );
-
-    await openSellerForm();
-
-    await user.upload(
-      screen.getByLabelText('물품 상태 사진'),
-      new File(['가상문서'], 'item.pdf', { type: 'application/pdf' }),
-    );
-
-    expect(await screen.findByRole('alert')).toHaveTextContent(
-      '이미지 파일만 첨부할 수 있어요.',
-    );
-    expect(screen.queryByAltText('첨부한 물품 상태 사진')).not.toBeInTheDocument();
   });
 
   it('개인정보 수집·이용에 동의하지 않으면 제출 API를 호출하지 않는다', async () => {
@@ -583,7 +530,7 @@ describe('판매자 흐름', () => {
     expect(mockFetch).toHaveBeenCalledTimes(1);
   });
 
-  it('보기로 연 동의 화면에서 동의하면 입력값과 사진을 유지한 채 체크된다', async () => {
+  it('보기로 연 동의 화면에서 동의하면 입력값을 유지한 채 체크된다', async () => {
     const user = userEvent.setup();
     mockFetch.mockResolvedValue(
       jsonResponse(200, { itemType: '3인용 소파', alreadySubmitted: false }),
@@ -592,10 +539,6 @@ describe('판매자 흐름', () => {
     await openSellerForm();
 
     await user.type(screen.getByLabelText('판매자 이름'), '가상판매자');
-    await user.upload(
-      screen.getByLabelText('물품 상태 사진'),
-      new File(['가상이미지'], 'item.png', { type: 'image/png' }),
-    );
 
     await user.click(screen.getByRole('button', { name: '보기' }));
 
@@ -606,10 +549,9 @@ describe('판매자 흐름', () => {
 
     expect(screen.getByRole('checkbox', { name: PRIVACY_CONSENT_NAME })).toBeChecked();
     expect(screen.getByLabelText('판매자 이름')).toHaveValue('가상판매자');
-    expect(screen.getByAltText('첨부한 물품 상태 사진')).toBeInTheDocument();
   });
 
-  it('이미 제출된 세션에는 사진 첨부와 동의 항목을 보여주지 않는다', async () => {
+  it('이미 제출된 세션에는 동의 항목을 보여주지 않는다', async () => {
     mockFetch.mockResolvedValue(
       jsonResponse(200, { itemType: '3인용 소파', alreadySubmitted: true }),
     );
@@ -617,7 +559,6 @@ describe('판매자 흐름', () => {
     renderAt(`/seller-input/${SELLER_TOKEN}`);
 
     expect(await screen.findByText(/이미 제출/)).toBeInTheDocument();
-    expect(screen.queryByLabelText('물품 상태 사진')).not.toBeInTheDocument();
     expect(
       screen.queryByRole('checkbox', { name: PRIVACY_CONSENT_NAME }),
     ).not.toBeInTheDocument();

@@ -1,9 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { findSellerInputSession, submitSellerInput } from '../api/dispatchApi';
 import { DispatchApiError } from '../api/dispatchClient';
 import FormField from '../components/FormField';
-import ItemImageField from '../components/ItemImageField';
 import MobileScreen from '../components/MobileScreen';
 import NavBar from '../components/NavBar';
 import PrimaryButton from '../components/PrimaryButton';
@@ -11,11 +10,6 @@ import PrivacyConsentField from '../components/PrivacyConsentField';
 import { ErrorMessage, LoadingMessage } from '../components/StatusMessage';
 import TextButton from '../components/TextButton';
 import type { SellerInputSessionResponse } from '../model/dispatchTypes';
-import {
-  ITEM_IMAGE_TYPE_ERROR,
-  releaseItemImagePreview,
-  type SelectedItemImage,
-} from '../model/itemImage';
 import PrivacyConsentNoticeScreen from './PrivacyConsentNoticeScreen';
 import styles from './SellerInputFormScreen.module.css';
 
@@ -95,8 +89,8 @@ const toMessage = (error: unknown): string =>
  * 구매자의 이름·연락처·상세주소는 DEC-017에 따라 판매자에게 보여주지 않는다.
  * 세션 응답에도 없으므로 화면에서 추측해 만들지 않는다.
  * 시안의 `거래 금액`은 세션 응답에 대응 필드가 없어 렌더링하지 않는다.
- * `물품 상태 사진`은 선택 항목이며, 판매자 세션용 업로드 계약이 아직 없어
- * 첨부·미리보기까지만 하고 제출 payload에 넣지 않는다.
+ * `물품 상태 사진`은 DEC-016의 판매자 필수 입력에 없고 구매자 요청 폼에서만 받으므로
+ * 이 화면에는 두지 않는다.
  */
 export default function SellerInputFormScreen({
   sellerToken,
@@ -116,12 +110,6 @@ export default function SellerInputFormScreen({
   const [sellerPhoneNumber, setSellerPhoneNumber] = useState('');
   const [pickupAddress, setPickupAddress] = useState('');
   const [availablePickupTime, setAvailablePickupTime] = useState('');
-
-  /** 선택 항목인 물품 상태 사진. 파일과 미리보기 URL을 함께 들고 같이 버린다. */
-  const [itemImage, setItemImage] = useState<SelectedItemImage | null>(null);
-  const [itemImageError, setItemImageError] = useState('');
-  /** 언마운트 정리에서 최신 미리보기 URL을 읽기 위한 참조 */
-  const itemImagePreviewUrlRef = useRef<string | null>(null);
 
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [submitError, setSubmitError] = useState('');
@@ -158,36 +146,6 @@ export default function SellerInputFormScreen({
       active = false;
     };
   }, [sellerToken, reloadCount]);
-
-  /** 화면을 떠날 때 남은 미리보기 URL을 해제한다. */
-  useEffect(
-    () => () => {
-      releaseItemImagePreview(itemImagePreviewUrlRef);
-    },
-    [],
-  );
-
-  const selectItemImage = (file: File) => {
-    releaseItemImagePreview(itemImagePreviewUrlRef);
-
-    // accept 속성은 파일 선택창의 필터일 뿐이라 고른 파일을 다시 확인한다.
-    if (!file.type.startsWith('image/')) {
-      setItemImage(null);
-      setItemImageError(ITEM_IMAGE_TYPE_ERROR);
-      return;
-    }
-
-    const previewUrl = URL.createObjectURL(file);
-    itemImagePreviewUrlRef.current = previewUrl;
-    setItemImage({ file, previewUrl });
-    setItemImageError('');
-  };
-
-  const removeItemImage = () => {
-    releaseItemImagePreview(itemImagePreviewUrlRef);
-    setItemImage(null);
-    setItemImageError('');
-  };
 
   const updatePrivacyConsent = (checked: boolean) => {
     setPrivacyConsent(checked);
@@ -252,7 +210,7 @@ export default function SellerInputFormScreen({
 
   if (isPrivacyNoticeOpen) {
     /*
-     * 폼을 언마운트하면 입력값과 첨부한 사진이 사라지므로 같은 컴포넌트 안에서 화면만 바꾼다.
+     * 폼을 언마운트하면 입력값이 사라지므로 같은 컴포넌트 안에서 화면만 바꾼다.
      * 열고 닫는 히스토리 관리는 route가 한다.
      */
     return (
@@ -319,12 +277,6 @@ export default function SellerInputFormScreen({
             </p>
           ) : (
             <div className={styles.fields}>
-              <ItemImageField
-                previewUrl={itemImage?.previewUrl ?? null}
-                error={itemImageError}
-                onSelect={selectItemImage}
-                onRemove={removeItemImage}
-              />
               <FormField
                 label="판매자 이름"
                 placeholder="이름을 입력해 주세요"
