@@ -1,6 +1,6 @@
 import type { RefObject } from 'react';
 
-/** 구매자·판매자 화면이 함께 쓰는 `물품 상태 사진` 첨부 상태다. */
+/** 구매자 배차 요청 폼의 `물품 상태 사진` 첨부 상태다. */
 export interface SelectedItemImage {
   file: File;
   /** `URL.createObjectURL`로 만든 미리보기 주소 */

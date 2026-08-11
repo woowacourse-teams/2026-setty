@@ -12,7 +12,7 @@ interface ItemImageFieldProps {
   error?: string;
 }
 
-export const ITEM_IMAGE_LABEL = '물품 상태 사진';
+const ITEM_IMAGE_LABEL = '물품 상태 사진';
 
 /**
  * 시안 `물품 상태 사진` — 선택 항목이다.
