@@ -195,7 +195,7 @@ describe('배차 flow 뒤로가기', () => {
       )
       .mockResolvedValueOnce(emptyResponse(204));
 
-    renderAt(`/seller-input/${SELLER_TOKEN}`);
+    renderAt(`/seller-input/${SELLER_TOKEN}/form`);
 
     await user.type(await screen.findByLabelText('판매자 이름'), '가상판매자');
     await user.type(screen.getByLabelText('연락처'), '01000000001');
@@ -210,6 +210,26 @@ describe('배차 flow 뒤로가기', () => {
     expect(currentPath()).toBe(`/seller-input/${SELLER_TOKEN}/submitted`);
     // 제출 화면이 판매자 폼을 덮어썼으므로 되돌아갈 앱 내부 항목이 없다.
     expect(screen.queryByLabelText('판매자 이름')).not.toBeInTheDocument();
+  });
+
+  it('판매자 소개 화면과 입력 폼이 각각 히스토리 항목을 갖는다', async () => {
+    const user = userEvent.setup();
+    mockFetch.mockResolvedValue(
+      jsonResponse(200, { itemType: '3인용 소파', alreadySubmitted: false }),
+    );
+
+    renderAt(`/seller-input/${SELLER_TOKEN}`);
+
+    await user.click(screen.getByRole('button', { name: '진행하기' }));
+    expect(await screen.findByLabelText('판매자 이름')).toBeInTheDocument();
+    expect(currentPath()).toBe(`/seller-input/${SELLER_TOKEN}/form`);
+
+    await goBack(user);
+
+    expect(currentPath()).toBe(`/seller-input/${SELLER_TOKEN}`);
+    expect(
+      screen.getByRole('heading', { name: /SETTY\s*로 거래가 요청됐어요/ }),
+    ).toBeInTheDocument();
   });
 
   it('뒤로가기로 경로가 바뀌면 멈춰 있지 않고 해당 화면을 다시 그린다', async () => {

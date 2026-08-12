@@ -1,0 +1,67 @@
+.content {
+  /* 시안 좌우 여백 24px, 로고 헤더 아래 제목까지 40px */
+  padding: 40px 24px 32px;
+}
+
+.title {
+  margin: 0;
+  color: var(--setty-color-text-strong);
+  font-size: var(--setty-font-size-title);
+  font-weight: var(--setty-font-weight-title);
+  letter-spacing: -0.5px;
+  line-height: var(--setty-line-height-title);
+}
+
+.brand {
+  color: var(--setty-color-brand);
+}
+
+.subtitle {
+  margin: 14px 0 0;
+  color: var(--setty-color-text-body);
+  font-size: var(--setty-font-size-body);
+  font-weight: var(--setty-font-weight-body);
+  line-height: 1.6;
+}
+
+/* 안내 목록의 머리말이라 제목 크기가 아니라 라벨 크기로 둔다. */
+.noticesTitle {
+  margin: 36px 0 0;
+  color: var(--setty-color-brand);
+  font-size: 13.5px;
+  font-weight: 700;
+  letter-spacing: -0.2px;
+}
+
+.notices {
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* 안내 항목은 구분선으로만 나눈다. 카드나 배경을 쓰지 않는다. */
+.notice {
+  padding: 18px 0;
+  border-top: 1px solid var(--setty-color-border);
+}
+
+/* 시안에서 마지막 항목 아래에도 선이 있어 목록이 닫혀 보인다. */
+.notice:last-child {
+  border-bottom: 1px solid var(--setty-color-border);
+}
+
+.noticeTitle {
+  margin: 0;
+  color: var(--setty-color-text-strong);
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+}
+
+.noticeDescription {
+  margin: 6px 0 0;
+  color: var(--setty-color-text-subtle);
+  font-size: 14.5px;
+  font-weight: 500;
+  line-height: 22px;
+}
