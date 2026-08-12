@@ -55,6 +55,8 @@ class BuyerDispatchRequestServiceTest {
                 false,
                 "https://www.daangn.com/articles/test-1",
                 List.of("https://techcourse-project-2026.s3.ap-northeast-2.amazonaws.com/setty/images/items/test-1.jpg"),
+                null,
+                null,
                 null
         ));
 

@@ -31,7 +31,9 @@ public class EstimateRequestController {
                         request.tradeArea(),
                         request.itemType(),
                         request.highValueItem(),
-                        request.productLink()
+                        request.productLink(),
+                        request.privacyConsent(),
+                        request.privacyPolicyVersion()
                 )
         );
 

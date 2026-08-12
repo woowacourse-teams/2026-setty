@@ -50,6 +50,8 @@ public class OperatorEstimateRequestService {
                 estimateRequest.getProductLink(),
                 estimateRequest.getStatus(),
                 toOffsetDateTime(estimateRequest.getCreatedAt()),
+                toNullableOffsetDateTime(estimateRequest.getPrivacyConsentedAt()),
+                estimateRequest.getPrivacyPolicyVersion(),
                 manualNotification
         );
     }
@@ -103,5 +105,9 @@ public class OperatorEstimateRequestService {
 
     private OffsetDateTime toOffsetDateTime(final LocalDateTime dateTime) {
         return dateTime.atZone(SEOUL_ZONE_ID).toOffsetDateTime();
+    }
+
+    private OffsetDateTime toNullableOffsetDateTime(final LocalDateTime dateTime) {
+        return dateTime == null ? null : toOffsetDateTime(dateTime);
     }
 }

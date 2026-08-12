@@ -15,6 +15,8 @@ public record EstimateRequestDetailResponse(
         String productLink,
         EstimateRequestStatus status,
         OffsetDateTime createdAt,
+        OffsetDateTime privacyConsentedAt,
+        String privacyPolicyVersion,
         ManualNotificationResponse manualNotification
 ) {
     public static EstimateRequestDetailResponse from(final EstimateRequestDetail estimateRequestDetail) {
@@ -28,6 +30,8 @@ public record EstimateRequestDetailResponse(
                 estimateRequestDetail.productLink(),
                 estimateRequestDetail.status(),
                 estimateRequestDetail.createdAt(),
+                estimateRequestDetail.privacyConsentedAt(),
+                estimateRequestDetail.privacyPolicyVersion(),
                 ManualNotificationResponse.from(estimateRequestDetail.manualNotification())
         );
     }

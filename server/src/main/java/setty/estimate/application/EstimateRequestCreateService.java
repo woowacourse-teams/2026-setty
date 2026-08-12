@@ -29,6 +29,9 @@ public class EstimateRequestCreateService {
                 command.highValueItem(),
                 command.productLink()
         );
+        if (command.consented()) {
+            estimateRequest.recordPrivacyConsent(command.privacyPolicyVersion());
+        }
         final EstimateRequest savedEstimateRequest = estimateRequestRepository.save(estimateRequest);
         eventPublisher.publishEvent(EstimateRequestCreatedEvent.from(savedEstimateRequest));
 

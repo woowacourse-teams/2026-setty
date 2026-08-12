@@ -32,6 +32,9 @@ public class SellerInputService {
     public void submit(final String token, final SellerInputSubmitRequest request) {
         final SellerInputSession session = getSession(token);
         session.complete(request.toSellerInput());
+        if (request.consented()) {
+            session.getDispatchRequest().recordSellerPrivacyConsent(request.privacyPolicyVersion());
+        }
 
         eventPublisher.publishEvent(SellerInputCompletedEvent.from(session.getDispatchRequest()));
     }

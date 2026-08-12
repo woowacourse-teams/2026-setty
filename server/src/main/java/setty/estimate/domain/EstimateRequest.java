@@ -47,6 +47,11 @@ public class EstimateRequest {
     @Column(nullable = false, length = 30)
     private EstimateRequestStatus status;
 
+    private LocalDateTime privacyConsentedAt;
+
+    @Column(length = 20)
+    private String privacyPolicyVersion;
+
     @Column(nullable = false)
     private LocalDateTime createdAt;
 
@@ -81,6 +86,19 @@ public class EstimateRequest {
 
     public String getProductLink() {
         return productLink;
+    }
+
+    public void recordPrivacyConsent(final String policyVersion) {
+        this.privacyConsentedAt = LocalDateTime.now(SEOUL_ZONE_ID);
+        this.privacyPolicyVersion = policyVersion;
+    }
+
+    public LocalDateTime getPrivacyConsentedAt() {
+        return privacyConsentedAt;
+    }
+
+    public String getPrivacyPolicyVersion() {
+        return privacyPolicyVersion;
     }
 
     public void markEstimateNotified() {
