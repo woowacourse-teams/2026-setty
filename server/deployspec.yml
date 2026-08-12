@@ -5,7 +5,7 @@ files:
     destination: /opt/setty/source
 
 permissions:
-  - object: /opt/setty/source/scripts
+  - object: /opt/setty/source/server/deploy/scripts
     pattern: '**'
     mode: 755
     type:
@@ -13,17 +13,17 @@ permissions:
 
 scripts:
   BeforeDeploy:
-    - location: scripts/before_install.sh
+    - location: server/deploy/scripts/before_install.sh
       timeout: 300
       runas: root
 
   AfterDeploy:
-    - location: scripts/build.sh
+    - location: server/deploy/scripts/build.sh
       timeout: 900
       runas: root
-    - location: scripts/start.sh
+    - location: server/deploy/scripts/start.sh
       timeout: 300
       runas: root
-    - location: scripts/validate.sh
+    - location: server/deploy/scripts/validate.sh
       timeout: 360
       runas: root

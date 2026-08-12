@@ -26,13 +26,13 @@ GitHub develop
 
 | 파일 | 역할 |
 |---|---|
-| `deployspec.yml` | 설치 경로와 배포 스크립트 정의. SourceArtifact 최상단에 둔다 |
-| `scripts/before_install.sh` | Ubuntu 사용자, Java 21, 환경 파일 확인 |
-| `scripts/build.sh` | EC2에서 Spring Boot 실행 JAR 빌드 |
-| `scripts/start.sh` | 기존 nohup 프로세스 정리, JAR 교체, systemd 시작 |
-| `scripts/validate.sh` | Actuator 검증, 실패 시 이전 JAR 복구 |
-| `deploy/setty-backend.service` | systemd 서비스 정의 |
-| `deploy/setty.env.example` | EC2 전용 환경 파일 예시. 실제 값은 커밋하지 않는다 |
+| `server/deployspec.yml` | 설치 경로와 배포 스크립트 정의 |
+| `server/deploy/scripts/before_install.sh` | Ubuntu 사용자, Java 21, 환경 파일 확인 |
+| `server/deploy/scripts/build.sh` | EC2에서 Spring Boot 실행 JAR 빌드 |
+| `server/deploy/scripts/start.sh` | 기존 nohup 프로세스 정리, JAR 교체, systemd 시작 |
+| `server/deploy/scripts/validate.sh` | Actuator 검증, 실패 시 이전 JAR 복구 |
+| `server/deploy/setty-backend.service` | systemd 서비스 정의 |
+| `server/deploy/setty.env.example` | EC2 전용 환경 파일 예시. 실제 값은 커밋하지 않는다 |
 
 배포 디렉터리:
 
@@ -82,7 +82,7 @@ sudo install -o root -g root -m 0600 /dev/null /opt/setty/setty.env
 sudoedit /opt/setty/setty.env
 ```
 
-내용은 `deploy/setty.env.example` 형식을 사용한다. `export`를 붙이지 않는다.
+내용은 `server/deploy/setty.env.example` 형식을 사용한다. `export`를 붙이지 않는다.
 기존 `redeploy.sh`에 있던 네 개의 환경 변수 값을 옮긴다. 실제 비밀값은 레포에 커밋하지 않는다.
 
 ## 4. IAM
@@ -132,10 +132,10 @@ Amazon EC2 배포 작업을 위해 대상 조회와 SSM 명령 실행 권한이 
 - 인스턴스 유형: Amazon EC2
 - 대상: 배포 전용 태그로 **한 인스턴스만** 일치
 - 배포 사양: **DeploySpec 파일 사용**
-- DeploySpec 경로: `deployspec.yml`
+- DeploySpec 경로: `server/deployspec.yml`
 
 `BuildArtifact`는 사용하지 않는다. Build 스테이지도 두지 않는다.
-작업 구성의 대상 디렉터리와 스크립트 칸을 직접 입력하는 방식도 사용하지 않는다. 경로와 실행 순서의 기준은 `deployspec.yml` 하나로 유지한다.
+작업 구성의 대상 디렉터리와 스크립트 칸을 직접 입력하는 방식도 사용하지 않는다. 경로와 실행 순서의 기준은 `server/deployspec.yml` 하나로 유지한다.
 
 ## 6. 실행 순서
 
@@ -165,8 +165,8 @@ SSM 실행 로그는 Systems Manager의 Run Command 실행 기록과 CodePipelin
 검증 상태(2026-08-12):
 
 - Java 21 `clean bootJar -x test`: 통과. 실행 가능한 Spring Boot JAR 1개 생성
-- `deployspec.yml` YAML 파싱: 통과
-- 모든 배포 셸의 `bash -n`: 통과
+- `server/deployspec.yml` YAML 파싱: 통과
+- 모든 `server/deploy/scripts/*.sh`의 `bash -n`: 통과
 - EC2 `/opt` 파일시스템 여유 공간 2 GiB 이상: 사용자 검증 완료
 - `/opt/setty/setty.env`의 네 개 `SETTY_*` 변수와 `root:root 0600` 권한: 사용자 검증 완료
 - 실제 CodePipeline → SSM → Ubuntu 배포: **확인 필요**

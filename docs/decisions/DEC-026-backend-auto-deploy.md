@@ -89,8 +89,8 @@ CodeBuild·CodeDeploy를 제거하면 서비스 수와 IAM 실패 지점이 줄�
 
 ## 검증
 
-- `deployspec.yml` YAML 파싱
-- 모든 `scripts/*.sh`의 `bash -n`
+- `server/deployspec.yml` YAML 파싱
+- 모든 `server/deploy/scripts/*.sh`의 `bash -n`
 - Java 21에서 `server/gradlew clean bootJar -x test`
 - Systems Manager 관리형 노드 `Online`
 - EC2 역할로 SourceArtifact `s3:GetObject`

@@ -19,7 +19,7 @@ fi
 install -d -o "$APP_USER" -g "$APP_USER" -m 0755 "$APP_DIR"
 chown -R "$APP_USER:$APP_USER" "$SOURCE_DIR"
 
-echo "Spring Boot JAR 빌드 시작"
+echo "Spring Boot JAR 빌드 시작: $SOURCE_DIR"
 runuser -u "$APP_USER" -- env \
     HOME="$APP_HOME" \
     GRADLE_USER_HOME="$APP_HOME/.gradle" \

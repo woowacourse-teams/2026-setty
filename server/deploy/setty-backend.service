@@ -1,3 +1,4 @@
+# CodePipeline 배포 시 /etc/systemd/system에 설치한다.
 [Unit]
 Description=SETTY Spring Boot backend
 Wants=network-online.target

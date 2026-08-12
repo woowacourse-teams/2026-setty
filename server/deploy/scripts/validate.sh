@@ -4,7 +4,7 @@ set -euo pipefail
 APP_USER=ubuntu
 APP_DIR=/opt/setty/app
 SERVICE_NAME=setty-backend.service
-HEALTH_URL=http://localhost:8080/actuator/health
+HEALTH_URL=http://127.0.0.1:8080/actuator/health
 TIMEOUT_SECONDS=180
 ROLLBACK_TIMEOUT_SECONDS=120
 CURRENT_JAR="$APP_DIR/setty.jar"

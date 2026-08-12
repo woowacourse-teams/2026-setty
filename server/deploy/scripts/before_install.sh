@@ -39,7 +39,7 @@ fi
 
 if [[ ! -s "$ENV_FILE" ]]; then
     echo "환경 변수 파일이 없거나 비어 있습니다: $ENV_FILE"
-    echo "deploy/setty.env.example을 참고해 EC2에 직접 생성하세요."
+    echo "server/deploy/setty.env.example을 참고해 EC2에 직접 생성하세요."
     exit 1
 fi
 
