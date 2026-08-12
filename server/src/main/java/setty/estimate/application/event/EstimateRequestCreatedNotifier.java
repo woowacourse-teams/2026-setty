@@ -6,6 +6,7 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
+import setty.common.notification.DiscordNotificationProperties;
 import setty.common.notification.DiscordWebhookClient;
 import setty.estimate.application.OperatorEstimateUrlFactory;
 
@@ -15,12 +16,13 @@ public class EstimateRequestCreatedNotifier {
     private static final DateTimeFormatter CREATED_AT_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
     private final DiscordWebhookClient discordWebhookClient;
+    private final DiscordNotificationProperties discordNotificationProperties;
     private final OperatorEstimateUrlFactory operatorEstimateUrlFactory;
 
     @Async
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void notifyCreated(final EstimateRequestCreatedEvent event) {
-        discordWebhookClient.send(message(event));
+        discordWebhookClient.send(discordNotificationProperties.estimateWebhookUrl(), message(event));
     }
 
     private String message(final EstimateRequestCreatedEvent event) {

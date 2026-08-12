@@ -34,4 +34,5 @@ setty:
     base-url: ${SETTY_FRONT_BASE_URL:http://localhost:3000}
   notification:
     discord:
-      webhook-url: ${SETTY_DISCORD_WEBHOOK_URL:}
+      dispatch-webhook-url: ${SETTY_DISCORD_DISPATCH_WEBHOOK_URL:}
+      estimate-webhook-url: ${SETTY_DISCORD_ESTIMATE_WEBHOOK_URL:}

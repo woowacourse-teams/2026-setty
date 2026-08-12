@@ -1,6 +1,7 @@
 package setty.dispatch.event;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 
 import java.time.LocalDateTime;
@@ -11,6 +12,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import setty.common.notification.DiscordNotificationProperties;
 import setty.common.notification.DiscordWebhookClient;
 import setty.common.web.FrontProperties;
 import setty.dispatch.service.OperatorDispatchUrlFactory;
@@ -19,6 +21,8 @@ import setty.dispatch.service.OperatorDispatchUrlFactory;
 @DisplayName("배차 요청 접수 알림")
 class DispatchRequestCreatedNotifierTest {
     private static final String FRONT_BASE_URL = "https://setty.test";
+    private static final String DISPATCH_WEBHOOK_URL = "https://webhook.invalid/setty-dispatch";
+    private static final String ESTIMATE_WEBHOOK_URL = "https://webhook.invalid/setty-estimate";
 
     @Mock
     private DiscordWebhookClient discordWebhookClient;
@@ -40,7 +44,7 @@ class DispatchRequestCreatedNotifierTest {
                 LocalDateTime.of(2026, 8, 11, 14, 3)
         ));
 
-        verify(discordWebhookClient).send(messageCaptor.capture());
+        verify(discordWebhookClient).send(eq(DISPATCH_WEBHOOK_URL), messageCaptor.capture());
         assertThat(messageCaptor.getValue())
                 .contains("#12")
                 .contains("원목 의자")
@@ -65,7 +69,7 @@ class DispatchRequestCreatedNotifierTest {
                 LocalDateTime.of(2026, 8, 11, 9, 0)
         ));
 
-        verify(discordWebhookClient).send(messageCaptor.capture());
+        verify(discordWebhookClient).send(eq(DISPATCH_WEBHOOK_URL), messageCaptor.capture());
         assertThat(messageCaptor.getValue())
                 .contains("#7")
                 .contains("책상")
@@ -77,6 +81,7 @@ class DispatchRequestCreatedNotifierTest {
     private DispatchRequestCreatedNotifier notifier() {
         return new DispatchRequestCreatedNotifier(
                 discordWebhookClient,
+                new DiscordNotificationProperties(DISPATCH_WEBHOOK_URL, ESTIMATE_WEBHOOK_URL),
                 new OperatorDispatchUrlFactory(new FrontProperties(FRONT_BASE_URL))
         );
     }

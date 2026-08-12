@@ -5,6 +5,7 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
+import setty.common.notification.DiscordNotificationProperties;
 import setty.common.notification.DiscordWebhookClient;
 import setty.dispatch.service.OperatorDispatchUrlFactory;
 
@@ -13,20 +14,23 @@ public class DispatchRequestCreatedNotifier {
     private static final DateTimeFormatter CREATED_AT_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
     private final DiscordWebhookClient discordWebhookClient;
+    private final DiscordNotificationProperties discordNotificationProperties;
     private final OperatorDispatchUrlFactory operatorDispatchUrlFactory;
 
     public DispatchRequestCreatedNotifier(
             final DiscordWebhookClient discordWebhookClient,
+            final DiscordNotificationProperties discordNotificationProperties,
             final OperatorDispatchUrlFactory operatorDispatchUrlFactory
     ) {
         this.discordWebhookClient = discordWebhookClient;
+        this.discordNotificationProperties = discordNotificationProperties;
         this.operatorDispatchUrlFactory = operatorDispatchUrlFactory;
     }
 
     @Async
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void notifyCreated(final DispatchRequestCreatedEvent event) {
-        discordWebhookClient.send(message(event));
+        discordWebhookClient.send(discordNotificationProperties.dispatchWebhookUrl(), message(event));
     }
 
     private String message(final DispatchRequestCreatedEvent event) {

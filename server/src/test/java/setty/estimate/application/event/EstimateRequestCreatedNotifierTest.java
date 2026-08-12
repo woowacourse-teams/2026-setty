@@ -1,6 +1,7 @@
 package setty.estimate.application.event;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 
 import java.time.LocalDateTime;
@@ -11,6 +12,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import setty.common.notification.DiscordNotificationProperties;
 import setty.common.notification.DiscordWebhookClient;
 import setty.common.web.FrontProperties;
 import setty.estimate.application.OperatorEstimateUrlFactory;
@@ -19,6 +21,8 @@ import setty.estimate.application.OperatorEstimateUrlFactory;
 @DisplayName("견적 요청 접수 알림")
 class EstimateRequestCreatedNotifierTest {
     private static final String FRONT_BASE_URL = "https://setty.test";
+    private static final String DISPATCH_WEBHOOK_URL = "https://webhook.invalid/setty-dispatch";
+    private static final String ESTIMATE_WEBHOOK_URL = "https://webhook.invalid/setty-estimate";
 
     @Mock
     private DiscordWebhookClient discordWebhookClient;
@@ -37,7 +41,7 @@ class EstimateRequestCreatedNotifierTest {
                 LocalDateTime.of(2026, 8, 12, 10, 30)
         ));
 
-        verify(discordWebhookClient).send(messageCaptor.capture());
+        verify(discordWebhookClient).send(eq(ESTIMATE_WEBHOOK_URL), messageCaptor.capture());
         assertThat(messageCaptor.getValue())
                 .contains("#31")
                 .contains("원목의자")
@@ -58,7 +62,7 @@ class EstimateRequestCreatedNotifierTest {
                 LocalDateTime.of(2026, 8, 12, 9, 0)
         ));
 
-        verify(discordWebhookClient).send(messageCaptor.capture());
+        verify(discordWebhookClient).send(eq(ESTIMATE_WEBHOOK_URL), messageCaptor.capture());
         assertThat(messageCaptor.getValue())
                 .contains("#8")
                 .contains("책상")
@@ -69,6 +73,7 @@ class EstimateRequestCreatedNotifierTest {
     private EstimateRequestCreatedNotifier notifier() {
         return new EstimateRequestCreatedNotifier(
                 discordWebhookClient,
+                new DiscordNotificationProperties(DISPATCH_WEBHOOK_URL, ESTIMATE_WEBHOOK_URL),
                 new OperatorEstimateUrlFactory(new FrontProperties(FRONT_BASE_URL))
         );
     }
