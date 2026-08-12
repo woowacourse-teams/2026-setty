@@ -10,14 +10,14 @@ import setty.common.notification.DiscordWebhookClient;
 import setty.dispatch.service.OperatorDispatchUrlFactory;
 
 @Component
-public class DispatchRequestCreatedNotifier {
-    private static final DateTimeFormatter CREATED_AT_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+public class SellerInputCompletedNotifier {
+    private static final DateTimeFormatter TIME_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
     private final DiscordWebhookClient discordWebhookClient;
     private final DiscordNotificationProperties discordNotificationProperties;
     private final OperatorDispatchUrlFactory operatorDispatchUrlFactory;
 
-    public DispatchRequestCreatedNotifier(
+    public SellerInputCompletedNotifier(
             final DiscordWebhookClient discordWebhookClient,
             final DiscordNotificationProperties discordNotificationProperties,
             final OperatorDispatchUrlFactory operatorDispatchUrlFactory
@@ -29,24 +29,26 @@ public class DispatchRequestCreatedNotifier {
 
     @Async
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-    public void notifyCreated(final DispatchRequestCreatedEvent event) {
+    public void notifySellerInputCompleted(final SellerInputCompletedEvent event) {
         discordWebhookClient.send(discordNotificationProperties.dispatchWebhookUrl(), message(event));
     }
 
-    private String message(final DispatchRequestCreatedEvent event) {
+    private String message(final SellerInputCompletedEvent event) {
         return """
-                🚚 새 배차 요청이 접수됐어요
+                🚚 판매자 입력이 끝난 배차 요청이 있어요
                 • 요청 번호: #%d
                 • 물품: %s%s
                 • 물품 사진: %s
-                • 접수: %s
+                • 구매자 접수: %s
+                • 판매자 입력 완료: %s
                 • 게시물: %s
                 • 운영자 화면: %s""".formatted(
                 event.dispatchRequestId(),
                 event.itemType(),
                 event.highValueItem() ? " (50만 원 초과)" : "",
                 itemImages(event.itemImageCount()),
-                event.createdAt().format(CREATED_AT_FORMAT),
+                event.createdAt().format(TIME_FORMAT),
+                event.sellerInputCompletedAt().format(TIME_FORMAT),
                 productLink(event.productLink()),
                 operatorDispatchUrlFactory.create(event.dispatchRequestId())
         );
