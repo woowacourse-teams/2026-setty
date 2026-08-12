@@ -1,6 +1,8 @@
 package setty.dispatch.service;
 
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import setty.dispatch.domain.DispatchRequest;
@@ -17,6 +19,8 @@ import setty.dispatch.repository.SellerInputSessionRepository;
 
 @Service
 public class OperatorDispatchService {
+    private static final Logger log = LoggerFactory.getLogger(OperatorDispatchService.class);
+
     private final DispatchRequestRepository dispatchRequestRepository;
     private final SellerInputSessionRepository sellerInputSessionRepository;
     private final SellerInputUrlFactory sellerInputUrlFactory;
@@ -66,6 +70,9 @@ public class OperatorDispatchService {
                 .orElseThrow(DispatchRequestNotFoundException::new);
 
         dispatchRequest.recordFinalAmount(request.finalQuotedAmount());
+
+        log.info("운영자 최종 금액 입력 완료. dispatchRequestId={}, status={}",
+                dispatchRequest.getId(), dispatchRequest.getStatus());
 
         return new OperatorFinalAmountResponse(buyerStatusUrlFactory.create(dispatchRequest.getBuyerToken()));
     }

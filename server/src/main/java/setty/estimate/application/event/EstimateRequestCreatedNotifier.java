@@ -2,6 +2,7 @@ package setty.estimate.application.event;
 
 import java.time.format.DateTimeFormatter;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
@@ -10,6 +11,7 @@ import setty.common.notification.DiscordNotificationProperties;
 import setty.common.notification.DiscordWebhookClient;
 import setty.estimate.application.OperatorEstimateUrlFactory;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class EstimateRequestCreatedNotifier {
@@ -22,6 +24,8 @@ public class EstimateRequestCreatedNotifier {
     @Async
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void notifyCreated(final EstimateRequestCreatedEvent event) {
+        log.info("견적 요청 접수 알림 발송. estimateRequestId={}", event.estimateRequestId());
+
         discordWebhookClient.send(discordNotificationProperties.estimateWebhookUrl(), message(event));
     }
 

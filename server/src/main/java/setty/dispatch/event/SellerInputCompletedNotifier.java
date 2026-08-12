@@ -1,6 +1,8 @@
 package setty.dispatch.event;
 
 import java.time.format.DateTimeFormatter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
@@ -11,6 +13,7 @@ import setty.dispatch.service.OperatorDispatchUrlFactory;
 
 @Component
 public class SellerInputCompletedNotifier {
+    private static final Logger log = LoggerFactory.getLogger(SellerInputCompletedNotifier.class);
     private static final DateTimeFormatter TIME_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
     private final DiscordWebhookClient discordWebhookClient;
@@ -30,6 +33,8 @@ public class SellerInputCompletedNotifier {
     @Async
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void notifySellerInputCompleted(final SellerInputCompletedEvent event) {
+        log.info("판매자 입력 완료 배차 알림 발송. dispatchRequestId={}", event.dispatchRequestId());
+
         discordWebhookClient.send(discordNotificationProperties.dispatchWebhookUrl(), message(event));
     }
 

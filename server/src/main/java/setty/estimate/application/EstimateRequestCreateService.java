@@ -2,6 +2,7 @@ package setty.estimate.application;
 
 import java.time.ZoneId;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -11,6 +12,7 @@ import setty.estimate.application.result.CreatedEstimateRequest;
 import setty.estimate.domain.EstimateRequest;
 import setty.estimate.domain.EstimateRequestRepository;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class EstimateRequestCreateService {
@@ -33,6 +35,10 @@ public class EstimateRequestCreateService {
             estimateRequest.recordPrivacyConsent(command.privacyPolicyVersion());
         }
         final EstimateRequest savedEstimateRequest = estimateRequestRepository.save(estimateRequest);
+
+        log.info("견적 요청 접수 완료. estimateRequestId={}, status={}",
+                savedEstimateRequest.getId(), savedEstimateRequest.getStatus());
+
         eventPublisher.publishEvent(EstimateRequestCreatedEvent.from(savedEstimateRequest));
 
         return new CreatedEstimateRequest(
