@@ -9,6 +9,7 @@ import PrimaryButton from '../components/PrimaryButton';
 import PrivacyConsentField from '../components/PrivacyConsentField';
 import { ErrorMessage, LoadingMessage } from '../components/StatusMessage';
 import TextButton from '../components/TextButton';
+import { ADDRESS_HINT } from '../model/addressHint';
 import type { SellerInputSessionResponse } from '../model/dispatchTypes';
 import PrivacyConsentNoticeScreen from './PrivacyConsentNoticeScreen';
 import styles from './SellerInputFormScreen.module.css';
@@ -302,6 +303,7 @@ export default function SellerInputFormScreen({
                 value={pickupAddress}
                 maxLength={MAX_PICKUP_ADDRESS}
                 error={fieldErrors.pickupAddress}
+                hint={ADDRESS_HINT}
                 onChange={(event) => setPickupAddress(event.target.value)}
               />
               <FormField

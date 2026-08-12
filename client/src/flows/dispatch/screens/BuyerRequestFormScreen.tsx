@@ -10,6 +10,7 @@ import NavBar from '../components/NavBar';
 import PrimaryButton from '../components/PrimaryButton';
 import PrivacyConsentField from '../components/PrivacyConsentField';
 import { ErrorMessage } from '../components/StatusMessage';
+import { ADDRESS_HINT } from '../model/addressHint';
 import type { BuyerDispatchRequestCreateResponse } from '../model/dispatchTypes';
 import {
   ITEM_IMAGE_TYPE_ERROR,
@@ -331,6 +332,7 @@ export default function BuyerRequestFormScreen({
             value={deliveryAddress}
             maxLength={MAX_DELIVERY_ADDRESS}
             error={fieldErrors.deliveryAddress}
+            hint={ADDRESS_HINT}
             onChange={(event) => setDeliveryAddress(event.target.value)}
           />
         </div>
