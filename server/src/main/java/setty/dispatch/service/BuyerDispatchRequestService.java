@@ -56,7 +56,7 @@ public class BuyerDispatchRequestService {
         );
 
         log.info(
-                "배차 요청 접수 완료. dispatchRequestId={}, sessionId={}, sessionStatus={}",
+                "구매자 링크 생성. dispatchRequestId={}, sessionId={}, sessionStatus={}",
                 dispatchRequest.getId(),
                 session.getId(),
                 session.getStatus()
