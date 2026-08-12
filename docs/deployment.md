@@ -96,6 +96,9 @@ aws codepipeline update-pipeline --cli-input-json file://pipeline.json
   - CodeDeploy 서비스 역할: `AWSCodeDeployRole`
 - **CloudFront**: `/api/*` behavior가 ALB origin을 향하고, 캐시 비활성 + 전체 HTTP 메서드 허용이어야 한다.
   프론트가 API를 상대 경로로 호출하므로(`client/src/shared/api/http.ts:5`) 이 behavior가 없으면 CORS가 아니라 404·405가 난다.
+- **프론트 사이트 도메인**: 링크 미리보기의 `og:image`는 절대 URL이어야 크롤러가 이미지를 가져오므로 빌드 시점에 도메인이 필요하다.
+  확정 도메인 `https://www.setty.cloud`를 `client/config/webpack.common.js`의 `DEFAULT_SITE_ORIGIN`에 두었으므로 **콘솔에서 설정할 것은 없다.**
+  도메인이 바뀌면 그 상수를 고치고, 다른 도메인으로 한 번만 빌드하려면 빌드 셸의 `SETTY_SITE_URL`로 덮어쓴다(`.env` 파일로는 반영되지 않는다).
 - **EC2 metadata hop limit**: 기본값 1이면 컨테이너 안에서 IMDS에 닿지 못해 S3 업로드만 실패한다. 2 이상으로 둔다.
 
 ## 5. 현재 검증 상태
