@@ -13,6 +13,8 @@ public record EstimateRequestDetail(
         String productLink,
         EstimateRequestStatus status,
         OffsetDateTime createdAt,
+        OffsetDateTime privacyConsentedAt,
+        String privacyPolicyVersion,
         ManualNotificationResult manualNotification
 ) {
 }

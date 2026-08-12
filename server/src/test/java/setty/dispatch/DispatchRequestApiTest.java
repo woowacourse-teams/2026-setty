@@ -832,6 +832,14 @@ class DispatchRequestApiTest {
         assertThat(saved.getBuyerPrivacyPolicyVersion()).isEqualTo("2026-08-06");
         assertThat(saved.getSellerPrivacyConsentedAt()).isNotNull();
         assertThat(saved.getSellerPrivacyPolicyVersion()).isEqualTo("2026-08-06");
+
+        mockMvc.perform(get("/api/operator/dispatch-requests/{id}", saved.getId())
+                        .header(OperatorAuthInterceptor.OPERATOR_SECRET_HEADER, OPERATOR_SECRET))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.buyerPrivacyConsentedAt").isNotEmpty())
+                .andExpect(jsonPath("$.buyerPrivacyPolicyVersion").value("2026-08-06"))
+                .andExpect(jsonPath("$.sellerPrivacyConsentedAt").isNotEmpty())
+                .andExpect(jsonPath("$.sellerPrivacyPolicyVersion").value("2026-08-06"));
     }
 
     @Test
