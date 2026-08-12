@@ -433,14 +433,16 @@ class DispatchRequestApiTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(FINAL_AMOUNT_PAYLOAD))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.buyerConfirmUrl").value(containsString(buyerToken(created))));
+                .andExpect(jsonPath("$.buyerConfirmUrl")
+                        .value(containsString("/final-amount/" + buyerToken(created))));
 
         mockMvc.perform(get("/api/operator/dispatch-requests/{id}", latestDispatchRequestId())
                         .header(OperatorAuthInterceptor.OPERATOR_SECRET_HEADER, OPERATOR_SECRET))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("FINAL_AMOUNT_CONFIRM_PENDING"))
                 .andExpect(jsonPath("$.finalQuotedAmount").value(30000))
-                .andExpect(jsonPath("$.buyerConfirmUrl").value(containsString(buyerToken(created))));
+                .andExpect(jsonPath("$.buyerConfirmUrl")
+                        .value(containsString("/final-amount/" + buyerToken(created))));
     }
 
     @Test
