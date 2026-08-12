@@ -30,6 +30,11 @@ public record CreateEstimateRequestRequest(
         Boolean highValueItem,
 
         @Size(max = 500, message = "당근 링크는 500자 이하여야 합니다.")
-        String productLink
+        String productLink,
+
+        Boolean privacyConsent,
+
+        @Size(max = 20, message = "안내문 버전은 20자 이하여야 합니다.")
+        String privacyPolicyVersion
 ) {
 }

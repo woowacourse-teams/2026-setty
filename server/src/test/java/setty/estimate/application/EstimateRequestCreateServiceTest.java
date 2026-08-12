@@ -59,6 +59,41 @@ class EstimateRequestCreateServiceTest {
         assertThat(eventCaptor.getValue().productLink()).isEqualTo("https://www.daangn.com/articles/test-1");
     }
 
+    @Test
+    void recordsPrivacyConsentWhenConsented() {
+        when(estimateRequestRepository.save(any(EstimateRequest.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        final EstimateRequestCreateService service =
+                new EstimateRequestCreateService(estimateRequestRepository, eventPublisher);
+
+        service.create(new CreateEstimateRequestCommand(
+                "테스트사용자",
+                "01000000000",
+                "서울성북구",
+                "원목의자",
+                false,
+                "https://www.daangn.com/articles/test-1",
+                true,
+                "2026-08-06"
+        ));
+
+        verify(estimateRequestRepository).save(estimateRequestCaptor.capture());
+        assertThat(estimateRequestCaptor.getValue().getPrivacyConsentedAt()).isNotNull();
+        assertThat(estimateRequestCaptor.getValue().getPrivacyPolicyVersion()).isEqualTo("2026-08-06");
+    }
+
+    @Test
+    void acceptsRequestWithoutPrivacyConsentForBackwardCompatibility() {
+        when(estimateRequestRepository.save(any(EstimateRequest.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        createEstimateRequest();
+
+        verify(estimateRequestRepository).save(estimateRequestCaptor.capture());
+        assertThat(estimateRequestCaptor.getValue().getPrivacyConsentedAt()).isNull();
+        assertThat(estimateRequestCaptor.getValue().getPrivacyPolicyVersion()).isNull();
+    }
+
     private void createEstimateRequest() {
         final EstimateRequestCreateService service =
                 new EstimateRequestCreateService(estimateRequestRepository, eventPublisher);
@@ -69,7 +104,9 @@ class EstimateRequestCreateServiceTest {
                 "서울성북구",
                 "원목의자",
                 false,
-                "https://www.daangn.com/articles/test-1"
+                "https://www.daangn.com/articles/test-1",
+                null,
+                null
         ));
     }
 }
