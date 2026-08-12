@@ -1,0 +1,62 @@
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.label {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--setty-color-text-muted);
+}
+
+/* 시안의 입력 중 라벨은 브랜드 색으로 강조된다. */
+.field:focus-within .label {
+  color: var(--setty-color-brand);
+}
+
+.input {
+  width: 100%;
+  padding: 0 0 10px;
+  border: 0;
+  border-bottom: 1px solid var(--setty-color-border);
+  border-radius: 0;
+  background: none;
+  color: var(--setty-color-text-strong);
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+}
+
+.input::placeholder {
+  color: var(--setty-color-text-subtle);
+  font-weight: 500;
+}
+
+.input:focus {
+  outline: none;
+  border-bottom-width: 2px;
+  border-bottom-color: var(--setty-color-brand);
+  /* 밑줄이 1px 두꺼워진 만큼 줄여 입력 높이가 흔들리지 않게 한다. */
+  padding-bottom: 9px;
+}
+
+/* 시안에 error 색이 없어 공통 토큰을 만들지 않고 flow 안에서만 쓴다. */
+.input[aria-invalid='true'] {
+  border-bottom-color: #f04452;
+}
+
+.error {
+  margin: 0;
+  color: #f04452;
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+.hint {
+  margin: 0;
+  color: var(--setty-color-text-subtle);
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 1.45;
+}

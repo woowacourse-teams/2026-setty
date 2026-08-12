@@ -59,7 +59,7 @@ cd server
 ./gradlew build
 ```
 
-MySQL·Flyway, 실제 환경 변수와 수동 배포 절차는 공통 환경 Issue에서 실제 설정 후 이 문서와 AGENTS.md에 기록합니다.
+첫 MVP 개발 환경은 MySQL과 JPA 스키마 자동 생성을 사용합니다. Flyway 도입 여부, 실제 환경 변수와 수동 배포 절차는 사용자 행동 검증 후 결정합니다.
 
 ## Git workflow
 

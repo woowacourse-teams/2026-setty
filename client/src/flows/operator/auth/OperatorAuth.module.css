@@ -1,0 +1,158 @@
+.loginPage,
+.statePage {
+  display: grid;
+  min-height: 100dvh;
+  place-items: start center;
+  background: var(--setty-color-surface);
+}
+
+.loginCard,
+.stateCard {
+  width: min(100%, 402px);
+  min-height: 100dvh;
+  padding: 60px 32px 40px;
+  background: var(--setty-color-surface);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  margin: 0 0 64px;
+  color: var(--setty-color-text-strong);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+}
+
+.brand::before {
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
+  background: var(--setty-color-brand)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none'%3E%3Cpath d='M2.5 6.3 4.7 8.5 9.5 3.7' stroke='white' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")
+    center / 12px 12px no-repeat;
+  content: '';
+}
+
+.loginCard h1,
+.stateCard h1 {
+  margin: 0;
+  color: var(--setty-color-text-strong);
+  font-size: var(--setty-font-size-title);
+  font-weight: var(--setty-font-weight-title);
+  letter-spacing: -0.5px;
+  line-height: var(--setty-line-height-title);
+}
+
+.description,
+.stateCard p {
+  margin: 11px 0 0;
+  color: var(--setty-color-text-body);
+  font-size: var(--setty-font-size-body);
+  font-weight: var(--setty-font-weight-body);
+  line-height: var(--setty-line-height-body);
+}
+
+.loginForm {
+  display: grid;
+  gap: 24px;
+  margin-top: 48px;
+}
+
+.loginForm label {
+  display: grid;
+  gap: 12px;
+}
+
+.loginForm label span {
+  color: var(--setty-color-text-muted);
+  font-size: 13.5px;
+  font-weight: 700;
+}
+
+.loginForm input {
+  min-height: 44px;
+  padding: 0 0 10px;
+  border: 0;
+  border-bottom: 1px solid var(--setty-color-border);
+  border-radius: 0;
+  outline: none;
+  background: transparent;
+  color: var(--setty-color-text-strong);
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.loginForm input:focus {
+  border-bottom-color: var(--setty-color-brand);
+}
+
+.loginForm input[aria-invalid='true'] {
+  border-bottom-color: #f04452;
+}
+
+.loginForm button,
+.stateCard button {
+  min-height: var(--setty-control-height);
+  padding: 0 20px;
+  border: 0;
+  border-radius: var(--setty-control-radius);
+  background: var(--setty-color-brand);
+  color: var(--setty-color-text-strong);
+  cursor: pointer;
+  font-size: var(--setty-font-size-action);
+  font-weight: var(--setty-font-weight-action);
+}
+
+.loginForm button:hover:not(:disabled),
+.stateCard button:hover:not(:disabled) {
+  background: var(--setty-color-brand-hover);
+}
+
+.loginForm button:focus-visible,
+.stateCard button:focus-visible {
+  outline: 3px solid rgb(2 189 121 / 28%);
+  outline-offset: 3px;
+}
+
+.loginForm button:disabled {
+  background: var(--setty-color-text-subtle);
+  cursor: wait;
+}
+
+.errorMessage {
+  padding: 14px 16px;
+  border: 1px solid #ffd2d5;
+  border-radius: var(--setty-control-radius);
+  background: #fff5f5;
+  color: #b42328;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.securityNote {
+  margin: 24px 0 0;
+  color: var(--setty-color-text-muted);
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 1.55;
+}
+
+.statePage > p {
+  color: var(--setty-color-text-body);
+}
+
+.stateCard button {
+  width: 100%;
+  margin-top: 28px;
+}
+
+@media (max-width: 402px) {
+  .loginCard,
+  .stateCard {
+    padding-top: 48px;
+  }
+}

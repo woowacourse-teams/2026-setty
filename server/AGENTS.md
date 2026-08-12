@@ -10,7 +10,7 @@
 - 테스트: `./gradlew test`
 - 빌드: `./gradlew build`
 
-JPA, MySQL과 Flyway는 제품·기술 방향으로 결정됐지만 현재 `build.gradle`에는 아직 설정되지 않았다. 공통 환경 Issue에서 실제 의존성·연결·명령을 검증한 뒤 이 문서를 갱신한다.
+JPA와 MySQL을 사용한다. 첫 MVP는 가상 데이터 기반 사용자 행동 검증을 위해 JPA의 `ddl-auto=update`로 개발 스키마를 만든다. Flyway는 MVP 검증 후 도입 여부를 재검토한다.
 
 ## Before editing
 

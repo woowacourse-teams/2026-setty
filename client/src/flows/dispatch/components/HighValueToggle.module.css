@@ -1,0 +1,68 @@
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.label {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--setty-color-text-muted);
+}
+
+/* 시안의 `거래 금액`은 다른 입력과 같은 폭에 맞춘 테두리 없는 체크 항목이다. */
+.toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--setty-color-text-strong);
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.toggle:focus-visible {
+  outline: 3px solid rgb(2 189 121 / 28%);
+  outline-offset: 4px;
+  border-radius: 4px;
+}
+
+.check {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: var(--setty-color-surface-muted);
+}
+
+.toggle[aria-pressed='true'] .check {
+  background: var(--setty-color-brand);
+}
+
+.checkIcon {
+  width: 15px;
+  height: 15px;
+}
+
+.readOnly {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  margin: 0;
+  color: var(--setty-color-text-strong);
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+}

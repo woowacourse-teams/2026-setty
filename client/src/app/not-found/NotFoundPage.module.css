@@ -1,0 +1,29 @@
+.notFound {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: 24px;
+  background: var(--setty-color-surface-muted);
+}
+
+.notFound section {
+  text-align: center;
+}
+
+.notFoundCode {
+  margin: 0;
+  color: #007b50;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.notFound h1 {
+  margin: 8px 0 12px;
+  font-size: var(--setty-font-size-title);
+}
+
+.notFoundDescription {
+  margin: 0;
+  color: var(--setty-color-text-body);
+  line-height: var(--setty-line-height-body);
+}

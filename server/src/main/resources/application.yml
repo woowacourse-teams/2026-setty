@@ -9,4 +9,30 @@ spring:
     password: setty
   jpa:
     hibernate:
-      ddl-auto: none
+      ddl-auto: update
+      open-in-view: false
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 12MB
+server:
+  error:
+    include-message: never
+    include-stacktrace: never
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+setty:
+  operator:
+    secret: ${SETTY_OPERATOR_SECRET:}
+  front:
+    base-url: ${SETTY_FRONT_BASE_URL:http://localhost:3000}
+  notification:
+    discord:
+      dispatch-webhook-url: ${SETTY_DISCORD_DISPATCH_WEBHOOK_URL:}
+      estimate-webhook-url: ${SETTY_DISCORD_ESTIMATE_WEBHOOK_URL:}

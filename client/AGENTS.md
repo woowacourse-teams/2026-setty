@@ -4,7 +4,7 @@
 
 ## Session start
 
-- 세션 시작 위치와 관계없이 먼저 담당 영역을 `estimate`, `dispatch`, `common` 중 하나로 밝히고 소유 경로를 적는다.
+- 세션 시작 위치와 관계없이 먼저 담당 영역을 `estimate`, `dispatch`, `operator`, `common` 중 하나로 밝히고 소유 경로를 적는다.
 - 모든 client 작업은 루트와 이 파일을 읽는다. flow 작업은 해당 flow의 `AGENTS.md`도 읽는다.
 - 현재 GitHub Issue의 포함·제외·완료 조건을 확인한 뒤 편집한다.
 - Issue에 없는 다른 flow 또는 공동 영역 변경이 필요하면 작업을 확대하지 말고 영향과 이유를 먼저 보고한다.
@@ -28,10 +28,13 @@
 - `src/app/**`: 앱 시작, 향후 승인된 라우팅, 전역 설정을 조합하는 공동 영역
 - `src/flows/estimate/**`: 견적 FE 소유 영역
 - `src/flows/dispatch/**`: 배차 FE 소유 영역
+- `src/flows/operator/estimate/**`: 견적 FE가 소유하는 운영자 견적 영역
+- `src/flows/operator/dispatch/**`: 향후 배차 FE가 소유하는 운영자 배차 영역
+- `src/flows/operator/auth/**`, `src/flows/operator/shell/**`: 두 FE 공동 운영자 영역
 - `src/shared/**`: 두 flow에서 실제로 공통임이 확인된 코드와 스타일만 두는 공동 영역
 - `config/**`, `eslint.config.mjs`, `package*.json`, `src/index.tsx`, Webpack과 전역 스타일: 공동 설정 영역
 
-견적과 배차 담당자는 상대 flow를 직접 수정하거나 import하지 않는다. `app`, `shared`, 공동 설정과 디자인 토큰은 한 명이 변경하고 다른 FE가 리뷰한다. 아직 한 flow에서만 쓰는 코드를 예상만으로 `shared`에 올리지 않는다.
+견적과 배차 담당자는 상대 flow를 직접 수정하거나 import하지 않는다. `app`, `shared`, operator의 auth·shell, 공동 설정과 디자인 토큰은 한 명이 변경하고 다른 FE가 리뷰한다. 아직 한 flow에서만 쓰는 코드를 예상만으로 `shared`에 올리지 않는다.
 
 ## Before editing
 
@@ -66,7 +69,7 @@
 4. 번들·운영 영향과 검증 방법
 5. 재검토 조건
 
-Next.js, Tailwind, shadcn/ui, TanStack Query, Zustand, React Hook Form, Zod를 선제 도입하지 않는다. React Router도 승인된 역할별 URL 요구가 생길 때까지 도입하지 않는다.
+React Router는 Issue #12의 사용자·운영자 직접 URL, 상세 경로와 인증 이동을 위해 승인됐다. Next.js, Tailwind, shadcn/ui, TanStack Query, Zustand, React Hook Form, Zod는 선제 도입하지 않는다.
 
 ## Verification
 

@@ -6,4 +6,5 @@ dist/
 coverage/
 .env
 .env.local
+!.env.example
 .DS_Store

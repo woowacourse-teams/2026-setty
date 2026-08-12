@@ -4,6 +4,22 @@ const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
 const Dotenv = require('dotenv-webpack');
 const root = path.resolve(__dirname, '..');
 
+/**
+ * 링크 미리보기의 og:image는 절대 URL이어야 카카오톡 등 크롤러가 이미지를 가져온다.
+ * 배포 도메인이 하나로 확정돼 기본값을 코드에 둔다.
+ * 다른 도메인으로 빌드할 때만 SETTY_SITE_URL로 덮어쓴다.
+ */
+const DEFAULT_SITE_ORIGIN = 'https://www.setty.cloud';
+const siteOrigin = (process.env.SETTY_SITE_URL || DEFAULT_SITE_ORIGIN)
+  .trim()
+  .replace(/\/+$/, '');
+
+/** webpack asset module이 돌려주는 값에서 실제 경로만 꺼내 절대 URL로 만든다. */
+function toOgImageUrl(imported) {
+  const assetPath = typeof imported === 'string' ? imported : imported.default;
+  return `${siteOrigin}${assetPath}`;
+}
+
 /** @type {import('webpack').Configuration} */
 module.exports = {
   entry: path.join(root, 'src/index.tsx'),
@@ -44,6 +60,7 @@ module.exports = {
   plugins: [
     new HtmlWebpackPlugin({
       template: path.join(root, 'public/index.html'),
+      templateParameters: { ogImageUrl: toOgImageUrl },
     }),
     new ForkTsCheckerWebpackPlugin(),
     new Dotenv({
