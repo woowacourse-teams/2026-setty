@@ -1,5 +1,5 @@
-/* 공유·복사를 쓸 수 없을 때 사용자가 직접 선택해 복사하는 링크 */
-.link {
+/* 공유·복사를 쓸 수 없을 때 사용자가 직접 선택해 복사하는 안내문 전문 */
+.guideMessage {
   width: 100%;
   margin: 24px 0 0;
   padding: 14px 16px;
@@ -12,6 +12,8 @@
   font-weight: 500;
   line-height: 1.5;
   text-align: left;
+  /* 안내문 줄바꿈을 그대로 보여준다. */
+  white-space: pre-wrap;
   overflow-wrap: anywhere;
   user-select: all;
 }

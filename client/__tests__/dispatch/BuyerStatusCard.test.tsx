@@ -112,7 +112,7 @@ describe('Issue #14 구매자 상태 카드', () => {
     expect(
       await screen.findByRole('heading', { name: '거래가 시작됐어요' }),
     ).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: '링크 복사' }));
+    await user.click(screen.getByRole('button', { name: '안내문과 링크 복사' }));
 
     expect(
       await screen.findByRole('heading', { name: '판매자를 기다리고 있어요' }),
@@ -144,9 +144,9 @@ describe('Issue #14 구매자 상태 카드', () => {
     expect(
       await screen.findByRole('heading', { name: '거래가 시작됐어요' }),
     ).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: '링크 복사' }));
+    await user.click(screen.getByRole('button', { name: '안내문과 링크 복사' }));
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      '링크를 복사하지 못했어요.',
+      '안내문을 복사하지 못했어요.',
     );
 
     await user.click(screen.getByRole('button', { name: '판매자 입력 상태 확인하기' }));
@@ -191,7 +191,7 @@ describe('Issue #14 구매자 상태 카드', () => {
     expect(
       screen.queryByRole('textbox', { name: '판매자 입력 링크' }),
     ).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: '링크 복사' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '안내문과 링크 복사' })).not.toBeInTheDocument();
     expect(screen.queryByText(SELLER_INPUT_URL)).not.toBeInTheDocument();
     expect(screen.queryByText('판매자 정보를 기다리고 있어요')).not.toBeInTheDocument();
   });

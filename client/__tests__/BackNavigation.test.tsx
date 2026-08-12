@@ -153,7 +153,7 @@ describe('배차 flow 뒤로가기', () => {
     await submitBuyerRequest(user);
 
     expect(await screen.findByText('거래가 시작됐어요')).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: '링크 복사' }));
+    await user.click(screen.getByRole('button', { name: '안내문과 링크 복사' }));
     expect(
       await screen.findByRole('heading', { name: '판매자를 기다리고 있어요' }),
     ).toBeInTheDocument();

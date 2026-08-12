@@ -417,8 +417,8 @@ describe('링크 생성 화면 복구', () => {
     renderAt(`/dispatch/${BUYER_TOKEN}/link`);
 
     expect(await screen.findByText('거래가 시작됐어요')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '링크 공유하기' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '링크 복사' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '안내문과 링크 공유하기' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '안내문과 링크 복사' })).toBeInTheDocument();
     expect(
       screen.queryByRole('button', { name: '판매자 입력 상태 확인하기' }),
     ).not.toBeInTheDocument();
