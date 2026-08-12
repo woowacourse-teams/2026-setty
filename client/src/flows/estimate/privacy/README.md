@@ -6,8 +6,11 @@ Issue #12의 예상 견적 흐름에만 적용한다. 배차 요청은 별도 �
 
 - 처리 주체·목적·입력 항목·보유 기간·철회·삭제·문의 방법을 `/estimate/privacy`에서 안내한다.
 - 요청 화면에서 `(필수) 개인정보 수집·이용 동의`를 체크하지 않으면 요청을 전송하지 않는다.
-- `보기`로 여는 동의 안내 화면(`PrivacyConsentNoticeScreen`)의 수집 항목·이용 목적·보유 기간은
-  `estimatePrivacyPolicy.ts` 한곳의 값을 그대로 쓴다.
+- `보기`로 여는 동의 안내 화면(`PrivacyConsentNoticeScreen`)에서 `/estimate/privacy`의 처리 안내 전문과
+  같은 항목을 안내한다. 처리 목적, 사용자 입력 항목, 요청 처리 중 생성·저장되는 정보, 보유·이용 기간,
+  동의 거부, 철회·삭제 요청과 파기, 처리 주체, 문의, 안내문 적용일·버전이다.
+- 안내 화면과 전문 페이지는 모두 `estimatePrivacyPolicy.ts` 한곳의 값을 그대로 쓴다.
+- 같은 안내를 배차 동의 화면도 쓴다. 문구를 바꾸면 `client/src/flows/dispatch/PRIVACY.md`의 값도 함께 맞춘다.
 
 ## 현재 상태
 

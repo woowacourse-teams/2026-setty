@@ -4,6 +4,7 @@ import { MemoryRouter, useLocation, useRoutes } from 'react-router-dom';
 import { dispatchRoutes } from '@/app/routes/dispatchRoutes';
 import { API_ORIGIN } from '@/shared/api/http';
 import { completeOnboarding } from '@/app/onboarding/onboardingStorage';
+import { DISPATCH_PRIVACY_POLICY } from '@/flows/dispatch/model/dispatchPrivacyPolicy';
 
 /**
  * 배차 flow의 화면 전환과 server 계약 연결을 확인한다.
@@ -194,7 +195,7 @@ describe('구매자 흐름', () => {
     await user.click(screen.getByRole('button', { name: '보기' }));
 
     expect(screen.getByRole('heading', { name: /아래 정보를 수집해요/ })).toBeInTheDocument();
-    expect(screen.getByText('이름, 연락처, 받는 주소, 거래 정보')).toBeInTheDocument();
+    expect(screen.getByText(DISPATCH_PRIVACY_POLICY.items)).toBeInTheDocument();
     expect(currentPath()).toBe('/dispatch/new');
 
     await user.click(screen.getByRole('button', { name: '동의하고 계속하기' }));
