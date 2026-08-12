@@ -41,12 +41,20 @@ export const DISPATCH_PRIVACY_CONSENT_NOTICE = {
       text: `동의 철회나 삭제는 ${DISPATCH_PRIVACY_POLICY.contactEmail}로 요청할 수 있습니다. 운영팀이 요청을 확인해 수동으로 처리하고 처리 결과를 기록합니다. 요청에 연결된 운영 기록을 포함한 전자적 파일은 복구할 수 없는 방법으로 삭제하며, 삭제 후에는 특정 개인을 알아볼 수 없는 통계만 남길 수 있습니다.`,
     },
     {
-      label: '처리 주체와 문의',
-      text: `처리 주체: ${DISPATCH_PRIVACY_POLICY.controller} / 문의: ${DISPATCH_PRIVACY_POLICY.contactEmail}`,
+      label: '처리 주체',
+      text: DISPATCH_PRIVACY_POLICY.controller,
     },
     {
-      label: '안내문 정보',
-      text: `적용일: ${DISPATCH_PRIVACY_POLICY.effectiveDate} / 버전: ${DISPATCH_PRIVACY_POLICY.version}`,
+      label: '문의',
+      text: DISPATCH_PRIVACY_POLICY.contactEmail,
+    },
+    {
+      label: '안내문 적용일',
+      text: DISPATCH_PRIVACY_POLICY.effectiveDate,
+    },
+    {
+      label: '안내문 버전',
+      text: DISPATCH_PRIVACY_POLICY.version,
     },
   ] satisfies PrivacyConsentSection[],
 } as const;
