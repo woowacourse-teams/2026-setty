@@ -462,6 +462,22 @@
   gap: 10px;
 }
 
+/*
+ * 배송비는 1원 단위로 오르내릴 값이 아니라 브라우저 기본 숫자 스피너가 오조작만 부른다.
+ * 입력 자체는 type="number"로 두어 숫자 키패드와 검증을 그대로 쓴다.
+ */
+.amountField input[type='number'] {
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+.amountField input[type='number']::-webkit-outer-spin-button,
+.amountField input[type='number']::-webkit-inner-spin-button {
+  margin: 0;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
 .amountField > span {
   color: var(--setty-color-text-body);
   font-weight: 700;

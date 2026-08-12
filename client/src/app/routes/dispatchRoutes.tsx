@@ -154,8 +154,8 @@ function BuyerStatusRoute() {
   const { buyerToken } = useParams<{ buyerToken: string }>();
 
   /*
-   * 운영자가 문자로 보내는 구매자 확인 링크는 server의 `BuyerStatusUrlFactory`가
-   * 만드는 이 경로다. 확인할 최종 금액이 있으면 대기 화면에 머물지 않게 한다.
+   * 운영자가 문자로 보내는 구매자 확인 링크는 `/final-amount/:buyerToken`을 바로 가리키지만,
+   * 링크 생성 직후 구매자는 이 대기 화면에 머문다. 확인할 최종 금액이 생기면 곧장 넘긴다.
    * 대기 화면은 히스토리에 남기지 않는다. 뒤로가기로 돌아와도 다시 이동할 뿐이다.
    */
   const goToFinalAmount = useCallback(() => {
