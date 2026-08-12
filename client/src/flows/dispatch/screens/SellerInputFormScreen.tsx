@@ -10,6 +10,7 @@ import PrivacyConsentField from '../components/PrivacyConsentField';
 import { ErrorMessage, LoadingMessage } from '../components/StatusMessage';
 import TextButton from '../components/TextButton';
 import { ADDRESS_HINT } from '../model/addressHint';
+import { DISPATCH_PRIVACY_POLICY_VERSION } from '../model/dispatchPrivacyPolicy';
 import type { SellerInputSessionResponse } from '../model/dispatchTypes';
 import PrivacyConsentNoticeScreen from './PrivacyConsentNoticeScreen';
 import styles from './SellerInputFormScreen.module.css';
@@ -197,6 +198,8 @@ export default function SellerInputFormScreen({
         sellerPhoneNumber: sellerPhoneNumber.trim(),
         pickupAddress: pickupAddress.trim(),
         availablePickupTime: availablePickupTime.trim(),
+        privacyConsent,
+        privacyPolicyVersion: DISPATCH_PRIVACY_POLICY_VERSION,
       });
       onSubmitted();
     } catch (error) {

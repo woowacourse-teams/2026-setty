@@ -119,6 +119,8 @@ describe('구매자 흐름', () => {
       deliveryAddress: '가상시 가상구 가상로 1',
       highValueItem: true,
       productLink: 'https://www.daangn.com/articles/00000000',
+      privacyConsent: true,
+      privacyPolicyVersion: DISPATCH_PRIVACY_POLICY.version,
     });
 
     expect(await screen.findByText('거래가 시작됐어요')).toBeInTheDocument();
@@ -202,6 +204,37 @@ describe('구매자 흐름', () => {
 
     expect(screen.getByRole('checkbox', { name: PRIVACY_CONSENT_NAME })).toBeChecked();
     expect(screen.getByLabelText('상품명')).toHaveValue('3인용 소파');
+  });
+
+  it('동의 안내 화면이 보여준 안내문 버전을 그대로 동의 증적으로 보낸다', async () => {
+    const user = userEvent.setup();
+    mockFetch.mockResolvedValue(
+      jsonResponse(201, { buyerToken: BUYER_TOKEN, sellerInputUrl: SELLER_INPUT_URL }),
+    );
+
+    renderAt('/dispatch/new');
+
+    await user.type(screen.getByLabelText('상품명'), '3인용 소파');
+    await user.type(screen.getByLabelText('구매자 이름'), '가상구매자');
+    await user.type(screen.getByLabelText('연락처'), '01000000000');
+    await user.type(screen.getByLabelText('받는 주소'), '가상시 가상구 가상로 1');
+    await user.type(
+      screen.getByLabelText('당근 게시물 링크'),
+      'https://www.daangn.com/articles/00000000',
+    );
+
+    await user.click(screen.getByRole('button', { name: '보기' }));
+    const shownVersion = screen.getByText(DISPATCH_PRIVACY_POLICY.version).textContent;
+    await user.click(screen.getByRole('button', { name: '동의하고 계속하기' }));
+    await user.click(screen.getByRole('button', { name: '링크 생성하기' }));
+
+    await waitFor(() => expect(mockFetch).toHaveBeenCalled());
+
+    const { init } = lastRequest();
+    expect(JSON.parse(String(init?.body))).toMatchObject({
+      privacyConsent: true,
+      privacyPolicyVersion: shownVersion,
+    });
   });
 
   it('연락처 형식이 server @Pattern과 다르면 API를 호출하지 않는다', async () => {
@@ -531,6 +564,8 @@ describe('판매자 흐름', () => {
       sellerPhoneNumber: '01000000001',
       pickupAddress: '가상시 가상구 가상로 2',
       availablePickupTime: '평일 오후 2시 이후',
+      privacyConsent: true,
+      privacyPolicyVersion: DISPATCH_PRIVACY_POLICY.version,
     });
 
     expect(await screen.findByText('정보가 제출됐어요')).toBeInTheDocument();
@@ -594,6 +629,30 @@ describe('판매자 흐름', () => {
 
     expect(screen.getByRole('checkbox', { name: PRIVACY_CONSENT_NAME })).toBeChecked();
     expect(screen.getByLabelText('판매자 이름')).toHaveValue('가상판매자');
+  });
+
+  it('동의 안내 화면이 보여준 안내문 버전을 그대로 동의 증적으로 보낸다', async () => {
+    const user = userEvent.setup();
+    mockFetch.mockResolvedValue(
+      jsonResponse(200, { itemType: '3인용 소파', alreadySubmitted: false }),
+    );
+
+    await openSellerForm();
+
+    await fillSellerFields(user);
+
+    await user.click(screen.getByRole('button', { name: '보기' }));
+    const shownVersion = screen.getByText(DISPATCH_PRIVACY_POLICY.version).textContent;
+    await user.click(screen.getByRole('button', { name: '동의하고 계속하기' }));
+    await user.click(screen.getByRole('button', { name: '제출하기' }));
+
+    await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(2));
+
+    const { init } = lastRequest();
+    expect(JSON.parse(String(init?.body))).toMatchObject({
+      privacyConsent: true,
+      privacyPolicyVersion: shownVersion,
+    });
   });
 
   it('이미 제출된 세션에는 동의 항목을 보여주지 않는다', async () => {

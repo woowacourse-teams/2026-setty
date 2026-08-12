@@ -11,6 +11,7 @@ import PrimaryButton from '../components/PrimaryButton';
 import PrivacyConsentField from '../components/PrivacyConsentField';
 import { ErrorMessage } from '../components/StatusMessage';
 import { ADDRESS_HINT } from '../model/addressHint';
+import { DISPATCH_PRIVACY_POLICY_VERSION } from '../model/dispatchPrivacyPolicy';
 import type { BuyerDispatchRequestCreateResponse } from '../model/dispatchTypes';
 import {
   ITEM_IMAGE_TYPE_ERROR,
@@ -241,6 +242,8 @@ export default function BuyerRequestFormScreen({
         highValueItem,
         productLink: productLink.trim(),
         ...(imageUrl ? { itemImageUrls: [imageUrl] } : {}),
+        privacyConsent,
+        privacyPolicyVersion: DISPATCH_PRIVACY_POLICY_VERSION,
       });
       onCreated(result);
     } catch (error) {

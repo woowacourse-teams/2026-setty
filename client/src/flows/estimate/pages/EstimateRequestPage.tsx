@@ -8,6 +8,7 @@ import MobileScreen from '@/flows/estimate/components/MobileScreen';
 import NavBar from '@/flows/estimate/components/NavBar';
 import PrimaryButton from '@/flows/estimate/components/PrimaryButton';
 import PrivacyConsentField from '@/flows/estimate/components/PrivacyConsentField';
+import { ESTIMATE_PRIVACY_POLICY_VERSION } from '@/flows/estimate/privacy/estimatePrivacyPolicy';
 import PrivacyConsentNoticeScreen from '@/flows/estimate/privacy/PrivacyConsentNoticeScreen';
 import {
   EstimateRequestField,
@@ -147,6 +148,8 @@ export default function EstimateRequestPage() {
         itemType: values.itemType.trim(),
         highValueItem: values.highValueItem,
         ...(productLink ? { productLink } : {}),
+        privacyConsent,
+        privacyPolicyVersion: ESTIMATE_PRIVACY_POLICY_VERSION,
       });
       navigate('/estimate/submitted', { replace: true });
     } catch (error) {
