@@ -15,10 +15,18 @@
   flex-direction: column;
   width: 100%;
   max-width: 402px;
-  padding: 28px 20px 20px;
+  /* title의 line-height가 font-size보다 8px 크므로 위 여백은 그만큼 덜 준다. */
+  padding: 20px 20px calc(20px + env(safe-area-inset-bottom));
   border-radius: 20px 20px 0 0;
   background: var(--setty-color-surface);
   text-align: center;
+}
+
+/* 402px보다 넓은 mobile에서 시트만 가운데 떠 보이지 않도록 화면 폭을 그대로 쓴다. */
+@media (max-width: 640px) {
+  .sheet {
+    max-width: none;
+  }
 }
 
 .title {
@@ -34,7 +42,7 @@
   margin: 14px 0 0;
   font-size: var(--setty-font-size-body);
   font-weight: var(--setty-font-weight-body);
-  line-height: 24.03px;
+  line-height: 24px;
   color: var(--setty-color-text-body);
   white-space: pre-line;
 }
