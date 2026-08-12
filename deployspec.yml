@@ -1,0 +1,29 @@
+version: 0.1
+
+files:
+  - source: /
+    destination: /opt/setty/source
+
+permissions:
+  - object: /opt/setty/source/scripts
+    pattern: '**'
+    mode: 755
+    type:
+      - file
+
+scripts:
+  BeforeDeploy:
+    - location: scripts/before_install.sh
+      timeout: 300
+      runas: root
+
+  AfterDeploy:
+    - location: scripts/build.sh
+      timeout: 900
+      runas: root
+    - location: scripts/start.sh
+      timeout: 300
+      runas: root
+    - location: scripts/validate.sh
+      timeout: 360
+      runas: root
