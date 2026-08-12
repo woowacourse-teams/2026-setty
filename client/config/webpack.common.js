@@ -4,6 +4,18 @@ const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
 const Dotenv = require('dotenv-webpack');
 const root = path.resolve(__dirname, '..');
 
+/**
+ * 링크 미리보기의 og:image는 절대 URL이어야 카카오톡 등 크롤러가 이미지를 가져온다.
+ * 배포 주소를 모르는 로컬 빌드에서는 값을 비워 두고 상대 경로로 둔다.
+ */
+const siteOrigin = (process.env.SETTY_SITE_URL ?? '').trim().replace(/\/+$/, '');
+
+/** webpack asset module이 돌려주는 값에서 실제 경로만 꺼내 절대 URL로 만든다. */
+function toOgImageUrl(imported) {
+  const assetPath = typeof imported === 'string' ? imported : imported.default;
+  return `${siteOrigin}${assetPath}`;
+}
+
 /** @type {import('webpack').Configuration} */
 module.exports = {
   entry: path.join(root, 'src/index.tsx'),
@@ -44,6 +56,7 @@ module.exports = {
   plugins: [
     new HtmlWebpackPlugin({
       template: path.join(root, 'public/index.html'),
+      templateParameters: { ogImageUrl: toOgImageUrl },
     }),
     new ForkTsCheckerWebpackPlugin(),
     new Dotenv({
