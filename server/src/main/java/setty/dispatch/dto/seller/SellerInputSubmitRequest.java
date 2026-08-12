@@ -10,8 +10,14 @@ public record SellerInputSubmitRequest(
         @NotBlank @Size(max = 50) String sellerName,
         @NotBlank @Pattern(regexp = "^01\\d-?\\d{3,4}-?\\d{4}$") String sellerPhoneNumber,
         @NotBlank @Size(max = 255) String pickupAddress,
-        @NotBlank @Size(max = 100) String availablePickupTime
+        @NotBlank @Size(max = 100) String availablePickupTime,
+        Boolean privacyConsent,
+        @Size(max = 20) String privacyPolicyVersion
 ) {
+    public boolean consented() {
+        return Boolean.TRUE.equals(privacyConsent);
+    }
+
     public SellerInput toSellerInput() {
         return new SellerInput(
                 sellerName,

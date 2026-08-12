@@ -27,6 +27,7 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 import org.springframework.transaction.annotation.Transactional;
 import setty.common.notification.DiscordWebhookClient;
 import setty.common.operator.OperatorAuthInterceptor;
+import setty.dispatch.repository.DispatchRequestRepository;
 
 @SpringBootTest(properties = "setty.operator.secret=" + DispatchRequestApiTest.OPERATOR_SECRET)
 @AutoConfigureMockMvc
@@ -78,6 +79,9 @@ class DispatchRequestApiTest {
 
     @Autowired
     private MockMvc mockMvc;
+
+    @Autowired
+    private DispatchRequestRepository dispatchRequestRepository;
 
     @Test
     @DisplayName("구매자가 배차 요청을 제출하면 구매자 조회 토큰과 판매자 입력 링크를 함께 발급한다")
@@ -785,6 +789,60 @@ class DispatchRequestApiTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(FINAL_AMOUNT_PAYLOAD))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    @DisplayName("구매자와 판매자의 개인정보 동의 시각과 안내문 버전을 저장한다")
+    void recordsPrivacyConsentForBuyerAndSeller() throws Exception {
+        final String created = mockMvc.perform(post("/api/dispatch-requests")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "buyerName": "테스트구매자",
+                                  "buyerPhoneNumber": "010-0000-0001",
+                                  "deliveryAddress": "서울특별시 테스트구 테스트로 1",
+                                  "itemType": "책상",
+                                  "highValueItem": false,
+                                  "productLink": "https://www.daangn.com/articles/test-1",
+                                  "privacyConsent": true,
+                                  "privacyPolicyVersion": "2026-08-06"
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString(StandardCharsets.UTF_8);
+
+        mockMvc.perform(post("/api/dispatch-requests/seller-sessions/{token}", sellerToken(created))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "sellerName": "테스트판매자",
+                                  "sellerPhoneNumber": "010-0000-0002",
+                                  "pickupAddress": "서울특별시 테스트구 테스트로 2",
+                                  "availablePickupTime": "평일 오후",
+                                  "privacyConsent": true,
+                                  "privacyPolicyVersion": "2026-08-06"
+                                }
+                                """))
+                .andExpect(status().isNoContent());
+
+        final var saved = dispatchRequestRepository.findByBuyerToken(buyerToken(created)).orElseThrow();
+        assertThat(saved.getBuyerPrivacyConsentedAt()).isNotNull();
+        assertThat(saved.getBuyerPrivacyPolicyVersion()).isEqualTo("2026-08-06");
+        assertThat(saved.getSellerPrivacyConsentedAt()).isNotNull();
+        assertThat(saved.getSellerPrivacyPolicyVersion()).isEqualTo("2026-08-06");
+    }
+
+    @Test
+    @DisplayName("동의 필드가 없어도 접수되고 동의 기록은 비워 둔다")
+    void acceptsRequestsWithoutConsentFieldsAndLeavesRecordEmpty() throws Exception {
+        final String created = createDispatchRequest();
+        submitSellerInput(sellerToken(created));
+
+        final var saved = dispatchRequestRepository.findByBuyerToken(buyerToken(created)).orElseThrow();
+        assertThat(saved.getBuyerPrivacyConsentedAt()).isNull();
+        assertThat(saved.getSellerPrivacyConsentedAt()).isNull();
     }
 
     private String createDispatchRequest() throws Exception {
