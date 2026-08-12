@@ -31,6 +31,9 @@ public class EstimateRequestCreateService {
                 command.highValueItem(),
                 command.productLink()
         );
+        if (command.consented()) {
+            estimateRequest.recordPrivacyConsent(command.privacyPolicyVersion());
+        }
         final EstimateRequest savedEstimateRequest = estimateRequestRepository.save(estimateRequest);
 
         log.info("견적 요청 접수 완료. estimateRequestId={}, status={}",

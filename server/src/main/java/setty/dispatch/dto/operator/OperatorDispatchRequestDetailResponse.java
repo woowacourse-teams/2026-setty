@@ -25,6 +25,10 @@ public record OperatorDispatchRequestDetailResponse(
         String messageContent,
         String buyerConfirmUrl,
         OffsetDateTime amountCheckedAt,
+        OffsetDateTime buyerPrivacyConsentedAt,
+        String buyerPrivacyPolicyVersion,
+        OffsetDateTime sellerPrivacyConsentedAt,
+        String sellerPrivacyPolicyVersion,
         String operatorNote,
         String closedReason
 ) {
@@ -69,6 +73,10 @@ public record OperatorDispatchRequestDetailResponse(
                 dispatchRequest.getMessageContent(),
                 buyerConfirmUrl,
                 SeoulDateTime.toOffsetDateTime(dispatchRequest.getAmountCheckedAt()),
+                SeoulDateTime.toOffsetDateTime(dispatchRequest.getBuyerPrivacyConsentedAt()),
+                dispatchRequest.getBuyerPrivacyPolicyVersion(),
+                SeoulDateTime.toOffsetDateTime(dispatchRequest.getSellerPrivacyConsentedAt()),
+                dispatchRequest.getSellerPrivacyPolicyVersion(),
                 dispatchRequest.getOperatorNote(),
                 dispatchRequest.getClosedReason()
         );

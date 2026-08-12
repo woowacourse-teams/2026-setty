@@ -75,6 +75,16 @@ public class DispatchRequest {
     @Column(length = 200)
     private String closedReason;
 
+    private LocalDateTime buyerPrivacyConsentedAt;
+
+    @Column(length = 20)
+    private String buyerPrivacyPolicyVersion;
+
+    private LocalDateTime sellerPrivacyConsentedAt;
+
+    @Column(length = 20)
+    private String sellerPrivacyPolicyVersion;
+
     @Column(nullable = false)
     private LocalDateTime createdAt;
 
@@ -116,6 +126,32 @@ public class DispatchRequest {
 
     public boolean isSellerInputCompleted() {
         return sellerInput != null && sellerInput.isPresent();
+    }
+
+    public void recordBuyerPrivacyConsent(final String policyVersion) {
+        this.buyerPrivacyConsentedAt = SeoulDateTime.now();
+        this.buyerPrivacyPolicyVersion = policyVersion;
+    }
+
+    public void recordSellerPrivacyConsent(final String policyVersion) {
+        this.sellerPrivacyConsentedAt = SeoulDateTime.now();
+        this.sellerPrivacyPolicyVersion = policyVersion;
+    }
+
+    public LocalDateTime getBuyerPrivacyConsentedAt() {
+        return buyerPrivacyConsentedAt;
+    }
+
+    public String getBuyerPrivacyPolicyVersion() {
+        return buyerPrivacyPolicyVersion;
+    }
+
+    public LocalDateTime getSellerPrivacyConsentedAt() {
+        return sellerPrivacyConsentedAt;
+    }
+
+    public String getSellerPrivacyPolicyVersion() {
+        return sellerPrivacyPolicyVersion;
     }
 
     public void recordFinalAmount(final int amount) {

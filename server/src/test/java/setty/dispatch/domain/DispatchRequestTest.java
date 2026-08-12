@@ -190,4 +190,18 @@ class DispatchRequestTest {
         dispatchRequest.updateMessageContent("배차 완료 후 정정한 문자입니다.");
         assertThat(dispatchRequest.getMessageContent()).isEqualTo("배차 완료 후 정정한 문자입니다.");
     }
+
+    @Test
+    @DisplayName("구매자와 판매자의 개인정보 동의 시각과 안내문 버전을 기록한다")
+    void recordsPrivacyConsentForBuyerAndSeller() {
+        final DispatchRequest dispatchRequest = newDispatchRequest();
+
+        dispatchRequest.recordBuyerPrivacyConsent("2026-08-06");
+        dispatchRequest.recordSellerPrivacyConsent("2026-08-06");
+
+        assertThat(dispatchRequest.getBuyerPrivacyConsentedAt()).isNotNull();
+        assertThat(dispatchRequest.getBuyerPrivacyPolicyVersion()).isEqualTo("2026-08-06");
+        assertThat(dispatchRequest.getSellerPrivacyConsentedAt()).isNotNull();
+        assertThat(dispatchRequest.getSellerPrivacyPolicyVersion()).isEqualTo("2026-08-06");
+    }
 }

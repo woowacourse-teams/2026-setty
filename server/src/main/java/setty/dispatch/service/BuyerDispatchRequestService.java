@@ -36,7 +36,7 @@ public class BuyerDispatchRequestService {
 
     @Transactional
     public BuyerDispatchRequestCreateResponse create(final BuyerDispatchRequestCreateRequest request) {
-        final DispatchRequest dispatchRequest = dispatchRequestRepository.save(new DispatchRequest(
+        final DispatchRequest newDispatchRequest = new DispatchRequest(
                 UUID.randomUUID().toString(),
                 request.buyerName(),
                 PhoneNumbers.normalize(request.buyerPhoneNumber()),
@@ -46,7 +46,11 @@ public class BuyerDispatchRequestService {
                 request.productLink(),
                 request.itemImageUrlsOrEmpty(),
                 request.estimateRequestId()
-        ));
+        );
+        if (request.consented()) {
+            newDispatchRequest.recordBuyerPrivacyConsent(request.privacyPolicyVersion());
+        }
+        final DispatchRequest dispatchRequest = dispatchRequestRepository.save(newDispatchRequest);
         final SellerInputSession session = sellerInputSessionRepository.save(
                 new SellerInputSession(UUID.randomUUID().toString(), dispatchRequest)
         );

@@ -6,6 +6,11 @@ public record CreateEstimateRequestCommand(
         String tradeArea,
         String itemType,
         boolean highValueItem,
-        String productLink
+        String productLink,
+        Boolean privacyConsent,
+        String privacyPolicyVersion
 ) {
+    public boolean consented() {
+        return Boolean.TRUE.equals(privacyConsent);
+    }
 }

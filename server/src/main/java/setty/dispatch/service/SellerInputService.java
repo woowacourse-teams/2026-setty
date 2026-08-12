@@ -38,6 +38,9 @@ public class SellerInputService {
         final SellerInputSession session = getSession(token);
         session.complete(request.toSellerInput());
         final DispatchRequest dispatchRequest = session.getDispatchRequest();
+        if (request.consented()) {
+            dispatchRequest.recordSellerPrivacyConsent(request.privacyPolicyVersion());
+        }
 
         log.info(
                 "판매자 입력 완료. dispatchRequestId={}, sessionId={}, sessionStatus={}, status={}",

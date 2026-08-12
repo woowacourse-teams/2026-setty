@@ -88,7 +88,9 @@ class SellerInputServiceTest {
                 "테스트판매자",
                 "010-0000-0002",
                 "서울특별시 테스트구 테스트로 2",
-                "평일 오후"
+                "평일 오후",
+                null,
+                null
         );
     }
 }

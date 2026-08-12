@@ -14,9 +14,15 @@ public record BuyerDispatchRequestCreateRequest(
         @NotNull Boolean highValueItem,
         @NotBlank @Size(max = 500) String productLink,
         @Size(max = 5) List<@NotBlank @Size(max = 500) String> itemImageUrls,
-        Long estimateRequestId
+        Long estimateRequestId,
+        Boolean privacyConsent,
+        @Size(max = 20) String privacyPolicyVersion
 ) {
     public List<String> itemImageUrlsOrEmpty() {
         return itemImageUrls == null ? List.of() : itemImageUrls;
+    }
+
+    public boolean consented() {
+        return Boolean.TRUE.equals(privacyConsent);
     }
 }
