@@ -7,14 +7,14 @@ import org.springframework.scheduling.annotation.EnableAsync;
 import setty.common.notification.DiscordNotificationProperties;
 import setty.common.operator.OperatorAuthProperties;
 import setty.common.s3.S3Properties;
-import setty.dispatch.DispatchProperties;
+import setty.common.web.FrontProperties;
 
 @SpringBootApplication
 @EnableAsync
 @EnableConfigurationProperties({
         S3Properties.class,
         OperatorAuthProperties.class,
-        DispatchProperties.class,
+        FrontProperties.class,
         DiscordNotificationProperties.class
 })
 public class SettyApplication {

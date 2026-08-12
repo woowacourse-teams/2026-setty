@@ -36,13 +36,13 @@ class DiscordWebhookClientTest {
     @Test
     @DisplayName("웹훅 URL이 비어 있으면 아무 요청도 보내지 않는다")
     void sendsNothingWhenWebhookUrlIsBlank() {
-        client("").send(MESSAGE);
+        client().send("", MESSAGE);
 
         server.verify();
     }
 
     @Test
-    @DisplayName("웹훅 URL이 있으면 content 필드에 메시지를 담아 POST한다")
+    @DisplayName("전달받은 웹훅 URL로 content 필드에 메시지를 담아 POST한다")
     void postsMessageAsContentField() {
         server.expect(requestTo(WEBHOOK_URL))
                 .andExpect(method(HttpMethod.POST))
@@ -50,7 +50,7 @@ class DiscordWebhookClientTest {
                 .andExpect(jsonPath("$.content").value(MESSAGE))
                 .andRespond(withNoContent());
 
-        client(WEBHOOK_URL).send(MESSAGE);
+        client().send(WEBHOOK_URL, MESSAGE);
 
         server.verify();
     }
@@ -60,7 +60,7 @@ class DiscordWebhookClientTest {
     void swallowsErrorResponse() {
         server.expect(requestTo(WEBHOOK_URL)).andRespond(withServerError());
 
-        assertThatCode(() -> client(WEBHOOK_URL).send(MESSAGE)).doesNotThrowAnyException();
+        assertThatCode(() -> client().send(WEBHOOK_URL, MESSAGE)).doesNotThrowAnyException();
     }
 
     @Test
@@ -68,14 +68,10 @@ class DiscordWebhookClientTest {
     void swallowsConnectionFailure() {
         server.expect(requestTo(WEBHOOK_URL)).andRespond(withException(new SocketTimeoutException()));
 
-        assertThatCode(() -> client(WEBHOOK_URL).send(MESSAGE)).doesNotThrowAnyException();
+        assertThatCode(() -> client().send(WEBHOOK_URL, MESSAGE)).doesNotThrowAnyException();
     }
 
-    private DiscordWebhookClient client(final String webhookUrl) {
-        return new DiscordWebhookClient(
-                builder.build(),
-                new DiscordNotificationProperties(webhookUrl),
-                JsonMapper.builder().build()
-        );
+    private DiscordWebhookClient client() {
+        return new DiscordWebhookClient(builder.build(), JsonMapper.builder().build());
     }
 }

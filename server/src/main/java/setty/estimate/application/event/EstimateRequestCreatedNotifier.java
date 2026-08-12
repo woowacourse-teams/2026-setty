@@ -1,62 +1,45 @@
-package setty.dispatch.event;
+package setty.estimate.application.event;
 
 import java.time.format.DateTimeFormatter;
+import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 import setty.common.notification.DiscordNotificationProperties;
 import setty.common.notification.DiscordWebhookClient;
-import setty.dispatch.service.OperatorDispatchUrlFactory;
+import setty.estimate.application.OperatorEstimateUrlFactory;
 
 @Component
-public class DispatchRequestCreatedNotifier {
+@RequiredArgsConstructor
+public class EstimateRequestCreatedNotifier {
     private static final DateTimeFormatter CREATED_AT_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
     private final DiscordWebhookClient discordWebhookClient;
     private final DiscordNotificationProperties discordNotificationProperties;
-    private final OperatorDispatchUrlFactory operatorDispatchUrlFactory;
-
-    public DispatchRequestCreatedNotifier(
-            final DiscordWebhookClient discordWebhookClient,
-            final DiscordNotificationProperties discordNotificationProperties,
-            final OperatorDispatchUrlFactory operatorDispatchUrlFactory
-    ) {
-        this.discordWebhookClient = discordWebhookClient;
-        this.discordNotificationProperties = discordNotificationProperties;
-        this.operatorDispatchUrlFactory = operatorDispatchUrlFactory;
-    }
+    private final OperatorEstimateUrlFactory operatorEstimateUrlFactory;
 
     @Async
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-    public void notifyCreated(final DispatchRequestCreatedEvent event) {
-        discordWebhookClient.send(discordNotificationProperties.dispatchWebhookUrl(), message(event));
+    public void notifyCreated(final EstimateRequestCreatedEvent event) {
+        discordWebhookClient.send(discordNotificationProperties.estimateWebhookUrl(), message(event));
     }
 
-    private String message(final DispatchRequestCreatedEvent event) {
+    private String message(final EstimateRequestCreatedEvent event) {
         return """
-                🚚 새 배차 요청이 접수됐어요
+                📝 새 견적 요청이 접수됐어요
                 • 요청 번호: #%d
                 • 물품: %s%s
-                • 물품 사진: %s
                 • 접수: %s
                 • 게시물: %s
                 • 운영자 화면: %s""".formatted(
-                event.dispatchRequestId(),
+                event.estimateRequestId(),
                 event.itemType(),
                 event.highValueItem() ? " (50만 원 초과)" : "",
-                itemImages(event.itemImageCount()),
                 event.createdAt().format(CREATED_AT_FORMAT),
                 productLink(event.productLink()),
-                operatorDispatchUrlFactory.create(event.dispatchRequestId())
+                operatorEstimateUrlFactory.create(event.estimateRequestId())
         );
-    }
-
-    private String itemImages(final int itemImageCount) {
-        if (itemImageCount == 0) {
-            return "없음";
-        }
-        return itemImageCount + "장";
     }
 
     private String productLink(final String productLink) {

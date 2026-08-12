@@ -1,4 +1,4 @@
-package setty.dispatch.event;
+package setty.estimate.application.event;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.eq;
@@ -15,11 +15,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import setty.common.notification.DiscordNotificationProperties;
 import setty.common.notification.DiscordWebhookClient;
 import setty.common.web.FrontProperties;
-import setty.dispatch.service.OperatorDispatchUrlFactory;
+import setty.estimate.application.OperatorEstimateUrlFactory;
 
 @ExtendWith(MockitoExtension.class)
-@DisplayName("배차 요청 접수 알림")
-class DispatchRequestCreatedNotifierTest {
+@DisplayName("견적 요청 접수 알림")
+class EstimateRequestCreatedNotifierTest {
     private static final String FRONT_BASE_URL = "https://setty.test";
     private static final String DISPATCH_WEBHOOK_URL = "https://webhook.invalid/setty-dispatch";
     private static final String ESTIMATE_WEBHOOK_URL = "https://webhook.invalid/setty-estimate";
@@ -33,56 +33,48 @@ class DispatchRequestCreatedNotifierTest {
     @Test
     @DisplayName("요청 번호·물품·접수 시각·운영자 화면 링크를 담아 보낸다")
     void sendsRequestSummaryWithOperatorLink() {
-        final DispatchRequestCreatedNotifier notifier = notifier();
-
-        notifier.notifyCreated(new DispatchRequestCreatedEvent(
-                12L,
-                "원목 의자",
+        notifier().notifyCreated(new EstimateRequestCreatedEvent(
+                31L,
+                "원목의자",
                 true,
-                2,
                 "https://www.daangn.com/articles/test-1",
-                LocalDateTime.of(2026, 8, 11, 14, 3)
+                LocalDateTime.of(2026, 8, 12, 10, 30)
         ));
 
-        verify(discordWebhookClient).send(eq(DISPATCH_WEBHOOK_URL), messageCaptor.capture());
+        verify(discordWebhookClient).send(eq(ESTIMATE_WEBHOOK_URL), messageCaptor.capture());
         assertThat(messageCaptor.getValue())
-                .contains("#12")
-                .contains("원목 의자")
+                .contains("#31")
+                .contains("원목의자")
                 .contains("50만 원 초과")
-                .contains("2장")
-                .contains("2026-08-11 14:03")
+                .contains("2026-08-12 10:30")
                 .contains("https://www.daangn.com/articles/test-1")
-                .contains(FRONT_BASE_URL + "/operator/dispatch-requests/12");
+                .contains(FRONT_BASE_URL + "/operator/estimate-requests/31");
     }
 
     @Test
-    @DisplayName("고가품이 아니고 사진과 게시물 링크가 없으면 그대로 표시한다")
+    @DisplayName("고가품이 아니고 게시물 링크가 없으면 그대로 표시한다")
     void sendsSummaryWithoutOptionalValues() {
-        final DispatchRequestCreatedNotifier notifier = notifier();
-
-        notifier.notifyCreated(new DispatchRequestCreatedEvent(
-                7L,
+        notifier().notifyCreated(new EstimateRequestCreatedEvent(
+                8L,
                 "책상",
                 false,
-                0,
                 null,
-                LocalDateTime.of(2026, 8, 11, 9, 0)
+                LocalDateTime.of(2026, 8, 12, 9, 0)
         ));
 
-        verify(discordWebhookClient).send(eq(DISPATCH_WEBHOOK_URL), messageCaptor.capture());
+        verify(discordWebhookClient).send(eq(ESTIMATE_WEBHOOK_URL), messageCaptor.capture());
         assertThat(messageCaptor.getValue())
-                .contains("#7")
+                .contains("#8")
                 .contains("책상")
                 .doesNotContain("50만 원 초과")
-                .contains("물품 사진: 없음")
                 .contains("게시물: 없음");
     }
 
-    private DispatchRequestCreatedNotifier notifier() {
-        return new DispatchRequestCreatedNotifier(
+    private EstimateRequestCreatedNotifier notifier() {
+        return new EstimateRequestCreatedNotifier(
                 discordWebhookClient,
                 new DiscordNotificationProperties(DISPATCH_WEBHOOK_URL, ESTIMATE_WEBHOOK_URL),
-                new OperatorDispatchUrlFactory(new FrontProperties(FRONT_BASE_URL))
+                new OperatorEstimateUrlFactory(new FrontProperties(FRONT_BASE_URL))
         );
     }
 }

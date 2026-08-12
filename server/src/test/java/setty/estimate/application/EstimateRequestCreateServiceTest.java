@@ -11,7 +11,9 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import setty.estimate.application.command.CreateEstimateRequestCommand;
+import setty.estimate.application.event.EstimateRequestCreatedEvent;
 import setty.estimate.domain.EstimateRequest;
 import setty.estimate.domain.EstimateRequestRepository;
 import setty.estimate.domain.EstimateRequestStatus;
@@ -21,14 +23,45 @@ class EstimateRequestCreateServiceTest {
     @Mock
     private EstimateRequestRepository estimateRequestRepository;
 
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
+
     @Captor
     private ArgumentCaptor<EstimateRequest> estimateRequestCaptor;
+
+    @Captor
+    private ArgumentCaptor<EstimateRequestCreatedEvent> eventCaptor;
 
     @Test
     void savesAnEstimateRequestInPendingReviewStatus() {
         when(estimateRequestRepository.save(any(EstimateRequest.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
-        final EstimateRequestCreateService service = new EstimateRequestCreateService(estimateRequestRepository);
+
+        createEstimateRequest();
+
+        verify(estimateRequestRepository).save(estimateRequestCaptor.capture());
+        final EstimateRequest savedEstimateRequest = estimateRequestCaptor.getValue();
+        assertThat(savedEstimateRequest.getPhoneNumber()).isEqualTo("01000000000");
+        assertThat(savedEstimateRequest.getProductLink()).isEqualTo("https://www.daangn.com/articles/test-1");
+        assertThat(savedEstimateRequest.getStatus()).isEqualTo(EstimateRequestStatus.PENDING_REVIEW);
+        assertThat(savedEstimateRequest.getCreatedAt()).isNotNull();
+    }
+
+    @Test
+    void publishesCreatedEvent() {
+        when(estimateRequestRepository.save(any(EstimateRequest.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        createEstimateRequest();
+
+        verify(eventPublisher).publishEvent(eventCaptor.capture());
+        assertThat(eventCaptor.getValue().itemType()).isEqualTo("원목의자");
+        assertThat(eventCaptor.getValue().productLink()).isEqualTo("https://www.daangn.com/articles/test-1");
+    }
+
+    private void createEstimateRequest() {
+        final EstimateRequestCreateService service =
+                new EstimateRequestCreateService(estimateRequestRepository, eventPublisher);
 
         service.create(new CreateEstimateRequestCommand(
                 "테스트사용자",
@@ -38,12 +71,5 @@ class EstimateRequestCreateServiceTest {
                 false,
                 "https://www.daangn.com/articles/test-1"
         ));
-
-        verify(estimateRequestRepository).save(estimateRequestCaptor.capture());
-        final EstimateRequest savedEstimateRequest = estimateRequestCaptor.getValue();
-        assertThat(savedEstimateRequest.getPhoneNumber()).isEqualTo("01000000000");
-        assertThat(savedEstimateRequest.getProductLink()).isEqualTo("https://www.daangn.com/articles/test-1");
-        assertThat(savedEstimateRequest.getStatus()).isEqualTo(EstimateRequestStatus.PENDING_REVIEW);
-        assertThat(savedEstimateRequest.getCreatedAt()).isNotNull();
     }
 }

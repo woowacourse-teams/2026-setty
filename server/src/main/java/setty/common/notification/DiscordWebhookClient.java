@@ -13,21 +13,22 @@ public class DiscordWebhookClient {
     private static final Logger log = LoggerFactory.getLogger(DiscordWebhookClient.class);
 
     private final RestClient discordRestClient;
-    private final DiscordNotificationProperties discordNotificationProperties;
     private final ObjectMapper objectMapper;
 
     public DiscordWebhookClient(
             final RestClient discordRestClient,
-            final DiscordNotificationProperties discordNotificationProperties,
             final ObjectMapper objectMapper
     ) {
         this.discordRestClient = discordRestClient;
-        this.discordNotificationProperties = discordNotificationProperties;
         this.objectMapper = objectMapper;
     }
 
-    public void send(final String content) {
-        if (!discordNotificationProperties.isEnabled()) {
+    /**
+     * 웹훅 URL은 채널마다 다르므로 보내는 쪽이 정한다.
+     * URL이 비어 있으면 해당 알림만 꺼진 것으로 보고 아무것도 보내지 않는다.
+     */
+    public void send(final String webhookUrl, final String content) {
+        if (webhookUrl == null || webhookUrl.isBlank()) {
             log.debug("디스코드 웹훅 URL이 설정되지 않아 알림을 보내지 않는다.");
             return;
         }
@@ -36,7 +37,7 @@ public class DiscordWebhookClient {
             final byte[] payload = objectMapper.writeValueAsBytes(new DiscordMessage(content));
 
             discordRestClient.post()
-                    .uri(discordNotificationProperties.webhookUrl())
+                    .uri(webhookUrl)
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(payload)
                     .retrieve()
