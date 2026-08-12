@@ -1,7 +1,6 @@
 package setty.dispatch.service;
 
 import java.util.UUID;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import setty.common.phone.PhoneNumbers;
@@ -11,7 +10,6 @@ import setty.dispatch.domain.SellerInputSession;
 import setty.dispatch.dto.buyer.BuyerDispatchRequestCreateRequest;
 import setty.dispatch.dto.buyer.BuyerDispatchRequestCreateResponse;
 import setty.dispatch.dto.buyer.BuyerDispatchRequestResponse;
-import setty.dispatch.event.DispatchRequestCreatedEvent;
 import setty.dispatch.exception.DispatchRequestNotFoundException;
 import setty.dispatch.repository.DispatchRequestRepository;
 import setty.dispatch.repository.SellerInputSessionRepository;
@@ -21,18 +19,15 @@ public class BuyerDispatchRequestService {
     private final DispatchRequestRepository dispatchRequestRepository;
     private final SellerInputSessionRepository sellerInputSessionRepository;
     private final SellerInputUrlFactory sellerInputUrlFactory;
-    private final ApplicationEventPublisher eventPublisher;
 
     public BuyerDispatchRequestService(
             final DispatchRequestRepository dispatchRequestRepository,
             final SellerInputSessionRepository sellerInputSessionRepository,
-            final SellerInputUrlFactory sellerInputUrlFactory,
-            final ApplicationEventPublisher eventPublisher
+            final SellerInputUrlFactory sellerInputUrlFactory
     ) {
         this.dispatchRequestRepository = dispatchRequestRepository;
         this.sellerInputSessionRepository = sellerInputSessionRepository;
         this.sellerInputUrlFactory = sellerInputUrlFactory;
-        this.eventPublisher = eventPublisher;
     }
 
     @Transactional
@@ -51,7 +46,6 @@ public class BuyerDispatchRequestService {
         final SellerInputSession session = sellerInputSessionRepository.save(
                 new SellerInputSession(UUID.randomUUID().toString(), dispatchRequest)
         );
-        eventPublisher.publishEvent(DispatchRequestCreatedEvent.from(dispatchRequest));
 
         return new BuyerDispatchRequestCreateResponse(
                 dispatchRequest.getBuyerToken(),

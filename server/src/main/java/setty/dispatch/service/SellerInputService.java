@@ -1,19 +1,26 @@
 package setty.dispatch.service;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import setty.dispatch.domain.SellerInputSession;
 import setty.dispatch.dto.seller.SellerInputSessionResponse;
 import setty.dispatch.dto.seller.SellerInputSubmitRequest;
+import setty.dispatch.event.SellerInputCompletedEvent;
 import setty.dispatch.exception.SellerInputSessionNotFoundException;
 import setty.dispatch.repository.SellerInputSessionRepository;
 
 @Service
 public class SellerInputService {
     private final SellerInputSessionRepository sellerInputSessionRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
-    public SellerInputService(final SellerInputSessionRepository sellerInputSessionRepository) {
+    public SellerInputService(
+            final SellerInputSessionRepository sellerInputSessionRepository,
+            final ApplicationEventPublisher eventPublisher
+    ) {
         this.sellerInputSessionRepository = sellerInputSessionRepository;
+        this.eventPublisher = eventPublisher;
     }
 
     @Transactional(readOnly = true)
@@ -23,7 +30,10 @@ public class SellerInputService {
 
     @Transactional
     public void submit(final String token, final SellerInputSubmitRequest request) {
-        getSession(token).complete(request.toSellerInput());
+        final SellerInputSession session = getSession(token);
+        session.complete(request.toSellerInput());
+
+        eventPublisher.publishEvent(SellerInputCompletedEvent.from(session.getDispatchRequest()));
     }
 
     private SellerInputSession getSession(final String token) {

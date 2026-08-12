@@ -18,8 +18,8 @@ import setty.common.web.FrontProperties;
 import setty.dispatch.service.OperatorDispatchUrlFactory;
 
 @ExtendWith(MockitoExtension.class)
-@DisplayName("배차 요청 접수 알림")
-class DispatchRequestCreatedNotifierTest {
+@DisplayName("판매자 입력 완료 알림")
+class SellerInputCompletedNotifierTest {
     private static final String FRONT_BASE_URL = "https://setty.test";
     private static final String DISPATCH_WEBHOOK_URL = "https://webhook.invalid/setty-dispatch";
     private static final String ESTIMATE_WEBHOOK_URL = "https://webhook.invalid/setty-estimate";
@@ -31,26 +31,27 @@ class DispatchRequestCreatedNotifierTest {
     private ArgumentCaptor<String> messageCaptor;
 
     @Test
-    @DisplayName("요청 번호·물품·접수 시각·운영자 화면 링크를 담아 보낸다")
-    void sendsRequestSummaryWithOperatorLink() {
-        final DispatchRequestCreatedNotifier notifier = notifier();
-
-        notifier.notifyCreated(new DispatchRequestCreatedEvent(
+    @DisplayName("배차 채널로 요청 번호·물품·두 시각·운영자 화면 링크를 담아 보낸다")
+    void sendsSummaryToDispatchChannel() {
+        notifier().notifySellerInputCompleted(new SellerInputCompletedEvent(
                 12L,
                 "원목 의자",
                 true,
                 2,
                 "https://www.daangn.com/articles/test-1",
-                LocalDateTime.of(2026, 8, 11, 14, 3)
+                LocalDateTime.of(2026, 8, 11, 14, 3),
+                LocalDateTime.of(2026, 8, 12, 9, 12)
         ));
 
         verify(discordWebhookClient).send(eq(DISPATCH_WEBHOOK_URL), messageCaptor.capture());
         assertThat(messageCaptor.getValue())
+                .contains("판매자 입력이 끝난")
                 .contains("#12")
                 .contains("원목 의자")
                 .contains("50만 원 초과")
                 .contains("2장")
-                .contains("2026-08-11 14:03")
+                .contains("구매자 접수: 2026-08-11 14:03")
+                .contains("판매자 입력 완료: 2026-08-12 09:12")
                 .contains("https://www.daangn.com/articles/test-1")
                 .contains(FRONT_BASE_URL + "/operator/dispatch-requests/12");
     }
@@ -58,15 +59,14 @@ class DispatchRequestCreatedNotifierTest {
     @Test
     @DisplayName("고가품이 아니고 사진과 게시물 링크가 없으면 그대로 표시한다")
     void sendsSummaryWithoutOptionalValues() {
-        final DispatchRequestCreatedNotifier notifier = notifier();
-
-        notifier.notifyCreated(new DispatchRequestCreatedEvent(
+        notifier().notifySellerInputCompleted(new SellerInputCompletedEvent(
                 7L,
                 "책상",
                 false,
                 0,
                 null,
-                LocalDateTime.of(2026, 8, 11, 9, 0)
+                LocalDateTime.of(2026, 8, 12, 8, 0),
+                LocalDateTime.of(2026, 8, 12, 9, 0)
         ));
 
         verify(discordWebhookClient).send(eq(DISPATCH_WEBHOOK_URL), messageCaptor.capture());
@@ -78,8 +78,8 @@ class DispatchRequestCreatedNotifierTest {
                 .contains("게시물: 없음");
     }
 
-    private DispatchRequestCreatedNotifier notifier() {
-        return new DispatchRequestCreatedNotifier(
+    private SellerInputCompletedNotifier notifier() {
+        return new SellerInputCompletedNotifier(
                 discordWebhookClient,
                 new DiscordNotificationProperties(DISPATCH_WEBHOOK_URL, ESTIMATE_WEBHOOK_URL),
                 new OperatorDispatchUrlFactory(new FrontProperties(FRONT_BASE_URL))

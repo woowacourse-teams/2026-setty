@@ -13,12 +13,12 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.context.ApplicationEventPublisher;
 import setty.common.web.FrontProperties;
 import setty.dispatch.domain.DispatchRequest;
+import setty.dispatch.domain.DispatchStatus;
 import setty.dispatch.domain.SellerInputSession;
 import setty.dispatch.dto.buyer.BuyerDispatchRequestCreateRequest;
-import setty.dispatch.event.DispatchRequestCreatedEvent;
+import setty.dispatch.dto.buyer.BuyerDispatchRequestCreateResponse;
 import setty.dispatch.repository.DispatchRequestRepository;
 import setty.dispatch.repository.SellerInputSessionRepository;
 
@@ -31,15 +31,12 @@ class BuyerDispatchRequestServiceTest {
     @Mock
     private SellerInputSessionRepository sellerInputSessionRepository;
 
-    @Mock
-    private ApplicationEventPublisher eventPublisher;
-
     @Captor
-    private ArgumentCaptor<DispatchRequestCreatedEvent> eventCaptor;
+    private ArgumentCaptor<DispatchRequest> dispatchRequestCaptor;
 
     @Test
-    @DisplayName("배차 요청을 저장한 뒤 접수 알림 이벤트를 발행한다")
-    void publishesCreatedEvent() {
+    @DisplayName("판매자 입력을 기다리는 요청을 저장하고 판매자 입력 URL을 돌려준다")
+    void savesRequestPendingSellerInputAndReturnsSellerInputUrl() {
         when(dispatchRequestRepository.save(any(DispatchRequest.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
         when(sellerInputSessionRepository.save(any(SellerInputSession.class)))
@@ -47,11 +44,10 @@ class BuyerDispatchRequestServiceTest {
         final BuyerDispatchRequestService service = new BuyerDispatchRequestService(
                 dispatchRequestRepository,
                 sellerInputSessionRepository,
-                new SellerInputUrlFactory(new FrontProperties("https://setty.test")),
-                eventPublisher
+                new SellerInputUrlFactory(new FrontProperties("https://setty.test"))
         );
 
-        service.create(new BuyerDispatchRequestCreateRequest(
+        final BuyerDispatchRequestCreateResponse response = service.create(new BuyerDispatchRequestCreateRequest(
                 "테스트구매자",
                 "010-0000-0001",
                 "서울특별시 테스트구 테스트로 1",
@@ -62,8 +58,9 @@ class BuyerDispatchRequestServiceTest {
                 null
         ));
 
-        verify(eventPublisher).publishEvent(eventCaptor.capture());
-        assertThat(eventCaptor.getValue().itemType()).isEqualTo("책상");
-        assertThat(eventCaptor.getValue().itemImageCount()).isEqualTo(1);
+        assertThat(response.sellerInputUrl()).startsWith("https://setty.test/seller-input/");
+        assertThat(response.buyerToken()).isNotBlank();
+        verify(dispatchRequestRepository).save(dispatchRequestCaptor.capture());
+        assertThat(dispatchRequestCaptor.getValue().getStatus()).isEqualTo(DispatchStatus.SELLER_INPUT_PENDING);
     }
 }
