@@ -441,7 +441,7 @@ describe('링크 생성 화면 복구', () => {
 describe('판매자 흐름', () => {
   /** 세션 조회 응답을 받고 입력 가능한 상태까지 기다린다. */
   const openSellerForm = async () => {
-    renderAt(`/seller-input/${SELLER_TOKEN}`);
+    renderAt(`/seller-input/${SELLER_TOKEN}/form`);
 
     return screen.findByLabelText('판매자 이름');
   };
@@ -453,6 +453,50 @@ describe('판매자 흐름', () => {
     await user.type(screen.getByLabelText('회수 희망 시간'), '평일 오후 2시 이후');
   };
 
+  it('판매자 링크로 들어오면 소개 화면을 먼저 보여주고 세션을 조회하지 않는다', async () => {
+    renderAt(`/seller-input/${SELLER_TOKEN}`);
+
+    expect(
+      screen.getByRole('heading', { name: /SETTY\s*로 거래가 요청됐어요/ }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('결제나 계좌 정보는 묻지 않아요')).toBeInTheDocument();
+    expect(screen.queryByLabelText('판매자 이름')).not.toBeInTheDocument();
+    // 소개만 보고 나가는 판매자에게는 세션 조회 요청도 나가지 않는다.
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it('소개 화면에서 진행하기를 누르면 입력 폼으로 이동한다', async () => {
+    const user = userEvent.setup();
+    mockFetch.mockResolvedValue(
+      jsonResponse(200, { itemType: '3인용 소파', alreadySubmitted: false }),
+    );
+
+    renderAt(`/seller-input/${SELLER_TOKEN}`);
+
+    await user.click(screen.getByRole('button', { name: '진행하기' }));
+
+    expect(currentPath()).toBe(`/seller-input/${SELLER_TOKEN}/form`);
+    expect(await screen.findByLabelText('판매자 이름')).toBeInTheDocument();
+  });
+
+  it('입력 폼에서 뒤로가기를 누르면 소개 화면으로 돌아온다', async () => {
+    const user = userEvent.setup();
+    mockFetch.mockResolvedValue(
+      jsonResponse(200, { itemType: '3인용 소파', alreadySubmitted: false }),
+    );
+
+    renderAt(`/seller-input/${SELLER_TOKEN}`);
+    await user.click(screen.getByRole('button', { name: '진행하기' }));
+    await screen.findByLabelText('판매자 이름');
+
+    await user.click(screen.getByRole('button', { name: '뒤로 가기' }));
+
+    expect(currentPath()).toBe(`/seller-input/${SELLER_TOKEN}`);
+    expect(
+      screen.getByRole('heading', { name: /SETTY\s*로 거래가 요청됐어요/ }),
+    ).toBeInTheDocument();
+  });
+
   it('판매자 링크로 들어오면 세션을 조회하고 입력을 제출한다', async () => {
     const user = userEvent.setup();
     mockFetch
@@ -461,7 +505,7 @@ describe('판매자 흐름', () => {
       )
       .mockResolvedValueOnce(emptyResponse(204));
 
-    renderAt(`/seller-input/${SELLER_TOKEN}`);
+    renderAt(`/seller-input/${SELLER_TOKEN}/form`);
 
     await waitFor(() =>
       expect(mockFetch).toHaveBeenCalledWith(
@@ -497,7 +541,7 @@ describe('판매자 흐름', () => {
       jsonResponse(200, { itemType: '3인용 소파', alreadySubmitted: true }),
     );
 
-    renderAt(`/seller-input/${SELLER_TOKEN}`);
+    renderAt(`/seller-input/${SELLER_TOKEN}/form`);
 
     expect(await screen.findByText(/이미 제출/)).toBeInTheDocument();
     expect(screen.queryByLabelText('판매자 이름')).not.toBeInTheDocument();
@@ -543,7 +587,7 @@ describe('판매자 흐름', () => {
     await user.click(screen.getByRole('button', { name: '보기' }));
 
     expect(screen.getByRole('heading', { name: /아래 정보를 수집해요/ })).toBeInTheDocument();
-    expect(currentPath()).toBe(`/seller-input/${SELLER_TOKEN}`);
+    expect(currentPath()).toBe(`/seller-input/${SELLER_TOKEN}/form`);
 
     await user.click(screen.getByRole('button', { name: '동의하고 계속하기' }));
 
@@ -556,7 +600,7 @@ describe('판매자 흐름', () => {
       jsonResponse(200, { itemType: '3인용 소파', alreadySubmitted: true }),
     );
 
-    renderAt(`/seller-input/${SELLER_TOKEN}`);
+    renderAt(`/seller-input/${SELLER_TOKEN}/form`);
 
     expect(await screen.findByText(/이미 제출/)).toBeInTheDocument();
     expect(
@@ -569,7 +613,7 @@ describe('판매자 흐름', () => {
       jsonResponse(404, { message: '판매자 입력 세션을 찾을 수 없습니다.' }),
     );
 
-    renderAt(`/seller-input/${SELLER_TOKEN}`);
+    renderAt(`/seller-input/${SELLER_TOKEN}/form`);
 
     expect(
       await screen.findByText('판매자 입력 세션을 찾을 수 없습니다.'),

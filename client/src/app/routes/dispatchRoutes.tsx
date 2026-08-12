@@ -12,6 +12,7 @@ import DispatchIntroScreen from '@/flows/dispatch/screens/DispatchIntroScreen';
 import FinalAmountConfirmScreen from '@/flows/dispatch/screens/FinalAmountConfirmScreen';
 import LinkCreatedScreen from '@/flows/dispatch/screens/LinkCreatedScreen';
 import SellerInputFormScreen from '@/flows/dispatch/screens/SellerInputFormScreen';
+import SellerIntroScreen from '@/flows/dispatch/screens/SellerIntroScreen';
 import SellerSubmittedScreen from '@/flows/dispatch/screens/SellerSubmittedScreen';
 import SellerWaitingScreen from '@/flows/dispatch/screens/SellerWaitingScreen';
 
@@ -27,6 +28,8 @@ export const DISPATCH_PATH = {
     `/dispatch/${encodeURIComponent(buyerToken)}/link`,
   buyerStatus: (buyerToken: string) => `/dispatch/${encodeURIComponent(buyerToken)}`,
   sellerInput: (sellerToken: string) => `/seller-input/${encodeURIComponent(sellerToken)}`,
+  sellerInputForm: (sellerToken: string) =>
+    `/seller-input/${encodeURIComponent(sellerToken)}/form`,
   sellerSubmitted: (sellerToken: string) =>
     `/seller-input/${encodeURIComponent(sellerToken)}/submitted`,
   finalAmount: (buyerToken: string) => `/final-amount/${encodeURIComponent(buyerToken)}`,
@@ -175,10 +178,31 @@ function BuyerStatusRoute() {
   );
 }
 
+/**
+ * 판매자는 구매자에게 링크만 받고 들어와 SETTY를 모르는 상태다.
+ * 링크 주소(`/seller-input/:sellerToken`)는 그대로 두고 소개 화면을 먼저 보여준 뒤
+ * `진행하기`로 폼 경로를 히스토리에 쌓아, 폼에서 뒤로가면 소개 화면으로 돌아오게 한다.
+ */
+function SellerIntroRoute() {
+  const navigate = useNavigate();
+  const { sellerToken } = useParams<{ sellerToken: string }>();
+
+  if (!sellerToken) {
+    return <Navigate to={DISPATCH_PATH.home} replace />;
+  }
+
+  return (
+    <SellerIntroScreen
+      onProceed={() => navigate(DISPATCH_PATH.sellerInputForm(sellerToken))}
+    />
+  );
+}
+
 function SellerInputFormRoute() {
   const navigate = useNavigate();
   const { sellerToken } = useParams<{ sellerToken: string }>();
   const { state } = useLocation();
+  const goBack = useGoBack(DISPATCH_PATH.sellerInput(sellerToken ?? ''));
   const isPrivacyNoticeOpen = (state as PrivacyNoticeState | null)?.privacyNotice === true;
 
   if (!sellerToken) {
@@ -189,9 +213,10 @@ function SellerInputFormRoute() {
     <SellerInputFormScreen
       key={sellerToken}
       sellerToken={sellerToken}
+      onBack={goBack}
       isPrivacyNoticeOpen={isPrivacyNoticeOpen}
       onOpenPrivacyNotice={() =>
-        navigate(DISPATCH_PATH.sellerInput(sellerToken), {
+        navigate(DISPATCH_PATH.sellerInputForm(sellerToken), {
           state: { privacyNotice: true } satisfies PrivacyNoticeState,
         })
       }
@@ -251,6 +276,10 @@ export const dispatchRoutes: RouteObject[] = [
   },
   {
     path: '/seller-input/:sellerToken',
+    element: <SellerIntroRoute />,
+  },
+  {
+    path: '/seller-input/:sellerToken/form',
     element: <SellerInputFormRoute />,
   },
   {
