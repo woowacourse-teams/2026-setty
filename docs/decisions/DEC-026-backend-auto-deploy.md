@@ -5,91 +5,102 @@
 - 참여자: **[팀 확인 필요]**
 - 관련 문서·Issue: `docs/deployment.md`, DEC-014, DEC-023, DEC-025, #73, #75
 - 대체하는 결정: DEC-025의 "첫 개발에서는 자동 배포를 만들지 않는다" 항목
-- 개정 이력: 2026-08-10 트리거 브랜치를 `main` → `develop`으로 수정 (#75).
-  합의 전 제안이므로 새 DEC로 대체하지 않고 직접 수정했다.
+- 개정 이력:
+  - 2026-08-10: 트리거 브랜치를 `main`에서 `develop`으로 수정
+  - 2026-08-12: 실제 Ubuntu 직접 JVM 환경에 맞춰 CodeBuild·CodeDeploy·Docker 구성을 CodePipeline V2 Amazon EC2 배포 작업·SSM·systemd 구성으로 교체
 
 ## 결정할 문제
 
-DEC-025와 `mvp-scope.md`는 첫 개발에서 자동 배포를 만들지 않고 DEV EC2에 수동 배포한다고 정했다.
-수동 배포를 반복하면서 배포 담당자 1명에게 절차가 묶이고, 배포 시점과 개발 통합 브랜치 상태가 어긋난다.
-자동 배포를 도입할지, 도입한다면 어디까지를 자동화 범위로 볼지, 어느 브랜치를 트리거로 쓸지 정해야 한다.
+DEV EC2 수동 배포가 특정 담당자와 로컬 빌드 절차에 의존한다.
+인바운드 보안 그룹을 변경하지 않고 `develop`의 백엔드를 반복 가능하게 배포할 경로가 필요하다.
 
 ## 확인된 사실
 
-- 백엔드는 DEV EC2 단일 인스턴스에서 Docker로 동작하고 MySQL도 같은 인스턴스의 컨테이너다. RDS를 쓰지 않는다.
-- 프론트는 S3에 배포하고 CloudFront가 앞단에 있다. `client/src/shared/api/http.ts:5`가 production에서 API origin을 빈 문자열로 두므로 프론트와 API는 동일 오리진 전제다.
-- EC2는 private subnet에 있고 NAT Gateway로 아웃바운드가 가능하다. 인바운드 보안 그룹은 보안팀이 관리해 수정할 수 없다.
-- 무중단 배포에 필요한 인스턴스 추가·ALB 타겟 그룹 조작 권한이 현재 팀에 없다.
+- 배포 대상은 기존 Ubuntu EC2 단일 인스턴스다.
+- Spring Boot는 Docker가 아니라 `ssm-user`의 `nohup java -jar setty.jar`로 실행 중이다. 첫 systemd 배포에서 `ubuntu` 서비스로 이관한다.
+- 기존 `redeploy.sh`는 EC2에서 Git pull, `clean bootJar`, 기존 프로세스 종료, 새 JAR의 nohup 실행을 수행한다.
+- MySQL은 배포 대상 EC2에서 별도로 실행 중이며 이 배포가 생성하거나 제거하지 않는다.
+- SSM Agent는 Ubuntu Snap 서비스에서 `enabled`, `active` 상태다. Systems Manager 관리형 노드의 `Online` 상태는 별도 확인이 필요하다.
+- 인바운드 보안 그룹과 서브넷은 변경할 수 없다. EC2 아웃바운드는 허용한다.
+- 재검토 당시 루트 파일시스템 여유 공간이 378 MiB뿐이었으나 EBS·파티션·ext4를 확장해 배포 최소치 2 GiB 이상을 확보했다.
 
 ## 선택지
 
-### 선택지 A: 수동 배포 유지 (DEC-025 현행)
+### 선택지 A: 기존 수동 `redeploy.sh` 유지
 
-- 장점: 추가 인프라·권한이 필요 없다. 배포 시점을 사람이 통제한다.
-- 단점: 접근 권한자에게 병목이 생기고 절차가 사람마다 달라진다. 배포 누락을 감지할 수 없다.
+- 장점: 인프라 변경이 없다.
+- 단점: 배포자의 접속과 수동 명령에 의존한다. 프로세스 상태·재시작·로그 보존이 약하다.
 - 되돌리기 비용: 없음
 
-### 선택지 B: GitHub Actions에서 EC2로 직접 배포
+### 선택지 B: CodePipeline + CodeBuild + CodeDeploy
 
-- 장점: 이미 CI가 GitHub Actions에 있어 도구가 하나로 모인다.
-- 단점: private subnet의 EC2에 GitHub Runner가 직접 닿지 못한다. 접속 경로를 새로 뚫어야 하는데 인바운드 보안 그룹을 수정할 수 없다.
-- 되돌리기 비용: 중간. 보안팀 협의가 선행된다.
+- 장점: 빌드 부하를 서비스 EC2와 분리한다. CodeDeploy의 표준 수명 주기를 사용한다.
+- 단점: CodeBuild와 CodeDeploy 역할·에이전트가 추가된다. 실제 구성에서 CodeBuild 역할의 아티팩트 S3 읽기 권한 누락으로 Source 다운로드가 실패했다.
+- 되돌리기 비용: 중간
 
-### 선택지 C: CodePipeline + CodeBuild + CodeDeploy (제안)
+### 선택지 C: CodePipeline V2 Amazon EC2 배포 작업 + SSM + systemd
 
-- 장점: CodeDeploy 에이전트가 EC2에서 밖으로 폴링하므로 인바운드 개방이 필요 없다. 인스턴스 프로파일로 권한을 주므로 배포용 장기 자격증명을 만들지 않아도 된다.
-- 단점: AWS 콘솔 설정 항목이 늘고, 파이프라인 실패 원인이 CodeBuild·CodeDeploy 두 곳으로 나뉜다.
-- 되돌리기 비용: 낮음. 파이프라인을 비활성화하면 수동 배포로 돌아간다.
+- 장점: 기존 SSM 연결을 사용한다. CodeBuild와 CodeDeploy Agent가 필요 없다. systemd가 프로세스 재시작, 부팅 시 시작, 로그 수집을 담당한다.
+- 단점: 빌드가 서비스 EC2의 CPU·메모리를 사용한다. 단일 인스턴스 교체라 다운타임이 있다.
+- 되돌리기 비용: 낮음. 파이프라인을 중지하고 기존 수동 배포로 돌아갈 수 있다.
 
 ## 결정
 
-선택지 C를 사용한다. **`develop` 푸시 시** 다음 경로로 백엔드를 자동 배포한다.
+**선택지 C 채택.** `develop` 푸시 시 다음 경로로 백엔드 DEV EC2를 배포한다.
 
+```text
+GitHub develop
+→ CodePipeline Source
+→ 비공개 S3 SourceArtifact
+→ Amazon EC2 배포 작업
+→ SSM
+→ EC2에서 bootJar
+→ systemd setty-backend.service 교체
+→ Actuator 검증
 ```
-GitHub develop → CodePipeline → CodeBuild(bootJar) → S3 아티팩트
-→ CodeDeploy(EC2 In-place) → EC2에서 docker build → 앱 컨테이너만 교체
-```
 
-트리거를 `develop`으로 두는 이유는 DEC-025가 "`main`은 운영 기준, `develop`은 개발 통합 기준"으로 정의했기 때문이다.
-배포 대상이 DEV EC2이므로 개발 통합 브랜치를 따라가는 것이 맞다.
-`main`을 트리거로 두면 DEV 환경이 운영 브랜치를 따라가게 되어, 정작 개발 통합 결과를 확인할 수 없다.
+범위:
 
-범위 한정:
-
-- 이 결정의 자동 배포 대상은 **백엔드 DEV EC2뿐**이다.
-  프론트 자동 배포도 진행 예정이지만 담당과 파이프라인이 달라 별도 결정으로 남긴다. PROD 공개는 포함하지 않는다.
-- **무중단 배포를 하지 않는다.** 앱 컨테이너 교체 중 수십 초의 다운타임을 허용한다.
-- ECR을 쓰지 않는다. 아티팩트는 JAR이고 이미지 빌드는 EC2에서 한다.
-- MySQL 컨테이너는 배포 대상이 아니다. named volume `db-data`를 유지하고 배포가 DB를 재생성하지 않는다.
-- 비밀정보는 EC2의 `/opt/setty/.env`로만 관리하고 레포에 커밋하지 않는다.
+- 백엔드 DEV EC2만 자동 배포한다.
+- CodeBuild와 CodeDeploy를 사용하지 않는다.
+- Docker 이미지와 컨테이너를 사용하지 않는다.
+- EC2에서 JAR을 빌드한다. Gradle 힙은 512 MiB, worker는 1개로 제한한다.
+- MySQL 설치·재시작·데이터 변경은 비범위다.
+- 실제 비밀정보는 EC2의 `/opt/setty/setty.env`에서만 관리한다.
+- systemd 서비스 사용자는 `ubuntu`다.
+- 현재 JAR은 `/opt/setty/app/setty.jar`, 이전 JAR은 `/opt/setty/app/setty.jar.previous`다.
+- 헬스 체크 실패 시 이전 JAR을 복구하지만 해당 파이프라인 실행은 실패로 기록한다.
+- 무중단 배포는 하지 않는다.
 
 ## 결정 이유
 
-인바운드 보안 그룹을 수정할 수 없다는 제약이 선택지 B를 실질적으로 막는다.
-CodeDeploy 에이전트의 아웃바운드 폴링 방식은 이 제약을 그대로 두고 동작하는 유일한 경로다.
-DEV 환경이고 사용자 공개 전이므로 무중단 배포의 복잡도를 지금 부담할 이유가 없다.
+Amazon EC2 배포 작업은 이미 구성한 SSM의 아웃바운드 연결을 사용하므로 인바운드 변경이 필요 없다.
+현재 런타임이 Docker가 아닌 직접 JVM 실행이므로 systemd가 실제 환경과 일치한다.
+CodeBuild·CodeDeploy를 제거하면 서비스 수와 IAM 실패 지점이 줄어든다.
 
-## 반대 의견과 우려
+## 부정·제약
 
-- DEC-025는 "자동화 부재 자체는 차단이 아니다"라고 했다. 자동 배포는 사용자 공개 조건이 아니라 팀 운영 효율을 위한 선택이다.
-- 단일 EC2에서 앱과 MySQL이 함께 동작하므로, 배포 스크립트의 실수 하나가 DB 데이터를 지울 수 있다. 볼륨 이름 고정과 `--no-deps` 사용으로 막지만 실제 배포로 검증해야 한다.
-- 자동 배포는 `develop`에 병합되면 즉시 반영된다는 뜻이다. DEC-025의 리뷰 1인 승인 규칙이 사실상 유일한 방어선이 된다.
-- `develop` 트리거는 `main` 트리거보다 배포 빈도가 높다. 배포마다 수십 초의 다운타임이 있으므로 DEV 환경에서 일시적인 요청 실패가 잦아진다.
-  DEV 환경이고 사용자 공개 전이라 감수한다.
+- 빌드 중 서비스 EC2 자원 경합이 발생할 수 있다.
+- 새 JAR로 교체하는 동안 요청 실패 구간이 생긴다.
+- 첫 배포에서 기존 nohup 프로세스의 JAR 경로를 찾지 못하면 자동 롤백본이 없다.
+- 애플리케이션 JAR만 롤백한다. 데이터베이스 스키마와 외부 상태는 롤백하지 않는다.
+- CodePipeline과 IAM이 콘솔 관리 상태라 설정 변경이 코드 리뷰에 남지 않는다.
+- `develop` 병합이 즉시 DEV 배포를 시작하므로 PR 리뷰가 배포 전 통제 지점이다.
 
-## 영향
+## 검증
 
-- 변경되는 사용자 흐름: 없음
-- 변경되는 운영 흐름: DEV 백엔드 배포가 `develop` 병합으로 자동 수행된다. 수동 배포 절차는 장애 대응용으로만 남는다.
-  `main` 병합은 배포를 트리거하지 않는다.
-- 변경되는 문서·Issue: DEC-025 배포 항목, `docs/product/mvp-scope.md` 제외 목록, `docs/team/collaboration-rules.md` Git·PR 항목
-- 새로 필요한 검증:
-  - 첫 배포에서 MySQL 컨테이너가 새로 생성되고, 두 번째 배포에서 **재생성되지 않고 데이터가 유지되는지**
-  - 컨테이너 안에서 IMDS(169.254.169.254)에 접근해 S3 업로드가 되는지. 인스턴스 metadata hop limit이 1이면 실패한다.
-  - CloudFront `/api/*` behavior가 ALB origin으로 걸려 있고 캐시 비활성·전체 HTTP 메서드 허용인지
+- `server/deployspec.yml` YAML 파싱
+- 모든 `server/deploy/scripts/*.sh`의 `bash -n`
+- Java 21에서 `server/gradlew clean bootJar -x test`
+- Systems Manager 관리형 노드 `Online`
+- EC2 역할로 SourceArtifact `s3:GetObject`
+- 첫 배포 후 `systemctl is-active setty-backend.service`
+- `/actuator/health`의 `UP`
+- 두 번째 배포 실패를 유도한 뒤 이전 JAR 복구와 파이프라인 실패 상태 확인
 
 ## 재검토 조건
 
-- PROD 환경을 만들 때. PROD는 다운타임을 허용하지 않으므로 배포 방식을 다시 정한다.
-- 배포 실패가 반복되거나 롤백이 필요한 상황이 생길 때.
-- MySQL을 RDS로 옮길 때. 이 결정의 볼륨·컨테이너 전제가 사라진다.
+- 서비스 EC2의 빌드 자원 경합이 운영 요청에 영향을 줄 때
+- PROD 환경 또는 무중단 배포가 필요할 때
+- MySQL을 RDS로 이전하거나 스키마 마이그레이션 도구를 도입할 때
+- 배포 실패가 반복되거나 JAR 한 개 롤백으로 복구되지 않을 때

@@ -1,0 +1,26 @@
+# CodePipeline 배포 시 /etc/systemd/system에 설치한다.
+[Unit]
+Description=SETTY Spring Boot backend
+Wants=network-online.target
+After=network-online.target
+StartLimitIntervalSec=180
+StartLimitBurst=10
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/opt/setty/app
+EnvironmentFile=/opt/setty/setty.env
+ExecStart=/usr/bin/java -jar /opt/setty/app/setty.jar
+SuccessExitStatus=143
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+KillSignal=SIGTERM
+UMask=0027
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
