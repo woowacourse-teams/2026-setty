@@ -12,7 +12,7 @@ import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import setty.common.notification.DiscordWebhookClient;
-import setty.dispatch.DispatchProperties;
+import setty.common.web.FrontProperties;
 import setty.dispatch.service.OperatorDispatchUrlFactory;
 
 @ExtendWith(MockitoExtension.class)
@@ -77,7 +77,7 @@ class DispatchRequestCreatedNotifierTest {
     private DispatchRequestCreatedNotifier notifier() {
         return new DispatchRequestCreatedNotifier(
                 discordWebhookClient,
-                new OperatorDispatchUrlFactory(new DispatchProperties(FRONT_BASE_URL))
+                new OperatorDispatchUrlFactory(new FrontProperties(FRONT_BASE_URL))
         );
     }
 }

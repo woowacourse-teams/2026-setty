@@ -1,17 +1,17 @@
 package setty.dispatch.service;
 
 import org.springframework.stereotype.Component;
-import setty.dispatch.DispatchProperties;
+import setty.common.web.FrontProperties;
 
 @Component
 public class BuyerStatusUrlFactory {
-    private final DispatchProperties dispatchProperties;
+    private final FrontProperties frontProperties;
 
-    public BuyerStatusUrlFactory(final DispatchProperties dispatchProperties) {
-        this.dispatchProperties = dispatchProperties;
+    public BuyerStatusUrlFactory(final FrontProperties frontProperties) {
+        this.frontProperties = frontProperties;
     }
 
     public String create(final String buyerToken) {
-        return dispatchProperties.frontBaseUrl() + "/dispatch/" + buyerToken;
+        return frontProperties.baseUrl() + "/dispatch/" + buyerToken;
     }
 }

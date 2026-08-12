@@ -14,7 +14,7 @@ import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
-import setty.dispatch.DispatchProperties;
+import setty.common.web.FrontProperties;
 import setty.dispatch.domain.DispatchRequest;
 import setty.dispatch.domain.SellerInputSession;
 import setty.dispatch.dto.buyer.BuyerDispatchRequestCreateRequest;
@@ -47,7 +47,7 @@ class BuyerDispatchRequestServiceTest {
         final BuyerDispatchRequestService service = new BuyerDispatchRequestService(
                 dispatchRequestRepository,
                 sellerInputSessionRepository,
-                new SellerInputUrlFactory(new DispatchProperties("https://setty.test")),
+                new SellerInputUrlFactory(new FrontProperties("https://setty.test")),
                 eventPublisher
         );
 
