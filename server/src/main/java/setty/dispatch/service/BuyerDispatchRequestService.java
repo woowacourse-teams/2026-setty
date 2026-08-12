@@ -1,6 +1,8 @@
 package setty.dispatch.service;
 
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import setty.common.phone.PhoneNumbers;
@@ -16,6 +18,8 @@ import setty.dispatch.repository.SellerInputSessionRepository;
 
 @Service
 public class BuyerDispatchRequestService {
+    private static final Logger log = LoggerFactory.getLogger(BuyerDispatchRequestService.class);
+
     private final DispatchRequestRepository dispatchRequestRepository;
     private final SellerInputSessionRepository sellerInputSessionRepository;
     private final SellerInputUrlFactory sellerInputUrlFactory;
@@ -47,6 +51,13 @@ public class BuyerDispatchRequestService {
                 new SellerInputSession(UUID.randomUUID().toString(), dispatchRequest)
         );
 
+        log.info(
+                "배차 요청 접수 완료. dispatchRequestId={}, sessionId={}, sessionStatus={}",
+                dispatchRequest.getId(),
+                session.getId(),
+                session.getStatus()
+        );
+
         return new BuyerDispatchRequestCreateResponse(
                 dispatchRequest.getBuyerToken(),
                 sellerInputUrlFactory.create(session.getToken())
@@ -74,5 +85,8 @@ public class BuyerDispatchRequestService {
             return;
         }
         dispatchRequest.approveFinalAmount();
+
+        log.info("구매자 최종 금액 동의 완료. dispatchRequestId={}, status={}",
+                dispatchRequest.getId(), dispatchRequest.getStatus());
     }
 }
