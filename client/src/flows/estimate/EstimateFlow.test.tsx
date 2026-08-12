@@ -3,6 +3,7 @@ import '@testing-library/jest-dom/jest-globals';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, type RouteObject, useRoutes } from 'react-router-dom';
+import { ESTIMATE_PRIVACY_POLICY_VERSION } from './privacy/estimatePrivacyPolicy';
 import { estimateRoutes } from './routes';
 
 const fetchMock = jest.fn<typeof fetch>();
@@ -152,6 +153,36 @@ test('동의 화면의 뒤로 가기는 동의하지 않고 폼으로 돌아온�
   expect(screen.getByRole('checkbox', { name: PRIVACY_CONSENT_NAME })).not.toBeChecked();
 });
 
+test('동의 안내 화면이 보여준 안내문 버전을 그대로 동의 증적으로 보낸다', async () => {
+  fetchMock.mockResolvedValueOnce(
+    response({
+      estimateRequestId: 15,
+      status: 'PENDING_REVIEW',
+      createdAt: '2026-08-06T10:00:00+09:00',
+    }),
+  );
+  renderAt('/estimate');
+  const user = userEvent.setup();
+  await user.type(screen.getByLabelText('상품명'), '테스트 의자');
+  await user.type(screen.getByLabelText('거래 지역'), '테스트구 테스트동');
+  await user.type(screen.getByLabelText('이름'), '테스트사용자');
+  await user.type(screen.getByLabelText('연락처'), '010-0000-0000');
+
+  await user.click(screen.getByRole('button', { name: '보기' }));
+  const shownVersion = screen.getByText(ESTIMATE_PRIVACY_POLICY_VERSION).textContent;
+  await user.click(screen.getByRole('button', { name: '동의하고 계속하기' }));
+  await user.click(screen.getByRole('button', { name: '예상 견적 요청하기' }));
+
+  expect(
+    await screen.findByRole('heading', { name: '견적 요청이 접수됐어요' }),
+  ).toBeInTheDocument();
+  const init = fetchMock.mock.calls[0]?.[1];
+  expect(JSON.parse(String(init?.body))).toMatchObject({
+    privacyConsent: true,
+    privacyPolicyVersion: shownVersion,
+  });
+});
+
 test('견적 요청을 정규화해 제출하고 접수 완료 화면으로 이동한다', async () => {
   fetchMock.mockResolvedValueOnce(
     response({
@@ -177,6 +208,8 @@ test('견적 요청을 정규화해 제출하고 접수 완료 화면으로 이�
         tradeArea: '테스트구 테스트동',
         itemType: '테스트 의자',
         highValueItem: false,
+        privacyConsent: true,
+        privacyPolicyVersion: ESTIMATE_PRIVACY_POLICY_VERSION,
       }),
       credentials: 'same-origin',
       method: 'POST',
@@ -214,6 +247,8 @@ test('당근 게시물 링크를 입력하면 요청에 함께 보낸다', async
         itemType: '테스트 의자',
         highValueItem: false,
         productLink: 'https://www.daangn.com/articles/00000000',
+        privacyConsent: true,
+        privacyPolicyVersion: ESTIMATE_PRIVACY_POLICY_VERSION,
       }),
       credentials: 'same-origin',
       method: 'POST',
@@ -247,6 +282,8 @@ test('거래 금액 체크를 켜면 50만 원 초과 여부를 true로 보낸�
         tradeArea: '테스트구 테스트동',
         itemType: '테스트 의자',
         highValueItem: true,
+        privacyConsent: true,
+        privacyPolicyVersion: ESTIMATE_PRIVACY_POLICY_VERSION,
       }),
       credentials: 'same-origin',
       method: 'POST',
