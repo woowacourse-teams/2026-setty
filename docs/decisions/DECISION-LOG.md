@@ -44,7 +44,7 @@
 
 | 번호 | 상태 | 결정 | 문서 |
 |---|---|---|---|
-| DEC-026 | 제안·팀 합의 필요 | 백엔드 DEV EC2만 CodePipeline·CodeBuild·CodeDeploy로 자동 배포. 무중단 아님 | [DEC-026](DEC-026-backend-auto-deploy.md) |
+| DEC-026 | 제안·팀 합의 필요 | 백엔드 DEV EC2를 CodePipeline V2·SSM·systemd로 자동 배포. 무중단 아님 | [DEC-026](DEC-026-backend-auto-deploy.md) |
 
 ## 대체·수정 관계
 
