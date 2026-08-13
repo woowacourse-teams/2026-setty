@@ -9,6 +9,14 @@
       content="상품 픽업을 위해 판매자님의 배송 정보를 입력해주세요. 입력해주신 정보로 퀵·용달 배차를 진행합니다."
     />
 
+    <!-- 탭·북마크·홈 화면 아이콘이다. svg를 못 읽는 환경을 위해 ico를 함께 둔다. -->
+    <link rel="icon" type="image/svg+xml" href="<%= assetPath(require('./favicon.svg')) %>" />
+    <link rel="icon" sizes="48x48" href="<%= assetPath(require('./favicon.ico')) %>" />
+    <link
+      rel="apple-touch-icon"
+      href="<%= assetPath(require('./apple-touch-icon.png')) %>"
+    />
+
     <!-- 판매자가 카카오톡·문자로 받은 링크의 미리보기다. 크롤러는 JS를 실행하지 않으므로 정적으로 둔다. -->
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="SETTY" />
