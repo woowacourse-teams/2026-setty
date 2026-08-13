@@ -12,6 +12,11 @@ body,
   min-height: 100%;
 }
 
+/* index.html의 color-scheme 선언과 짝을 이룬다. 브라우저 UI도 라이트로 고정한다. */
+html {
+  color-scheme: light;
+}
+
 body {
   margin: 0;
   background: var(--setty-color-surface);
