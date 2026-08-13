@@ -22,7 +22,7 @@
 | DEC-011 | 합의 | GitHub Issue·PR을 사용하고 작성자가 아닌 팀원 1명이 리뷰한다. | 실제 레포에서 보호 규칙 확인 |
 | DEC-012 | 합의 | 운영 주담당 1명과 백업 1명을 둔다. | 실제 이름 지정 필요 |
 | DEC-013 | 합의 | 프론트는 React·TypeScript·Webpack, 백엔드는 Java·Spring·JPA를 사용한다. | 버전·도구는 공통 환경 Issue에서 문서화 |
-| DEC-014 | 합의 | 모노레포, 프론트 Vercel, 백엔드 DEV·PROD EC2 방향을 사용한다. | 첫 개발은 개발 환경 수동 배포만 |
+| DEC-014 | 합의 | 모노레포, 프론트 Vercel, 백엔드 DEV·PROD EC2 방향을 사용한다. | 백엔드 DEV 배포는 DEC-026이 대체 |
 | DEC-015 | 합의 | 루트와 프론트·백엔드 하위 AGENTS.md를 사용한다. | 실제 명령 반영 후 승인 |
 
 ## DEC-016~025
@@ -38,19 +38,18 @@
 | DEC-022 | 합의 | 내부 상태와 사용자 표시 분리, 변경 주체 제한 | [DEC-022](DEC-022-status-model.md) |
 | DEC-023 | 부분 합의 | 첫 MVP MySQL·JPA 스키마 자동 생성, Flyway는 검증 후 재검토. S3·인증·비밀·용량은 기술 검증 | [DEC-023](DEC-023-storage-and-admin.md) |
 | DEC-024 | 합의·역할 배정 반영 | 예상 견적은 캐리·밀란, 배차 요청은 스마일·타스·코코가 사용자 흐름별로 담당 | [DEC-024](DEC-024-sprint-roles.md) |
-| DEC-025 | 합의·명령 검증 필요 | develop 기반 Issue 브랜치, Merge commit, 수동 배포 | [DEC-025](DEC-025-git-and-done.md) |
+| DEC-025 | 합의·명령 검증 필요 | develop 기반 Issue 브랜치, Merge commit. 백엔드 DEV 배포는 DEC-026이 대체 | [DEC-025](DEC-025-git-and-done.md) |
 
 ## DEC-026~
 
 | 번호 | 상태 | 결정 | 문서 |
 |---|---|---|---|
-| DEC-026 | 제안·팀 합의 필요 | 백엔드 DEV EC2를 CodePipeline V2·SSM·systemd로 자동 배포. 무중단 아님 | [DEC-026](DEC-026-backend-auto-deploy.md) |
+| DEC-026 | 제안·팀 합의 필요 | 백엔드 DEV EC2를 CodePipeline Commands·CodeDeploy·systemd로 자동 배포. 무중단 아님 | [DEC-026](DEC-026-backend-auto-deploy.md) |
 
 ## 대체·수정 관계
 
 - DEC-004의 과거 “노출 범위를 줄인다” 표현을 “당사자 화면에 상세주소·연락처를 직접 노출하지 않는다”로 구체화했다.
-- DEC-014·025의 과거 자동 배포 예시는 첫 개발 결정으로 채택하지 않았다. 개발 환경 수동 배포와 재현까지만 포함한다.
-  DEC-026이 이 중 백엔드 DEV EC2 부분만 자동 배포로 대체한다. 프론트 자동 배포는 별도 담당이 별도 결정으로 진행한다.
+- DEC-014·025의 첫 개발 수동 배포 결정은 DEC-026이 백엔드 DEV EC2 부분에 한해 대체한다. 프론트 배포는 수동으로 유지하며 자동화는 별도 결정을 거친다.
 - **미해결**: DEC-014는 "프론트 Vercel"이라고 적었으나 실제 프론트는 S3에 배포하고 CloudFront가 앞단에 있다.
   문서와 실제가 다르므로 새 DEC로 정정해야 한다. `client/vercel.json`도 함께 정리 대상인지 확인이 필요하다.
 - 예상 견적에서 배차로 “이어진다”는 과거 표현은 DEC-016에 따라 별도 배차 요청 생성으로 대체한다.

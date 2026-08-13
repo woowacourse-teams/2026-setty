@@ -23,6 +23,7 @@ SETTY는 중고 가구·가전 거래 전에 예상 운송 가능 여부와 비�
 - [결정 로그](docs/decisions/DECISION-LOG.md)
 - [첫 개발 작업 계획](docs/team/initial-development-plan.md)
 - [역할과 책임](docs/team/roles-and-ownership.md)
+- [백엔드 DEV 배포](docs/deployment.md)
 
 ## Client
 
@@ -59,7 +60,7 @@ cd server
 ./gradlew build
 ```
 
-첫 MVP 개발 환경은 MySQL과 JPA 스키마 자동 생성을 사용합니다. Flyway 도입 여부, 실제 환경 변수와 수동 배포 절차는 사용자 행동 검증 후 결정합니다.
+첫 MVP 개발 환경은 MySQL과 JPA 스키마 자동 생성을 사용합니다. Flyway 도입 여부는 사용자 행동 검증 후 재검토합니다. 백엔드 DEV EC2는 [DEC-026](docs/decisions/DEC-026-backend-auto-deploy.md)에 따라 CodePipeline·CodeDeploy·systemd로 배포하며, 실제 환경 변수는 EC2에서만 관리합니다.
 
 ## Git workflow
 
@@ -68,6 +69,6 @@ cd server
 - `feature/<issue>-<slug>`, `fix/<issue>-<slug>`, `refactor/<issue>-<slug>`, `chore/<slug>` 사용
 - 작성자가 아닌 팀원 1명 리뷰
 - Merge commit으로 병합
-- 첫 개발은 수동 배포하며 자동 배포를 추가하지 않음
+- DEC-026 제안안은 `develop` 병합으로 백엔드 DEV 배포를 시작하고, 프론트 배포는 수동으로 유지
 
 실제 작업 범위와 완료 조건은 GitHub Issue를 기준으로 합니다.
