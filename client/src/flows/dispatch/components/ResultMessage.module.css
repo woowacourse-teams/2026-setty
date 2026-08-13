@@ -12,6 +12,14 @@
   line-height: 92px;
 }
 
+/* 아이콘 이미지는 비율이 제각각이라 기존 이모지와 같은 크기의 정사각 영역에 맞춘다. */
+.icon {
+  width: 100px;
+  height: 100px;
+  margin-top: 106px;
+  object-fit: contain;
+}
+
 .title {
   margin: 60px 0 0;
   font-size: var(--setty-font-size-title);

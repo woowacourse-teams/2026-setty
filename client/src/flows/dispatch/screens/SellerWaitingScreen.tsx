@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { findBuyerDispatchRequest } from '../api/dispatchApi';
 import { DispatchApiError } from '../api/dispatchClient';
+import checkIcon from '../assets/result-check.png';
+import hourglassIcon from '../assets/result-hourglass.png';
 import BrandHeader from '../components/BrandHeader';
 import MobileScreen from '../components/MobileScreen';
 import PrimaryButton from '../components/PrimaryButton';
@@ -31,7 +33,7 @@ const POLL_INTERVAL_MS = 5000;
 
 /** 시안 카피. 문자는 운영자가 직접 보내는 수동 절차라 자동 발송으로 표현하지 않는다. */
 const WAITING_MESSAGE = {
-  emoji: '⌛',
+  iconSrc: hourglassIcon,
   title: '판매자를 기다리고 있어요',
   description: '판매자가 사진·주소를 입력하면\n문자(SMS)로 알려드릴게요.',
 };
@@ -41,7 +43,7 @@ const WAITING_MESSAGE = {
  * `DEC-017`에 따라 완료 여부만 알린다.
  */
 const COMPLETED_MESSAGE = {
-  emoji: '✅',
+  iconSrc: checkIcon,
   title: '판매자 입력이 완료됐어요',
   description: '운영자가 배송 조건을 확인한 뒤\n최종 금액과 조건을 문자로 직접 안내해요.',
 };
@@ -136,7 +138,7 @@ export default function SellerWaitingScreen({
 
       {!loading && !errorMessage && request ? (
         <ResultMessage
-          emoji={message.emoji}
+          iconSrc={message.iconSrc}
           title={message.title}
           description={message.description}
         />

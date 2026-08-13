@@ -12,9 +12,11 @@
   text-align: center;
 }
 
-.emoji {
-  font-size: 88px;
-  line-height: 1;
+/* 아이콘 이미지는 비율이 제각각이라 기존 이모지와 같은 크기의 정사각 영역에 맞춘다. */
+.icon {
+  width: 88px;
+  height: 88px;
+  object-fit: contain;
 }
 
 .title {
