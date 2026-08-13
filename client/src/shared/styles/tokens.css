@@ -18,6 +18,9 @@
   --setty-line-height-body: 1.55;
   --setty-font-size-action: 17px;
   --setty-font-weight-action: 700;
+  /* 시안의 60px은 iOS 상태바 높이를 포함한 값이다. 브라우저에서는 상태바가 없으므로
+     실제 안전 영역만큼만 더한다. */
+  --setty-screen-top: calc(20px + env(safe-area-inset-top, 0px));
   --setty-control-height: 56px;
   --setty-control-radius: 15px;
 }

@@ -3,7 +3,7 @@
   align-items: center;
   gap: 12px;
   flex: 0 0 auto;
-  padding: 60px 20px 12px;
+  padding: var(--setty-screen-top) 20px 12px;
 }
 
 .back {
