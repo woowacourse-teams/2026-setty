@@ -32,6 +32,21 @@ textarea {
   font: inherit;
 }
 
+/*
+ * 모바일 브라우저는 탭한 요소 위에 기본 파란 사각형을 잠깐 덮어 씌운다.
+ * 체크 항목과 동의 항목은 선택 여부를 초록 배경과 체크 아이콘으로 이미 보여주므로
+ * 순간적인 파란 상자는 다른 색이 선택된 것처럼 읽힌다. 기본 하이라이트를 끈다.
+ * 키보드 사용자를 위한 focus-visible 표시는 각 컴포넌트에 그대로 둔다.
+ */
+a,
+button,
+label,
+input,
+select,
+textarea {
+  -webkit-tap-highlight-color: transparent;
+}
+
 input:-webkit-autofill,
 input:-webkit-autofill:hover,
 input:-webkit-autofill:focus,
