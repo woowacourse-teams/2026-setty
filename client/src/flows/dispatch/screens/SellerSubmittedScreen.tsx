@@ -1,3 +1,4 @@
+import hourglassIcon from '../assets/result-hourglass.png';
 import BrandHeader from '../components/BrandHeader';
 import MobileScreen from '../components/MobileScreen';
 import PrimaryButton from '../components/PrimaryButton';
@@ -20,7 +21,7 @@ export default function SellerSubmittedScreen({ onGoHome }: SellerSubmittedScree
       footer={<PrimaryButton onClick={onGoHome}>홈으로 돌아가기</PrimaryButton>}
     >
       <ResultMessage
-        emoji="⏳"
+        iconSrc={hourglassIcon}
         title="정보가 제출됐어요"
         description={'물품을 확인한 뒤\n결과를 문자(SMS)로 안내해 드릴게요.'}
       />

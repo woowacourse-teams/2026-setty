@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { approveFinalAmount, findBuyerDispatchRequest } from '../api/dispatchApi';
 import { DispatchApiError } from '../api/dispatchClient';
+import checkIcon from '../assets/result-check.png';
+import hourglassIcon from '../assets/result-hourglass.png';
+import truckIcon from '../assets/result-truck.png';
 import BrandHeader from '../components/BrandHeader';
 import ConfirmBottomSheet from '../components/ConfirmBottomSheet';
 import MobileScreen from '../components/MobileScreen';
@@ -24,7 +27,6 @@ const DEFAULT_ERROR_MESSAGE = '요청을 처리하지 못했어요. 잠시 후 �
  * 자동 가격 계산은 `mvp-scope.md` 4장에서 제외됐고, 여기 금액은 운영자가
  * 외부 채널에서 조회해 기록한 `finalQuotedAmount`를 그대로 보여주는 것이다.
  */
-const CONFIRM_EMOJI = '🚚';
 const CONFIRM_DESCRIPTION = '진행하면 안전하게 배송이 시작돼요.';
 
 /** 동의는 되돌릴 수 없으므로 요청을 보내기 전에 시안의 바텀 시트로 한 번 더 묻는다. */
@@ -36,14 +38,14 @@ const CONFIRM_SHEET = {
 
 /** 아직 운영자가 최종 금액을 기록하지 않은 상태에서 링크로 들어온 경우다. */
 const WAITING_MESSAGE = {
-  emoji: '⌛',
+  iconSrc: hourglassIcon,
   title: '최종 금액을 확인하고 있어요',
   description: '운영자가 확인한 최종 금액과 조건을\n문자(SMS)로 안내해 드릴게요.',
 };
 
 /** 동의 이후에는 되돌릴 action이 없으므로 현재 상태만 알린다. */
 const APPROVED_MESSAGE = {
-  emoji: '✅',
+  iconSrc: checkIcon,
   title: '진행하기로 확인했어요',
   description: '운영자가 배차를 준비하고\n진행 상황을 문자(SMS)로 알려드릴게요.',
 };
@@ -221,7 +223,7 @@ function FinalAmountBody({ status, finalAmount }: FinalAmountBodyProps) {
   if (status === 'FINAL_AMOUNT_CONFIRM_PENDING' && finalAmount !== null) {
     return (
       <ResultMessage
-        emoji={CONFIRM_EMOJI}
+        iconSrc={truckIcon}
         title={
           <>
             {/* 시안처럼 금액만 강조하고, 값 자체는 server 응답을 그대로 쓴다. */}
@@ -250,7 +252,7 @@ function FinalAmountBody({ status, finalAmount }: FinalAmountBodyProps) {
   if (finalAmount === null) {
     return (
       <ResultMessage
-        emoji={WAITING_MESSAGE.emoji}
+        iconSrc={WAITING_MESSAGE.iconSrc}
         title={WAITING_MESSAGE.title}
         description={WAITING_MESSAGE.description}
       />
@@ -260,7 +262,7 @@ function FinalAmountBody({ status, finalAmount }: FinalAmountBodyProps) {
   /* 동의 이후의 진행·완료·실패는 상태 문구로만 알린다. */
   return (
     <ResultMessage
-      emoji={APPROVED_MESSAGE.emoji}
+      iconSrc={APPROVED_MESSAGE.iconSrc}
       title={APPROVED_MESSAGE.title}
       description={APPROVED_MESSAGE.description}
     >

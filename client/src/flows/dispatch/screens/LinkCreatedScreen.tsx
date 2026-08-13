@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { findBuyerDispatchRequest } from '../api/dispatchApi';
 import { DispatchApiError } from '../api/dispatchClient';
+import handshakeIcon from '../assets/result-handshake.png';
 import BrandHeader from '../components/BrandHeader';
 import MobileScreen from '../components/MobileScreen';
 import PrimaryButton from '../components/PrimaryButton';
@@ -206,7 +207,7 @@ export default function LinkCreatedScreen({
       }
     >
       <ResultMessage
-        emoji="🤝"
+        iconSrc={handshakeIcon}
         title="거래가 시작됐어요"
         description={'안내문과 링크를 판매자에게 전달하면\n판매자가 발송 정보를 입력해요.'}
       >

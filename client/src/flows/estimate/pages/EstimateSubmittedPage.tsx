@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom';
+import mailboxIcon from '@/flows/estimate/assets/result-mailbox.png';
 import BrandHeader from '@/flows/estimate/components/BrandHeader';
 import MobileScreen from '@/flows/estimate/components/MobileScreen';
 import PrimaryButton from '@/flows/estimate/components/PrimaryButton';
@@ -23,7 +24,7 @@ export default function EstimateSubmittedPage() {
       }
     >
       <ResultMessage
-        emoji="📫"
+        iconSrc={mailboxIcon}
         title="견적 요청이 접수됐어요"
         description={'예상 금액을 확인한 뒤\n결과를 문자(SMS)로 안내해 드릴게요.'}
       />
