@@ -1,0 +1,45 @@
+version: 0.0
+os: linux
+
+files:
+  - source: app.jar
+    destination: /opt/setty/app
+  - source: server/deploy/setty-backend.service
+    destination: /etc/systemd/system
+
+file_exists_behavior: OVERWRITE
+
+permissions:
+  - object: /opt/setty/app/app.jar
+    owner: root
+    group: root
+    mode: 644
+    type:
+      - file
+  - object: /etc/systemd/system/setty-backend.service
+    owner: root
+    group: root
+    mode: 644
+    type:
+      - file
+hooks:
+  ApplicationStop:
+    - location: server/deploy/scripts/stop.sh
+      timeout: 60
+      runas: root
+  BeforeInstall:
+    - location: server/deploy/scripts/before_install.sh
+      timeout: 300
+      runas: root
+  AfterInstall:
+    - location: server/deploy/scripts/after_install.sh
+      timeout: 120
+      runas: root
+  ApplicationStart:
+    - location: server/deploy/scripts/start.sh
+      timeout: 120
+      runas: root
+  ValidateService:
+    - location: server/deploy/scripts/validate.sh
+      timeout: 240
+      runas: root

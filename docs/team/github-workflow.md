@@ -50,7 +50,7 @@ Issue 상세 내용은 [`initial-development-plan.md`](initial-development-plan.
 - `fix/<issue>-<slug>`
 - `refactor/<issue>-<slug>`
 
-`main`·`develop` 직접 푸시를 금지하고 첫 개발 배포는 수동으로 한다.
+`main`·`develop` 직접 푸시를 금지한다. 프론트 배포는 수동으로 유지한다. DEC-026 제안안은 `develop` 병합으로 백엔드 DEV CodePipeline을 시작하며, 팀 승인과 첫 성공 배포 전까지는 목표 상태로 관리한다.
 
 ## 5. 실제 GitHub에서만 확인할 것
 
