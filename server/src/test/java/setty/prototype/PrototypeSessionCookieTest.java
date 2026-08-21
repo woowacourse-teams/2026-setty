@@ -44,7 +44,7 @@ class PrototypeSessionCookieTest {
                 .POST(HttpRequest.BodyPublishers.ofString("""
                         {
                           "phoneNumber": "%s",
-                          "password": "test-password-1"
+                          "password": "1234"
                         }
                         """.formatted(PHONE_NUMBER)))
                 .build();
