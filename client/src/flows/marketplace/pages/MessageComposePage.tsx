@@ -4,6 +4,7 @@ import {
   getListingDetail,
   sendListingMessage,
 } from '@/flows/marketplace/api/marketplaceApi';
+import { trackMessageSent } from '@/shared/analytics/googleAnalytics';
 import styles from './MessageComposePage.module.css';
 
 const MAX_MESSAGE_LENGTH = 500;
@@ -73,6 +74,7 @@ export default function MessageComposePage() {
     setError(null);
     try {
       await sendListingMessage(id, { content: trimmed });
+      trackMessageSent(id);
       setIsSent(true);
       closeTimerRef.current = window.setTimeout(close, 800);
     } catch (sendError) {
