@@ -13,12 +13,19 @@ spring:
       open-in-view: false
   servlet:
     multipart:
-      max-file-size: 10MB
-      max-request-size: 12MB
+      # 프로토타입 매물 등록이 사진 5장·전체 25MB까지 받는다.
+      # 배차 사진 1장 10MB 한도는 ItemImageStorage가 코드에서 확인한다.
+      max-file-size: 25MB
+      max-request-size: 26MB
 server:
   error:
     include-message: never
     include-stacktrace: never
+  servlet:
+    session:
+      cookie:
+        http-only: true
+        same-site: lax
 management:
   endpoints:
     web:

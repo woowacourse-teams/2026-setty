@@ -9,10 +9,16 @@ import org.springframework.web.multipart.MultipartFile;
 import setty.common.s3.S3ObjectUploader;
 import setty.common.s3.S3Properties;
 import setty.dispatch.exception.InvalidItemImageException;
+import setty.dispatch.exception.ItemImageTooLargeException;
 
 @Component
 public class ItemImageStorage {
     private static final String KEY_PREFIX = "setty/images/items/";
+    /**
+     * 전역 multipart 한도는 프로토타입 매물 사진(전체 25MB)에 맞춰져 있어
+     * 배차 물품 사진 1장 10MB 한도는 여기서 확인한다.
+     */
+    private static final long MAX_IMAGE_BYTES = 10L * 1024 * 1024;
     private static final Map<String, String> EXTENSIONS = Map.of(
             "image/jpeg", ".jpg",
             "image/png", ".png",
@@ -51,6 +57,9 @@ public class ItemImageStorage {
         final String contentType = image.getContentType();
         if (contentType == null || !contentType.startsWith("image/")) {
             throw new InvalidItemImageException();
+        }
+        if (image.getSize() > MAX_IMAGE_BYTES) {
+            throw new ItemImageTooLargeException();
         }
     }
 

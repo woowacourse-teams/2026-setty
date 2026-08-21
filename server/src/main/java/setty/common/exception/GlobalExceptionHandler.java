@@ -14,6 +14,7 @@ import setty.common.operator.UnauthorizedOperatorException;
 import setty.dispatch.exception.DispatchRequestNotFoundException;
 import setty.dispatch.exception.DispatchStatusTransitionException;
 import setty.dispatch.exception.InvalidItemImageException;
+import setty.dispatch.exception.ItemImageTooLargeException;
 import setty.dispatch.exception.SellerInputAlreadySubmittedException;
 import setty.dispatch.exception.SellerInputSessionNotFoundException;
 
@@ -56,13 +57,13 @@ public class GlobalExceptionHandler {
                 .body(new ErrorResponse("요청 값이 올바르지 않습니다: " + exception.getName()));
     }
 
-    @ExceptionHandler(InvalidItemImageException.class)
-    public ResponseEntity<ErrorResponse> handleInvalidItemImage(final InvalidItemImageException exception) {
+    @ExceptionHandler({InvalidItemImageException.class, ItemImageTooLargeException.class})
+    public ResponseEntity<ErrorResponse> handleInvalidItemImage(final RuntimeException exception) {
         return ResponseEntity.badRequest().body(new ErrorResponse(exception.getMessage()));
     }
 
     @ExceptionHandler(MaxUploadSizeExceededException.class)
     public ResponseEntity<ErrorResponse> handleMaxUploadSizeExceeded() {
-        return ResponseEntity.badRequest().body(new ErrorResponse("물품 사진은 10MB 이하만 올릴 수 있습니다."));
+        return ResponseEntity.badRequest().body(new ErrorResponse("업로드할 수 있는 용량을 넘었습니다."));
     }
 }
