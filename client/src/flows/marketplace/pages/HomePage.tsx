@@ -7,6 +7,10 @@ import {
   MarketplaceShell,
   StatusPanel,
 } from '@/flows/marketplace/components';
+import {
+  trackListingDetailOpened,
+  type ListingDetailSource,
+} from '@/shared/analytics/googleAnalytics';
 import styles from './HomePage.module.css';
 
 const DECK_STORAGE_KEY = 'setty.marketplace.deck.v1';
@@ -110,8 +114,9 @@ export function HomePage() {
     moveToIndex(currentIndex + 1);
   };
 
-  const openDetail = (consume: boolean) => {
+  const openDetail = (consume: boolean, source: ListingDetailSource) => {
     if (!currentListing) return;
+    trackListingDetailOpened(currentListing.id, source);
     if (consume) advance();
 
     navigate(`/listings/${currentListing.id}`, {
@@ -163,9 +168,9 @@ export function HomePage() {
       <ListingCard
         key={currentListing.id}
         listing={currentListing}
-        onOpen={() => openDetail(false)}
+        onOpen={() => openDetail(false, 'card_tap')}
         onSwipeLeft={advance}
-        onSwipeRight={() => openDetail(true)}
+        onSwipeRight={() => openDetail(true, 'swipe_right')}
       />
     );
   })();
@@ -185,7 +190,7 @@ export function HomePage() {
         <HomeActions
           canUndo={!isLoading && !error && currentIndex > 0}
           disabled={!currentListing || isLoading || Boolean(error)}
-          onDetail={() => openDetail(true)}
+          onDetail={() => openDetail(true, 'detail_button')}
           onMessage={openMessage}
           onSkip={advance}
           onUndo={() => moveToIndex(currentIndex - 1)}
