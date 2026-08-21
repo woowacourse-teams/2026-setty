@@ -2,35 +2,42 @@
 <html lang="ko">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
     <!--
       시안에 다크 팔레트가 없어 라이트만 지원한다는 선언이다.
       선언이 없으면 Android Chrome의 자동 다크 테마가 배경만 어둡게 바꾸고
       아이콘 이미지는 흰 배경 그대로 남아 흰 사각형이 드러난다.
     -->
     <meta name="color-scheme" content="light" />
-    <title>Setty</title>
+    <title>세티 | 동네 가구 둘러보기</title>
     <meta
       name="description"
-      content="상품 픽업을 위해 판매자님의 배송 정보를 입력해주세요. 입력해주신 정보로 퀵·용달 배차를 진행합니다."
+      content="동네 가구를 카드로 둘러보고 판매자에게 익명 쪽지를 남겨보세요."
     />
 
     <!-- 탭·북마크·홈 화면 아이콘이다. svg를 못 읽는 환경을 위해 ico를 함께 둔다. -->
-    <link rel="icon" type="image/svg+xml" href="<%= assetPath(require('./favicon.svg')) %>" />
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="<%= assetPath(require('./favicon.svg')) %>"
+    />
     <link rel="icon" sizes="48x48" href="<%= assetPath(require('./favicon.ico')) %>" />
     <link
       rel="apple-touch-icon"
       href="<%= assetPath(require('./apple-touch-icon.png')) %>"
     />
 
-    <!-- 판매자가 카카오톡·문자로 받은 링크의 미리보기다. 크롤러는 JS를 실행하지 않으므로 정적으로 둔다. -->
+    <!-- 링크 공유 미리보기다. 크롤러는 JS를 실행하지 않으므로 정적으로 둔다. -->
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="SETTY" />
     <meta property="og:locale" content="ko_KR" />
-    <meta property="og:title" content="SETTY 배송 정보 입력" />
+    <meta property="og:title" content="세티 | 동네 가구 둘러보기" />
     <meta
       property="og:description"
-      content="상품 픽업을 위해 판매자님의 배송 정보를 입력해주세요. 입력해주신 정보로 퀵·용달 배차를 진행합니다."
+      content="동네 가구를 카드로 둘러보고 판매자에게 익명 쪽지를 남겨보세요."
     />
     <meta property="og:image" content="<%= ogImageUrl(require('./og-image.jpg')) %>" />
     <meta property="og:image:width" content="1200" />
@@ -38,10 +45,10 @@
     <meta property="og:image:alt" content="SETTY 로고" />
 
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="SETTY 배송 정보 입력" />
+    <meta name="twitter:title" content="세티 | 동네 가구 둘러보기" />
     <meta
       name="twitter:description"
-      content="상품 픽업을 위해 판매자님의 배송 정보를 입력해주세요. 입력해주신 정보로 퀵·용달 배차를 진행합니다."
+      content="동네 가구를 카드로 둘러보고 판매자에게 익명 쪽지를 남겨보세요."
     />
     <meta name="twitter:image" content="<%= ogImageUrl(require('./og-image.jpg')) %>" />
   </head>

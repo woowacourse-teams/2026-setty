@@ -3,7 +3,7 @@
   min-height: 100vh;
   place-items: center;
   padding: 24px;
-  background: var(--setty-color-surface-muted);
+  background: #f7f0ec;
 }
 
 .notFound section {
@@ -12,7 +12,7 @@
 
 .notFoundCode {
   margin: 0;
-  color: #007b50;
+  color: #ef5439;
   font-size: 18px;
   font-weight: 800;
 }
@@ -26,4 +26,21 @@
   margin: 0;
   color: var(--setty-color-text-body);
   line-height: var(--setty-line-height-body);
+}
+
+.homeLink {
+  display: inline-flex;
+  min-height: 48px;
+  align-items: center;
+  margin-top: 24px;
+  padding: 0 22px;
+  border-radius: 999px;
+  color: #fff;
+  font-weight: 800;
+  text-decoration: none;
+  background: linear-gradient(110deg, #f33f43, #ff8908);
+}
+
+.homeLink:hover {
+  color: #fff;
 }

@@ -1,25 +1,38 @@
 import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import App from '@/app/App';
-import { completeOnboarding } from '@/app/onboarding/onboardingStorage';
 
 const fetchMock = jest.fn() as jest.MockedFunction<typeof fetch>;
 
+const listing = {
+  id: 11,
+  title: '테스트 원목 책상',
+  thumbnailUrl: 'https://example.test/fake-desk.jpg',
+  pickupTimeText: '평일 오후 7시 이후',
+  canHelpMove: true,
+  createdAt: '2026-08-21T14:00:00+09:00',
+};
+
+function jsonResponse(body: unknown, status = 200): Response {
+  return {
+    ok: status >= 200 && status < 300,
+    status,
+    json: async () => body,
+  } as Response;
+}
+
 beforeEach(() => {
-  // 홈 첫 진입 온보딩은 이 테스트들의 대상이 아니므로 이미 본 기기로 둔다.
-  completeOnboarding();
   fetchMock.mockReset();
+  window.sessionStorage.clear();
   Object.defineProperty(globalThis, 'fetch', {
     configurable: true,
     value: fetchMock,
     writable: true,
   });
-  window.history.replaceState({}, '', '/');
 });
 
-test('루트 경로에서 배차를 시작하거나 예상 견적으로 이동할 수 있다', async () => {
-  const user = userEvent.setup();
+test('루트 경로에서 미니마켓 홈을 연다', async () => {
+  fetchMock.mockResolvedValue(jsonResponse({ items: [listing] }));
 
   render(
     <MemoryRouter initialEntries={['/']}>
@@ -27,16 +40,18 @@ test('루트 경로에서 배차를 시작하거나 예상 견적으로 이동�
     </MemoryRouter>,
   );
 
-  expect(screen.getByRole('heading', { name: /번거로운 중고 가구 거래/ })).toBeInTheDocument();
-  expect(screen.getByRole('button', { name: '거래 링크 만들기' })).toBeInTheDocument();
-  expect(fetchMock).not.toHaveBeenCalled();
-
-  await user.click(screen.getByRole('button', { name: '예상 견적 확인하기' }));
-
-  expect(screen.getByRole('heading', { name: '예상 견적 확인' })).toBeInTheDocument();
+  expect(
+    await screen.findByRole('heading', { name: '테스트 원목 책상' }),
+  ).toBeInTheDocument();
+  expect(screen.getByRole('link', { name: '내 매물' })).toHaveAttribute('href', '/mine');
+  expect(screen.getByRole('link', { name: '쪽지함' })).toHaveAttribute('href', '/inbox');
+  expect(fetchMock).toHaveBeenCalledWith(
+    expect.stringMatching(/\/api\/listings$/),
+    expect.objectContaining({ credentials: 'include', method: 'GET' }),
+  );
 });
 
-test('알 수 없는 경로는 특정 flow를 권하는 대신 공용 오류를 표시한다', () => {
+test('알 수 없는 경로는 공용 404와 홈 링크를 표시한다', () => {
   render(
     <MemoryRouter initialEntries={['/unknown']}>
       <App />
@@ -46,7 +61,9 @@ test('알 수 없는 경로는 특정 flow를 권하는 대신 공용 오류를 
   expect(
     screen.getByRole('heading', { name: '페이지를 찾을 수 없어요' }),
   ).toBeInTheDocument();
-  expect(
-    screen.queryByRole('link', { name: '예상 견적 요청으로 이동' }),
-  ).not.toBeInTheDocument();
+  expect(screen.getByRole('link', { name: '가구 둘러보기' })).toHaveAttribute(
+    'href',
+    '/',
+  );
+  expect(fetchMock).not.toHaveBeenCalled();
 });

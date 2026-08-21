@@ -1,18 +1,10 @@
 import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
-import { MemoryRouter, useLocation, useNavigate } from 'react-router-dom';
+import { MemoryRouter } from 'react-router-dom';
 import App from '@/app/App';
-import { completeOnboarding } from '@/app/onboarding/onboardingStorage';
-
-/**
- * 온보딩은 기기당 한 번만 보여주고, 끝나면 원래 홈 화면 흐름으로 이어져야 한다.
- * 노출 여부가 localStorage에 남으므로 테스트마다 저장소를 비운다.
- */
 
 const fetchMock = jest.fn() as jest.MockedFunction<typeof fetch>;
 
 beforeEach(() => {
-  window.localStorage.clear();
   fetchMock.mockReset();
   Object.defineProperty(globalThis, 'fetch', {
     configurable: true,
@@ -21,149 +13,22 @@ beforeEach(() => {
   });
 });
 
-/** 브라우저 뒤로가기를 테스트에서 대신 누르는 장치다. */
-function RouteTools() {
-  const { pathname } = useLocation();
-  const navigate = useNavigate();
+test.each(['/onboarding/1', '/dispatch/new', '/estimate'])(
+  '기존 SETTY 경로 %s는 앱 라우터에서 연결하지 않는다',
+  (path) => {
+    render(
+      <MemoryRouter initialEntries={[path]}>
+        <App />
+      </MemoryRouter>,
+    );
 
-  return (
-    <>
-      <output data-testid="route-path">{pathname}</output>
-      <button type="button" onClick={() => navigate(-1)}>
-        테스트 뒤로가기
-      </button>
-    </>
-  );
-}
-
-const renderAt = (path: string) =>
-  render(
-    <MemoryRouter initialEntries={[path]}>
-      <RouteTools />
-      <App />
-    </MemoryRouter>,
-  );
-
-const currentPath = () => screen.getByTestId('route-path').textContent;
-
-const goBack = (user: ReturnType<typeof userEvent.setup>) =>
-  user.click(screen.getByRole('button', { name: '테스트 뒤로가기' }));
-
-test('처음 방문한 기기는 홈에서 온보딩 첫 화면을 본다', () => {
-  renderAt('/');
-
-  expect(currentPath()).toBe('/onboarding/1');
-  expect(screen.getByRole('heading', { name: /SETTY가 도와드려요/ })).toBeInTheDocument();
-  expect(
-    screen.queryByRole('button', { name: '거래 링크 만들기' }),
-  ).not.toBeInTheDocument();
-});
-
-test('다음으로 마지막 화면까지 이동하면 예상 견적으로 갈 수 있다', async () => {
-  const user = userEvent.setup();
-  renderAt('/');
-
-  await user.click(screen.getByRole('button', { name: '다음' }));
-  expect(screen.getByRole('heading', { name: /서로 몰라도 돼요/ })).toBeInTheDocument();
-
-  await user.click(screen.getByRole('button', { name: '다음' }));
-  expect(screen.getByRole('heading', { name: /SETTY가 불러드려요/ })).toBeInTheDocument();
-  expect(screen.queryByRole('button', { name: '건너뛰기' })).not.toBeInTheDocument();
-
-  await user.click(screen.getByRole('button', { name: '예상 견적 확인하기' }));
-
-  expect(currentPath()).toBe('/estimate');
-  expect(screen.getByRole('heading', { name: '예상 견적 확인' })).toBeInTheDocument();
-});
-
-test('마지막 화면의 보조 action은 배차 요청 폼으로 이동한다', async () => {
-  const user = userEvent.setup();
-  renderAt('/onboarding/3');
-
-  await user.click(screen.getByRole('button', { name: /거래 링크 만들어보기/ }));
-
-  expect(currentPath()).toBe('/dispatch/new');
-});
-
-test('예상 견적으로 나간 뒤 뒤로가면 온보딩이 아니라 홈으로 간다', async () => {
-  const user = userEvent.setup();
-  renderAt('/');
-
-  await user.click(screen.getByRole('button', { name: '다음' }));
-  await user.click(screen.getByRole('button', { name: '다음' }));
-  await user.click(screen.getByRole('button', { name: '예상 견적 확인하기' }));
-  expect(currentPath()).toBe('/estimate');
-
-  await goBack(user);
-
-  expect(currentPath()).toBe('/');
-  expect(screen.getByRole('button', { name: '거래 링크 만들기' })).toBeInTheDocument();
-});
-
-test('거래 링크 만들어보기로 나간 뒤 뒤로가면 온보딩이 아니라 홈으로 간다', async () => {
-  const user = userEvent.setup();
-  renderAt('/');
-
-  await user.click(screen.getByRole('button', { name: '다음' }));
-  await user.click(screen.getByRole('button', { name: '다음' }));
-  await user.click(screen.getByRole('button', { name: /거래 링크 만들어보기/ }));
-  expect(currentPath()).toBe('/dispatch/new');
-
-  await goBack(user);
-
-  expect(currentPath()).toBe('/');
-  expect(screen.getByRole('button', { name: '거래 링크 만들기' })).toBeInTheDocument();
-});
-
-test('건너뛰기를 누르면 바로 홈 화면으로 간다', async () => {
-  const user = userEvent.setup();
-  renderAt('/');
-
-  await user.click(screen.getByRole('button', { name: '건너뛰기' }));
-
-  expect(currentPath()).toBe('/');
-  expect(screen.getByRole('button', { name: '거래 링크 만들기' })).toBeInTheDocument();
-});
-
-test('온보딩을 끝낸 기기는 홈에서 온보딩을 다시 보지 않는다', async () => {
-  const user = userEvent.setup();
-  const first = renderAt('/');
-
-  await user.click(screen.getByRole('button', { name: '건너뛰기' }));
-  first.unmount();
-
-  renderAt('/');
-
-  expect(currentPath()).toBe('/');
-  expect(screen.getByRole('button', { name: '거래 링크 만들기' })).toBeInTheDocument();
-});
-
-test('범위 밖 단계 URL은 첫 화면으로 되돌린다', () => {
-  renderAt('/onboarding/9');
-
-  expect(currentPath()).toBe('/onboarding/1');
-  expect(screen.getByRole('heading', { name: /SETTY가 도와드려요/ })).toBeInTheDocument();
-});
-
-test('온보딩 완료 여부와 무관하게 판매자 입력 링크는 온보딩을 거치지 않는다', () => {
-  renderAt('/seller-input/seller-token-test');
-
-  expect(currentPath()).toBe('/seller-input/seller-token-test');
-});
-
-test('온보딩을 끝낸 뒤에도 온보딩 주소로 직접 들어가면 다시 볼 수 있다', () => {
-  completeOnboarding();
-
-  renderAt('/onboarding/1');
-
-  expect(currentPath()).toBe('/onboarding/1');
-  expect(screen.getByRole('heading', { name: /SETTY가 도와드려요/ })).toBeInTheDocument();
-});
-
-test('completeOnboarding을 부른 기기는 홈이 바로 열린다', () => {
-  completeOnboarding();
-
-  renderAt('/');
-
-  expect(currentPath()).toBe('/');
-});
+    expect(
+      screen.getByRole('heading', { name: '페이지를 찾을 수 없어요' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: '가구 둘러보기' })).toHaveAttribute(
+      'href',
+      '/',
+    );
+    expect(fetchMock).not.toHaveBeenCalled();
+  },
+);
