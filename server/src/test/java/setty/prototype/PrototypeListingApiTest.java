@@ -183,7 +183,7 @@ class PrototypeListingApiTest extends PrototypeApiSupport {
 
         assertThat(responseBodyOf(result))
                 .doesNotContain("01000000001")
-                .doesNotContain(PASSWORD);
+                .doesNotContain("password");
     }
 
     @Test

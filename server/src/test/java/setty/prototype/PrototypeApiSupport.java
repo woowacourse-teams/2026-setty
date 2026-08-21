@@ -27,7 +27,7 @@ import setty.common.s3.S3ObjectUploader;
 @AutoConfigureMockMvc
 @Transactional
 abstract class PrototypeApiSupport {
-    protected static final String PASSWORD = "test-password-1";
+    protected static final String PASSWORD = "1234";
     protected static final String SELLER_PHONE_NUMBER = "010-0000-0001";
     protected static final String OTHER_SELLER_PHONE_NUMBER = "010-0000-0002";
 

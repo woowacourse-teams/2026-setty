@@ -63,7 +63,7 @@ Content-Type: application/json
 ```
 {
   "phoneNumber": "010-0000-0000",
-  "password": "example-password"
+  "password": "1234"
 }
 ```
 
@@ -104,7 +104,7 @@ Set-Cookie: JSESSIONID=opaque-session-id; HttpOnly; SameSite=Lax; Path=/
 }
 ```
 
-가입 자체가 이 요청으로 이뤄지므로 비밀번호 규칙(8~100자)과 휴대폰 번호 형식을 로그인 요청에서 확인합니다. 어기면 `400 INVALID_REQUEST`입니다.
+가입 자체가 이 요청으로 이뤄지므로 비밀번호 규칙(숫자 4자리)과 휴대폰 번호 형식을 로그인 요청에서 확인합니다. 어기면 `400 INVALID_REQUEST`입니다.
 
 ---
 
@@ -468,7 +468,7 @@ Cookie: JSESSIONID=opaque-session-id
 | 필드 | 규칙 |
 | --- | --- |
 | `phoneNumber` | 필수, 숫자 정규화 후 10~11자리, 회원 간 유일 |
-| `password` | 필수, 8~100자, BCrypt 해시 저장, 첫 로그인 시 이 값으로 가입 |
+| `password` | 필수, 숫자 4자리, BCrypt 해시 저장, 첫 로그인 시 이 값으로 가입 |
 | `title` | 필수, 1~100자 |
 | `description` | 필수, 1~500자 |
 | `pickupTimeText` | 필수, 1~50자 |
@@ -507,5 +507,6 @@ Cookie: JSESSIONID=opaque-session-id
 
 - 개인정보 보관·삭제 기간과 동의 증적(DEC-020 미정)
 - 휴대폰 번호 실제 소유 확인, 비밀번호 재설정. 지금은 번호 소유를 확인하지 않으므로 그 번호로 먼저 로그인한 사람이 계정을 갖습니다. 실제 사용자 공개 전에 결정이 필요합니다.
+- 로그인 시도 제한과 계정 잠금. 비밀번호는 입력 편의를 위해 숫자 4자리로 정했고, 시도 제한이 없으면 대입으로 뚫립니다. 실제 사용자 공개 전에 시도 제한과 비밀번호 규칙을 함께 다시 봐야 합니다.
 - 쪽지 답장·알림, 매물 판매 상태, 검색·정렬·페이지네이션
 - 프로토타입 프론트 연동에 필요한 CORS 설정(현재 dev CORS는 `PATCH`·`DELETE`와 인증정보 전송을 허용하지 않음)

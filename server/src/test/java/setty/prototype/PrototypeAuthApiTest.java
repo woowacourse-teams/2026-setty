@@ -8,11 +8,21 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpSession;
+import setty.prototype.domain.Member;
+import setty.prototype.repository.MemberRepository;
 
 @DisplayName("프로토타입 인증 API")
 class PrototypeAuthApiTest extends PrototypeApiSupport {
+    private static final String OTHER_PASSWORD = "5678";
+
+    @Autowired
+    private MemberRepository memberRepository;
+
     @Test
     @DisplayName("처음 보는 번호로 로그인하면 그 번호로 가입하고 바로 로그인된다")
     void signsUpOnFirstLogin() throws Exception {
@@ -49,7 +59,7 @@ class PrototypeAuthApiTest extends PrototypeApiSupport {
 
         mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(credentialsPayload(SELLER_PHONE_NUMBER, "test-password-2")))
+                        .content(credentialsPayload(SELLER_PHONE_NUMBER, OTHER_PASSWORD)))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("INVALID_CREDENTIALS"));
     }
@@ -61,7 +71,7 @@ class PrototypeAuthApiTest extends PrototypeApiSupport {
 
         mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(credentialsPayload(SELLER_PHONE_NUMBER, "test-password-2")))
+                        .content(credentialsPayload(SELLER_PHONE_NUMBER, OTHER_PASSWORD)))
                 .andExpect(status().isUnauthorized());
 
         mockMvc.perform(post("/api/auth/login")
@@ -70,14 +80,26 @@ class PrototypeAuthApiTest extends PrototypeApiSupport {
                 .andExpect(status().isOk());
     }
 
-    @Test
-    @DisplayName("비밀번호가 8자 미만이면 가입도 로그인도 할 수 없다")
-    void rejectsShortPassword() throws Exception {
+    @ParameterizedTest(name = "\"{0}\"")
+    @ValueSource(strings = {"123", "12345", "abcd", "12 4", "12-4", " "})
+    @DisplayName("숫자 4자리가 아닌 비밀번호는 가입도 로그인도 할 수 없다")
+    void rejectsPasswordThatIsNotFourDigits(final String password) throws Exception {
         mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(credentialsPayload(SELLER_PHONE_NUMBER, "short")))
+                        .content(credentialsPayload(SELLER_PHONE_NUMBER, password)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
+    }
+
+    @Test
+    @DisplayName("숫자 4자리 비밀번호는 그대로 저장되지 않고 해시로 저장된다")
+    void storesHashedPassword() throws Exception {
+        logIn(SELLER_PHONE_NUMBER);
+
+        assertThat(memberRepository.findByPhoneNumber("01000000001"))
+                .get()
+                .extracting(Member::getPasswordHash)
+                .isNotEqualTo(PASSWORD);
     }
 
     @Test
