@@ -82,4 +82,21 @@ class DispatchItemImageApiTest {
 
         verify(s3ObjectUploader, never()).upload(any(byte[].class), any(String.class), any(String.class));
     }
+
+    @Test
+    @DisplayName("10MB를 넘는 사진은 올릴 수 없다")
+    void rejectsTooLargeFile() throws Exception {
+        final MockMultipartFile file = new MockMultipartFile(
+                "image",
+                "large.jpg",
+                "image/jpeg",
+                new byte[11 * 1024 * 1024]
+        );
+
+        mockMvc.perform(multipart("/api/dispatch-requests/images").file(file))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("물품 사진은 10MB 이하만 올릴 수 있습니다."));
+
+        verify(s3ObjectUploader, never()).upload(any(byte[].class), any(String.class), any(String.class));
+    }
 }
