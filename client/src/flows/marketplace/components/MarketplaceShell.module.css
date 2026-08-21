@@ -1,0 +1,35 @@
+.canvas {
+  --marketplace-orange: #ff850b;
+  --marketplace-red: #f4423e;
+  --marketplace-brown: #2d201c;
+  --marketplace-body: #5f514c;
+  --marketplace-muted: #988984;
+  --marketplace-cream: #fffaf6;
+  --marketplace-border: #ecdfda;
+  --marketplace-gradient: linear-gradient(
+    100deg,
+    var(--marketplace-red),
+    var(--marketplace-orange)
+  );
+
+  min-height: 100svh;
+  background: #2d211e;
+}
+
+.shell {
+  display: flex;
+  width: 100%;
+  min-height: 100svh;
+  max-width: 414px;
+  margin: 0 auto;
+  flex-direction: column;
+  overflow: hidden;
+  background: linear-gradient(180deg, #fff 0%, #fffdfb 100%);
+  color: var(--marketplace-brown);
+}
+
+@media (min-width: 415px) {
+  .shell {
+    box-shadow: 0 0 56px rgba(24, 12, 8, 0.32);
+  }
+}

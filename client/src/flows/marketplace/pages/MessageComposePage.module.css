@@ -1,0 +1,142 @@
+.overlay {
+  position: relative;
+  min-height: 100dvh;
+  overflow: hidden;
+  color: #291d19;
+  background: #d8cfcb;
+}
+
+.scrim {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(rgba(42, 28, 24, 0.5), rgba(42, 28, 24, 0.5)),
+    repeating-linear-gradient(45deg, #655a55 0 18px, #706560 18px 36px);
+}
+
+.sheet {
+  position: fixed;
+  z-index: 1;
+  bottom: 0;
+  left: 50%;
+  width: min(100%, 414px);
+  padding: 12px 20px calc(20px + env(safe-area-inset-bottom, 0px));
+  border-radius: 28px 28px 0 0;
+  background: #fff;
+  transform: translateX(-50%);
+}
+
+.handle {
+  width: 42px;
+  height: 5px;
+  margin: 0 auto 22px;
+  border-radius: 99px;
+  background: #eadfda;
+}
+
+.sheet h1 {
+  margin: 0;
+  font-size: 26px;
+}
+
+.subtitle {
+  margin: 8px 0 20px;
+  color: #978780;
+  line-height: 1.5;
+}
+
+.textareaLabel {
+  display: block;
+}
+
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+
+.textareaLabel textarea {
+  width: 100%;
+  min-height: 168px;
+  resize: vertical;
+  padding: 18px;
+  border: 1px solid #eadfda;
+  border-radius: 20px;
+  outline: none;
+  color: #342622;
+  background: #fffbf9;
+  line-height: 1.65;
+}
+
+.textareaLabel textarea:focus {
+  border-color: #f6653c;
+  box-shadow: 0 0 0 3px rgba(246, 101, 60, 0.12);
+}
+
+.counter {
+  margin-top: 8px;
+  color: #a4938c;
+  font-size: 13px;
+  text-align: right;
+}
+
+.error,
+.success {
+  margin: 12px 0 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  font-size: 14px;
+}
+
+.error {
+  color: #b12e2e;
+  background: #fff0ef;
+}
+
+.success {
+  color: #34785c;
+  background: #edf9f3;
+}
+
+.actions {
+  display: grid;
+  grid-template-columns: 112px 1fr;
+  gap: 12px;
+  margin-top: 22px;
+}
+
+.cancelButton,
+.sendButton {
+  min-height: 58px;
+  border-radius: 999px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.cancelButton {
+  border: 1px solid #eadfda;
+  color: #554640;
+  background: #fff;
+}
+
+.sendButton {
+  border: 0;
+  color: #fff;
+  background: linear-gradient(110deg, #f33f43, #ff8908);
+}
+
+.cancelButton:disabled,
+.sendButton:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+@media (min-width: 415px) {
+  .sheet {
+    box-shadow: 0 -22px 70px rgba(61, 38, 29, 0.2);
+  }
+}
