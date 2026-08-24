@@ -63,6 +63,7 @@ abstract class PrototypeApiSupport {
                 .file(requestPart("""
                         {
                           "title": "%s",
+                          "price": 30000,
                           "description": "사용감이 조금 있습니다.",
                           "pickupTimeText": "평일 오후 7시 이후",
                           "canHelpMove": true

@@ -7,6 +7,7 @@ import setty.prototype.domain.Listing;
 public record ListingSummaryResponse(
         Long id,
         String title,
+        Integer price,
         String thumbnailUrl,
         String pickupTimeText,
         boolean canHelpMove,
@@ -16,6 +17,7 @@ public record ListingSummaryResponse(
         return new ListingSummaryResponse(
                 listing.getId(),
                 listing.getTitle(),
+                listing.getPrice(),
                 listing.thumbnailUrl(),
                 listing.getPickupTimeText(),
                 listing.isCanHelpMove(),

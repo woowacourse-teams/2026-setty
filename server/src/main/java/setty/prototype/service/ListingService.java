@@ -57,6 +57,7 @@ public class ListingService {
                 seller,
                 request.title(),
                 request.description(),
+                request.price(),
                 request.pickupTimeText(),
                 request.canHelpMove(),
                 imageUrls
@@ -87,7 +88,13 @@ public class ListingService {
             throw new InvalidRequestException("변경할 값을 하나 이상 보내야 합니다.");
         }
         final Listing listing = findOwnedListing(memberId, listingId, ListingAccessDeniedException::forUpdate);
-        listing.update(request.title(), request.description(), request.pickupTimeText(), request.canHelpMove());
+        listing.update(
+                request.title(),
+                request.description(),
+                request.price(),
+                request.pickupTimeText(),
+                request.canHelpMove()
+        );
 
         log.info("프로토타입 매물 수정 완료. listingId={}, memberId={}", listingId, memberId);
     }

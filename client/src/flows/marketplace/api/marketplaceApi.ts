@@ -86,6 +86,7 @@ export function createListing(
   const request: CreateListingRequest = {
     title: input.title,
     description: input.description,
+    price: input.price,
     pickupTimeText: input.pickupTimeText,
     canHelpMove: input.canHelpMove,
   };

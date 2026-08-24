@@ -15,6 +15,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.jayway.jsonpath.JsonPath;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -28,6 +29,7 @@ class PrototypeListingApiTest extends PrototypeApiSupport {
     private static final String LISTING_PAYLOAD = """
             {
               "title": "원목 책상",
+              "price": 30000,
               "description": "사용감이 조금 있습니다.",
               "pickupTimeText": "평일 오후 7시 이후",
               "canHelpMove": true
@@ -137,6 +139,86 @@ class PrototypeListingApiTest extends PrototypeApiSupport {
     }
 
     @Test
+    @DisplayName("가격이 없으면 매물을 올릴 수 없다")
+    void rejectsListingWithoutPrice() throws Exception {
+        final MockHttpSession session = logIn(SELLER_PHONE_NUMBER);
+
+        mockMvc.perform(multipart("/api/listings")
+                        .file(requestPart("""
+                                {
+                                  "title": "원목 책상",
+                                  "description": "사용감이 조금 있습니다.",
+                                  "pickupTimeText": "평일 오후 7시 이후",
+                                  "canHelpMove": true
+                                }
+                                """))
+                        .file(imagePart("item-1.jpg", "image/jpeg"))
+                        .session(session))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
+    }
+
+    @Test
+    @DisplayName("가격이 음수이거나 상한을 넘으면 매물을 올릴 수 없다")
+    void rejectsPriceOutOfRange() throws Exception {
+        final MockHttpSession session = logIn(SELLER_PHONE_NUMBER);
+
+        for (final String price : new String[] {"-1", "100000000"}) {
+            mockMvc.perform(multipart("/api/listings")
+                            .file(requestPart(listingPayloadWithPrice(price)))
+                            .file(imagePart("item-1.jpg", "image/jpeg"))
+                            .session(session))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
+        }
+    }
+
+    @Test
+    @DisplayName("가격에 소수점이나 숫자가 아닌 값을 보내면 매물을 올릴 수 없다")
+    void rejectsNonIntegerPrice() throws Exception {
+        final MockHttpSession session = logIn(SELLER_PHONE_NUMBER);
+
+        for (final String price : new String[] {"30000.5", "\"30000\"", "\"3만원\"", "true"}) {
+            mockMvc.perform(multipart("/api/listings")
+                            .file(requestPart(listingPayloadWithPrice(price)))
+                            .file(imagePart("item-1.jpg", "image/jpeg"))
+                            .session(session))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
+        }
+    }
+
+    @Test
+    @DisplayName("0원 나눔 매물을 올릴 수 있다")
+    void createsFreeListing() throws Exception {
+        final MockHttpSession session = logIn(SELLER_PHONE_NUMBER);
+
+        final MvcResult result = mockMvc.perform(multipart("/api/listings")
+                        .file(requestPart(listingPayloadWithPrice("0")))
+                        .file(imagePart("item-1.jpg", "image/jpeg"))
+                        .session(session))
+                .andExpect(status().isCreated())
+                .andReturn();
+
+        final long listingId = ((Number) JsonPath.read(responseBodyOf(result), "$.listingId")).longValue();
+        mockMvc.perform(get("/api/listings/" + listingId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.price").value(0));
+    }
+
+    private String listingPayloadWithPrice(final String priceJson) {
+        return """
+                {
+                  "title": "원목 책상",
+                  "price": %s,
+                  "description": "사용감이 조금 있습니다.",
+                  "pickupTimeText": "평일 오후 7시 이후",
+                  "canHelpMove": true
+                }
+                """.formatted(priceJson);
+    }
+
+    @Test
     @DisplayName("매물 목록은 로그인 없이 최신 등록순으로 볼 수 있다")
     void findsAllListings() throws Exception {
         final MockHttpSession session = logIn(SELLER_PHONE_NUMBER);
@@ -147,6 +229,7 @@ class PrototypeListingApiTest extends PrototypeApiSupport {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items.length()").value(2))
                 .andExpect(jsonPath("$.items[0].title").value("소형 냉장고"))
+                .andExpect(jsonPath("$.items[0].price").value(30000))
                 .andExpect(jsonPath("$.items[0].thumbnailUrl")
                         .value(Matchers.containsString("setty/images/listings/")))
                 .andExpect(jsonPath("$.items[0].canHelpMove").value(true))
@@ -173,6 +256,7 @@ class PrototypeListingApiTest extends PrototypeApiSupport {
         final MvcResult result = mockMvc.perform(get("/api/listings/" + listingId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.title").value("원목 책상"))
+                .andExpect(jsonPath("$.price").value(30000))
                 .andExpect(jsonPath("$.description").value("사용감이 조금 있습니다."))
                 .andExpect(jsonPath("$.pickupTimeText").value("평일 오후 7시 이후"))
                 .andExpect(jsonPath("$.images.length()").value(1))
@@ -215,8 +299,54 @@ class PrototypeListingApiTest extends PrototypeApiSupport {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.title").value("원목 책상 급처"))
                 .andExpect(jsonPath("$.canHelpMove").value(false))
+                .andExpect(jsonPath("$.price").value(30000))
                 .andExpect(jsonPath("$.description").value("사용감이 조금 있습니다."))
                 .andExpect(jsonPath("$.pickupTimeText").value("평일 오후 7시 이후"));
+    }
+
+    @Test
+    @DisplayName("소유자는 가격만 따로 수정할 수 있다")
+    void updatesOnlyPrice() throws Exception {
+        final MockHttpSession session = logIn(SELLER_PHONE_NUMBER);
+        final long listingId = createListing(session, "원목 책상");
+
+        mockMvc.perform(patch("/api/listings/" + listingId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "price": 25000
+                                }
+                                """)
+                        .session(session))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(get("/api/listings/" + listingId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.price").value(25000))
+                .andExpect(jsonPath("$.title").value("원목 책상"));
+    }
+
+    @Test
+    @DisplayName("수정에서도 소수점이나 숫자가 아닌 가격은 받지 않는다")
+    void rejectsNonIntegerPriceOnUpdate() throws Exception {
+        final MockHttpSession session = logIn(SELLER_PHONE_NUMBER);
+        final long listingId = createListing(session, "원목 책상");
+
+        for (final String price : new String[] {"25000.5", "\"2만원\"", "-1"}) {
+            mockMvc.perform(patch("/api/listings/" + listingId)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {
+                                      "price": %s
+                                    }
+                                    """.formatted(price))
+                            .session(session))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
+        }
+
+        mockMvc.perform(get("/api/listings/" + listingId))
+                .andExpect(jsonPath("$.price").value(30000));
     }
 
     @Test

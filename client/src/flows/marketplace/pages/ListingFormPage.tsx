@@ -30,9 +30,24 @@ type AuthPurpose = 'initial' | 'mutation';
 const EMPTY_DRAFT: ListingDraft = {
   title: '',
   description: '',
+  // NaN은 "아직 입력하지 않음"을 뜻하며, 제출 시 검증에서 걸러진다.
+  price: Number.NaN,
   pickupTimeText: '',
   canHelpMove: false,
 };
+
+const MAX_PRICE_INPUT_LENGTH = 9;
+
+/** 숫자만 남긴 가격 입력을 number로 바꾼다. 비어 있으면 NaN(미입력)으로 둔다. */
+function parsePriceInput(rawValue: string): number {
+  const digitsOnly = rawValue.replace(/\D/g, '').slice(0, MAX_PRICE_INPUT_LENGTH);
+  return digitsOnly === '' ? Number.NaN : Number(digitsOnly);
+}
+
+/** 폼 입력창에 그대로 보여줄 문자열. NaN(미입력)이면 빈 문자열이다. */
+function priceInputValue(price: number): string {
+  return Number.isNaN(price) ? '' : String(price);
+}
 
 function getSubmitError(error: unknown) {
   if (error instanceof MarketplaceApiError) {
@@ -59,6 +74,7 @@ function getListingChanges(
 
   if (next.title !== current.title) changes.title = next.title;
   if (next.description !== current.description) changes.description = next.description;
+  if (next.price !== (current.price ?? Number.NaN)) changes.price = next.price;
   if (next.pickupTimeText !== current.pickupTimeText) {
     changes.pickupTimeText = next.pickupTimeText;
   }
@@ -177,6 +193,7 @@ export function ListingFormPage() {
           setDraft({
             title: listing.title,
             description: listing.description,
+            price: listing.price ?? Number.NaN,
             pickupTimeText: listing.pickupTimeText,
             canHelpMove: listing.canHelpMove,
           });
@@ -207,6 +224,7 @@ export function ListingFormPage() {
           setDraft({
             title: listing.title,
             description: listing.description,
+            price: listing.price ?? Number.NaN,
             pickupTimeText: listing.pickupTimeText,
             canHelpMove: listing.canHelpMove,
           });
@@ -266,6 +284,7 @@ export function ListingFormPage() {
     const trimmedDraft: ListingDraft = {
       title: draft.title.trim(),
       description: draft.description.trim(),
+      price: draft.price,
       pickupTimeText: draft.pickupTimeText.trim(),
       canHelpMove: draft.canHelpMove,
     };
@@ -440,6 +459,24 @@ export function ListingFormPage() {
                     aria-invalid={Boolean(errors.title)}
                   />
                   {errors.title && <small role="alert">{errors.title}</small>}
+                </label>
+
+                <label className={styles.formField}>
+                  <span>가격</span>
+                  <div className={styles.priceInput}>
+                    <input
+                      inputMode="numeric"
+                      aria-label="가격"
+                      value={priceInputValue(draft.price)}
+                      placeholder="예: 30000"
+                      onChange={(event) =>
+                        updateDraft('price', parsePriceInput(event.target.value))
+                      }
+                      aria-invalid={Boolean(errors.price)}
+                    />
+                    <span aria-hidden="true">원</span>
+                  </div>
+                  {errors.price && <small role="alert">{errors.price}</small>}
                 </label>
 
                 <label className={styles.formField}>

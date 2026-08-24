@@ -20,6 +20,8 @@ export interface ListingSummary {
   id: number;
   title: string;
   thumbnailUrl: string;
+  /** 서버 DTO의 Integer 가격. 응답에 없거나 null이면 화면에서 "표시불가"로 처리한다. */
+  price?: number | null;
   pickupTimeText: string;
   canHelpMove: boolean;
   createdAt: string;
@@ -50,6 +52,8 @@ export interface ListingDetailResponse {
   id: number;
   title: string;
   description: string;
+  /** 서버 DTO의 Integer 가격. 응답에 없거나 null이면 화면에서 "표시불가"로 처리한다. */
+  price?: number | null;
   pickupTimeText: string;
   canHelpMove: boolean;
   images: ListingImage[];
@@ -60,6 +64,8 @@ export interface ListingDetailResponse {
 export interface ListingDraft {
   title: string;
   description: string;
+  /** 등록·수정 요청에 담는 Integer 가격(원). 0 이상 정수만 허용한다. */
+  price: number;
   pickupTimeText: string;
   canHelpMove: boolean;
 }

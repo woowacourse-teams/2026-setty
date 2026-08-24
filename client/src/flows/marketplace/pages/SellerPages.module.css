@@ -242,6 +242,13 @@
   white-space: nowrap;
 }
 
+.listingSummary p.listingPrice {
+  margin: 4px 0 2px;
+  color: #30231f;
+  font-size: 15px;
+  font-weight: 800;
+}
+
 .listingSummary strong {
   color: #e74b3b;
   font-size: 13px;
@@ -530,6 +537,25 @@
 .formField input[aria-invalid='true'],
 .formField textarea[aria-invalid='true'] {
   border-color: #d83d35;
+}
+
+.priceInput {
+  position: relative;
+}
+
+.priceInput input {
+  padding-right: 42px;
+}
+
+.priceInput span {
+  position: absolute;
+  top: 50%;
+  right: 15px;
+  transform: translateY(-50%);
+  color: #948680;
+  font-size: 15px;
+  font-weight: 700;
+  pointer-events: none;
 }
 
 .formField > small {
