@@ -34,6 +34,12 @@ public class Listing {
     @Column(nullable = false, length = 500)
     private String description;
 
+    /**
+     * 원 단위, 0원은 나눔. 가격 필수화 전에 등록된 매물만 null이라 컬럼은 nullable로 둔다.
+     */
+    @Column
+    private Integer price;
+
     @Column(nullable = false, length = 50)
     private String pickupTimeText;
 
@@ -57,6 +63,7 @@ public class Listing {
             final Member seller,
             final String title,
             final String description,
+            final Integer price,
             final String pickupTimeText,
             final boolean canHelpMove,
             final List<String> imageUrls
@@ -65,6 +72,7 @@ public class Listing {
         this.seller = seller;
         this.title = title;
         this.description = description;
+        this.price = price;
         this.pickupTimeText = pickupTimeText;
         this.canHelpMove = canHelpMove;
         for (int index = 0; index < imageUrls.size(); index++) {
@@ -80,6 +88,7 @@ public class Listing {
     public void update(
             final String title,
             final String description,
+            final Integer price,
             final String pickupTimeText,
             final Boolean canHelpMove
     ) {
@@ -88,6 +97,9 @@ public class Listing {
         }
         if (description != null) {
             this.description = description;
+        }
+        if (price != null) {
+            this.price = price;
         }
         if (pickupTimeText != null) {
             this.pickupTimeText = pickupTimeText;
@@ -124,6 +136,10 @@ public class Listing {
 
     public String getDescription() {
         return description;
+    }
+
+    public Integer getPrice() {
+        return price;
     }
 
     public String getPickupTimeText() {
