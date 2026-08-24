@@ -24,6 +24,7 @@ const DETAIL = {
   title: '테스트 원목 책상',
   description:
     '원본 글 https://www.daangn.com/articles/12345\n잘못된 주소 javascript:alert(1)',
+  price: 60000,
   pickupTimeText: '평일 오후 7시 이후',
   canHelpMove: true,
   images: [

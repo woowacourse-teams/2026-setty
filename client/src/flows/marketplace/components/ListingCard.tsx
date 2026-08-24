@@ -1,5 +1,6 @@
 import { useRef, useState, type KeyboardEvent, type PointerEvent } from 'react';
 import type { ListingSummary } from '@/flows/marketplace/api/marketplaceApi';
+import { formatListingPrice } from '@/flows/marketplace/model/listingPrice';
 import styles from './ListingCard.module.css';
 
 const SWIPE_THRESHOLD = 90;
@@ -133,6 +134,7 @@ export default function ListingCard({
       <div className={styles.content}>
         <p className={styles.eyebrow}>오늘의 동네 가구</p>
         <h1 className={styles.title}>{listing.title}</h1>
+        <p className={styles.price}>{formatListingPrice(listing.price)}</p>
         <dl className={styles.details}>
           <div className={styles.detailRow}>
             <dt>픽업</dt>

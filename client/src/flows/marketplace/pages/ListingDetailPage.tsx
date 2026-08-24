@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { getListingDetail } from '@/flows/marketplace/api/marketplaceApi';
 import type { ListingDetailResponse } from '@/flows/marketplace/model/marketplaceTypes';
+import { formatListingPrice } from '@/flows/marketplace/model/listingPrice';
 import styles from './ListingDetailPage.module.css';
 
 const HTTP_URL_PATTERN = /(https?:\/\/[^\s]+)/g;
@@ -169,6 +170,7 @@ export default function ListingDetailPage() {
         <div className={styles.content}>
           <p className={styles.eyebrow}>동네에서 만난 가구</p>
           <h1 id="listing-title">{listing.title}</h1>
+          <p className={styles.price}>{formatListingPrice(listing.price)}</p>
           <LinkedDescription text={listing.description} />
 
           <dl className={styles.infoList}>

@@ -11,6 +11,7 @@ import type {
   SellerPageResponse,
 } from '@/flows/marketplace/model/marketplaceTypes';
 import { MarketplaceShell } from '@/flows/marketplace/components';
+import { formatListingPrice } from '@/flows/marketplace/model/listingPrice';
 import AuthGate, { isAuthenticationError } from '@/flows/marketplace/components/AuthGate';
 import styles from './SellerPages.module.css';
 
@@ -230,6 +231,9 @@ export function MinePage() {
                         )}
                         <div>
                           <h2>{listing.title}</h2>
+                          <p className={styles.listingPrice}>
+                            {formatListingPrice(listing.price)}
+                          </p>
                           <p>{listing.pickupTimeText}</p>
                           <strong>쪽지 {listing.messageCount}통</strong>
                         </div>
