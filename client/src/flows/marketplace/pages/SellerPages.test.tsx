@@ -53,6 +53,7 @@ const SELLER_PAGE: SellerPageResponse = {
       id: 101,
       title: '가상 테스트 책상',
       thumbnailUrl: 'https://example.com/fixtures/desk.webp',
+      price: 45000,
       pickupTimeText: '평일 오후 7시 이후',
       canHelpMove: true,
       messageCount: 1,
@@ -82,6 +83,7 @@ const LISTING_DETAIL: ListingDetailResponse = {
   id: 101,
   title: '가상 테스트 책상',
   description: '테스트 전용 설명입니다.',
+  price: 45000,
   pickupTimeText: '평일 오후 7시 이후',
   canHelpMove: true,
   images: [
@@ -245,12 +247,14 @@ test('등록 폼은 이미지 규칙을 검증하고 유효한 multipart 입력�
     type: 'image/webp',
   });
   fireEvent.change(imageInput, { target: { files: [validImage] } });
+  await user.type(screen.getByLabelText('가격'), '30000');
   await user.click(screen.getByRole('button', { name: '등록하기' }));
 
   await waitFor(() => expect(createListingMock).toHaveBeenCalledTimes(1));
   expect(createListingMock).toHaveBeenCalledWith({
     title: '가상 테스트 협탁',
     description: '테스트 전용 매물 설명입니다.',
+    price: 30000,
     pickupTimeText: '토요일 오전',
     canHelpMove: false,
     images: [validImage],
@@ -283,6 +287,15 @@ test('수정 화면은 기존 사진을 읽기 전용으로 유지하고 텍스�
   expect(updateListingMock).toHaveBeenCalledWith(101, {
     title: '수정한 가상 테스트 책상',
   });
+});
+
+test('내 매물은 가격을 표시하고, 가격이 없는 매물은 표시불가로 안내한다', async () => {
+  getSellerPageMock.mockResolvedValue(SELLER_PAGE);
+  renderRoute('/mine');
+
+  const cards = await screen.findAllByRole('listitem');
+  expect(within(cards[0]!).getByText('45,000원')).toBeInTheDocument();
+  expect(within(cards[1]!).getByText('표시불가')).toBeInTheDocument();
 });
 
 test('삭제 확인 뒤 매물 삭제 API를 호출하고 목록을 다시 불러온다', async () => {

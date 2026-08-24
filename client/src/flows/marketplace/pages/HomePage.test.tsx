@@ -28,6 +28,7 @@ const LISTINGS: ListingSummary[] = [
     id: 11,
     title: '테스트 원목 책상',
     thumbnailUrl: 'https://example.com/fake-desk.jpg',
+    price: 55000,
     pickupTimeText: '평일 오후 7시 이후',
     canHelpMove: true,
     createdAt: '2026-08-21T14:00:00+09:00',
@@ -90,7 +91,7 @@ test('API 계약에 있는 목록 정보만 카드에 표시한다', async () =>
   ).toBeInTheDocument();
   expect(screen.getByText('평일 오후 7시 이후')).toBeInTheDocument();
   expect(screen.getByText('판매자가 운반을 도와드릴 수 있어요')).toBeInTheDocument();
-  expect(screen.queryByText('8만원')).not.toBeInTheDocument();
+  expect(screen.getByText('55,000원')).toBeInTheDocument();
   expect(screen.queryByRole('button', { name: /찜/ })).not.toBeInTheDocument();
   expect(screen.getByRole('link', { name: '내 매물' })).toHaveAttribute('href', '/mine');
   expect(screen.getByRole('link', { name: '쪽지함' })).toHaveAttribute('href', '/inbox');

@@ -74,6 +74,14 @@
   line-height: 1.25;
 }
 
+.price {
+  margin: 10px 0 0;
+  color: #e94b35;
+  font-size: 26px;
+  font-weight: 900;
+  letter-spacing: -0.5px;
+}
+
 .description {
   margin: 24px 0;
   color: #4f423d;

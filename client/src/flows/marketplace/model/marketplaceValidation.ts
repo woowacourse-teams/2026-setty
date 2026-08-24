@@ -23,10 +23,13 @@ export interface LoginValidationErrors {
 
 export interface ListingValidationErrors {
   title?: string;
+  price?: string;
   description?: string;
   pickupTimeText?: string;
   images?: string;
 }
+
+export const MAX_LISTING_PRICE = 100_000_000;
 
 export interface MessageValidationErrors {
   content?: string;
@@ -66,6 +69,10 @@ export function validateListingDraft(draft: ListingDraft): ListingValidationErro
 
   if (titleLength < 1 || titleLength > 100) {
     errors.title = '제목을 1~100자로 입력해 주세요.';
+  }
+
+  if (!Number.isInteger(draft.price) || draft.price < 0 || draft.price > MAX_LISTING_PRICE) {
+    errors.price = '가격을 0원 이상 숫자로 입력해 주세요.';
   }
 
   if (descriptionLength < 1 || descriptionLength > 500) {

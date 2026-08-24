@@ -102,6 +102,14 @@
   -webkit-line-clamp: 2;
 }
 
+.price {
+  margin: 10px 0 0;
+  color: #ffd7b0;
+  font-size: 22px;
+  font-weight: 900;
+  letter-spacing: -0.5px;
+}
+
 .details {
   display: grid;
   margin: 18px 0 0;

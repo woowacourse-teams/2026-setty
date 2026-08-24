@@ -48,6 +48,7 @@ test('매물 목록 응답의 items만 화면에 반환한다', async () => {
       id: 1,
       title: '테스트 의자',
       thumbnailUrl: 'https://example.com/test-chair.jpg',
+      price: 30000,
       pickupTimeText: '주말 가능',
       canHelpMove: false,
       createdAt: '2026-08-21T13:00:00+09:00',
@@ -67,6 +68,7 @@ test('매물 등록 multipart에는 Content-Type을 직접 지정하지 않는�
   await createListing({
     title: '테스트 의자',
     description: '가상 테스트 매물입니다.',
+    price: 30000,
     pickupTimeText: '주말 가능',
     canHelpMove: true,
     images: [photo],
