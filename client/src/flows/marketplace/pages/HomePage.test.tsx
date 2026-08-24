@@ -10,13 +10,26 @@ import {
   useRoutes,
 } from 'react-router-dom';
 import { getListings, type ListingSummary } from '@/flows/marketplace/api/marketplaceApi';
+import {
+  trackListingCardImpression,
+  trackListingDetailOpened,
+  trackListingSkipped,
+} from '@/shared/analytics/googleAnalytics';
 import HomePage from './HomePage';
 
 jest.mock('@/flows/marketplace/api/marketplaceApi', () => ({
   getListings: jest.fn(),
 }));
+jest.mock('@/shared/analytics/googleAnalytics', () => ({
+  trackListingCardImpression: jest.fn(),
+  trackListingDetailOpened: jest.fn(),
+  trackListingSkipped: jest.fn(),
+}));
 
 const getListingsMock = jest.mocked(getListings);
+const trackListingCardImpressionMock = jest.mocked(trackListingCardImpression);
+const trackListingDetailOpenedMock = jest.mocked(trackListingDetailOpened);
+const trackListingSkippedMock = jest.mocked(trackListingSkipped);
 
 Object.defineProperty(window, 'PointerEvent', {
   configurable: true,
@@ -78,6 +91,7 @@ function renderHome() {
 }
 
 beforeEach(() => {
+  jest.clearAllMocks();
   getListingsMock.mockReset();
   getListingsMock.mockResolvedValue(LISTINGS);
   window.sessionStorage.clear();
@@ -95,6 +109,8 @@ test('API 계약에 있는 목록 정보만 카드에 표시한다', async () =>
   expect(screen.queryByRole('button', { name: /찜/ })).not.toBeInTheDocument();
   expect(screen.getByRole('link', { name: '내 매물' })).toHaveAttribute('href', '/mine');
   expect(screen.getByRole('link', { name: '쪽지함' })).toHaveAttribute('href', '/inbox');
+  expect(trackListingCardImpressionMock).toHaveBeenCalledTimes(1);
+  expect(trackListingCardImpressionMock).toHaveBeenCalledWith(11, 55_000);
 });
 
 test('카드를 눌러 상세를 열면 돌아왔을 때 같은 카드를 유지한다', async () => {
@@ -106,6 +122,7 @@ test('카드를 눌러 상세를 열면 돌아왔을 때 같은 카드를 유지
   );
   expect(screen.getByRole('heading', { name: '상세 도착' })).toBeInTheDocument();
   expect(screen.getByText('카드 유지됨')).toBeInTheDocument();
+  expect(trackListingDetailOpenedMock).toHaveBeenCalledWith(11, 55_000, 'card_tap');
 
   await user.click(screen.getByRole('button', { name: '돌아가기' }));
   expect(
@@ -120,6 +137,11 @@ test('상세 보기 동작은 카드를 소비하고 돌아오면 다음 카드�
   await screen.findByRole('heading', { name: '테스트 원목 책상' });
   await user.click(screen.getByRole('button', { name: '이 매물 상세 보기' }));
   expect(screen.getByText('카드 소비됨')).toBeInTheDocument();
+  expect(trackListingDetailOpenedMock).toHaveBeenCalledWith(
+    11,
+    55_000,
+    'detail_button',
+  );
 
   await user.click(screen.getByRole('button', { name: '돌아가기' }));
   expect(
@@ -133,6 +155,7 @@ test('다음 매물과 되돌리기 버튼으로 덱을 이동한다', async () 
 
   await screen.findByRole('heading', { name: '테스트 원목 책상' });
   await user.click(screen.getByRole('button', { name: '다음 매물 보기' }));
+  expect(trackListingSkippedMock).toHaveBeenCalledWith(11, 55_000, 'skip_button');
   expect(screen.getByRole('heading', { name: '테스트 소형 냉장고' })).toBeInTheDocument();
 
   await user.click(screen.getByRole('button', { name: '이전 카드로 되돌리기' }));
@@ -147,6 +170,7 @@ test('90px 이상 왼쪽으로 끌면 다음 카드로 이동한다', async () =
   fireEvent.pointerMove(card, { clientX: 109, pointerId: 1, isPrimary: true });
   fireEvent.pointerUp(card, { button: 0, clientX: 109, pointerId: 1, isPrimary: true });
 
+  expect(trackListingSkippedMock).toHaveBeenCalledWith(11, 55_000, 'swipe_left');
   expect(screen.getByRole('heading', { name: '테스트 소형 냉장고' })).toBeInTheDocument();
 });
 

@@ -16,6 +16,10 @@ import type {
   ListingDetailResponse,
   SellerPageResponse,
 } from '@/flows/marketplace/model/marketplaceTypes';
+import {
+  trackListingCreated,
+  trackListingCreateStarted,
+} from '@/shared/analytics/googleAnalytics';
 import InboxPage from './InboxPage';
 import ListingFormPage from './ListingFormPage';
 import MinePage from './MinePage';
@@ -36,6 +40,10 @@ jest.mock('@/flows/marketplace/api/marketplaceApi', () => {
     updateListing: jest.fn(),
   };
 });
+jest.mock('@/shared/analytics/googleAnalytics', () => ({
+  trackListingCreated: jest.fn(),
+  trackListingCreateStarted: jest.fn(),
+}));
 
 const createListingMock = jest.mocked(createListing);
 const deleteListingMock = jest.mocked(deleteListing);
@@ -44,6 +52,8 @@ const getListingMessagesMock = jest.mocked(getListingMessages);
 const getSellerPageMock = jest.mocked(getSellerPage);
 const loginMock = jest.mocked(loginOrCreateAccount);
 const updateListingMock = jest.mocked(updateListing);
+const trackListingCreatedMock = jest.mocked(trackListingCreated);
+const trackListingCreateStartedMock = jest.mocked(trackListingCreateStarted);
 
 const SELLER_PAGE: SellerPageResponse = {
   seller: { phoneNumber: '01000000000' },
@@ -229,7 +239,9 @@ test('등록 폼은 이미지 규칙을 검증하고 유효한 multipart 입력�
   renderRoute('/mine/new');
 
   await screen.findByRole('heading', { name: '가구 올리기' });
+  expect(trackListingCreateStartedMock).not.toHaveBeenCalled();
   await user.type(await screen.findByLabelText('물품명'), '가상 테스트 협탁');
+  expect(trackListingCreateStartedMock).toHaveBeenCalledTimes(1);
   await user.type(screen.getByLabelText(/상세 설명/), '테스트 전용 매물 설명입니다.');
   await user.type(screen.getByLabelText(/픽업 가능 시간/), '토요일 오전');
   await user.click(screen.getByRole('button', { name: '등록하기' }));
@@ -259,6 +271,7 @@ test('등록 폼은 이미지 규칙을 검증하고 유효한 multipart 입력�
     canHelpMove: false,
     images: [validImage],
   });
+  expect(trackListingCreatedMock).toHaveBeenCalledWith(103, 30_000);
   expect(
     await screen.findByRole('heading', { name: '아직 올린 가구가 없어요' }),
   ).toBeInTheDocument();
@@ -287,6 +300,8 @@ test('수정 화면은 기존 사진을 읽기 전용으로 유지하고 텍스�
   expect(updateListingMock).toHaveBeenCalledWith(101, {
     title: '수정한 가상 테스트 책상',
   });
+  expect(trackListingCreateStartedMock).not.toHaveBeenCalled();
+  expect(trackListingCreatedMock).not.toHaveBeenCalled();
 });
 
 test('내 매물은 가격을 표시하고, 가격이 없는 매물은 표시불가로 안내한다', async () => {

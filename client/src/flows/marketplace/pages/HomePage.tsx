@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getListings, type ListingSummary } from '@/flows/marketplace/api/marketplaceApi';
 import {
@@ -8,8 +8,11 @@ import {
   StatusPanel,
 } from '@/flows/marketplace/components';
 import {
+  trackListingCardImpression,
   trackListingDetailOpened,
+  trackListingSkipped,
   type ListingDetailOpenMethod,
+  type ListingSkipMethod,
 } from '@/shared/analytics/googleAnalytics';
 import styles from './HomePage.module.css';
 
@@ -59,6 +62,7 @@ export function HomePage() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const lastImpressionListingId = useRef<number | null>(null);
 
   const loadListings = useCallback(async (resetDeck = false) => {
     setIsLoading(true);
@@ -103,6 +107,12 @@ export function HomePage() {
 
   const currentListing = listings[currentIndex];
 
+  useEffect(() => {
+    if (!currentListing || lastImpressionListingId.current === currentListing.id) return;
+    lastImpressionListingId.current = currentListing.id;
+    trackListingCardImpression(currentListing.id, currentListing.price);
+  }, [currentListing]);
+
   const moveToIndex = (nextIndex: number) => {
     const safeIndex = Math.max(0, Math.min(nextIndex, listings.length));
     setCurrentIndex(safeIndex);
@@ -114,9 +124,15 @@ export function HomePage() {
     moveToIndex(currentIndex + 1);
   };
 
+  const skipCurrentListing = (skipMethod: ListingSkipMethod) => {
+    if (!currentListing) return;
+    trackListingSkipped(currentListing.id, currentListing.price, skipMethod);
+    advance();
+  };
+
   const openDetail = (consume: boolean, detailOpenMethod: ListingDetailOpenMethod) => {
     if (!currentListing) return;
-    trackListingDetailOpened(currentListing.id, detailOpenMethod);
+    trackListingDetailOpened(currentListing.id, currentListing.price, detailOpenMethod);
     if (consume) advance();
 
     navigate(`/listings/${currentListing.id}`, {
@@ -127,7 +143,12 @@ export function HomePage() {
   const openMessage = () => {
     if (!currentListing) return;
     navigate(`/listings/${currentListing.id}/message`, {
-      state: { from: '/', marketplaceDeckConsumed: false },
+      state: {
+        from: '/',
+        marketplaceDeckConsumed: false,
+        price: currentListing.price,
+        title: currentListing.title,
+      },
     });
   };
 
@@ -169,7 +190,7 @@ export function HomePage() {
         key={currentListing.id}
         listing={currentListing}
         onOpen={() => openDetail(false, 'card_tap')}
-        onSwipeLeft={advance}
+        onSwipeLeft={() => skipCurrentListing('swipe_left')}
         onSwipeRight={() => openDetail(true, 'swipe_right')}
       />
     );
@@ -192,7 +213,7 @@ export function HomePage() {
           disabled={!currentListing || isLoading || Boolean(error)}
           onDetail={() => openDetail(true, 'detail_button')}
           onMessage={openMessage}
-          onSkip={advance}
+          onSkip={() => skipCurrentListing('skip_button')}
           onUndo={() => moveToIndex(currentIndex - 1)}
         />
       </main>

@@ -7,6 +7,10 @@ import {
   getListingDetail,
   sendListingMessage,
 } from '@/flows/marketplace/api/marketplaceApi';
+import {
+  trackMessageComposeOpened,
+  trackMessageSent,
+} from '@/shared/analytics/googleAnalytics';
 
 jest.mock('@/flows/marketplace/api/marketplaceApi', () => ({
   ...jest.requireActual<typeof import('@/flows/marketplace/api/marketplaceApi')>(
@@ -15,9 +19,15 @@ jest.mock('@/flows/marketplace/api/marketplaceApi', () => ({
   getListingDetail: jest.fn(),
   sendListingMessage: jest.fn(),
 }));
+jest.mock('@/shared/analytics/googleAnalytics', () => ({
+  trackMessageComposeOpened: jest.fn(),
+  trackMessageSent: jest.fn(),
+}));
 
 const getListingDetailMock = jest.mocked(getListingDetail);
 const sendListingMessageMock = jest.mocked(sendListingMessage);
+const trackMessageComposeOpenedMock = jest.mocked(trackMessageComposeOpened);
+const trackMessageSentMock = jest.mocked(trackMessageSent);
 
 const DETAIL = {
   id: 11,
@@ -43,6 +53,7 @@ function CurrentPath() {
 }
 
 beforeEach(() => {
+  jest.clearAllMocks();
   getListingDetailMock.mockReset();
   sendListingMessageMock.mockReset();
   getListingDetailMock.mockResolvedValue(DETAIL);
@@ -88,6 +99,7 @@ test('로그인 없이 작성한 익명 쪽지를 해당 매물로 전송한다'
   );
 
   expect(await screen.findByText(/테스트 원목 책상 · 익명 문의/)).toBeInTheDocument();
+  expect(trackMessageComposeOpenedMock).toHaveBeenCalledWith(11, 60_000);
   await user.type(screen.getByLabelText('쪽지 내용'), '주말 오전에 가져갈 수 있어요.');
   await user.click(screen.getByRole('button', { name: '보내기' }));
 
@@ -100,6 +112,7 @@ test('로그인 없이 작성한 익명 쪽지를 해당 매물로 전송한다'
     'role',
     'status',
   );
+  expect(trackMessageSentMock).toHaveBeenCalledWith(11, 60_000);
 
   await user.click(screen.getByRole('button', { name: '취소' }));
   expect(screen.getByTestId('route-path')).toHaveTextContent('/listings/11');
