@@ -9,7 +9,7 @@ import {
 } from '@/flows/marketplace/components';
 import {
   trackListingDetailOpened,
-  type ListingDetailSource,
+  type ListingDetailOpenMethod,
 } from '@/shared/analytics/googleAnalytics';
 import styles from './HomePage.module.css';
 
@@ -114,9 +114,9 @@ export function HomePage() {
     moveToIndex(currentIndex + 1);
   };
 
-  const openDetail = (consume: boolean, source: ListingDetailSource) => {
+  const openDetail = (consume: boolean, detailOpenMethod: ListingDetailOpenMethod) => {
     if (!currentListing) return;
-    trackListingDetailOpened(currentListing.id, source);
+    trackListingDetailOpened(currentListing.id, detailOpenMethod);
     if (consume) advance();
 
     navigate(`/listings/${currentListing.id}`, {

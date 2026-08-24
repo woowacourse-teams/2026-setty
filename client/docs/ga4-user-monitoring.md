@@ -22,7 +22,7 @@ GA4는 방문자·세션·유입 분석을 기본 제공하므로 방문 현황�
 | `listing_detail_opened` | 카드 탭, 상세 버튼, 오른쪽 스와이프로 상세 진입 | 방문자가 매물을 자세히 살펴보는가? |
 | `message_sent` | 쪽지 API가 성공한 직후 | 실제 문의 행동으로 이어지는가? |
 
-`listing_detail_opened`에는 매물 숫자 ID와 진입 방식만 기록한다. `message_sent`에는 매물 숫자 ID만 기록한다. 매물 제목·설명·사진 URL, 전화번호, 비밀번호와 쪽지 내용은 GA에 보내지 않는다.
+`listing_detail_opened`에는 매물 숫자 ID(`listing_id`)와 진입 방식(`detail_open_method`)만 기록한다. 진입 방식은 `card_tap`, `detail_button`, `swipe_right` 중 하나다. `message_sent`에는 매물 숫자 ID만 기록한다. 매물 제목·설명·사진 URL, 전화번호, 비밀번호와 쪽지 내용은 GA에 보내지 않는다.
 
 ## 3. 배포 설정
 

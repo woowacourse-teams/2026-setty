@@ -43,7 +43,7 @@ describe('Google Analytics', () => {
     expect(window.dataLayer).toHaveLength(3);
   });
 
-  test('이벤트에는 매물 식별자와 행동 출처만 기록한다', async () => {
+  test('이벤트에는 매물 식별자와 상세 진입 방식만 기록한다', async () => {
     process.env.SETTY_GA_MEASUREMENT_ID = 'G-TEST123456';
     const { trackListingDetailOpened, trackMessageSent } = await loadAnalytics();
 
@@ -53,7 +53,11 @@ describe('Google Analytics', () => {
     const queuedCommands = window.dataLayer?.map((command) => Array.from(command as IArguments));
     expect(queuedCommands).toEqual(
       expect.arrayContaining([
-        ['event', 'listing_detail_opened', { listing_id: 11, source: 'swipe_right' }],
+        [
+          'event',
+          'listing_detail_opened',
+          { listing_id: 11, detail_open_method: 'swipe_right' },
+        ],
         ['event', 'message_sent', { listing_id: 11 }],
       ]),
     );
