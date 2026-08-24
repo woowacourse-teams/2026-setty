@@ -72,15 +72,15 @@ export function trackPageView(pagePath: string) {
   });
 }
 
-export type ListingDetailSource = 'card_tap' | 'detail_button' | 'swipe_right';
+export type ListingDetailOpenMethod = 'card_tap' | 'detail_button' | 'swipe_right';
 
 export function trackListingDetailOpened(
   listingId: number,
-  source: ListingDetailSource,
+  detailOpenMethod: ListingDetailOpenMethod,
 ) {
   trackEvent('listing_detail_opened', {
     listing_id: listingId,
-    source,
+    detail_open_method: detailOpenMethod,
   });
 }
 
