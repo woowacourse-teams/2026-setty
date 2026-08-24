@@ -22,6 +22,7 @@ public record SellerPageResponse(
     public record SellerListing(
             Long id,
             String title,
+            Integer price,
             String thumbnailUrl,
             String pickupTimeText,
             boolean canHelpMove,

@@ -40,6 +40,7 @@ class PrototypeSellerPageApiTest extends PrototypeApiSupport {
                 .andExpect(jsonPath("$.summary.listingCount").value(2))
                 .andExpect(jsonPath("$.summary.messageCount").value(3))
                 .andExpect(jsonPath("$.listings[0].title").value("소형 냉장고"))
+                .andExpect(jsonPath("$.listings[0].price").value(30000))
                 .andExpect(jsonPath("$.listings[0].messageCount").value(1))
                 .andExpect(jsonPath("$.listings[0].latestMessageAt").isNotEmpty())
                 .andExpect(jsonPath("$.listings[1].title").value("원목 책상"))

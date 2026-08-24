@@ -11,6 +11,7 @@ import setty.prototype.domain.Listing;
 public record ListingDetailResponse(
         Long id,
         String title,
+        Integer price,
         String description,
         String pickupTimeText,
         boolean canHelpMove,
@@ -22,6 +23,7 @@ public record ListingDetailResponse(
         return new ListingDetailResponse(
                 listing.getId(),
                 listing.getTitle(),
+                listing.getPrice(),
                 listing.getDescription(),
                 listing.getPickupTimeText(),
                 listing.isCanHelpMove(),

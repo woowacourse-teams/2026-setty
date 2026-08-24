@@ -69,6 +69,7 @@ public class SellerPageService {
         return new SellerPageResponse.SellerListing(
                 listing.getId(),
                 listing.getTitle(),
+                listing.getPrice(),
                 listing.thumbnailUrl(),
                 listing.getPickupTimeText(),
                 listing.isCanHelpMove(),

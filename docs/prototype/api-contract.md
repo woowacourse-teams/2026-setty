@@ -12,6 +12,15 @@
 
 당근 링크는 별도 필드로 관리하지 않습니다. 필요한 경우 `description`에 일반 텍스트로 입력합니다.
 
+## 가격 규칙
+
+매물은 가격 `price`를 가집니다.
+
+- 원 단위 정수(JSON 숫자 타입)만 받습니다. `0`은 나눔, 최대 `99999999`입니다.
+- 등록에서 **필수**입니다. 누락·음수·상한 초과·소수점(`30000.5`)·문자열(`"3만원"`, `"30000"`) 모두 `400 INVALID_REQUEST`입니다.
+- 수정에서는 선택입니다. 담지 않으면 그대로 두며, 한번 넣은 가격을 `null`로 되돌릴 수는 없습니다.
+- 응답에는 항상 `price`가 담깁니다. 가격 필수화 전에 등록된 매물만 `null`입니다.
+
 ## 전체 API 표
 
 | # | Method | Endpoint | 인증 | Request | 성공 Response |
@@ -145,6 +154,7 @@ Cookie: JSESSIONID=opaque-session-id
     {
       "id": 1,
       "title": "원목 책상",
+      "price": 30000,
       "thumbnailUrl": "https://example.com/images/1.jpg",
       "pickupTimeText": "평일 오후 7시 이후",
       "canHelpMove": true,
@@ -155,6 +165,7 @@ Cookie: JSESSIONID=opaque-session-id
     {
       "id": 2,
       "title": "소형 냉장고",
+      "price": 0,
       "thumbnailUrl": "https://example.com/images/2.jpg",
       "pickupTimeText": "주말 가능",
       "canHelpMove": false,
@@ -210,6 +221,7 @@ GET /api/listings
     {
       "id": 1,
       "title": "원목 책상",
+      "price": 30000,
       "thumbnailUrl": "https://example.com/images/1.jpg",
       "pickupTimeText": "평일 오후 7시 이후",
       "canHelpMove": true,
@@ -218,6 +230,7 @@ GET /api/listings
     {
       "id": 2,
       "title": "소형 냉장고",
+      "price": 0,
       "thumbnailUrl": "https://example.com/images/2.jpg",
       "pickupTimeText": "주말 가능",
       "canHelpMove": false,
@@ -249,6 +262,7 @@ GET /api/listings/1
 {
   "id": 1,
   "title": "원목 책상",
+  "price": 30000,
   "description": "사용감이 조금 있습니다. 당근 링크: https://example.com/item",
   "pickupTimeText": "평일 오후 7시 이후",
   "canHelpMove": true,
@@ -288,6 +302,7 @@ Cookie: JSESSIONID=opaque-session-id
 ```
 {
   "title": "원목 책상",
+  "price": 30000,
   "description": "사용감이 조금 있습니다. 당근 링크: https://example.com/item",
   "pickupTimeText": "평일 오후 7시 이후",
   "canHelpMove": true
@@ -339,6 +354,7 @@ Cookie: JSESSIONID=opaque-session-id
 ```
 {
   "title": "원목 책상 급처",
+  "price": 25000,
   "description": "이번 주말까지만 판매합니다.",
   "pickupTimeText": "토요일 오전 가능",
   "canHelpMove": false
@@ -470,6 +486,7 @@ Cookie: JSESSIONID=opaque-session-id
 | `phoneNumber` | 필수, 숫자 정규화 후 10~11자리, 회원 간 유일 |
 | `password` | 필수, 숫자 4자리, BCrypt 해시 저장, 첫 로그인 시 이 값으로 가입 |
 | `title` | 필수, 1~100자 |
+| `price` | 필수, 원 단위 정수(숫자 타입만), 0~99999999, 0은 나눔 |
 | `description` | 필수, 1~500자 |
 | `pickupTimeText` | 필수, 1~50자 |
 | `canHelpMove` | 필수, `true` 또는 `false` |

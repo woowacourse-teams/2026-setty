@@ -24,12 +24,24 @@ class ListingTest {
     void updatesOnlyGivenFields() {
         final Listing listing = listing(List.of("https://example.com/1.jpg"));
 
-        listing.update("원목 책상 급처", null, null, false);
+        listing.update("원목 책상 급처", null, null, null, false);
 
         assertThat(listing.getTitle()).isEqualTo("원목 책상 급처");
         assertThat(listing.isCanHelpMove()).isFalse();
         assertThat(listing.getDescription()).isEqualTo("사용감이 조금 있습니다.");
+        assertThat(listing.getPrice()).isEqualTo(30000);
         assertThat(listing.getPickupTimeText()).isEqualTo("평일 오후 7시 이후");
+    }
+
+    @Test
+    @DisplayName("가격만 따로 바꿀 수 있다")
+    void updatesOnlyPrice() {
+        final Listing listing = listing(List.of("https://example.com/1.jpg"));
+
+        listing.update(null, null, 25000, null, null);
+
+        assertThat(listing.getPrice()).isEqualTo(25000);
+        assertThat(listing.getTitle()).isEqualTo("원목 책상");
     }
 
     @Test
@@ -37,7 +49,7 @@ class ListingTest {
     void keepsUpdatedAtNotBeforeCreatedAt() {
         final Listing listing = listing(List.of("https://example.com/1.jpg"));
 
-        listing.update(null, null, "토요일 오전 가능", null);
+        listing.update(null, null, null, "토요일 오전 가능", null);
 
         assertThat(listing.getUpdatedAt()).isAfterOrEqualTo(listing.getCreatedAt());
     }
@@ -47,6 +59,7 @@ class ListingTest {
                 new Member(PHONE_NUMBER, "hashed-password"),
                 "원목 책상",
                 "사용감이 조금 있습니다.",
+                30000,
                 "평일 오후 7시 이후",
                 true,
                 imageUrls
