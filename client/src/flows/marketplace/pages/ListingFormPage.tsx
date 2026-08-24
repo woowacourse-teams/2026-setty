@@ -1,4 +1,12 @@
-import { ChangeEvent, FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  ChangeEvent,
+  FormEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   createListing,
@@ -22,6 +30,10 @@ import {
   validateListingImages,
 } from '@/flows/marketplace/model/marketplaceValidation';
 import AuthGate, { isAuthenticationError } from '@/flows/marketplace/components/AuthGate';
+import {
+  trackListingCreated,
+  trackListingCreateStarted,
+} from '@/shared/analytics/googleAnalytics';
 import styles from './SellerPages.module.css';
 
 type FormLoadState = 'loading' | 'ready' | 'error' | 'authentication-required';
@@ -175,6 +187,13 @@ export function ListingFormPage() {
   );
   const [submitError, setSubmitError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const createStartedTrackedRef = useRef(false);
+
+  const trackCreateStartedOnce = () => {
+    if (isEditing || createStartedTrackedRef.current) return;
+    createStartedTrackedRef.current = true;
+    trackListingCreateStarted();
+  };
 
   const loadProtectedForm = useCallback(
     async (signal?: AbortSignal) => {
@@ -248,6 +267,7 @@ export function ListingFormPage() {
     field: Field,
     value: ListingDraft[Field],
   ) => {
+    trackCreateStartedOnce();
     setDraft((current) => ({ ...current, [field]: value }));
     setErrors((current) => ({ ...current, [field]: undefined }));
     setSubmitError('');
@@ -257,6 +277,7 @@ export function ListingFormPage() {
     const selected = Array.from(event.target.files ?? []);
     event.target.value = '';
     if (selected.length === 0) return;
+    trackCreateStartedOnce();
 
     const nextImages = [...images, ...selected];
     const imageError = validateListingImages(nextImages);
@@ -304,7 +325,8 @@ export function ListingFormPage() {
         if (listingId === null || !listingChanges) return;
         await updateListing(listingId, listingChanges);
       } else {
-        await createListing({ ...trimmedDraft, images });
+        const createdListing = await createListing({ ...trimmedDraft, images });
+        trackListingCreated(createdListing.listingId, trimmedDraft.price);
       }
       navigate('/mine', {
         replace: true,
