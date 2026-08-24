@@ -73,17 +73,71 @@ export function trackPageView(pagePath: string) {
 }
 
 export type ListingDetailOpenMethod = 'card_tap' | 'detail_button' | 'swipe_right';
+export type ListingSkipMethod = 'skip_button' | 'swipe_left';
+export type ListingPriceBucket =
+  | 'unavailable'
+  | 'zero'
+  | 'under_50k'
+  | '50k_to_100k'
+  | '100k_to_300k'
+  | 'over_300k';
+
+export function getListingPriceBucket(price?: number | null): ListingPriceBucket {
+  if (price === null || price === undefined || !Number.isFinite(price) || price < 0) {
+    return 'unavailable';
+  }
+  if (price === 0) return 'zero';
+  if (price < 50_000) return 'under_50k';
+  if (price < 100_000) return '50k_to_100k';
+  if (price < 300_000) return '100k_to_300k';
+  return 'over_300k';
+}
+
+function listingParameters(listingId: number, price?: number | null) {
+  return {
+    listing_id: listingId,
+    price_bucket: getListingPriceBucket(price),
+  };
+}
+
+export function trackListingCardImpression(listingId: number, price?: number | null) {
+  trackEvent('listing_card_impression', listingParameters(listingId, price));
+}
+
+export function trackListingSkipped(
+  listingId: number,
+  price: number | null | undefined,
+  skipMethod: ListingSkipMethod,
+) {
+  trackEvent('listing_skipped', {
+    ...listingParameters(listingId, price),
+    skip_method: skipMethod,
+  });
+}
 
 export function trackListingDetailOpened(
   listingId: number,
+  price: number | null | undefined,
   detailOpenMethod: ListingDetailOpenMethod,
 ) {
   trackEvent('listing_detail_opened', {
-    listing_id: listingId,
+    ...listingParameters(listingId, price),
     detail_open_method: detailOpenMethod,
   });
 }
 
-export function trackMessageSent(listingId: number) {
-  trackEvent('message_sent', { listing_id: listingId });
+export function trackMessageComposeOpened(listingId: number, price?: number | null) {
+  trackEvent('message_compose_opened', listingParameters(listingId, price));
+}
+
+export function trackMessageSent(listingId: number, price?: number | null) {
+  trackEvent('message_sent', listingParameters(listingId, price));
+}
+
+export function trackListingCreateStarted() {
+  trackEvent('listing_create_started');
+}
+
+export function trackListingCreated(listingId: number, price: number) {
+  trackEvent('listing_created', listingParameters(listingId, price));
 }

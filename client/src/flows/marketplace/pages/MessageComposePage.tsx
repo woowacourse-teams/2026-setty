@@ -4,7 +4,10 @@ import {
   getListingDetail,
   sendListingMessage,
 } from '@/flows/marketplace/api/marketplaceApi';
-import { trackMessageSent } from '@/shared/analytics/googleAnalytics';
+import {
+  trackMessageComposeOpened,
+  trackMessageSent,
+} from '@/shared/analytics/googleAnalytics';
 import styles from './MessageComposePage.module.css';
 
 const MAX_MESSAGE_LENGTH = 500;
@@ -18,24 +21,51 @@ export default function MessageComposePage() {
   const location = useLocation();
   const navigate = useNavigate();
   const id = Number(listingId);
-  const initialTitle = (location.state as { title?: string } | null)?.title;
+  const routeState = location.state as { price?: number | null; title?: string } | null;
+  const initialTitle = routeState?.title;
+  const hasInitialPrice =
+    routeState !== null && Object.prototype.hasOwnProperty.call(routeState, 'price');
   const [title, setTitle] = useState(initialTitle ?? '이 가구');
+  const [listingPrice, setListingPrice] = useState<number | null | undefined>(
+    routeState?.price,
+  );
+  const [hasListingContext, setHasListingContext] = useState(hasInitialPrice);
   const [content, setContent] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSent, setIsSent] = useState(false);
   const closeTimerRef = useRef<number | null>(null);
+  const composeOpenedTrackedRef = useRef(false);
 
   useEffect(() => {
-    if (initialTitle || !Number.isSafeInteger(id) || id <= 0) return;
+    if ((initialTitle && hasInitialPrice) || !Number.isSafeInteger(id) || id <= 0) {
+      return;
+    }
     const controller = new AbortController();
     void getListingDetail(id, { signal: controller.signal })
-      .then((listing) => setTitle(listing.title))
+      .then((listing) => {
+        setTitle(listing.title);
+        setListingPrice(listing.price);
+        setHasListingContext(true);
+      })
       .catch((loadError: unknown) => {
         if (loadError instanceof DOMException && loadError.name === 'AbortError') return;
       });
     return () => controller.abort();
-  }, [id, initialTitle]);
+  }, [hasInitialPrice, id, initialTitle]);
+
+  useEffect(() => {
+    if (
+      !hasListingContext ||
+      !Number.isSafeInteger(id) ||
+      id <= 0 ||
+      composeOpenedTrackedRef.current
+    ) {
+      return;
+    }
+    composeOpenedTrackedRef.current = true;
+    trackMessageComposeOpened(id, listingPrice);
+  }, [hasListingContext, id, listingPrice]);
 
   useEffect(
     () => () => {
@@ -74,7 +104,7 @@ export default function MessageComposePage() {
     setError(null);
     try {
       await sendListingMessage(id, { content: trimmed });
-      trackMessageSent(id);
+      trackMessageSent(id, listingPrice);
       setIsSent(true);
       closeTimerRef.current = window.setTimeout(close, 800);
     } catch (sendError) {

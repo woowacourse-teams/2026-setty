@@ -198,7 +198,7 @@ export default function ListingDetailPage() {
             className={styles.primaryButton}
             onClick={() =>
               navigate(`/listings/${listing.id}/message`, {
-                state: { title: listing.title },
+                state: { price: listing.price, title: listing.title },
               })
             }
           >
