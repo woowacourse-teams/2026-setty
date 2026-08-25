@@ -1,0 +1,4 @@
+CREATE TABLE IF NOT EXISTS members (
+    id BIGINT NOT NULL,
+    PRIMARY KEY (id)
+);

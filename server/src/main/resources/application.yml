@@ -8,6 +8,11 @@ spring:
     password: setty
 
   jpa:
+    open-in-view: false
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
     hibernate:
       # 스키마는 schema.sql로만 변경한다 (server/AGENTS.md). 엔티티와 스키마가 어긋나면 부팅이 실패한다.
       ddl-auto: validate
@@ -15,3 +20,15 @@ spring:
   sql:
     init:
       mode: always
+
+  servlet:
+    multipart:
+      max-file-size: 25MB
+      max-request-size: 26MB
+
+setty:
+  storage:
+    listing-images:
+      region: ${AWS_REGION:ap-northeast-2}
+      bucket: ${SETTY_S3_BUCKET:setty-listing-local}
+      public-base-url: ${SETTY_S3_PUBLIC_BASE_URL:https://setty-listing-local.s3.ap-northeast-2.amazonaws.com}
