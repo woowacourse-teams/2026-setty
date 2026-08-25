@@ -1,0 +1,17 @@
+spring:
+  application:
+    name: setty
+
+  datasource:
+    url: jdbc:mysql://localhost:3306/setty
+    username: setty
+    password: setty
+
+  jpa:
+    hibernate:
+      # 스키마는 schema.sql로만 변경한다 (server/AGENTS.md). 엔티티와 스키마가 어긋나면 부팅이 실패한다.
+      ddl-auto: validate
+
+  sql:
+    init:
+      mode: always
