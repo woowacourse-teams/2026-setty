@@ -1,3 +1,0 @@
-setty:
-  cors:
-    allowed-origin: http://localhost:3000
