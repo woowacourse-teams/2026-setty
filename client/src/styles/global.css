@@ -49,7 +49,7 @@ button {
 
 .site-header__wordmark {
     color: #1d1d1b;
-    font-size: 36px;
+    font-size: 27px;
     font-weight: 900;
     letter-spacing: -2.5px;
     line-height: 1;
@@ -69,7 +69,7 @@ button {
     flex: 1;
     overflow: hidden;
     color: #a8a8a8;
-    font-size: 16px;
+    font-size: 13px;
     font-weight: 600;
     letter-spacing: -0.55px;
     text-overflow: ellipsis;
@@ -92,7 +92,7 @@ button {
     color: #4d4d4d;
     background: transparent;
     cursor: default;
-    font-size: 16px;
+    font-size: 13px;
     font-weight: 700;
     letter-spacing: -0.6px;
 }
@@ -198,7 +198,7 @@ button {
     align-items: center;
     gap: 12px;
     color: #b3afaa;
-    font-size: 14px;
+    font-size: 12px;
     font-weight: 600;
     letter-spacing: -0.65px;
     line-height: 31px;
@@ -216,14 +216,14 @@ button {
     color: #ffffff;
     background: #191815;
     border-radius: 5px;
-    font-size: 13px;
+    font-size: 11px;
     font-weight: 800;
 }
 
 .product-detail h1 {
     margin: 24px 0 23px;
     color: #1f1e1c;
-    font-size: 36px;
+    font-size: 28px;
     font-weight: 800;
     letter-spacing: -2.3px;
     line-height: 1.1;
@@ -237,7 +237,7 @@ button {
     color: #68645f;
     border: 1px solid #e3dfda;
     border-radius: 5px;
-    font-size: 14px;
+    font-size: 12px;
     font-weight: 800;
     letter-spacing: -0.6px;
 }
@@ -261,7 +261,7 @@ button {
 
 .product-detail__price-list dt {
     color: #9d9994;
-    font-size: 15px;
+    font-size: 13px;
     font-weight: 700;
     letter-spacing: -0.8px;
 }
@@ -269,7 +269,7 @@ button {
 .product-detail__price-list dd {
     margin: 0;
     color: #282624;
-    font-size: 17px;
+    font-size: 14px;
     font-weight: 800;
     letter-spacing: -0.8px;
 }
@@ -283,14 +283,14 @@ button {
 
 .product-detail__total span {
     color: #2a2826;
-    font-size: 16px;
+    font-size: 13px;
     font-weight: 800;
     letter-spacing: -0.8px;
 }
 
 .product-detail__total strong {
     color: #161513;
-    font-size: 38px;
+    font-size: 30px;
     font-weight: 900;
     letter-spacing: -2.2px;
     line-height: 1;
@@ -303,14 +303,14 @@ button {
 
 .product-detail__like-button,
 .product-detail__purchase-button {
-    height: 75px;
+    height: 56px;
     border-radius: 14px;
     cursor: pointer;
 }
 
 .product-detail__like-button {
     display: grid;
-    width: 72px;
+    width: 56px;
     flex: 0 0 auto;
     place-items: center;
     background: #ffffff;
@@ -331,7 +331,7 @@ button {
     flex: 1;
     color: #ffffff;
     background: #191815;
-    font-size: 17px;
+    font-size: 15px;
     font-weight: 800;
     letter-spacing: -0.85px;
 }
@@ -345,7 +345,7 @@ button {
 .product-detail__description h2 {
     margin: 0;
     color: #a6a19c;
-    font-size: 14px;
+    font-size: 12px;
     font-weight: 700;
     letter-spacing: -0.75px;
 }
@@ -353,7 +353,7 @@ button {
 .product-detail__description p {
     margin: 30px 0 0;
     color: #5b5753;
-    font-size: 17px;
+    font-size: 15px;
     font-weight: 600;
     letter-spacing: -1px;
     line-height: 1.5;
