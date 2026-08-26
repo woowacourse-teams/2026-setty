@@ -235,6 +235,7 @@ button {
 
 .auth-modal {
     position: relative;
+    zoom: 0.7;
     width: 746px;
     padding: 91px 87px 102px;
     background: #ffffff;
