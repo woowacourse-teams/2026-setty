@@ -10,14 +10,18 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.Instant;
+import lombok.AccessLevel;
+import lombok.Getter;
 import setty.common.DeliveryStatus;
 import setty.global.exception.BusinessException;
 import setty.global.exception.ErrorCode;
 
+@Getter
 @Entity
 @Table(name = "delivery")
 public class Delivery {
 
+    @Getter(AccessLevel.NONE)
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -134,39 +138,11 @@ public class Delivery {
         return new DeliveryId(id);
     }
 
-    public OrderId getOrderId() {
-        return orderId;
-    }
-
-    public FurnitureInfo getFurnitureInfo() {
-        return furnitureInfo;
-    }
-
-    public DeliveryRoute getRoute() {
-        return route;
-    }
-
-    public EstimatedDeliveryFee getEstimatedDeliveryFee() {
-        return estimatedDeliveryFee;
-    }
-
-    public DeliveryAssignment getAssignment() {
-        return assignment;
-    }
-
     public DriverId getDriverId() {
         if (assignment == null) {
             return null;
         }
         return assignment.driverId();
-    }
-
-    public DeliveryStatus getStatus() {
-        return status;
-    }
-
-    public Instant getRequestedAt() {
-        return requestedAt;
     }
 
     public Instant getAcceptedAt() {
@@ -176,11 +152,4 @@ public class Delivery {
         return assignment.acceptedAt();
     }
 
-    public Instant getPickedUpAt() {
-        return pickedUpAt;
-    }
-
-    public Instant getDeliveredAt() {
-        return deliveredAt;
-    }
 }
