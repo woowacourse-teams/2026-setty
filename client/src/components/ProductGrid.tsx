@@ -39,11 +39,27 @@ function formatWon(value: number) {
     return `${value.toLocaleString('ko-KR')}원`;
 }
 
-function ProductCard({ product }: { product: Product }) {
+type ProductCardProps = {
+    product: Product;
+    onSelect: () => void;
+};
+
+function ProductCard({ product, onSelect }: ProductCardProps) {
     const totalPrice = product.price + product.deliveryFee;
 
     return (
-        <article className="product-card">
+        <article
+            className="product-card product-card--interactive"
+            role="button"
+            tabIndex={0}
+            onClick={onSelect}
+            onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    onSelect();
+                }
+            }}
+        >
             <div className="product-card__image-wrap">
                 <img className="product-card__image" src={product.image} alt={product.title} />
                 <span className={`status-badge ${product.status === '예약중' ? 'status-badge--reserved' : ''}`}>
@@ -63,12 +79,16 @@ function ProductCard({ product }: { product: Product }) {
     );
 }
 
-export function ProductGrid() {
+type ProductGridProps = {
+    onProductSelect: () => void;
+};
+
+export function ProductGrid({ onProductSelect }: ProductGridProps) {
     return (
         <section className="product-grid" aria-label="판매 중인 가구 목록">
             {productColumns.map((column, index) => (
                 <div className="product-grid__column" key={index}>
-                    {column.map((product) => <ProductCard key={product.id} product={product} />)}
+                    {column.map((product) => <ProductCard key={product.id} product={product} onSelect={onProductSelect} />)}
                 </div>
             ))}
         </section>

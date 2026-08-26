@@ -100,23 +100,14 @@ button {
 .app-shell__main {
     width: 80vw;
     padding-top: 53px;
-}
-
-.product-detail__back-link {
-    display: inline-block;
-    color: #77736d;
-    font-size: 15px;
-    font-weight: 700;
-    letter-spacing: -0.7px;
-    line-height: 24px;
-    text-decoration: none;
+    padding-bottom: 120px;
 }
 
 .product-detail__layout {
     display: grid;
     grid-template-columns: minmax(0, 1.087fr) minmax(0, 1fr);
     gap: clamp(42px, 3.67vw, 74px);
-    margin-top: 25px;
+    margin-top: 0;
 }
 
 .product-detail__main-image {
@@ -373,6 +364,15 @@ button {
 
 .product-card {
     min-width: 0;
+}
+
+.product-card--interactive {
+    cursor: pointer;
+}
+
+.product-card--interactive:focus-visible {
+    outline: 3px solid #1d1d1b;
+    outline-offset: 4px;
 }
 
 .product-card__image-wrap {

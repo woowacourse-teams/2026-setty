@@ -7,11 +7,23 @@ function SearchIcon() {
     );
 }
 
-export function Header() {
+type HeaderProps = {
+    onHome: () => void;
+};
+
+export function Header({ onHome }: HeaderProps) {
     return (
         <header className="site-header">
             <div className="site-header__content">
-                <a className="site-header__wordmark" href="/" aria-label="SETTY 홈">
+                <a
+                    className="site-header__wordmark"
+                    href="/"
+                    aria-label="SETTY 홈"
+                    onClick={(event) => {
+                        event.preventDefault();
+                        onHome();
+                    }}
+                >
                     SETTY
                 </a>
                 <div className="site-header__search-field" role="search">

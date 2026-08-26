@@ -21,7 +21,6 @@ export function ProductDetail() {
 
     return (
         <section className="product-detail" aria-labelledby="product-title">
-            <a className="product-detail__back-link" href="/">← 목록</a>
             <div className="product-detail__layout">
                 <div className="product-detail__gallery">
                     <div className="product-detail__main-image">
