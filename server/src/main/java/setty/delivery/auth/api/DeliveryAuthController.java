@@ -1,6 +1,7 @@
 package setty.delivery.auth.api;
 
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -14,14 +15,11 @@ import setty.delivery.auth.api.dto.SignupResponse;
 import setty.delivery.auth.application.DeliveryAuthService;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/api/delivery/auth")
 public class DeliveryAuthController {
 
     private final DeliveryAuthService deliveryAuthService;
-
-    public DeliveryAuthController(final DeliveryAuthService deliveryAuthService) {
-        this.deliveryAuthService = deliveryAuthService;
-    }
 
     @PostMapping("/signup")
     public ResponseEntity<SignupResponse> signup(@Valid @RequestBody final SignupRequest request) {
