@@ -1,5 +1,5 @@
 import { Header } from './components/Header';
-import { ProductGrid } from './components/ProductGrid';
+import { ProductDetail } from './components/ProductDetail';
 import './styles/global.css';
 
 function App() {
@@ -7,7 +7,7 @@ function App() {
         <div className="app-shell">
             <Header />
             <main className="app-shell__main">
-                <ProductGrid />
+                <ProductDetail />
             </main>
         </div>
     );
