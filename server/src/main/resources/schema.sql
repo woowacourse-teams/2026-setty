@@ -13,3 +13,13 @@ CREATE TABLE IF NOT EXISTS members (
     UNIQUE KEY uk_members_login_id (login_id),
     UNIQUE KEY uk_members_token (token)
 );
+
+CREATE TABLE IF NOT EXISTS orders (
+    id              BIGINT       NOT NULL AUTO_INCREMENT,
+    listing_id      BIGINT       NOT NULL,
+    buyer_id        BIGINT       NOT NULL,
+    delivery_status VARCHAR(20)  NOT NULL,              -- 배송 팀만 UPDATE (DEC-10)
+    driver_id       BIGINT       NULL,                  -- 배송 팀만 UPDATE, 수락 전 NULL
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_orders_listing_id (listing_id)
+);
