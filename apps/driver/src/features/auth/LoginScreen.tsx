@@ -31,8 +31,10 @@ export function LoginScreen() {
     try {
       const { token } = await deliveryAuthApi.login({ loginId: loginId.trim(), password });
       await signIn(token);
-      // 게이트가 (tabs)로 리다이렉트한다.
+      // 루트 게이트가 인증 상태를 감지해 이동하지만, 성공 즉시 명시적으로도 이동한다.
+      router.replace('/');
     } catch (e) {
+      console.warn('[login] failed', e);
       setError(errorMessage(e, '로그인에 실패했어요'));
     } finally {
       setSubmitting(false);

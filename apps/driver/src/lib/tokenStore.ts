@@ -29,8 +29,14 @@ export const tokenStore = {
   },
 
   async save(token: string): Promise<void> {
+    // 메모리 토큰이 http 인증의 실제 소스다. 영속(SecureStore)은 최선 노력으로,
+    // 실패해도 인증 흐름을 막지 않는다(다음 실행에서 재로그인만 필요).
     memToken = token;
-    await SecureStore.setItemAsync(KEY, token);
+    try {
+      await SecureStore.setItemAsync(KEY, token);
+    } catch (e) {
+      console.warn('[tokenStore] persist failed', e);
+    }
   },
 
   async clear(): Promise<void> {
