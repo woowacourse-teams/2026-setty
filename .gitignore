@@ -1,4 +1,8 @@
 # 로컬 또는 관리형 빌드 산출물. 레포에 커밋하지 않는다.
 /app.jar
 
+# 클라이언트 의존성과 빌드 산출물. 레포에 커밋하지 않는다.
+/client/node_modules/
+/client/dist/
+
 .DS_Store

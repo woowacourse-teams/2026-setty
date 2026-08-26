@@ -1,25 +1,22 @@
 package setty.delivery.application;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import setty.common.DeliveryStatus;
-import setty.common.DeliveryStatusChanged;
+import setty.delivery.application.event.DeliveryStatusChanged;
 import setty.delivery.domain.DeliveryId;
 import setty.delivery.domain.OrderDeliveryState;
 import setty.delivery.domain.OrderId;
-import setty.delivery.repository.OrderDeliveryStatusRepository;
 import setty.global.exception.BusinessException;
 import setty.global.exception.ErrorCode;
 
 @Service
+@RequiredArgsConstructor
 public class UpdateOrderDeliveryStatusService {
 
     private final OrderDeliveryStatusRepository orderDeliveryStatusRepository;
-
-    public UpdateOrderDeliveryStatusService(final OrderDeliveryStatusRepository orderDeliveryStatusRepository) {
-        this.orderDeliveryStatusRepository = orderDeliveryStatusRepository;
-    }
 
     @EventListener
     @Transactional
