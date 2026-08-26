@@ -30,7 +30,7 @@ button {
 }
 
 .site-header {
-    height: 73px;
+    height: 95px;
     border-top: 1px solid #e8e8e8;
     border-bottom: 1px solid #ededed;
 }
@@ -41,7 +41,7 @@ button {
 }
 
 .site-header__content {
-    width: min(1825px, calc(100% - 190px));
+    width: calc(100% - 190px);
     display: flex;
     align-items: center;
     height: 100%;
@@ -49,9 +49,9 @@ button {
 
 .site-header__wordmark {
     color: #1d1d1b;
-    font-size: 27px;
+    font-size: 36px;
     font-weight: 900;
-    letter-spacing: -1.9px;
+    letter-spacing: -2.5px;
     line-height: 1;
     text-decoration: none;
 }
@@ -59,9 +59,9 @@ button {
 .site-header__search-field {
     display: flex;
     align-items: center;
-    width: 588px;
+    width: 788px;
     height: 38px;
-    margin-left: 28px;
+    margin-left: 35px;
     border-bottom: 2px solid #2b2b2b;
 }
 
@@ -69,7 +69,7 @@ button {
     flex: 1;
     overflow: hidden;
     color: #a8a8a8;
-    font-size: 13px;
+    font-size: 16px;
     font-weight: 600;
     letter-spacing: -0.55px;
     text-overflow: ellipsis;
@@ -92,13 +92,13 @@ button {
     color: #4d4d4d;
     background: transparent;
     cursor: default;
-    font-size: 13px;
+    font-size: 16px;
     font-weight: 700;
     letter-spacing: -0.6px;
 }
 
 .app-shell__main {
-    width: min(1364px, 80vw);
+    width: 80vw;
     padding-top: 53px;
 }
 
@@ -221,7 +221,7 @@ button {
 }
 
 .product-detail h1 {
-    margin: 17px 0 23px;
+    margin: 24px 0 23px;
     color: #1f1e1c;
     font-size: 36px;
     font-weight: 800;
