@@ -8,12 +8,18 @@
 apps/driver/
 ├─ app/                         # Expo Router 라우트(파일 = 화면). 얇게 유지.
 │  ├─ _layout.tsx               # 루트 Stack + 폰트 로딩 + SafeAreaProvider
-│  ├─ index.tsx                 # 홈(요청 목록)
-│  └─ request/[deliveryId].tsx  # 수신 상세
+│  ├─ (tabs)/                   # 하단 탭 그룹
+│  │  ├─ _layout.tsx            #   Tabs + 커스텀 BottomTabBar
+│  │  ├─ index.tsx              #   요청(홈)
+│  │  ├─ shipments.tsx          #   내 배차
+│  │  └─ settlement.tsx         #   정산
+│  └─ request/[deliveryId].tsx  # 수신 상세(탭 위에 push)
 ├─ src/
-│  ├─ components/               # 화면 공용 UI (AppText, Screen, StatusPill, RouteLine, PrimaryButton, Toast)
+│  ├─ components/               # 화면 공용 UI (AppText, Screen, StatusPill, RouteLine, PrimaryButton, Toast, BottomTabBar)
 │  ├─ features/                 # 도메인 화면 + 화면 전용 훅/스타일
-│  │  └─ requests/              #   요청·수신·수락 슬라이스
+│  │  ├─ requests/              #   요청·수신·수락 슬라이스
+│  │  ├─ shipments/             #   내 배차 목록
+│  │  └─ settlement/            #   정산(완료 배차에서 앱이 계산)
 │  ├─ theme/                    # 디자인 토큰: colors, spacing, radius, typography, shadows
 │  ├─ model/                    # 서버 계약 타입(delivery.ts)
 │  ├─ lib/                      # config, http, format, statusMeta

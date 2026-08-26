@@ -1,6 +1,8 @@
 import {
   DeliveryRequestDetailResponse,
   DeliveryRequestSummaryResponse,
+  ShipmentDetailResponse,
+  ShipmentSummaryResponse,
 } from '@/model/delivery';
 import { config } from '@/lib/config';
 import { httpGet, httpGetList, httpPost } from '@/lib/http';
@@ -30,9 +32,35 @@ export const deliveryApi = {
         );
   },
 
-  /** POST /api/delivery/requests/{deliveryId} — 수락(응답 바디 없음) */
+  /** POST /api/delivery/requests/{deliveryId}/acceptance — 수락(응답 바디 없음) */
   async acceptRequest(deliveryId: number): Promise<void> {
     if (config.useMock) return deliveryMock.acceptRequest(deliveryId);
-    await httpPost<void>(`/api/delivery/requests/${deliveryId}`);
+    await httpPost<void>(`/api/delivery/requests/${deliveryId}/acceptance`);
+  },
+
+  /** GET /api/delivery/shipments — 내 배차 목록 */
+  getShipments(): Promise<ShipmentSummaryResponse[]> {
+    return config.useMock
+      ? deliveryMock.getShipments()
+      : httpGetList<ShipmentSummaryResponse>('/api/delivery/shipments');
+  },
+
+  /** GET /api/delivery/shipments/{deliveryId} — 내 배차 상세 */
+  getShipment(deliveryId: number): Promise<ShipmentDetailResponse> {
+    return config.useMock
+      ? deliveryMock.getShipment(deliveryId)
+      : httpGet<ShipmentDetailResponse>(`/api/delivery/shipments/${deliveryId}`);
+  },
+
+  /** POST /api/delivery/shipments/{deliveryId}/pickup — 가구 수령(응답 바디 없음) */
+  async pickupShipment(deliveryId: number): Promise<void> {
+    if (config.useMock) return deliveryMock.pickupShipment(deliveryId);
+    await httpPost<void>(`/api/delivery/shipments/${deliveryId}/pickup`);
+  },
+
+  /** POST /api/delivery/shipments/{deliveryId}/completion — 배송 완료(응답 바디 없음) */
+  async completeShipment(deliveryId: number): Promise<void> {
+    if (config.useMock) return deliveryMock.completeShipment(deliveryId);
+    await httpPost<void>(`/api/delivery/shipments/${deliveryId}/completion`);
   },
 };

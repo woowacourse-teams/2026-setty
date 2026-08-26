@@ -54,10 +54,7 @@ export interface DeliveryRequestDetailResponse {
   requestedAt: Instant;
 }
 
-/**
- * 아래 두 타입은 '내 배차'(shipments) 계약이다. 이번 이슈(#173)에서는 사용하지 않고
- * 후속 이슈에서 쓴다. 계약 참조용으로 함께 정의해 둔다.
- */
+/** 아래 두 타입은 '내 배차'(shipments) 계약이다. */
 
 /** GET /api/delivery/shipments — 카드 1개 */
 export interface ShipmentSummaryResponse {

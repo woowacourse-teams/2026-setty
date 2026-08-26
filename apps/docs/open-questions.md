@@ -16,8 +16,8 @@
 
 ## 3. 정산 API
 
-- 상태: 미정.
-- 임시 처리: 정산 화면은 후속 이슈이며, 값(오늘 수입·완료 건수·건당 평균)은 `GET /api/delivery/shipments`의 `DELIVERED` 건에서 **앱이 계산**할 예정. 전용 정산 API가 생기면 교체한다.
+- 상태: 미정(전용 API 없음).
+- 현재 처리: 정산 값(오늘 수입·완료 건수·건당 평균)을 `GET /api/delivery/shipments`의 `DELIVERED` 건에서 **앱이 계산**한다(`features/settlement`). '오늘' 필터는 아직 없이 완료 건 전체를 합산한다(요약 응답에 `deliveredAt`이 없음). 전용 정산 API 또는 기간 필터가 생기면 교체한다.
 
 ## 4. 목록 응답 봉투
 

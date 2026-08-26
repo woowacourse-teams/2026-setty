@@ -15,14 +15,15 @@
 | --- | --- | --- | --- |
 | 홈(요청 목록) | `GET /api/delivery/requests` | `DeliveryRequestSummaryResponse[]` | |
 | 수신(단건 상세) | `GET /api/delivery/requests/{deliveryId}` | `DeliveryRequestDetailResponse` | 전화번호 없음, `requestedAt`만 |
-| 수락 | `POST /api/delivery/requests/{deliveryId}` | 없음(204) | 성공 후 목록 재조회 |
-| 내 배차(목록) | `GET /api/delivery/shipments` | `ShipmentSummaryResponse[]` | **후속 이슈** |
-| 내 배차(상세) | `GET /api/delivery/shipments/{deliveryId}` | `ShipmentDetailResponse` | 전화·타임스탬프 4종. **후속 이슈** |
-| 수령 | `POST /api/delivery/shipments/{deliveryId}/pickup` | 없음(204) | **후속 이슈** |
-| 배송완료 | `POST /api/delivery/shipments/{deliveryId}/completion` | 없음(204) | **후속 이슈** |
+| 수락 | `POST /api/delivery/requests/{deliveryId}/acceptance` | 없음(204) | 성공 후 목록 재조회 |
+| 내 배차(목록) | `GET /api/delivery/shipments` | `ShipmentSummaryResponse[]` | 진행중/완료 탭은 앱이 status로 필터 |
+| 내 배차(상세) | `GET /api/delivery/shipments/{deliveryId}` | `ShipmentDetailResponse` | 전화·타임스탬프 4종 |
+| 수령 | `POST /api/delivery/shipments/{deliveryId}/pickup` | 없음(204) | `ACCEPTED`에서만 가능 |
+| 배송완료 | `POST /api/delivery/shipments/{deliveryId}/completion` | 없음(204) | `PICKED_UP`에서만 가능 |
 
 - shipments 경로의 `{id}`는 `deliveryId`와 같은 값이다.
 - 수락·수령·완료 POST는 응답 바디가 없다. 성공하면 관련 목록/상세를 재조회해 화면을 맞춘다.
+- 상태 전이 가드 위반은 **409 Conflict**다(예: `ACCEPTED`가 아닌데 수령 호출). 앱은 409 메시지를 안내하고 상세를 재조회해 서버 상태와 맞춘다.
 
 ## 필드명 불일치(명세대로 유지)
 
