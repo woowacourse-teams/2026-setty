@@ -1,6 +1,7 @@
 package setty.delivery.application;
 
 import java.time.Instant;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,18 +15,11 @@ import setty.global.exception.BusinessException;
 import setty.global.exception.ErrorCode;
 
 @Service
+@RequiredArgsConstructor
 public class PickupDeliveryService {
 
     private final DeliveryRepository deliveryRepository;
     private final ApplicationEventPublisher eventPublisher;
-
-    public PickupDeliveryService(
-            final DeliveryRepository deliveryRepository,
-            final ApplicationEventPublisher eventPublisher
-    ) {
-        this.deliveryRepository = deliveryRepository;
-        this.eventPublisher = eventPublisher;
-    }
 
     @Transactional
     public void pickUp(final DeliveryId deliveryId, final DriverId driverId, final Instant pickedUpAt) {

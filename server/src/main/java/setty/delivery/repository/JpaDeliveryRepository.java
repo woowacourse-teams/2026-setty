@@ -1,19 +1,17 @@
 package setty.delivery.repository;
 
 import java.util.Optional;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 import setty.delivery.domain.Delivery;
 import setty.delivery.domain.DeliveryId;
 import setty.delivery.domain.OrderId;
 
 @Repository
+@RequiredArgsConstructor
 public class JpaDeliveryRepository implements DeliveryRepository {
 
     private final SpringDataDeliveryRepository repository;
-
-    public JpaDeliveryRepository(final SpringDataDeliveryRepository repository) {
-        this.repository = repository;
-    }
 
     @Override
     public boolean existsByOrderId(final OrderId orderId) {

@@ -7,6 +7,7 @@ import java.time.Instant;
 import org.junit.jupiter.api.Test;
 import setty.common.DeliveryStatus;
 import setty.global.exception.BusinessException;
+import setty.global.exception.ErrorCode;
 
 class DeliveryTest {
 
@@ -49,8 +50,10 @@ class DeliveryTest {
     void acceptedDeliveryCannotBeAcceptedAgain() {
         final Delivery delivery = acceptedDelivery();
 
-        assertThatThrownBy(() -> delivery.accept(OTHER_DRIVER_ID, ACCEPTED_AT))
-                .isInstanceOf(BusinessException.class);
+        assertBusinessError(
+                () -> delivery.accept(OTHER_DRIVER_ID, ACCEPTED_AT),
+                ErrorCode.DELIVERY_ALREADY_ACCEPTED
+        );
     }
 
     @Test
@@ -67,8 +70,10 @@ class DeliveryTest {
     void differentDriverCannotPickUpDelivery() {
         final Delivery delivery = acceptedDelivery();
 
-        assertThatThrownBy(() -> delivery.pickUp(OTHER_DRIVER_ID, PICKED_UP_AT))
-                .isInstanceOf(BusinessException.class);
+        assertBusinessError(
+                () -> delivery.pickUp(OTHER_DRIVER_ID, PICKED_UP_AT),
+                ErrorCode.DELIVERY_DRIVER_MISMATCH
+        );
     }
 
     @Test
@@ -85,18 +90,24 @@ class DeliveryTest {
     void differentDriverCannotCompleteDelivery() {
         final Delivery delivery = pickedUpDelivery();
 
-        assertThatThrownBy(() -> delivery.complete(OTHER_DRIVER_ID, DELIVERED_AT))
-                .isInstanceOf(BusinessException.class);
+        assertBusinessError(
+                () -> delivery.complete(OTHER_DRIVER_ID, DELIVERED_AT),
+                ErrorCode.DELIVERY_DRIVER_MISMATCH
+        );
     }
 
     @Test
     void invalidStatusTransitionIsRejected() {
         final Delivery delivery = requestDelivery();
 
-        assertThatThrownBy(() -> delivery.pickUp(DRIVER_ID, PICKED_UP_AT))
-                .isInstanceOf(BusinessException.class);
-        assertThatThrownBy(() -> delivery.complete(DRIVER_ID, DELIVERED_AT))
-                .isInstanceOf(BusinessException.class);
+        assertBusinessError(
+                () -> delivery.pickUp(DRIVER_ID, PICKED_UP_AT),
+                ErrorCode.INVALID_DELIVERY_TRANSITION
+        );
+        assertBusinessError(
+                () -> delivery.complete(DRIVER_ID, DELIVERED_AT),
+                ErrorCode.INVALID_DELIVERY_TRANSITION
+        );
     }
 
     private static Delivery pickedUpDelivery() {
@@ -124,5 +135,13 @@ class DeliveryTest {
                 new EstimatedDeliveryFee(10_000),
                 REQUESTED_AT
         );
+    }
+
+    private static void assertBusinessError(final Runnable action, final ErrorCode expectedErrorCode) {
+        assertThatThrownBy(action::run)
+                .isInstanceOfSatisfying(
+                        BusinessException.class,
+                        exception -> assertThat(exception.getErrorCode()).isEqualTo(expectedErrorCode)
+                );
     }
 }

@@ -6,6 +6,7 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 import setty.common.DeliveryStatus;
@@ -15,13 +16,10 @@ import setty.delivery.query.DeliveryRequest;
 import setty.delivery.query.Shipment;
 
 @Repository
+@RequiredArgsConstructor
 public class JdbcDeliveryQueryRepository implements DeliveryQueryRepository {
 
     private final JdbcTemplate jdbcTemplate;
-
-    public JdbcDeliveryQueryRepository(final JdbcTemplate jdbcTemplate) {
-        this.jdbcTemplate = jdbcTemplate;
-    }
 
     @Override
     public List<DeliveryRequest.Summary> findAvailableRequests() {

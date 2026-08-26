@@ -1,6 +1,7 @@
 package setty.delivery.repository;
 
 import java.util.Optional;
+import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 import setty.common.DeliveryStatus;
@@ -10,13 +11,10 @@ import setty.global.exception.BusinessException;
 import setty.global.exception.ErrorCode;
 
 @Repository
+@RequiredArgsConstructor
 public class JdbcOrderDeliveryStatusRepository implements OrderDeliveryStatusRepository {
 
     private final JdbcTemplate jdbcTemplate;
-
-    public JdbcOrderDeliveryStatusRepository(final JdbcTemplate jdbcTemplate) {
-        this.jdbcTemplate = jdbcTemplate;
-    }
 
     @Override
     public Optional<OrderDeliveryState> findById(final OrderId orderId) {

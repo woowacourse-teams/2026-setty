@@ -1,6 +1,7 @@
 package setty.delivery.application;
 
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import setty.delivery.domain.DeliveryId;
@@ -12,14 +13,11 @@ import setty.global.exception.BusinessException;
 import setty.global.exception.ErrorCode;
 
 @Service
+@RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class DeliveryQueryService {
 
     private final DeliveryQueryRepository deliveryQueryRepository;
-
-    public DeliveryQueryService(final DeliveryQueryRepository deliveryQueryRepository) {
-        this.deliveryQueryRepository = deliveryQueryRepository;
-    }
 
     public List<DeliveryRequest.Summary> findAvailableRequests() {
         return deliveryQueryRepository.findAvailableRequests();

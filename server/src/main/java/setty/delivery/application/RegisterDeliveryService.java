@@ -1,6 +1,7 @@
 package setty.delivery.application;
 
 import java.time.Instant;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import setty.common.OrderRequested;
@@ -16,13 +17,10 @@ import setty.global.exception.BusinessException;
 import setty.global.exception.ErrorCode;
 
 @Service
+@RequiredArgsConstructor
 public class RegisterDeliveryService {
 
     private final DeliveryRepository deliveryRepository;
-
-    public RegisterDeliveryService(final DeliveryRepository deliveryRepository) {
-        this.deliveryRepository = deliveryRepository;
-    }
 
     @Transactional
     public void register(final OrderRequested event, final Instant requestedAt) {
