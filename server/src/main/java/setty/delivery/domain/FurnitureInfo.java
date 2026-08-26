@@ -7,8 +7,10 @@ import setty.global.exception.ErrorCode;
 
 @Embeddable
 public record FurnitureInfo(
-        @Column(name = "item_name", nullable = false, length = 100) String itemName,
-        @Column(nullable = false, length = 50) String category
+        @Column(name = "item_name", nullable = false, length = 100)
+        String itemName,
+        @Column(nullable = false, length = 50)
+        String category
 ) {
 
     public FurnitureInfo {
