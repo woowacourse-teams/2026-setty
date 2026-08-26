@@ -1,5 +1,6 @@
+import { useEffect } from 'react';
 import { ActivityIndicator, View } from 'react-native';
-import { Stack } from 'expo-router';
+import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useFonts, DoHyeon_400Regular } from '@expo-google-fonts/do-hyeon';
@@ -20,17 +21,32 @@ function Splash() {
   );
 }
 
+const AUTH_ROUTES = ['login', 'signup'];
+
 /**
- * 인증 상태에 따라 접근 가능한 화면을 가른다(Stack.Protected).
- * - authed: 탭 + 상세 화면만 접근, 로그인/가입은 자동 제외 → (tabs)로 리다이렉트
- * - guest: 로그인/가입만 접근 → login으로 리다이렉트
+ * 인증 상태에 따라 화면을 가른다(Expo Router 공식 인증 패턴).
+ * 현재 위치(segments)와 status를 보고 명령형으로 리다이렉트한다.
+ * - guest 인데 인증 화면 밖 → /login 으로
+ * - authed 인데 인증 화면 안 → 홈 탭(/)으로
+ * 렌더 트리는 항상 같은 Stack이라, status가 바뀌면 이 효과가 위치를 맞춘다.
  */
 function RootNavigator() {
   const { status } = useAuth();
+  const segments = useSegments();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (status === 'loading') return;
+    const inAuthGroup = AUTH_ROUTES.includes(segments[0] as string);
+    if (status === 'guest' && !inAuthGroup) {
+      router.replace('/login');
+    } else if (status === 'authed' && inAuthGroup) {
+      router.replace('/');
+    }
+  }, [status, segments, router]);
 
   if (status === 'loading') return <Splash />;
 
-  const authed = status === 'authed';
   return (
     <Stack
       screenOptions={{
@@ -38,17 +54,7 @@ function RootNavigator() {
         contentStyle: { backgroundColor: colors.screenBg },
         animation: 'slide_from_right',
       }}
-    >
-      <Stack.Protected guard={authed}>
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="request/[deliveryId]" />
-        <Stack.Screen name="shipment/[deliveryId]" />
-      </Stack.Protected>
-      <Stack.Protected guard={!authed}>
-        <Stack.Screen name="login" />
-        <Stack.Screen name="signup" />
-      </Stack.Protected>
-    </Stack>
+    />
   );
 }
 
