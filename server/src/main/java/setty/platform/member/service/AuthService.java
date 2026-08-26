@@ -33,7 +33,7 @@ public class AuthService {
         final Member member = new Member(
                 request.loginId(),
                 passwordEncoder.encode(request.password()),
-                MemberRole.valueOf(request.role()),
+                MemberRole.MEMBER,
                 request.phoneNumber(),
                 request.address()
         );
