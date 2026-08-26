@@ -10,7 +10,22 @@ export const styles = StyleSheet.create({
     paddingTop: 8,
     paddingBottom: 20,
   },
+  heroTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
   heroTitle: { fontSize: 22, color: colors.white },
+  logoutBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: radius.chip,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+  },
+  logoutText: { fontSize: 12, color: colors.textOnDarkSub },
   heroCaption: { fontSize: 12.5, color: colors.textOnDarkSub, marginTop: 14 },
   heroAmount: { fontSize: 44, color: colors.white, marginTop: 2 },
 
