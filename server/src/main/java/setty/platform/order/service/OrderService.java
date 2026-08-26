@@ -1,5 +1,6 @@
 package setty.platform.order.service;
 
+import java.util.List;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
@@ -48,5 +49,16 @@ public class OrderService {
         ));
 
         return order;
+    }
+
+    @Transactional(readOnly = true)
+    public List<Order> findMyOrders(final Long buyerId) {
+        return orderRepository.findAllByBuyerIdOrderByIdDesc(buyerId);
+    }
+
+    @Transactional(readOnly = true)
+    public Order findMyOrder(final Long orderId, final Long buyerId) {
+        return orderRepository.findByIdAndBuyerId(orderId, buyerId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
     }
 }
