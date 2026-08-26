@@ -1,7 +1,6 @@
 package setty.delivery.repository;
 
 import java.util.Optional;
-import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import setty.delivery.domain.Delivery;
 import setty.delivery.domain.DeliveryId;
@@ -30,9 +29,4 @@ public class JpaDeliveryRepository implements DeliveryRepository {
     public void save(final Delivery delivery) {
         repository.save(delivery);
     }
-}
-
-interface SpringDataDeliveryRepository extends JpaRepository<Delivery, Long> {
-
-    boolean existsByOrderId(OrderId orderId);
 }
