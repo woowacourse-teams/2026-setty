@@ -34,3 +34,13 @@ CREATE TABLE IF NOT EXISTS delivery (
     UNIQUE KEY uk_delivery_order_id (order_id),
     CONSTRAINT chk_delivery_estimated_fee CHECK (estimated_fee >= 0)
 );
+
+CREATE TABLE IF NOT EXISTS orders (
+    id              BIGINT       NOT NULL AUTO_INCREMENT,
+    listing_id      BIGINT       NOT NULL,
+    buyer_id        BIGINT       NOT NULL,
+    delivery_status VARCHAR(20)  NOT NULL,              -- 배송 팀만 UPDATE (DEC-10)
+    driver_id       BIGINT       NULL,                  -- 배송 팀만 UPDATE, 수락 전 NULL
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_orders_listing_id (listing_id)
+);
