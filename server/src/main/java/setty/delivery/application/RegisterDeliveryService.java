@@ -12,7 +12,6 @@ import setty.delivery.domain.EstimatedDeliveryFee;
 import setty.delivery.domain.FurnitureInfo;
 import setty.delivery.domain.OrderId;
 import setty.delivery.domain.PhoneNumber;
-import setty.delivery.repository.DeliveryRepository;
 import setty.global.exception.BusinessException;
 import setty.global.exception.ErrorCode;
 

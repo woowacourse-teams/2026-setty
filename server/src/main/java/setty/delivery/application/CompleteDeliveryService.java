@@ -10,7 +10,6 @@ import setty.delivery.application.event.DeliveryStatusChanged;
 import setty.delivery.domain.Delivery;
 import setty.delivery.domain.DeliveryId;
 import setty.delivery.domain.DriverId;
-import setty.delivery.repository.DeliveryRepository;
 import setty.global.exception.BusinessException;
 import setty.global.exception.ErrorCode;
 

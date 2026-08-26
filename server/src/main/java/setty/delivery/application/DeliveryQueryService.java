@@ -4,11 +4,10 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import setty.delivery.application.query.DeliveryRequest;
+import setty.delivery.application.query.Shipment;
 import setty.delivery.domain.DeliveryId;
 import setty.delivery.domain.DriverId;
-import setty.delivery.query.DeliveryRequest;
-import setty.delivery.query.Shipment;
-import setty.delivery.repository.DeliveryQueryRepository;
 import setty.global.exception.BusinessException;
 import setty.global.exception.ErrorCode;
 

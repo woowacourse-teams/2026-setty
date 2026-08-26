@@ -5,7 +5,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 import setty.delivery.auth.domain.DeliveryMember;
-import setty.delivery.auth.repository.DeliveryMemberRepository;
+import setty.delivery.auth.application.DeliveryMemberRepository;
 import setty.global.exception.ErrorCode;
 import setty.platform.member.domain.Member;
 import setty.platform.member.repository.MemberRepository;
