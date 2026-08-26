@@ -36,11 +36,7 @@ public class OrderController {
 
     @GetMapping("/api/me/orders")
     public ResponseEntity<List<MyOrderResponse>> findMyOrders(@LoginMember final Member member) {
-        return ResponseEntity.ok(
-                orderService.findMyOrders(member.getId()).stream()
-                        .map(MyOrderResponse::from)
-                        .toList()
-        );
+        return ResponseEntity.ok(orderService.findMyOrders(member.getId()));
     }
 
     @GetMapping("/api/orders/{id}")
@@ -48,6 +44,6 @@ public class OrderController {
             @LoginMember final Member member,
             @PathVariable final Long id
     ) {
-        return ResponseEntity.ok(MyOrderResponse.from(orderService.findMyOrder(id, member.getId())));
+        return ResponseEntity.ok(orderService.findMyOrder(id, member.getId()));
     }
 }

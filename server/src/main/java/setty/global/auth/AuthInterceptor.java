@@ -19,6 +19,10 @@ public class AuthInterceptor implements HandlerInterceptor {
 
     @Override
     public boolean preHandle(final HttpServletRequest request, final HttpServletResponse response, final Object handler) throws Exception {
+        if (isPublicListingRead(request)) {
+            return true;
+        }
+
         final String header = request.getHeader("Authorization");
         if (header == null || !header.startsWith("Bearer ")) {
             writeError(response);
@@ -34,6 +38,13 @@ public class AuthInterceptor implements HandlerInterceptor {
 
         request.setAttribute("loginMember", member);
         return true;
+    }
+
+    // 매물 목록·상세 조회만 비로그인 허용. 등록·수정·삭제(POST/PUT/DELETE)는 같은 경로라도 인증 필요.
+    private boolean isPublicListingRead(final HttpServletRequest request) {
+        final String uri = request.getRequestURI();
+        return "GET".equals(request.getMethod())
+                && (uri.equals("/api/listings") || uri.startsWith("/api/listings/"));
     }
 
     private void writeError(final HttpServletResponse response) throws Exception {

@@ -74,6 +74,10 @@ CREATE TABLE IF NOT EXISTS delivery (
     CONSTRAINT chk_delivery_estimated_fee CHECK (estimated_fee >= 0)
 );
 
+-- 기존 DB에 orders가 이미 있다면 FK는 수동으로 1회 적용:
+--   ALTER TABLE orders
+--     ADD CONSTRAINT fk_orders_listing FOREIGN KEY (listing_id) REFERENCES listings (id),
+--     ADD CONSTRAINT fk_orders_buyer   FOREIGN KEY (buyer_id)   REFERENCES members (id);
 CREATE TABLE IF NOT EXISTS orders (
     id              BIGINT       NOT NULL AUTO_INCREMENT,
     listing_id      BIGINT       NOT NULL,
@@ -81,5 +85,7 @@ CREATE TABLE IF NOT EXISTS orders (
     delivery_status VARCHAR(20)  NOT NULL,              -- 배송 팀만 UPDATE (DEC-10)
     driver_id       BIGINT       NULL,                  -- 배송 팀만 UPDATE, 수락 전 NULL
     PRIMARY KEY (id),
-    UNIQUE KEY uk_orders_listing_id (listing_id)
+    UNIQUE KEY uk_orders_listing_id (listing_id),
+    CONSTRAINT fk_orders_listing FOREIGN KEY (listing_id) REFERENCES listings (id),
+    CONSTRAINT fk_orders_buyer   FOREIGN KEY (buyer_id)   REFERENCES members (id)
 );
