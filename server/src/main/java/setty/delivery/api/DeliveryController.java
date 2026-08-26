@@ -66,7 +66,7 @@ public class DeliveryController {
         ));
     }
 
-    @PostMapping("/requests/{deliveryId}/acceptance")
+    @PostMapping("/requests/{deliveryId}")
     public ResponseEntity<Void> accept(
             @LoginDeliveryMember final DeliveryMember member,
             @PathVariable final long deliveryId

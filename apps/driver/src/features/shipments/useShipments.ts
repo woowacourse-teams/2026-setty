@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { deliveryApi } from '@/api/deliveryApi';
+import { errorMessage } from '@/lib/errorMessage';
 import { ShipmentSummaryResponse } from '@/model/delivery';
 
 /**
@@ -19,7 +20,7 @@ export function useShipments() {
     try {
       setItems(await deliveryApi.getShipments());
     } catch (e) {
-      setError(e instanceof Error ? e.message : '내 배차를 불러오지 못했어요');
+      setError(errorMessage(e, '내 배차를 불러오지 못했어요'));
     }
   }, []);
 

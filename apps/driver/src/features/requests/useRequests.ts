@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { deliveryApi } from '@/api/deliveryApi';
+import { errorMessage } from '@/lib/errorMessage';
 import { DeliveryRequestSummaryResponse } from '@/model/delivery';
 import { rejectedStore } from './rejectedStore';
 
@@ -19,7 +20,7 @@ export function useRequests() {
       // 로컬 거절한 요청은 서버에 남아 있어도 목록에서 숨긴다.
       setItems(rejectedStore.filter(await deliveryApi.getRequests()));
     } catch (e) {
-      setError(e instanceof Error ? e.message : '요청 목록을 불러오지 못했어요');
+      setError(errorMessage(e, '요청 목록을 불러오지 못했어요'));
     }
   }, []);
 

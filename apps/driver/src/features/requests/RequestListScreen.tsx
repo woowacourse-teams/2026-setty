@@ -2,6 +2,7 @@ import { useCallback, useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, RefreshControl, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { deliveryApi } from '@/api/deliveryApi';
+import { errorMessage } from '@/lib/errorMessage';
 import { DeliveryRequestSummaryResponse } from '@/model/delivery';
 import { AppText } from '@/components/AppText';
 import { Screen } from '@/components/Screen';
@@ -48,8 +49,8 @@ export function RequestListScreen() {
         // 수락 성공(응답 바디 없음) → 목록 재조회
         await refresh();
         show('배차 완료! 내 배차에 담았어요');
-      } catch {
-        show('수락에 실패했어요. 다시 시도해 주세요');
+      } catch (e) {
+        show(errorMessage(e, '수락에 실패했어요. 다시 시도해 주세요'));
       } finally {
         setAcceptingId(null);
       }

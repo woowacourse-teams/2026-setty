@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { deliveryApi } from '@/api/deliveryApi';
-import { HttpError } from '@/lib/http';
+import { errorMessage } from '@/lib/errorMessage';
 import { ShipmentDetailResponse } from '@/model/delivery';
 
 export interface AdvanceResult {
@@ -24,7 +24,7 @@ export function useShipmentDetail(deliveryId: number) {
     try {
       setDetail(await deliveryApi.getShipment(deliveryId));
     } catch (e) {
-      setError(e instanceof Error ? e.message : '배차를 불러오지 못했어요');
+      setError(errorMessage(e, '배차를 불러오지 못했어요'));
     } finally {
       setLoading(false);
     }
@@ -51,8 +51,7 @@ export function useShipmentDetail(deliveryId: number) {
       return { ok: false, message: '' };
     } catch (e) {
       await load(); // 서버 상태와 다시 맞춘다
-      const conflict = e instanceof HttpError && e.status === 409;
-      return { ok: false, message: conflict ? e.message : '상태를 변경하지 못했어요' };
+      return { ok: false, message: errorMessage(e, '상태를 변경하지 못했어요') };
     } finally {
       setWorking(false);
     }

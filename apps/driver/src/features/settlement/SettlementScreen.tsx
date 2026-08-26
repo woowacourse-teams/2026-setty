@@ -1,11 +1,12 @@
 import { useMemo } from 'react';
-import { ActivityIndicator, FlatList, View } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, Pressable, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { ShipmentSummaryResponse } from '@/model/delivery';
 import { formatFee, shortAddress } from '@/lib/format';
 import { AppText } from '@/components/AppText';
 import { Screen } from '@/components/Screen';
 import { colors } from '@/theme';
+import { useAuth } from '@/features/auth/AuthContext';
 import { useShipments } from '@/features/shipments/useShipments';
 import { styles } from './SettlementScreen.styles';
 
@@ -15,6 +16,13 @@ import { styles } from './SettlementScreen.styles';
  */
 export function SettlementScreen() {
   const { items, loading, error } = useShipments();
+  const { signOut } = useAuth();
+
+  const confirmLogout = () =>
+    Alert.alert('로그아웃', '로그아웃할까요?', [
+      { text: '취소', style: 'cancel' },
+      { text: '로그아웃', style: 'destructive', onPress: () => void signOut() },
+    ]);
 
   const { delivered, total, count, avg } = useMemo(() => {
     const done = items.filter((s) => s.status === 'DELIVERED');
@@ -30,9 +38,17 @@ export function SettlementScreen() {
   return (
     <Screen edges={['top']}>
       <View style={styles.hero}>
-        <AppText variant="display" style={styles.heroTitle}>
-          정산
-        </AppText>
+        <View style={styles.heroTop}>
+          <AppText variant="display" style={styles.heroTitle}>
+            정산
+          </AppText>
+          <Pressable onPress={confirmLogout} hitSlop={8} style={styles.logoutBtn}>
+            <Feather name="log-out" size={16} color={colors.textOnDarkSub} />
+            <AppText variant="bold" style={styles.logoutText}>
+              로그아웃
+            </AppText>
+          </Pressable>
+        </View>
         <AppText variant="medium" style={styles.heroCaption}>
           오늘 수입
         </AppText>

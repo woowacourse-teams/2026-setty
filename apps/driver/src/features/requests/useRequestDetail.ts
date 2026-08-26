@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { deliveryApi } from '@/api/deliveryApi';
+import { errorMessage } from '@/lib/errorMessage';
 import { DeliveryRequestDetailResponse } from '@/model/delivery';
 
 /** 수신(요청 단건) 상세 상태 + 수락 액션. */
@@ -14,7 +15,7 @@ export function useRequestDetail(deliveryId: number) {
     try {
       setDetail(await deliveryApi.getRequest(deliveryId));
     } catch (e) {
-      setError(e instanceof Error ? e.message : '요청을 불러오지 못했어요');
+      setError(errorMessage(e, '요청을 불러오지 못했어요'));
     } finally {
       setLoading(false);
     }
@@ -30,8 +31,8 @@ export function useRequestDetail(deliveryId: number) {
     try {
       await deliveryApi.acceptRequest(deliveryId);
       return true;
-    } catch {
-      setError('수락에 실패했어요. 다시 시도해 주세요');
+    } catch (e) {
+      setError(errorMessage(e, '수락에 실패했어요. 다시 시도해 주세요'));
       return false;
     } finally {
       setAccepting(false);
