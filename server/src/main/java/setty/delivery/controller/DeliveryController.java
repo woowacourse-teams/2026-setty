@@ -12,17 +12,16 @@ import setty.delivery.application.AcceptDeliveryService;
 import setty.delivery.application.CompleteDeliveryService;
 import setty.delivery.application.DeliveryQueryService;
 import setty.delivery.application.PickupDeliveryService;
+import setty.delivery.auth.domain.DeliveryMember;
 import setty.delivery.controller.dto.DeliveryRequestDetailResponse;
 import setty.delivery.controller.dto.DeliveryRequestSummaryResponse;
 import setty.delivery.controller.dto.ShipmentDetailResponse;
 import setty.delivery.controller.dto.ShipmentSummaryResponse;
 import setty.delivery.domain.DeliveryId;
 import setty.delivery.domain.DriverId;
-import setty.global.auth.LoginMember;
+import setty.global.auth.LoginDeliveryMember;
 import setty.global.exception.BusinessException;
 import setty.global.exception.ErrorCode;
-import setty.platform.member.domain.Member;
-import setty.platform.member.domain.MemberRole;
 
 @RestController
 @RequestMapping("/api/delivery")
@@ -47,7 +46,7 @@ public class DeliveryController {
 
     @GetMapping("/requests")
     public ResponseEntity<List<DeliveryRequestSummaryResponse>> findRequests(
-            @LoginMember final Member member
+            @LoginDeliveryMember final DeliveryMember member
     ) {
         authenticatedDriverId(member);
         final List<DeliveryRequestSummaryResponse> response = deliveryQueryService.findAvailableRequests().stream()
@@ -58,7 +57,7 @@ public class DeliveryController {
 
     @GetMapping("/requests/{deliveryId}")
     public ResponseEntity<DeliveryRequestDetailResponse> findRequest(
-            @LoginMember final Member member,
+            @LoginDeliveryMember final DeliveryMember member,
             @PathVariable final long deliveryId
     ) {
         authenticatedDriverId(member);
@@ -69,7 +68,7 @@ public class DeliveryController {
 
     @PostMapping("/requests/{deliveryId}/acceptance")
     public ResponseEntity<Void> accept(
-            @LoginMember final Member member,
+            @LoginDeliveryMember final DeliveryMember member,
             @PathVariable final long deliveryId
     ) {
         acceptDeliveryService.accept(
@@ -82,7 +81,7 @@ public class DeliveryController {
 
     @GetMapping("/shipments")
     public ResponseEntity<List<ShipmentSummaryResponse>> findShipments(
-            @LoginMember final Member member
+            @LoginDeliveryMember final DeliveryMember member
     ) {
         final List<ShipmentSummaryResponse> response = deliveryQueryService
                 .findShipments(authenticatedDriverId(member)).stream()
@@ -93,7 +92,7 @@ public class DeliveryController {
 
     @GetMapping("/shipments/{deliveryId}")
     public ResponseEntity<ShipmentDetailResponse> findShipment(
-            @LoginMember final Member member,
+            @LoginDeliveryMember final DeliveryMember member,
             @PathVariable final long deliveryId
     ) {
         return ResponseEntity.ok(ShipmentDetailResponse.from(
@@ -106,7 +105,7 @@ public class DeliveryController {
 
     @PostMapping("/shipments/{deliveryId}/pickup")
     public ResponseEntity<Void> pickUp(
-            @LoginMember final Member member,
+            @LoginDeliveryMember final DeliveryMember member,
             @PathVariable final long deliveryId
     ) {
         pickupDeliveryService.pickUp(
@@ -119,7 +118,7 @@ public class DeliveryController {
 
     @PostMapping("/shipments/{deliveryId}/completion")
     public ResponseEntity<Void> complete(
-            @LoginMember final Member member,
+            @LoginDeliveryMember final DeliveryMember member,
             @PathVariable final long deliveryId
     ) {
         completeDeliveryService.complete(
@@ -130,12 +129,9 @@ public class DeliveryController {
         return ResponseEntity.noContent().build();
     }
 
-    private DriverId authenticatedDriverId(final Member member) {
+    private DriverId authenticatedDriverId(final DeliveryMember member) {
         if (member == null) {
             throw new BusinessException(ErrorCode.INVALID_TOKEN);
-        }
-        if (member.getRole() != MemberRole.DRIVER) {
-            throw new BusinessException(ErrorCode.DRIVER_ACCESS_DENIED);
         }
         return new DriverId(member.getId());
     }
