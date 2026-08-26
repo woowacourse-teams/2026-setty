@@ -52,3 +52,34 @@ CREATE TABLE IF NOT EXISTS listing_images (
     CONSTRAINT uk_listing_images_order UNIQUE (listing_id, display_order),
     INDEX idx_listing_images_listing (listing_id, display_order)
 );
+
+CREATE TABLE IF NOT EXISTS delivery (
+    id                    BIGINT       NOT NULL AUTO_INCREMENT,
+    order_id              BIGINT       NOT NULL,
+    driver_id             BIGINT       NULL,
+    item_name             VARCHAR(100) NOT NULL,
+    category              VARCHAR(50)  NOT NULL,
+    pickup_address        VARCHAR(255) NOT NULL,
+    delivery_address      VARCHAR(255) NOT NULL,
+    pickup_phone_number   VARCHAR(30)  NOT NULL,
+    delivery_phone_number VARCHAR(30)  NOT NULL,
+    estimated_fee         INT          NOT NULL,
+    status                VARCHAR(20)  NOT NULL,
+    requested_at          TIMESTAMP(6) NOT NULL,
+    accepted_at           TIMESTAMP(6) NULL,
+    picked_up_at          TIMESTAMP(6) NULL,
+    delivered_at          TIMESTAMP(6) NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_delivery_order_id (order_id),
+    CONSTRAINT chk_delivery_estimated_fee CHECK (estimated_fee >= 0)
+);
+
+CREATE TABLE IF NOT EXISTS orders (
+    id              BIGINT       NOT NULL AUTO_INCREMENT,
+    listing_id      BIGINT       NOT NULL,
+    buyer_id        BIGINT       NOT NULL,
+    delivery_status VARCHAR(20)  NOT NULL,              -- 배송 팀만 UPDATE (DEC-10)
+    driver_id       BIGINT       NULL,                  -- 배송 팀만 UPDATE, 수락 전 NULL
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_orders_listing_id (listing_id)
+);
