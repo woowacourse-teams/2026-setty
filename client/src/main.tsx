@@ -1,8 +1,28 @@
 import { createRoot } from 'react-dom/client';
 import App from './App';
 
-const root = document.getElementById('root')
+async function enableMocking() {
+    if (!__ENABLE_MSW__) {
+        return;
+    }
 
-if (!root) throw new Error("Root 요소를 찾을 수 없습니다.");
+    const { worker } = await import('./mocks/browser');
 
-createRoot(root).render(<App />);
+    await worker.start({
+        onUnhandledRequest: 'bypass'
+    });
+}
+
+async function bootstrap() {
+    await enableMocking();
+
+    const root = document.getElementById('root');
+
+    if (!root) {
+        throw new Error('Root 요소를 찾을 수 없습니다.');
+    }
+
+    createRoot(root).render(<App />);
+}
+
+void bootstrap();
