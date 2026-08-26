@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS members (
     id           BIGINT       NOT NULL AUTO_INCREMENT,
     login_id     VARCHAR(20)  NOT NULL,
     password     VARCHAR(60)  NOT NULL,              -- BCrypt 해시 고정 60자
-    role         VARCHAR(20)  NOT NULL,              -- PLATFORM / DRIVER
+    role         VARCHAR(20)  NOT NULL,              -- MEMBER / ADMIN (ADMIN은 DB에서 직접 지정)
     phone_number VARCHAR(13)  NOT NULL,              -- 010-0000-0000
     address      VARCHAR(200) NOT NULL,
     token        VARCHAR(36)  NULL,                  -- 로그인 시 회전하는 UUID. 로그인 전 NULL
@@ -13,6 +13,10 @@ CREATE TABLE IF NOT EXISTS members (
     UNIQUE KEY uk_members_login_id (login_id),
     UNIQUE KEY uk_members_token (token)
 );
+
+-- role 체계 개편(PLATFORM/DRIVER → MEMBER) 마이그레이션. 멱등 — 이미 옮긴 행에는 no-op.
+-- 기사 계정은 delivery_member로 분리(#190, #194)되어 DRIVER 행도 MEMBER로 흡수.
+UPDATE members SET role = 'MEMBER' WHERE role IN ('PLATFORM', 'DRIVER');
 
 CREATE TABLE IF NOT EXISTS listings (
     id BIGINT NOT NULL AUTO_INCREMENT,

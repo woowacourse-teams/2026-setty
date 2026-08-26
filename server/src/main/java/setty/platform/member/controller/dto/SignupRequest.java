@@ -19,10 +19,6 @@ public record SignupRequest(
 
         @NotBlank
         @Size(max = 200, message = "주소는 200자 이내입니다")
-        String address,
-
-        @NotBlank
-        @Pattern(regexp = "^(PLATFORM|DRIVER)$", message = "role은 PLATFORM 또는 DRIVER입니다")
-        String role
+        String address
 ) {
 }

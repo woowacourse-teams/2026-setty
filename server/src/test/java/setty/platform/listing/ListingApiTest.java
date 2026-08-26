@@ -517,7 +517,7 @@ class ListingApiTest {
         jdbcTemplate.update(
                 """
                 INSERT INTO members (id, login_id, password, role, phone_number, address, token)
-                VALUES (?, ?, ?, 'PLATFORM', '010-0000-0000', '가상 주소', ?)
+                VALUES (?, ?, ?, 'MEMBER', '010-0000-0000', '가상 주소', ?)
                 """,
                 memberId,
                 "member" + memberId,
