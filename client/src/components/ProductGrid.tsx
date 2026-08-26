@@ -63,7 +63,7 @@ function ProductCard({ product }: { product: Product }) {
     );
 }
 
-export function ProductListing() {
+export function ProductGrid() {
     return (
         <section className="product-grid" aria-label="판매 중인 가구 목록">
             {productColumns.map((column, index) => (
