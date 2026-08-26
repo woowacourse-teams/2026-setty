@@ -74,6 +74,20 @@ CREATE TABLE IF NOT EXISTS delivery (
     CONSTRAINT chk_delivery_estimated_fee CHECK (estimated_fee >= 0)
 );
 
+CREATE TABLE IF NOT EXISTS delivery_member (
+    id                           BIGINT       NOT NULL AUTO_INCREMENT,
+    login_id                     VARCHAR(20)  NOT NULL,
+    password                     VARCHAR(60)  NOT NULL,   -- BCrypt 해시 고정 60자
+    phone_number                 VARCHAR(13)  NOT NULL,   -- 010-0000-0000
+    license_plate_number         VARCHAR(20)  NOT NULL,   -- 00가0000
+    car_type                     VARCHAR(30)  NOT NULL,   -- 다마스 등
+    business_registration_number VARCHAR(12)  NOT NULL,   -- 000-00-00000
+    token                        VARCHAR(36)  NULL,       -- 로그인 시 회전하는 UUID. 로그인 전 NULL
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_delivery_member_login_id (login_id),
+    UNIQUE KEY uk_delivery_member_token (token)
+);
+
 -- 기존 DB에 orders가 이미 있다면 FK는 수동으로 1회 적용:
 --   ALTER TABLE orders
 --     ADD CONSTRAINT fk_orders_listing FOREIGN KEY (listing_id) REFERENCES listings (id),
