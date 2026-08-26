@@ -98,7 +98,7 @@ button {
 }
 
 .app-shell__main {
-    width: min(1616px, 80vw);
+    width: min(1364px, 80vw);
     padding-top: 53px;
 }
 
