@@ -15,7 +15,7 @@
 | --- | --- | --- | --- |
 | 홈(요청 목록) | `GET /api/delivery/requests` | `DeliveryRequestSummaryResponse[]` | |
 | 수신(단건 상세) | `GET /api/delivery/requests/{deliveryId}` | `DeliveryRequestDetailResponse` | 전화번호 없음, `requestedAt`만 |
-| 수락 | `POST /api/delivery/requests/{deliveryId}/acceptance` | 없음(204) | 성공 후 목록 재조회 |
+| 수락 | `POST /api/delivery/requests/{deliveryId}` | 없음(204) | 성공 후 목록 재조회 |
 | 내 배차(목록) | `GET /api/delivery/shipments` | `ShipmentSummaryResponse[]` | 진행중/완료 탭은 앱이 status로 필터 |
 | 내 배차(상세) | `GET /api/delivery/shipments/{deliveryId}` | `ShipmentDetailResponse` | 전화·타임스탬프 4종 |
 | 수령 | `POST /api/delivery/shipments/{deliveryId}/pickup` | 없음(204) | `ACCEPTED`에서만 가능 |

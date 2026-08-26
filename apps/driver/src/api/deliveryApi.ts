@@ -32,10 +32,10 @@ export const deliveryApi = {
         );
   },
 
-  /** POST /api/delivery/requests/{deliveryId}/acceptance — 수락(응답 바디 없음) */
+  /** POST /api/delivery/requests/{deliveryId} — 수락(응답 바디 없음) */
   async acceptRequest(deliveryId: number): Promise<void> {
     if (config.useMock) return deliveryMock.acceptRequest(deliveryId);
-    await httpPost<void>(`/api/delivery/requests/${deliveryId}/acceptance`);
+    await httpPost<void>(`/api/delivery/requests/${deliveryId}`);
   },
 
   /** GET /api/delivery/shipments — 내 배차 목록 */
