@@ -1,9 +1,11 @@
 package setty.delivery.domain;
 
+import lombok.Getter;
 import setty.common.DeliveryStatus;
 import setty.global.exception.BusinessException;
 import setty.global.exception.ErrorCode;
 
+@Getter
 public class OrderDeliveryState {
 
     private final OrderId orderId;
@@ -41,11 +43,4 @@ public class OrderDeliveryState {
         };
     }
 
-    public OrderId getOrderId() {
-        return orderId;
-    }
-
-    public DeliveryStatus getStatus() {
-        return status;
-    }
 }
