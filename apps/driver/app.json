@@ -1,0 +1,23 @@
+{
+  "expo": {
+    "name": "SETTY 배송원",
+    "slug": "setty-driver",
+    "scheme": "settydriver",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.setty.driver"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      "expo-asset"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
