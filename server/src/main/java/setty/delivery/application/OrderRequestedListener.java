@@ -13,7 +13,7 @@ public class OrderRequestedListener {
     private final RegisterDeliveryService registerDeliveryService;
 
     @EventListener
-    public void on(final OrderRequested event) {
+    public void handle(final OrderRequested event) {
         registerDeliveryService.register(event, Instant.now());
     }
 }
