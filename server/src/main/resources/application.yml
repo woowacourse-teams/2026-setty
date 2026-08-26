@@ -8,11 +8,6 @@ spring:
     password: setty
 
   jpa:
-    open-in-view: false
-    properties:
-      hibernate:
-        jdbc:
-          time_zone: UTC
     hibernate:
       # 스키마는 schema.sql로만 변경한다 (server/AGENTS.md). 엔티티와 스키마가 어긋나면 부팅이 실패한다.
       ddl-auto: validate

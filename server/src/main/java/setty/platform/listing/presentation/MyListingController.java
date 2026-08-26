@@ -4,17 +4,14 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.bind.annotation.SessionAttribute;
-import setty.global.exception.BusinessException;
-import setty.global.exception.ErrorCode;
+import setty.global.auth.LoginMember;
 import setty.platform.listing.application.ListingService;
 import setty.platform.listing.application.ListingView;
+import setty.platform.member.domain.Member;
 
 @RestController
 @RequestMapping("/api/me/listings")
 public class MyListingController {
-
-    private static final String LOGIN_MEMBER_ID = "memberId";
 
     private final ListingService listingService;
 
@@ -24,11 +21,8 @@ public class MyListingController {
 
     @GetMapping
     public ResponseEntity<ListingListResponse<ListingView.Mine>> findMine(
-            @SessionAttribute(value = LOGIN_MEMBER_ID, required = false) Long memberId
+            @LoginMember Member member
     ) {
-        if (memberId == null) {
-            throw new BusinessException(ErrorCode.INVALID_TOKEN);
-        }
-        return ResponseEntity.ok(new ListingListResponse<>(listingService.findMine(memberId)));
+        return ResponseEntity.ok(new ListingListResponse<>(listingService.findMine(member.getId())));
     }
 }

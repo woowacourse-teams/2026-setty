@@ -111,9 +111,9 @@ class ListingTest {
         assertThat(listing.getDimensions()).isSameAs(updatedDimensions);
     }
 
-    @DisplayName("첫 구매 신청 이후에는 추가 구매 신청은 허용하지만 수정과 삭제는 금지한다")
+    @DisplayName("첫 구매 신청 이후에는 추가 구매 신청과 수정·삭제를 금지한다")
     @Test
-    void locksEditingAfterFirstPurchaseRequestAndAllowsAdditionalRequests() {
+    void locksListingAfterFirstPurchaseRequest() {
         Listing listing = createListing();
 
         listing.registerPurchaseRequest();
@@ -121,8 +121,7 @@ class ListingTest {
         assertThat(listing.canUpdate()).isFalse();
         assertThat(listing.canDelete()).isFalse();
 
-        listing.registerPurchaseRequest();
-        assertThat(listing.hasPurchaseRequest()).isTrue();
+        assertBusinessError(listing::registerPurchaseRequest, ErrorCode.ALREADY_ORDERED);
 
         assertBusinessError(
                 () -> listing.update(

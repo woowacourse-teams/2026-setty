@@ -99,10 +99,7 @@ for variable_name in \
     SETTY_FRONT_BASE_URL \
     SPRING_DATASOURCE_URL \
     SPRING_DATASOURCE_USERNAME \
-    SPRING_DATASOURCE_PASSWORD \
-    AWS_REGION \
-    SETTY_S3_BUCKET \
-    SETTY_S3_PUBLIC_BASE_URL; do
+    SPRING_DATASOURCE_PASSWORD; do
     if ! has_non_blank_value "$variable_name"; then
         echo "필수 환경 변수가 없거나 비어 있습니다: $variable_name"
         exit 1

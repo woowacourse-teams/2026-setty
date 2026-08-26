@@ -134,10 +134,11 @@ public class Listing {
         if (isDeleted() || saleStatus != SaleStatus.AVAILABLE) {
             throw new BusinessException(ErrorCode.LISTING_NOT_AVAILABLE);
         }
-        if (!hasPurchaseRequest) {
-            this.hasPurchaseRequest = true;
-            touch();
+        if (hasPurchaseRequest) {
+            throw new BusinessException(ErrorCode.ALREADY_ORDERED);
         }
+        this.hasPurchaseRequest = true;
+        touch();
     }
 
     public boolean reserve() {

@@ -1,6 +1,7 @@
 package setty.platform.listing;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.hasSize;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -31,6 +32,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockMultipartFile;
@@ -42,6 +44,8 @@ import org.springframework.web.multipart.MultipartFile;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.mysql.MySQLContainer;
+import setty.global.exception.BusinessException;
+import setty.global.exception.ErrorCode;
 import setty.platform.listing.application.ListingService;
 import setty.platform.listing.application.ListingView;
 import setty.platform.listing.storage.ListingImageStorage;
@@ -63,8 +67,7 @@ class ListingApiTest {
     static final MySQLContainer MYSQL = new MySQLContainer("mysql:8.4.6")
             .withDatabaseName("setty_test")
             .withUsername("setty_test")
-            .withPassword("setty_test")
-            .withInitScript("member-test-schema.sql");
+            .withPassword("setty_test");
 
     @Autowired
     private MockMvc mockMvc;
@@ -134,7 +137,8 @@ class ListingApiTest {
                 .andReturn();
         long retainedImageId = read(detail).path("images").get(0).path("id").asLong();
 
-        mockMvc.perform(get("/api/me/listings").sessionAttr("memberId", SELLER_ID))
+        mockMvc.perform(get("/api/me/listings")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(SELLER_ID)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items", hasSize(1)))
                 .andExpect(jsonPath("$.items[0].id").value(listingId))
@@ -166,7 +170,7 @@ class ListingApiTest {
                         .value("https://images.example.test/listings/test-2.jpg"));
 
         mockMvc.perform(delete("/api/listings/{listingId}", listingId)
-                        .sessionAttr("memberId", SELLER_ID))
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(SELLER_ID)))
                 .andExpect(status().isNoContent());
 
         mockMvc.perform(get("/api/listings/{listingId}", listingId))
@@ -175,7 +179,8 @@ class ListingApiTest {
         mockMvc.perform(get("/api/listings"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items", hasSize(0)));
-        mockMvc.perform(get("/api/me/listings").sessionAttr("memberId", SELLER_ID))
+        mockMvc.perform(get("/api/me/listings")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(SELLER_ID)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items", hasSize(0)));
 
@@ -187,8 +192,17 @@ class ListingApiTest {
     }
 
     @Test
-    void requestWithoutLoginSessionReturnsUnauthorizedErrorContract() throws Exception {
+    void requestWithoutBearerTokenReturnsUnauthorizedErrorContract() throws Exception {
         mockMvc.perform(get("/api/me/listings"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("INVALID_TOKEN"))
+                .andExpect(jsonPath("$.message").value("유효하지 않은 토큰입니다"));
+    }
+
+    @Test
+    void requestWithInvalidBearerTokenReturnsUnauthorizedErrorContract() throws Exception {
+        mockMvc.perform(get("/api/me/listings")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer invalid-token"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("INVALID_TOKEN"))
                 .andExpect(jsonPath("$.message").value("유효하지 않은 토큰입니다"));
@@ -198,7 +212,7 @@ class ListingApiTest {
     void createRequiresAtLeastOneImage() throws Exception {
         mockMvc.perform(multipart("/api/listings")
                         .file(jsonPart("request", createRequest("사진 없는 가상 매물")))
-                        .sessionAttr("memberId", SELLER_ID))
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(SELLER_ID)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("INVALID_LISTING_IMAGE_COUNT"));
     }
@@ -209,7 +223,7 @@ class ListingApiTest {
                         .file(jsonPart("request", createRequest("사진 순서 확인용 가상 책상")))
                         .file(imagePart("first.jpg"))
                         .file(imagePart("second.jpg"))
-                        .sessionAttr("memberId", SELLER_ID))
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(SELLER_ID)))
                 .andExpect(status().isCreated())
                 .andReturn();
         long listingId = read(created).path("listingId").asLong();
@@ -260,7 +274,7 @@ class ListingApiTest {
                 .andExpect(jsonPath("$.code").value("LISTING_NOT_FOUND"));
 
         mockMvc.perform(delete("/api/listings/{listingId}", listingId)
-                        .sessionAttr("memberId", OTHER_SELLER_ID))
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(OTHER_SELLER_ID)))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("LISTING_NOT_FOUND"));
 
@@ -275,12 +289,15 @@ class ListingApiTest {
         long retainedImageId = firstImageId(listingId);
 
         ListingView.PurchaseInfo firstPurchase = listingService.registerPurchaseRequest(listingId, FIRST_BUYER_ID);
-        ListingView.PurchaseInfo secondPurchase = listingService.registerPurchaseRequest(listingId, SECOND_BUYER_ID);
 
         assertThat(firstPurchase.listingId()).isEqualTo(listingId);
         assertThat(firstPurchase.sellerId()).isEqualTo(SELLER_ID);
         assertThat(firstPurchase.totalPrice()).isEqualTo(130_000);
-        assertThat(secondPurchase).isEqualTo(firstPurchase);
+        assertThatThrownBy(() -> listingService.registerPurchaseRequest(listingId, SECOND_BUYER_ID))
+                .isInstanceOfSatisfying(
+                        BusinessException.class,
+                        exception -> assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.ALREADY_ORDERED)
+                );
 
         mockMvc.perform(updateRequest(
                         listingId,
@@ -291,7 +308,7 @@ class ListingApiTest {
                 .andExpect(jsonPath("$.code").value("LISTING_UPDATE_NOT_ALLOWED"));
 
         mockMvc.perform(delete("/api/listings/{listingId}", listingId)
-                        .sessionAttr("memberId", SELLER_ID))
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(SELLER_ID)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("LISTING_DELETE_NOT_ALLOWED"));
 
@@ -299,7 +316,8 @@ class ListingApiTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items", hasSize(1)))
                 .andExpect(jsonPath("$.items[0].id").value(listingId));
-        mockMvc.perform(get("/api/me/listings").sessionAttr("memberId", SELLER_ID))
+        mockMvc.perform(get("/api/me/listings")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(SELLER_ID)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items[0].hasPurchaseRequest").value(true))
                 .andExpect(jsonPath("$.items[0].canUpdate").value(false))
@@ -315,7 +333,8 @@ class ListingApiTest {
         mockMvc.perform(get("/api/listings"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items", hasSize(0)));
-        mockMvc.perform(get("/api/me/listings").sessionAttr("memberId", SELLER_ID))
+        mockMvc.perform(get("/api/me/listings")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(SELLER_ID)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items", hasSize(1)))
                 .andExpect(jsonPath("$.items[0].saleStatus").value("SOLD"));
@@ -342,11 +361,35 @@ class ListingApiTest {
         }
     }
 
+    @Test
+    void concurrentPurchaseRequestsAllowOnlyOneOrderCandidate() throws Exception {
+        long listingId = createListing(SELLER_ID, "동시 구매 신청 확인용 가상 테이블");
+
+        CountDownLatch ready = new CountDownLatch(2);
+        CountDownLatch start = new CountDownLatch(1);
+        try (ExecutorService executor = Executors.newFixedThreadPool(2)) {
+            Future<Boolean> firstPurchase = executor.submit(
+                    () -> registerPurchaseAfterSignal(listingId, FIRST_BUYER_ID, ready, start)
+            );
+            Future<Boolean> secondPurchase = executor.submit(
+                    () -> registerPurchaseAfterSignal(listingId, SECOND_BUYER_ID, ready, start)
+            );
+
+            assertThat(ready.await(5, TimeUnit.SECONDS)).isTrue();
+            start.countDown();
+
+            assertThat(List.of(
+                    firstPurchase.get(10, TimeUnit.SECONDS),
+                    secondPurchase.get(10, TimeUnit.SECONDS)
+            )).containsExactlyInAnyOrder(true, false);
+        }
+    }
+
     private long createListing(long sellerId, String title) throws Exception {
         MvcResult result = mockMvc.perform(multipart("/api/listings")
                         .file(jsonPart("request", createRequest(title)))
                         .file(imagePart("furniture.jpg"))
-                        .sessionAttr("memberId", sellerId))
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(sellerId)))
                 .andExpect(status().isCreated())
                 .andExpect(header().exists("Location"))
                 .andExpect(jsonPath("$.listingId").isNumber())
@@ -371,6 +414,25 @@ class ListingApiTest {
         return listingService.reserveForDelivery(listingId);
     }
 
+    private boolean registerPurchaseAfterSignal(
+            long listingId,
+            long buyerId,
+            CountDownLatch ready,
+            CountDownLatch start
+    ) throws InterruptedException {
+        ready.countDown();
+        if (!start.await(5, TimeUnit.SECONDS)) {
+            throw new IllegalStateException("가상 동시 구매 신청 테스트 시작 신호를 받지 못했습니다");
+        }
+        try {
+            listingService.registerPurchaseRequest(listingId, buyerId);
+            return true;
+        } catch (BusinessException exception) {
+            assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.ALREADY_ORDERED);
+            return false;
+        }
+    }
+
     private long firstImageId(long listingId) throws Exception {
         MvcResult result = mockMvc.perform(get("/api/listings/{listingId}", listingId))
                 .andExpect(status().isOk())
@@ -387,7 +449,7 @@ class ListingApiTest {
     ) throws Exception {
         MockMultipartHttpServletRequestBuilder builder = multipart("/api/listings/{listingId}", listingId)
                 .file(jsonPart("request", request))
-                .sessionAttr("memberId", sellerId)
+                .header(HttpHeaders.AUTHORIZATION, bearerToken(sellerId))
                 .with(servletRequest -> {
                     servletRequest.setMethod("PUT");
                     return servletRequest;
@@ -452,6 +514,23 @@ class ListingApiTest {
     }
 
     private void insertMember(long memberId) {
-        jdbcTemplate.update("INSERT INTO members (id) VALUES (?)", memberId);
+        jdbcTemplate.update(
+                """
+                INSERT INTO members (id, login_id, password, role, phone_number, address, token)
+                VALUES (?, ?, ?, 'PLATFORM', '010-0000-0000', '가상 주소', ?)
+                """,
+                memberId,
+                "member" + memberId,
+                "encoded-password",
+                token(memberId)
+        );
+    }
+
+    private static String bearerToken(long memberId) {
+        return "Bearer " + token(memberId);
+    }
+
+    private static String token(long memberId) {
+        return "token-" + memberId;
     }
 }
