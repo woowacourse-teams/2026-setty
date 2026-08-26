@@ -2,7 +2,7 @@ package setty.delivery.application;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.event.EventListener;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import setty.common.DeliveryStatus;
 import setty.common.DeliveryStatusChanged;
@@ -12,15 +12,15 @@ import setty.delivery.domain.OrderId;
 import setty.global.exception.BusinessException;
 import setty.global.exception.ErrorCode;
 
-@Service
+@Component
 @RequiredArgsConstructor
-public class UpdateOrderDeliveryStatusService {
+public class DeliveryStatusChangedListener {
 
     private final OrderDeliveryStatusRepository orderDeliveryStatusRepository;
 
     @EventListener
     @Transactional
-    public void update(final DeliveryStatusChanged event) {
+    public void handle(final DeliveryStatusChanged event) {
         validateEvent(event);
         final DeliveryStatus newStatus = parseStatus(event.status());
         final OrderId orderId = new OrderId(event.orderId());
