@@ -4,6 +4,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
+import setty.delivery.auth.domain.DeliveryMember;
+import setty.delivery.auth.repository.DeliveryMemberRepository;
 import setty.global.exception.ErrorCode;
 import setty.platform.member.domain.Member;
 import setty.platform.member.repository.MemberRepository;
@@ -11,18 +13,19 @@ import setty.platform.member.repository.MemberRepository;
 @Component
 public class AuthInterceptor implements HandlerInterceptor {
 
-    private final MemberRepository memberRepository;
+    public static final String LOGIN_MEMBER = "loginMember";
+    public static final String LOGIN_DELIVERY_MEMBER = "loginDeliveryMember";
 
-    public AuthInterceptor(final MemberRepository memberRepository) {
+    private final MemberRepository memberRepository;
+    private final DeliveryMemberRepository deliveryMemberRepository;
+
+    public AuthInterceptor(final MemberRepository memberRepository, final DeliveryMemberRepository deliveryMemberRepository) {
         this.memberRepository = memberRepository;
+        this.deliveryMemberRepository = deliveryMemberRepository;
     }
 
     @Override
     public boolean preHandle(final HttpServletRequest request, final HttpServletResponse response, final Object handler) throws Exception {
-        if (isPublicListingRead(request)) {
-            return true;
-        }
-
         final String header = request.getHeader("Authorization");
         if (header == null || !header.startsWith("Bearer ")) {
             writeError(response);
@@ -30,21 +33,21 @@ public class AuthInterceptor implements HandlerInterceptor {
         }
 
         final String token = header.substring(7);
+
         final Member member = memberRepository.findByToken(token).orElse(null);
-        if (member == null) {
-            writeError(response);
-            return false;
+        if (member != null) {
+            request.setAttribute(LOGIN_MEMBER, member);
+            return true;
         }
 
-        request.setAttribute("loginMember", member);
-        return true;
-    }
+        final DeliveryMember deliveryMember = deliveryMemberRepository.findByToken(token).orElse(null);
+        if (deliveryMember != null) {
+            request.setAttribute(LOGIN_DELIVERY_MEMBER, deliveryMember);
+            return true;
+        }
 
-    // 매물 목록·상세 조회만 비로그인 허용. 등록·수정·삭제(POST/PUT/DELETE)는 같은 경로라도 인증 필요.
-    private boolean isPublicListingRead(final HttpServletRequest request) {
-        final String uri = request.getRequestURI();
-        return "GET".equals(request.getMethod())
-                && (uri.equals("/api/listings") || uri.startsWith("/api/listings/"));
+        writeError(response);
+        return false;
     }
 
     private void writeError(final HttpServletResponse response) throws Exception {
