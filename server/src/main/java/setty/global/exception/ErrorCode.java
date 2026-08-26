@@ -13,6 +13,14 @@ public enum ErrorCode {
 
     // ===== 매물 (플랫폼 팀) =====
     LISTING_NOT_FOUND(404, "존재하지 않는 매물입니다"),
+    LISTING_UPDATE_NOT_ALLOWED(400, "구매 신청이 있거나 거래가 시작된 매물은 수정할 수 없습니다"),
+    LISTING_DELETE_NOT_ALLOWED(400, "구매 신청이 있거나 거래가 시작된 매물은 삭제할 수 없습니다"),
+    LISTING_NOT_AVAILABLE(400, "구매 신청을 받을 수 없는 매물입니다"),
+    INVALID_LISTING_STATUS_TRANSITION(400, "매물 상태를 변경할 수 없습니다"),
+    INVALID_LISTING_IMAGE_COUNT(400, "매물 사진은 1장 이상 5장 이하로 등록해야 합니다"),
+    LISTING_IMAGE_TOO_LARGE(400, "매물 사진 전체 용량은 25MB 이하여야 합니다"),
+    UNSUPPORTED_LISTING_IMAGE_TYPE(400, "JPEG, PNG, WebP 사진만 등록할 수 있습니다"),
+    INVALID_LISTING_IMAGE_REFERENCE(400, "유효하지 않은 매물 사진입니다"),
 
     // ===== 주문 (플랫폼 팀) =====
     ORDER_NOT_FOUND(404, "존재하지 않는 주문입니다"),

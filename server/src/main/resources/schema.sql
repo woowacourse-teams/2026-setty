@@ -14,6 +14,45 @@ CREATE TABLE IF NOT EXISTS members (
     UNIQUE KEY uk_members_token (token)
 );
 
+CREATE TABLE IF NOT EXISTS listings (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    seller_id BIGINT NOT NULL,
+    title VARCHAR(100) NOT NULL,
+    description VARCHAR(1000) NOT NULL,
+    price INT NOT NULL,
+    delivery_fee INT NOT NULL,
+    category VARCHAR(20) NOT NULL,
+    condition_grade VARCHAR(1) NOT NULL,
+    width_cm INT NOT NULL,
+    depth_cm INT NOT NULL,
+    height_cm INT NOT NULL,
+    sale_status VARCHAR(20) NOT NULL,
+    has_purchase_request BOOLEAN NOT NULL,
+    created_at TIMESTAMP(6) NOT NULL,
+    updated_at TIMESTAMP(6) NOT NULL,
+    deleted_at TIMESTAMP(6) NULL,
+    PRIMARY KEY (id),
+    CONSTRAINT fk_listings_seller FOREIGN KEY (seller_id) REFERENCES members (id),
+    CONSTRAINT chk_listings_price CHECK (price BETWEEN 0 AND 100000000),
+    CONSTRAINT chk_listings_delivery_fee CHECK (delivery_fee IN (10000, 20000, 30000)),
+    CONSTRAINT chk_listings_width CHECK (width_cm BETWEEN 1 AND 1000),
+    CONSTRAINT chk_listings_depth CHECK (depth_cm BETWEEN 1 AND 1000),
+    CONSTRAINT chk_listings_height CHECK (height_cm BETWEEN 1 AND 1000),
+    INDEX idx_listings_public (deleted_at, sale_status, created_at, id),
+    INDEX idx_listings_seller (seller_id, deleted_at, created_at, id)
+);
+
+CREATE TABLE IF NOT EXISTS listing_images (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    listing_id BIGINT NOT NULL,
+    object_key VARCHAR(1024) NOT NULL,
+    display_order INT NOT NULL,
+    PRIMARY KEY (id),
+    CONSTRAINT fk_listing_images_listing FOREIGN KEY (listing_id) REFERENCES listings (id),
+    CONSTRAINT uk_listing_images_order UNIQUE (listing_id, display_order),
+    INDEX idx_listing_images_listing (listing_id, display_order)
+);
+
 CREATE TABLE IF NOT EXISTS delivery (
     id                    BIGINT       NOT NULL AUTO_INCREMENT,
     order_id              BIGINT       NOT NULL,

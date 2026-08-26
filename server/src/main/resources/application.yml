@@ -15,3 +15,15 @@ spring:
   sql:
     init:
       mode: always
+
+  servlet:
+    multipart:
+      max-file-size: 25MB
+      max-request-size: 26MB
+
+setty:
+  storage:
+    listing-images:
+      region: ${AWS_REGION:ap-northeast-2}
+      bucket: ${SETTY_S3_BUCKET:setty-listing-local}
+      public-base-url: ${SETTY_S3_PUBLIC_BASE_URL:https://setty-listing-local.s3.ap-northeast-2.amazonaws.com}
