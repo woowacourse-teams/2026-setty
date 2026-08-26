@@ -6,7 +6,7 @@ import { AppText } from './AppText';
 /** 화면 하단 토스트를 다루는 훅. show(message)로 잠깐 띄운다. */
 export function useToast(durationMs = 2400) {
   const [message, setMessage] = useState<string | null>(null);
-  const timer = useRef<ReturnType<typeof setTimeout>>();
+  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   const show = useCallback(
     (msg: string) => {
@@ -17,7 +17,12 @@ export function useToast(durationMs = 2400) {
     [durationMs],
   );
 
-  useEffect(() => () => timer.current && clearTimeout(timer.current), []);
+  useEffect(
+    () => () => {
+      if (timer.current) clearTimeout(timer.current);
+    },
+    [],
+  );
 
   return { message, show };
 }
