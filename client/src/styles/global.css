@@ -1,0 +1,102 @@
+:root {
+    color: #202020;
+    background: #ffffff;
+    font-family: Arial, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+    font-synthesis: none;
+    text-rendering: geometricPrecision;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    min-width: 1180px;
+    margin: 0;
+    background: #ffffff;
+}
+
+button,
+input {
+    font: inherit;
+}
+
+button {
+    border: 0;
+}
+
+.app-shell {
+    min-height: 100vh;
+}
+
+.site-header {
+    height: 73px;
+    border-top: 1px solid #e8e8e8;
+    border-bottom: 1px solid #ededed;
+}
+
+.site-header__content,
+.page-content {
+    width: min(1364px, calc(100vw - 80px));
+    margin: 0 auto;
+}
+
+.site-header__content {
+    display: flex;
+    align-items: center;
+    height: 100%;
+}
+
+.wordmark {
+    color: #1d1d1b;
+    font-size: 27px;
+    font-weight: 900;
+    letter-spacing: -1.9px;
+    line-height: 1;
+    text-decoration: none;
+}
+
+.search-field {
+    display: flex;
+    align-items: center;
+    width: 588px;
+    height: 38px;
+    margin-left: 28px;
+    border-bottom: 2px solid #2b2b2b;
+}
+
+.search-field__placeholder {
+    flex: 1;
+    overflow: hidden;
+    color: #a8a8a8;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: -0.55px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.search-icon {
+    width: 23px;
+    height: 23px;
+    margin-right: 2px;
+    fill: none;
+    stroke: #242424;
+    stroke-linecap: round;
+    stroke-width: 2.4;
+}
+
+.login-button {
+    margin-left: auto;
+    padding: 8px 0;
+    color: #4d4d4d;
+    background: transparent;
+    cursor: default;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: -0.6px;
+}
+
+.page-content {
+    padding-top: 38px;
+}
