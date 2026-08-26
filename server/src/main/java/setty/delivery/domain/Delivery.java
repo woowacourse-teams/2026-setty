@@ -111,13 +111,13 @@ public class Delivery {
 
     private void ensureStatus(final DeliveryStatus expectedStatus) {
         if (status != expectedStatus) {
-            throw new BusinessException(ErrorCode.INVALID_STATUS_TRANSITION);
+            throw new BusinessException(ErrorCode.INVALID_DELIVERY_TRANSITION);
         }
     }
 
     private void ensureAssignedDriver(final DriverId driverId) {
         if (driverId == null || assignment == null || !assignment.isAssignedTo(driverId)) {
-            throw new BusinessException(ErrorCode.INVALID_STATUS_TRANSITION);
+            throw new BusinessException(ErrorCode.DELIVERY_DRIVER_MISMATCH);
         }
     }
 

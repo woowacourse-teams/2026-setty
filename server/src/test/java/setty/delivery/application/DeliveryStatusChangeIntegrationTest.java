@@ -154,7 +154,7 @@ class DeliveryStatusChangeIntegrationTest {
 
         assertBusinessError(
                 () -> pickupDeliveryService.pickUp(deliveryId, DRIVER_ID, PICKED_UP_AT),
-                ErrorCode.INVALID_STATUS_TRANSITION
+                ErrorCode.INVALID_DELIVERY_TRANSITION
         );
 
         assertStatuses(deliveryId, "REQUESTED");
@@ -166,7 +166,7 @@ class DeliveryStatusChangeIntegrationTest {
 
         assertBusinessError(
                 () -> pickupDeliveryService.pickUp(deliveryId, OTHER_DRIVER_ID, PICKED_UP_AT),
-                ErrorCode.INVALID_STATUS_TRANSITION
+                ErrorCode.DELIVERY_DRIVER_MISMATCH
         );
         assertStatuses(deliveryId, "ACCEPTED");
 
@@ -174,7 +174,7 @@ class DeliveryStatusChangeIntegrationTest {
 
         assertBusinessError(
                 () -> completeDeliveryService.complete(deliveryId, OTHER_DRIVER_ID, DELIVERED_AT),
-                ErrorCode.INVALID_STATUS_TRANSITION
+                ErrorCode.DELIVERY_DRIVER_MISMATCH
         );
         assertStatuses(deliveryId, "PICKED_UP");
     }
