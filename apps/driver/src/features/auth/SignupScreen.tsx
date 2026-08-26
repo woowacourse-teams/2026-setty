@@ -10,6 +10,7 @@ import { PrimaryButton } from '@/components/PrimaryButton';
 import { Screen } from '@/components/Screen';
 import { TextField } from '@/components/TextField';
 import { colors } from '@/theme';
+import { formatBusinessNumber, formatPhoneNumber } from './masks';
 import { SignupErrors, validateSignup } from './validators';
 import { styles } from './SignupScreen.styles';
 
@@ -32,6 +33,11 @@ export function SignupScreen() {
 
   const set = (key: keyof SignupRequest) => (value: string) =>
     setForm((prev) => ({ ...prev, [key]: value }));
+
+  // 숫자만 입력해도 하이픈을 자동으로 넣는 필드용
+  const setMasked =
+    (key: keyof SignupRequest, mask: (v: string) => string) => (value: string) =>
+      setForm((prev) => ({ ...prev, [key]: mask(value) }));
 
   const submit = async () => {
     const found = validateSignup(form);
@@ -97,11 +103,12 @@ export function SignupScreen() {
           <TextField
             label="전화번호"
             value={form.phoneNumber}
-            onChangeText={set('phoneNumber')}
+            onChangeText={setMasked('phoneNumber', formatPhoneNumber)}
             error={errors.phoneNumber}
-            hint="010-0000-0000"
+            hint="숫자만 입력하면 하이픈이 자동으로 들어가요"
             placeholder="010-0000-0000"
-            keyboardType="phone-pad"
+            keyboardType="number-pad"
+            maxLength={13}
           />
           <TextField
             label="차량 번호판"
@@ -122,11 +129,12 @@ export function SignupScreen() {
           <TextField
             label="사업자등록번호"
             value={form.businessRegistrationNumber}
-            onChangeText={set('businessRegistrationNumber')}
+            onChangeText={setMasked('businessRegistrationNumber', formatBusinessNumber)}
             error={errors.businessRegistrationNumber}
-            hint="000-00-00000"
+            hint="숫자만 입력하면 하이픈이 자동으로 들어가요"
             placeholder="123-01-56789"
-            keyboardType="numbers-and-punctuation"
+            keyboardType="number-pad"
+            maxLength={12}
           />
 
           {formError ? (
