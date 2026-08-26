@@ -17,12 +17,14 @@ import org.springframework.test.context.event.RecordApplicationEvents;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.mysql.MySQLContainer;
+import setty.common.DeliveryStatus;
 import setty.common.DeliveryStatusChanged;
 import setty.common.OrderRequested;
 import setty.delivery.domain.DeliveryId;
 import setty.delivery.domain.DriverId;
 import setty.global.exception.BusinessException;
 import setty.global.exception.ErrorCode;
+import setty.platform.order.repository.OrderRepository;
 
 @SpringBootTest
 @Testcontainers
@@ -65,19 +67,11 @@ class DeliveryStatusChangeIntegrationTest {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
+    @Autowired
+    private OrderRepository orderRepository;
+
     @BeforeEach
     void setUp() {
-        jdbcTemplate.execute("""
-                CREATE TABLE IF NOT EXISTS orders (
-                    id BIGINT NOT NULL AUTO_INCREMENT,
-                    listing_id BIGINT NOT NULL,
-                    buyer_id BIGINT NOT NULL,
-                    delivery_status VARCHAR(20) NOT NULL,
-                    driver_id BIGINT NULL,
-                    PRIMARY KEY (id),
-                    UNIQUE KEY uk_orders_listing_id (listing_id)
-                )
-                """);
         jdbcTemplate.update("DELETE FROM delivery");
         jdbcTemplate.update("DELETE FROM orders");
     }
@@ -252,11 +246,10 @@ class DeliveryStatusChangeIntegrationTest {
     }
 
     private String orderStatus() {
-        return jdbcTemplate.queryForObject(
-                "SELECT delivery_status FROM orders WHERE id = ?",
-                String.class,
-                ORDER_ID
-        );
+        final DeliveryStatus deliveryStatus = orderRepository.findById(ORDER_ID)
+                .orElseThrow()
+                .getDeliveryStatus();
+        return deliveryStatus.name();
     }
 
     private static OrderRequested orderRequested() {
