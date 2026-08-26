@@ -5,7 +5,7 @@ function App() {
     return (
         <div className="app-shell">
             <Header />
-            <main className="page-content" />
+            <main className="app-shell__main" />
         </div>
     );
 }
