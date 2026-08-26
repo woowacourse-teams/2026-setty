@@ -7,7 +7,11 @@ function SearchIcon() {
     );
 }
 
-export function Header() {
+interface HeaderProps {
+    onLoginClick: () => void;
+}
+
+export function Header({ onLoginClick }: HeaderProps) {
     return (
         <header className="site-header">
             <div className="site-header__content">
@@ -18,7 +22,7 @@ export function Header() {
                     <span className="site-header__search-field-placeholder">배송비 고민 없이 원하는 가구를 찾아보세요</span>
                     <SearchIcon />
                 </div>
-                <button className="site-header__login-button" type="button">로그인</button>
+                <button className="site-header__login-button" onClick={onLoginClick} type="button">로그인</button>
             </div>
         </header>
     );
