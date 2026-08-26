@@ -36,6 +36,9 @@ public class Member {
     @Column(nullable = false, length = 200)
     private String address;
 
+    @Column(length = 36)
+    private String token;
+
     protected Member() {
     }
 
@@ -75,5 +78,17 @@ public class Member {
 
     public String getAddress() {
         return address;
+    }
+
+    public String getToken() {
+        return token;
+    }
+
+    public void rotateToken(final String newToken) {
+        this.token = newToken;
+    }
+
+    public boolean matchPassword(final org.springframework.security.crypto.password.PasswordEncoder encoder, final String rawPassword) {
+        return encoder.matches(rawPassword, this.password);
     }
 }
