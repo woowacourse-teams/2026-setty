@@ -30,7 +30,8 @@ public enum ErrorCode {
     // ===== 배송 (배송 팀) =====
     DELIVERY_NOT_FOUND(404, "존재하지 않는 배송 요청입니다"),
     DELIVERY_ALREADY_ACCEPTED(400, "이미 다른 기사가 수락했습니다"),
-    INVALID_STATUS_TRANSITION(400, "잘못된 배송 상태 변경입니다");
+    INVALID_STATUS_TRANSITION(400, "잘못된 배송 상태 변경입니다"),
+    ORDER_DELIVERY_STATUS_MISMATCH(400, "주문과 배송 상태가 일치하지 않습니다");
 
     private final int status;
     private final String message;
