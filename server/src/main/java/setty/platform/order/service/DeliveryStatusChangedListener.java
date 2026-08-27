@@ -2,7 +2,7 @@ package setty.platform.order.service;
 
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
-import setty.delivery.application.event.DeliveryStatusChanged;
+import setty.common.DeliveryStatusChanged;
 
 @Component
 public class DeliveryStatusChangedListener {

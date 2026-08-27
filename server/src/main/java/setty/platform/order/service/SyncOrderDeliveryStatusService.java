@@ -3,7 +3,7 @@ package setty.platform.order.service;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import setty.common.DeliveryStatus;
-import setty.delivery.application.event.DeliveryStatusChanged;
+import setty.common.DeliveryStatusChanged;
 import setty.global.exception.BusinessException;
 import setty.global.exception.ErrorCode;
 import setty.platform.order.domain.Order;
