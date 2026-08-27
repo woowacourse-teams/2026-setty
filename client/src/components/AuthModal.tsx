@@ -9,13 +9,14 @@ type Feedback = {
 
 interface AuthModalProps {
     onClose: () => void;
+    onLoggedIn: () => void;
 }
 
 function CloseIcon() {
     return <span aria-hidden="true">×</span>;
 }
 
-export function AuthModal({ onClose }: AuthModalProps) {
+export function AuthModal({ onClose, onLoggedIn }: AuthModalProps) {
     const [mode, setMode] = useState<AuthMode>('login');
     const [loginId, setLoginId] = useState('');
     const [password, setPassword] = useState('');
@@ -49,7 +50,7 @@ export function AuthModal({ onClose }: AuthModalProps) {
                 const response = await login({ loginId, password });
                 window.sessionStorage.setItem('setty:auth-token', response.token);
                 window.sessionStorage.setItem('setty:auth-role', response.role);
-                setFeedback({ type: 'success', message: '로그인되었습니다.' });
+                onLoggedIn();
                 return;
             }
 
