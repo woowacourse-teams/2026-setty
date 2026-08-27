@@ -5,13 +5,15 @@
 
 ## 소유권
 
-- 플랫폼 팀이 관리한다. 단, `orders.delivery_status`·`orders.driver_id` **컬럼 값의 UPDATE는 배송 팀 몫**이다 — 플랫폼 코드는 이 두 컬럼을 읽기만 하고, 상태를 변경하는 코드를 여기에 추가하지 않는다.
+- 플랫폼 팀이 관리한다. `orders.delivery_status`는 **배송 팀의 `DeliveryStatusChanged` 이벤트를 수신해 플랫폼이 갱신**한다 (#236에서 전환, 이전에는 배송 팀이 직접 UPDATE했다). 갱신 경로는 `DeliveryStatusChangedListener → SyncOrderDeliveryStatusService → Order.syncDeliveryStatus()` 하나뿐이다 — API로 배송 상태를 바꾸는 엔드포인트를 만들지 않는다. `orders.driver_id`는 현재 미사용(항상 NULL)이며 정리 예정.
 
 ## 내용물
 
 - `Order` — 주문 엔티티. `@Table(name = "orders")` (ORDER는 SQL 예약어), listingId·buyerId·deliveryStatus·driverId
 - `OrderController` — `POST /api/orders` / `GET /api/me/orders` / `GET /api/orders/{id}`
 - `OrderService` — 주문 생성(중복 방지 + `OrderRequested` 이벤트 발행), 내 주문 조회
+- `DeliveryStatusChangedListener` — `DeliveryStatusChanged` 수신 전용의 얇은 리스너. 위임만 한다
+- `SyncOrderDeliveryStatusService` — 이벤트 검증·파싱 후 주문의 배송 상태를 동기화한다
 
 ## 규칙
 
@@ -24,4 +26,5 @@
   매물 검증·구매 신청 등록은 `ListingService.registerPurchaseRequest()`를 통하고,
   조회 조합은 `ListingRepository`를 **읽기 전용**으로만 쓴다 (DEC-05 합의). listing을 여기서 수정하지 않는다.
 - 본인 주문만 조회할 수 있다. 남의 주문 id는 403이 아니라 **404 `ORDER_NOT_FOUND`**로 응답한다 (주문 존재 여부를 노출하지 않기 위함).
+- 배송 상태 동기화는 **순방향 전이만** 허용한다 (`Order.syncDeliveryStatus()` — enum 선언 순서 기준). 중복·역행 이벤트는 예외 없이 무시한다 (멱등). 이 방어를 제거하면 이벤트 재전송·순서 꼬임 시 상태가 뒤로 간다.
 - 스키마 변경은 `schema.sql`에 멱등 SQL 추가로만 한다 (`ddl-auto: validate`).
