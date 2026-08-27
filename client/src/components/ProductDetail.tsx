@@ -49,7 +49,6 @@ export function ProductDetail({ listingId, onBack }: ProductDetailProps) {
 
     return (
         <section className="product-detail" aria-labelledby="product-title">
-            <button className="product-detail__back-link" onClick={onBack} type="button">← 목록</button>
             <div className="product-detail__layout">
                 <div className="product-detail__gallery">
                     <div className="product-detail__main-image">
