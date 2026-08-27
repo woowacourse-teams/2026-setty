@@ -1,4 +1,4 @@
-package setty.delivery.application.event;
+package setty.common;
 
 import java.time.Instant;
 

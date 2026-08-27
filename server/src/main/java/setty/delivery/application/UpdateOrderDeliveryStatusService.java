@@ -5,7 +5,7 @@ import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import setty.common.DeliveryStatus;
-import setty.delivery.application.event.DeliveryStatusChanged;
+import setty.common.DeliveryStatusChanged;
 import setty.delivery.domain.DeliveryId;
 import setty.delivery.domain.OrderDeliveryState;
 import setty.delivery.domain.OrderId;
