@@ -38,7 +38,7 @@ Delivery 조회
 
 세부 결정은 다음과 같다.
 
-1. `AcceptDeliveryService`, `PickupDeliveryService`, `CompleteDeliveryService`를 트랜잭션 경계로 둔다.
+1. `DeliveryLifecycleService`의 `accept`, `pickUp`, `complete`를 트랜잭션 경계로 둔다.
 2. 각 Service는 Aggregate 상태 전이 후 `DeliveryStatusChanged`를 발행한다.
 3. 이벤트는 배송 모듈의 `application.event`가 소유한다.
 4. Listener는 `@EventListener`로 동기 실행한다.

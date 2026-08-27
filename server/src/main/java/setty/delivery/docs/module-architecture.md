@@ -41,11 +41,11 @@ api → application → domain
 | 유스케이스 | 진입 | Domain 호출 | 결과 |
 |---|---|---|---|
 | 배송 등록 | `OrderRequestedListener` | `Delivery.request(...)` | `REQUESTED` Delivery 저장 |
-| 배송 수락 | `AcceptDeliveryService` | `Delivery.accept(...)` | Delivery와 Order를 `ACCEPTED`로 변경 |
-| 가구 수령 | `PickupDeliveryService` | `Delivery.pickUp(...)` | 두 상태를 `PICKED_UP`으로 변경 |
-| 배송 완료 | `CompleteDeliveryService` | `Delivery.complete(...)` | 두 상태를 `DELIVERED`로 변경 |
+| 배송 수락 | `DeliveryLifecycleService.accept(...)` | `Delivery.accept(...)` | Delivery와 Order를 `ACCEPTED`로 변경 |
+| 가구 수령 | `DeliveryLifecycleService.pickUp(...)` | `Delivery.pickUp(...)` | 두 상태를 `PICKED_UP`으로 변경 |
+| 배송 완료 | `DeliveryLifecycleService.complete(...)` | `Delivery.complete(...)` | 두 상태를 `DELIVERED`로 변경 |
 
-- 상태 변경 서비스는 `DeliveryId`, `DriverId`, `Instant`를 입력으로 받는다.
+- `DeliveryLifecycleService`는 상태별 메서드에서 `DeliveryId`, `DriverId`, `Instant`를 입력으로 받는다.
 - 현재 기사와 현재 시각은 API 또는 이벤트 경계에서 구한다.
 - Application과 Domain에서 SecurityContext를 직접 조회하지 않는다.
 - Repository가 상태를 직접 변경하지 않고 Aggregate 메서드를 호출한 결과를 저장한다.
