@@ -9,9 +9,13 @@ function SearchIcon() {
 
 interface HeaderProps {
     onHome: () => void;
+    onMyListings: () => void;
+    isLoggedIn: boolean;
+    onLogout: () => void;
+    onLoginClick: () => void;
 }
 
-export function Header({ onHome }: HeaderProps) {
+export function Header({ onHome, onMyListings, isLoggedIn, onLogout, onLoginClick }: HeaderProps) {
     return (
         <header className="site-header">
             <div className="site-header__content">
@@ -30,12 +34,14 @@ export function Header({ onHome }: HeaderProps) {
                     <span className="site-header__search-field-placeholder">배송비 고민 없이 원하는 가구를 찾아보세요</span>
                     <SearchIcon />
                 </div>
-                <nav aria-label="사용자 메뉴" className="site-header__account-menu">
-                    <button className="site-header__my-listings" type="button">내 가구 <span>5</span></button>
-                    <i aria-hidden="true" />
-                    <strong>게스트님</strong>
-                    <button className="site-header__logout-button" type="button">로그아웃</button>
-                </nav>
+                {isLoggedIn ? (
+                    <nav aria-label="사용자 메뉴" className="site-header__account-menu">
+                        <button className="site-header__my-listings" onClick={onMyListings} type="button">내 가구</button>
+                        <i aria-hidden="true" />
+                        <strong>내 계정</strong>
+                        <button className="site-header__logout-button" onClick={onLogout} type="button">로그아웃</button>
+                    </nav>
+                ) : <button className="site-header__login-button" onClick={onLoginClick} type="button">로그인</button>}
             </div>
         </header>
     );

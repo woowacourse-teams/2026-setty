@@ -1,4 +1,10 @@
 import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from 'react';
+import {
+    createListing,
+    updateListing,
+    type ListingCategory,
+    type ListingDetail
+} from '../api/listings';
 
 const categories = [
     { value: 'SOFA', label: '소파' },
@@ -9,7 +15,7 @@ const categories = [
     { value: 'BED', label: '침대' }
 ] as const;
 
-const conditionGrades = ['S', 'A', 'B'] as const;
+const conditionGrades = ['S', 'A', 'B', 'C'] as const;
 
 type Dimensions = {
     width: string;
@@ -21,14 +27,27 @@ function AddIcon() {
     return <span aria-hidden="true" className="furniture-registration__add-icon">+</span>;
 }
 
-export function FurnitureRegistration() {
+type FurnitureRegistrationProps = {
+    listing?: ListingDetail;
+    onCancel: () => void;
+    onSaved: () => void;
+};
+
+export function FurnitureRegistration({ listing, onCancel, onSaved }: FurnitureRegistrationProps) {
     const [images, setImages] = useState<File[]>([]);
-    const [title, setTitle] = useState('');
-    const [category, setCategory] = useState<(typeof categories)[number]['value']>('TABLE');
-    const [conditionGrade, setConditionGrade] = useState<(typeof conditionGrades)[number]>('A');
-    const [dimensions, setDimensions] = useState<Dimensions>({ width: '', depth: '', height: '' });
-    const [price, setPrice] = useState('');
-    const [description, setDescription] = useState('');
+    const [retainedImageIds, setRetainedImageIds] = useState(() => listing?.images.map((image) => image.id) ?? []);
+    const [title, setTitle] = useState(listing?.title ?? '');
+    const [category, setCategory] = useState<ListingCategory>(listing?.category ?? 'TABLE');
+    const [conditionGrade, setConditionGrade] = useState<(typeof conditionGrades)[number]>(listing?.conditionGrade ?? 'A');
+    const [dimensions, setDimensions] = useState<Dimensions>(() => ({
+        width: listing?.dimensions.widthCm.toString() ?? '',
+        depth: listing?.dimensions.depthCm.toString() ?? '',
+        height: listing?.dimensions.heightCm.toString() ?? ''
+    }));
+    const [price, setPrice] = useState(listing?.price.toString() ?? '');
+    const [description, setDescription] = useState(listing?.description ?? '');
+    const [error, setError] = useState<string | null>(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const imageUrls = useMemo(() => images.map((image) => URL.createObjectURL(image)), [images]);
 
@@ -40,26 +59,64 @@ export function FurnitureRegistration() {
         && dimensions.width
         && dimensions.depth
         && dimensions.height
+        && description.trim()
+        && retainedImageIds.length + images.length >= 1
+        && retainedImageIds.length + images.length <= 5
     );
 
     const changeImages = (event: ChangeEvent<HTMLInputElement>) => {
-        const selectedImages = Array.from(event.target.files ?? []).slice(0, 4);
-        setImages(selectedImages);
+        const selectedImages = Array.from(event.target.files ?? []);
+        setImages((current) => [...current, ...selectedImages].slice(0, 5 - retainedImageIds.length));
+        event.target.value = '';
     };
 
     const changeDimension = (dimension: keyof Dimensions, value: string) => {
         setDimensions((current) => ({ ...current, [dimension]: value }));
     };
 
-    const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    const removeExistingImage = (imageId: number) => {
+        setRetainedImageIds((current) => current.filter((id) => id !== imageId));
+    };
+
+    const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
+        if (!canSubmit) return;
+
+        setError(null);
+        setIsSubmitting(true);
+
+        const payload = {
+            title: title.trim(),
+            description: description.trim(),
+            price: Number(price),
+            category,
+            conditionGrade,
+            dimensions: {
+                widthCm: Number(dimensions.width),
+                depthCm: Number(dimensions.depth),
+                heightCm: Number(dimensions.height)
+            }
+        };
+
+        try {
+            if (listing) {
+                await updateListing(listing.id, payload, retainedImageIds, images);
+            } else {
+                await createListing(payload, images);
+            }
+            onSaved();
+        } catch (reason) {
+            setError(reason instanceof Error ? reason.message : '가구 정보를 저장하지 못했습니다.');
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     return (
         <section aria-labelledby="furniture-registration-title" className="furniture-registration">
-            <h1 id="furniture-registration-title">새 가구 등록</h1>
+            <h1 id="furniture-registration-title">{listing ? '가구 수정' : '새 가구 등록'}</h1>
 
-            <form onSubmit={handleSubmit}>
+            <form onSubmit={(event) => void handleSubmit(event)}>
                 <fieldset className="furniture-registration__field furniture-registration__field--images">
                     <legend>사진</legend>
                     <input
@@ -71,18 +128,23 @@ export function FurnitureRegistration() {
                         onChange={changeImages}
                         type="file"
                     />
-                    <label className="furniture-registration__image-list" htmlFor="furniture-registration-images">
-                        {Array.from({ length: 4 }, (_, index) => {
-                            const imageUrl = imageUrls[index];
-                            const isFirstEmptySlot = index === 0 && !imageUrl;
-
-                            return (
-                                <span className="furniture-registration__image-slot" key={index}>
-                                    {imageUrl ? <img alt={`선택한 가구 사진 ${index + 1}`} src={imageUrl} /> : isFirstEmptySlot && <AddIcon />}
-                                </span>
-                            );
-                        })}
-                    </label>
+                    <div className="furniture-registration__image-list">
+                        {listing?.images.filter((image) => retainedImageIds.includes(image.id)).map((image) => (
+                            <span className="furniture-registration__image-slot" key={image.id}>
+                                <img alt="기존 가구 사진" src={image.url} />
+                                <button aria-label="기존 사진 삭제" className="furniture-registration__image-remove" onClick={() => removeExistingImage(image.id)} type="button">×</button>
+                            </span>
+                        ))}
+                        {imageUrls.map((imageUrl, index) => (
+                            <span className="furniture-registration__image-slot" key={imageUrl}>
+                                <img alt={`선택한 가구 사진 ${index + 1}`} src={imageUrl} />
+                                <button aria-label="새 사진 삭제" className="furniture-registration__image-remove" onClick={() => setImages((current) => current.filter((_, fileIndex) => fileIndex !== index))} type="button">×</button>
+                            </span>
+                        ))}
+                        {retainedImageIds.length + images.length < 5 && (
+                            <label className="furniture-registration__image-slot furniture-registration__image-slot--add" htmlFor="furniture-registration-images"><AddIcon /></label>
+                        )}
+                    </div>
                 </fieldset>
 
                 <label className="furniture-registration__field">
@@ -133,7 +195,7 @@ export function FurnitureRegistration() {
                 </fieldset>
 
                 <fieldset className="furniture-registration__field">
-                    <legend>크기 (mm)</legend>
+                    <legend>크기 (cm)</legend>
                     <div className="furniture-registration__dimensions">
                         <label><span>W</span><input aria-label="가로" inputMode="numeric" min="1" onChange={(event) => changeDimension('width', event.target.value)} type="number" value={dimensions.width} /></label>
                         <i aria-hidden="true">×</i>
@@ -150,11 +212,15 @@ export function FurnitureRegistration() {
                 </label>
 
                 <label className="furniture-registration__field furniture-registration__field--description">
-                    <span>설명 <em>선택</em></span>
+                    <span>설명</span>
                     <textarea maxLength={1000} onChange={(event) => setDescription(event.target.value)} placeholder="사용 기간, 흠집, 분해 여부" value={description} />
                 </label>
 
-                <button className="furniture-registration__submit" disabled={!canSubmit} type="submit">등록하기</button>
+                {error && <p className="furniture-registration__error" role="alert">{error}</p>}
+                <div className="furniture-registration__actions">
+                    <button className="furniture-registration__cancel" onClick={onCancel} type="button">취소</button>
+                    <button className="furniture-registration__submit" disabled={!canSubmit || isSubmitting} type="submit">{isSubmitting ? '저장 중...' : listing ? '수정하기' : '등록하기'}</button>
+                </div>
             </form>
         </section>
     );

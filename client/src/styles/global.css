@@ -209,18 +209,22 @@ button {
 
 .furniture-registration__image-list {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(5, 1fr);
     gap: 10px;
-    cursor: pointer;
 }
 
 .furniture-registration__image-slot {
+    position: relative;
     display: grid;
     aspect-ratio: 1;
     overflow: hidden;
     place-items: center;
     background: #fbfaf8;
     border: 1px solid #efede9;
+}
+
+.furniture-registration__image-slot--add {
+    cursor: pointer;
 }
 
 .furniture-registration__image-slot img {
@@ -233,6 +237,20 @@ button {
     color: #a7a39e;
     font-size: 23px;
     font-weight: 300;
+    line-height: 1;
+}
+
+.furniture-registration__image-remove {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    color: #ffffff;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.56);
+    cursor: pointer;
     line-height: 1;
 }
 
@@ -348,6 +366,35 @@ button {
     font-size: 15px;
     font-weight: 800;
     letter-spacing: -0.9px;
+}
+
+.furniture-registration__actions {
+    display: grid;
+    grid-template-columns: 1fr 3fr;
+    gap: 10px;
+    margin-top: 9px;
+}
+
+.furniture-registration__actions .furniture-registration__submit {
+    margin-top: 0;
+}
+
+.furniture-registration__cancel {
+    height: 61px;
+    color: #58544f;
+    border: 1px solid #dedad5;
+    border-radius: 5px;
+    background: #ffffff;
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: 800;
+}
+
+.furniture-registration__error {
+    margin: -22px 0 0;
+    color: #b9412d;
+    font-size: 13px;
+    font-weight: 700;
 }
 
 .furniture-registration__submit:disabled {
@@ -987,6 +1034,141 @@ button {
     background: #1d1d1b;
     color: #ffffff;
     cursor: pointer;
+}
+
+.my-furniture {
+    width: min(1134px, 100%);
+    margin: 0 auto;
+}
+
+.my-furniture__heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 50px;
+}
+
+.my-furniture__heading h1 {
+    margin: 0;
+    color: #202020;
+    font-size: 31px;
+    font-weight: 900;
+    letter-spacing: -1.8px;
+}
+
+.my-furniture__heading h1 span {
+    margin-left: 8px;
+    color: #aeaeae;
+    font-size: 20px;
+}
+
+.my-furniture__register-button {
+    padding: 0 0 7px;
+    color: #292929;
+    border-bottom: 2px solid #292929;
+    background: transparent;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 800;
+}
+
+.my-furniture__list {
+    display: grid;
+    gap: 25px;
+}
+
+.my-furniture__item {
+    display: grid;
+    grid-template-columns: 74px minmax(0, 1fr) 150px 78px 105px;
+    align-items: center;
+    column-gap: 25px;
+    min-height: 74px;
+}
+
+.my-furniture__thumbnail {
+    width: 74px;
+    height: 74px;
+    overflow: hidden;
+    border-radius: 4px;
+    background: #f4f2ef;
+}
+
+.my-furniture__thumbnail img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.my-furniture__details h2,
+.my-furniture__details p {
+    margin: 0;
+}
+
+.my-furniture__details h2 {
+    overflow: hidden;
+    color: #292929;
+    font-size: 17px;
+    font-weight: 800;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.my-furniture__details p {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding-top: 6px;
+    color: #ababab;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.my-furniture__details i {
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: currentColor;
+}
+
+.my-furniture__price {
+    color: #222;
+    font-size: 17px;
+    font-weight: 900;
+    text-align: right;
+}
+
+.my-furniture__status {
+    color: #292929;
+    font-size: 14px;
+    font-weight: 800;
+    text-align: center;
+}
+
+.my-furniture__status--reserved {
+    color: #f04d2e;
+}
+
+.my-furniture__controls {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+.my-furniture__controls button {
+    padding: 5px 0;
+    color: #77736e;
+    background: transparent;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.my-furniture__controls button:last-child {
+    color: #b35d4d;
+}
+
+.my-furniture__item--sold {
+    opacity: 0.54;
 }
 
 @keyframes skeleton-loading {
