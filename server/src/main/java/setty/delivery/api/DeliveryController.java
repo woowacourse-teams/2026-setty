@@ -8,10 +8,8 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import setty.delivery.application.AcceptDeliveryService;
-import setty.delivery.application.CompleteDeliveryService;
+import setty.delivery.application.DeliveryLifecycleService;
 import setty.delivery.application.DeliveryQueryService;
-import setty.delivery.application.PickupDeliveryService;
 import setty.delivery.auth.domain.DeliveryMember;
 import setty.delivery.api.dto.DeliveryRequestDetailResponse;
 import setty.delivery.api.dto.DeliveryRequestSummaryResponse;
@@ -28,20 +26,14 @@ import setty.global.exception.ErrorCode;
 public class DeliveryController {
 
     private final DeliveryQueryService deliveryQueryService;
-    private final AcceptDeliveryService acceptDeliveryService;
-    private final PickupDeliveryService pickupDeliveryService;
-    private final CompleteDeliveryService completeDeliveryService;
+    private final DeliveryLifecycleService deliveryLifecycleService;
 
     public DeliveryController(
             final DeliveryQueryService deliveryQueryService,
-            final AcceptDeliveryService acceptDeliveryService,
-            final PickupDeliveryService pickupDeliveryService,
-            final CompleteDeliveryService completeDeliveryService
+            final DeliveryLifecycleService deliveryLifecycleService
     ) {
         this.deliveryQueryService = deliveryQueryService;
-        this.acceptDeliveryService = acceptDeliveryService;
-        this.pickupDeliveryService = pickupDeliveryService;
-        this.completeDeliveryService = completeDeliveryService;
+        this.deliveryLifecycleService = deliveryLifecycleService;
     }
 
     @GetMapping("/requests")
@@ -71,7 +63,7 @@ public class DeliveryController {
             @LoginDeliveryMember final DeliveryMember member,
             @PathVariable final long deliveryId
     ) {
-        acceptDeliveryService.accept(
+        deliveryLifecycleService.accept(
                 new DeliveryId(deliveryId),
                 authenticatedDriverId(member),
                 Instant.now()
@@ -108,7 +100,7 @@ public class DeliveryController {
             @LoginDeliveryMember final DeliveryMember member,
             @PathVariable final long deliveryId
     ) {
-        pickupDeliveryService.pickUp(
+        deliveryLifecycleService.pickUp(
                 new DeliveryId(deliveryId),
                 authenticatedDriverId(member),
                 Instant.now()
@@ -121,7 +113,7 @@ public class DeliveryController {
             @LoginDeliveryMember final DeliveryMember member,
             @PathVariable final long deliveryId
     ) {
-        completeDeliveryService.complete(
+        deliveryLifecycleService.complete(
                 new DeliveryId(deliveryId),
                 authenticatedDriverId(member),
                 Instant.now()
