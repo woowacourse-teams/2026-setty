@@ -11,6 +11,16 @@ export type SignupResponse = {
     role: 'MEMBER';
 };
 
+export type LoginRequest = {
+    loginId: string;
+    password: string;
+};
+
+export type LoginResponse = {
+    token: string;
+    role: 'MEMBER';
+};
+
 export type AuthErrorCode = 'DUPLICATE_LOGIN_ID' | 'INVALID_REQUEST' | 'LOGIN_FAILED';
 
 type ErrorResponse = {
@@ -56,4 +66,25 @@ export async function signup(request: SignupRequest): Promise<SignupResponse> {
     }
 
     return body as SignupResponse;
+}
+
+export async function login(request: LoginRequest): Promise<LoginResponse> {
+    const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(request)
+    });
+    const body: unknown = await response.json();
+
+    if (!response.ok) {
+        if (isErrorResponse(body)) {
+            throw new AuthApiError(body);
+        }
+
+        throw new Error('로그인에 실패했습니다.');
+    }
+
+    return body as LoginResponse;
 }
