@@ -14,15 +14,30 @@ function formatWon(value: number) {
     return `${value.toLocaleString('ko-KR')}원`;
 }
 
+type ProductCardProps = {
+    product: ListingItem;
+    onSelect: () => void;
+};
+
+function ProductCard({ product, onSelect }: ProductCardProps) {
 function formatRegisteredAt(createdAt: string) {
     const date = new Date(createdAt);
     return `${date.getUTCMonth() + 1}.${date.getUTCDate()}`;
 }
 
-function ProductCard({ product }: { product: ListingItem }) {
-
     return (
-        <article className="product-card">
+        <article
+            className="product-card product-card--interactive"
+            role="button"
+            tabIndex={0}
+            onClick={onSelect}
+            onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    onSelect();
+                }
+            }}
+        >
             <div className="product-card__image-wrap">
                 {product.thumbnailUrl && (
                     <img className="product-card__image" src={product.thumbnailUrl} alt={product.title} />
@@ -55,7 +70,11 @@ function ProductCardSkeleton() {
     );
 }
 
-export function ProductGrid() {
+type ProductGridProps = {
+    onProductSelect: () => void;
+};
+
+export function ProductGrid({ onProductSelect }: ProductGridProps) {
     const [items, setItems] = useState<ListingItem[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -100,7 +119,7 @@ export function ProductGrid() {
 
     return (
         <section className="product-grid" aria-label="판매 중인 가구 목록">
-            {items.map((product) => <ProductCard key={product.id} product={product} />)}
+            {items.map((product) => <ProductCard key={product.id} product={product} onSelect={onProductSelect} />)}
         </section>
     );
 }

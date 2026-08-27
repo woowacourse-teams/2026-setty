@@ -8,14 +8,23 @@ function SearchIcon() {
 }
 
 interface HeaderProps {
+    onHome: () => void;
     onLoginClick: () => void;
 }
 
-export function Header({ onLoginClick }: HeaderProps) {
+export function Header({ onHome, onLoginClick }: HeaderProps) {
     return (
         <header className="site-header">
             <div className="site-header__content">
-                <a className="site-header__wordmark" href="/" aria-label="SETTY 홈">
+                <a
+                    className="site-header__wordmark"
+                    href="/"
+                    aria-label="SETTY 홈"
+                    onClick={(event) => {
+                        event.preventDefault();
+                        onHome();
+                    }}
+                >
                     SETTY
                 </a>
                 <div className="site-header__search-field" role="search">
