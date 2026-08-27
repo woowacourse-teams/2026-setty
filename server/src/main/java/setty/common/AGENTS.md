@@ -12,7 +12,7 @@
 
 - `DeliveryStatus` — 배송 상태 enum. REQUESTED → ACCEPTED → PICKED_UP → DELIVERED 순서로만 전이한다.
 - `OrderRequested` — 주문 생성 시 플랫폼 팀이 발행하고 배송 팀이 수신하는 이벤트 (orderId, itemName, category, pickupAddress, deliveryAddress, deliveryFee, pickupPhoneNumber, deliveryPhoneNumber).
-- `DeliveryStatusChanged` — 배송 상태 변경 시 배송 팀이 발행하고 플랫폼 팀이 수신하는 이벤트 (deliveryId, orderId, status, changedAt).
+- `DeliveryStatusChanged` — 배송 상태 변경 시 배송 팀이 발행하고 플랫폼 팀이 수신하는 이벤트 (deliveryId, orderId, status, changedAt). 플랫폼은 이걸 받아 `orders.delivery_status`를 갱신한다 (#236, DEC-13).
 
 ## 금지사항
 
