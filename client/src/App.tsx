@@ -5,11 +5,12 @@ import { FurnitureRegistration } from './components/FurnitureRegistration';
 import { Header } from './components/Header';
 import { MockScenarioController } from './components/MockScenarioController';
 import { MyListings } from './components/MyListings';
+import { MyOrders } from './components/MyOrders';
 import { ProductDetail } from './components/ProductDetail';
 import { ProductGrid } from './components/ProductGrid';
 import './styles/global.css';
 
-type View = 'home' | 'detail' | 'my-listings' | 'registration';
+type View = 'home' | 'detail' | 'my-listings' | 'my-orders' | 'registration';
 
 function App() {
     const [view, setView] = useState<View>('home');
@@ -56,12 +57,17 @@ function App() {
                     goHome();
                 }}
                 onMyListings={() => goToAuthenticatedView('my-listings')}
+                onMyOrders={() => goToAuthenticatedView('my-orders')}
             />
             <main className={`app-shell__main ${view === 'registration' ? 'app-shell__main--registration' : ''}`}>
                 {__ENABLE_MSW__ && view === 'home' && <MockScenarioController />}
                 {view === 'home' && <ProductGrid onProductSelect={(listingId) => { setSelectedListingId(listingId); setView('detail'); }} />}
-                {view === 'detail' && selectedListingId && <ProductDetail listingId={selectedListingId} onBack={goHome} />}
+                {view === 'detail' && selectedListingId && <ProductDetail listingId={selectedListingId} onBack={goHome} onLoginRequired={() => {
+                    setViewAfterLogin('detail');
+                    setIsAuthModalOpen(true);
+                }} />}
                 {view === 'my-listings' && <MyListings onEdit={(listingId) => void openEdit(listingId)} onRegister={() => { setEditingListing(undefined); goToAuthenticatedView('registration'); }} />}
+                {view === 'my-orders' && <MyOrders />}
                 {view === 'registration' && <FurnitureRegistration key={editingListing?.id ?? 'new'} listing={editingListing} onCancel={() => setView('my-listings')} onSaved={() => { setEditingListing(undefined); setView('my-listings'); }} />}
             </main>
             {isAuthModalOpen && <AuthModal onClose={() => setIsAuthModalOpen(false)} onLoggedIn={() => {
