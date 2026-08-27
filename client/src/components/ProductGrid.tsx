@@ -71,7 +71,7 @@ function ProductCardSkeleton() {
 }
 
 type ProductGridProps = {
-    onProductSelect: () => void;
+    onProductSelect: (listingId: number) => void;
 };
 
 export function ProductGrid({ onProductSelect }: ProductGridProps) {
@@ -119,7 +119,7 @@ export function ProductGrid({ onProductSelect }: ProductGridProps) {
 
     return (
         <section className="product-grid" aria-label="판매 중인 가구 목록">
-            {items.map((product) => <ProductCard key={product.id} product={product} onSelect={onProductSelect} />)}
+            {items.map((product) => <ProductCard key={product.id} product={product} onSelect={() => onProductSelect(product.id)} />)}
         </section>
     );
 }
