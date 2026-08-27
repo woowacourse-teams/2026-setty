@@ -59,7 +59,7 @@ button {
 .site-header__search-field {
     display: flex;
     align-items: center;
-    width: 625px;
+    width: 716px;
     height: 38px;
     margin-left: 34px;
     border-bottom: 2px solid #2b2b2b;
@@ -88,13 +88,15 @@ button {
 
 .site-header__login-button {
     margin-left: auto;
-    padding: 8px 0;
+    min-width: 48px;
+    padding: 8px 8px 8px 0;
     color: #4d4d4d;
     background: transparent;
     cursor: pointer;
     font-size: 13px;
     font-weight: 700;
     letter-spacing: -0.6px;
+    text-align: right;
 }
 
 .site-header__account-menu {
