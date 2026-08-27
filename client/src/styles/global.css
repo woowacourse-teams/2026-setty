@@ -613,6 +613,19 @@ button {
     cursor: pointer;
 }
 
+.product-detail__purchase-button:disabled {
+    cursor: wait;
+    opacity: 0.58;
+}
+
+.product-detail__purchase-message {
+    margin: 12px 0 0;
+    color: #5b5753;
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1.5;
+}
+
 .product-detail__like-button {
     display: grid;
     width: 56px;
@@ -1183,6 +1196,101 @@ button {
 
 .my-furniture__item--sold {
     opacity: 0.54;
+}
+
+.my-orders {
+    width: min(1134px, 100%);
+    margin: 0 auto;
+}
+
+.my-orders__heading {
+    padding-bottom: 50px;
+}
+
+.my-orders__heading h1 {
+    margin: 0;
+    color: #202020;
+    font-size: 31px;
+    font-weight: 900;
+    letter-spacing: -1.8px;
+}
+
+.my-orders__heading h1 span {
+    margin-left: 8px;
+    color: #aeaeae;
+    font-size: 20px;
+}
+
+.my-orders__list {
+    display: grid;
+    gap: 25px;
+}
+
+.my-orders__item {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 150px 88px;
+    align-items: center;
+    column-gap: 25px;
+    min-height: 74px;
+    padding: 0 0 25px;
+    border-bottom: 1px solid #efede9;
+}
+
+.my-orders__details h2,
+.my-orders__details p {
+    margin: 0;
+}
+
+.my-orders__details h2 {
+    overflow: hidden;
+    color: #292929;
+    font-size: 17px;
+    font-weight: 800;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.my-orders__details p {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding-top: 7px;
+    color: #ababab;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.my-orders__details i {
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: currentColor;
+}
+
+.my-orders__total {
+    color: #222;
+    font-size: 17px;
+    font-weight: 900;
+    text-align: right;
+}
+
+.my-orders__status {
+    color: #292929;
+    font-size: 14px;
+    font-weight: 800;
+    text-align: center;
+}
+
+.my-orders__status--requested {
+    color: #ef7b32;
+}
+
+.my-orders__status--in_delivery {
+    color: #3974c5;
+}
+
+.my-orders__status--delivered {
+    color: #41733c;
 }
 
 @keyframes skeleton-loading {

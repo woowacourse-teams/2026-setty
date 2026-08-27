@@ -3,9 +3,12 @@ import { authHandlers } from './auth';
 import { mockListings } from './listings';
 import { getListingMockScenario } from './scenario';
 import type { ListingDetail, ListingItem, ListingPayload, MyListing } from '../api/listings';
+import type { MyOrder, Order } from '../api/orders';
 
 let nextListingId = 3;
 let nextImageId = 30;
+let nextOrderId = 1;
+const orderStore: Order[] = [];
 let listingStore: ListingDetail[] = mockListings.map((listing, index) => ({
     ...listing,
     description: index === 0 ? '사용감이 적은 원목 가구입니다.' : '깨끗하게 관리한 가구입니다.',
@@ -124,5 +127,43 @@ export const handlers = [
         if (index < 0) return HttpResponse.json({ code: 'LISTING_NOT_FOUND', message: '매물을 찾을 수 없습니다.' }, { status: 404 });
         listingStore = listingStore.filter((_, listingIndex) => listingIndex !== index);
         return new HttpResponse(null, { status: 204 });
+    }),
+
+    http.post('/api/orders', async ({ request }) => {
+        if (!isAuthenticated(request)) return unauthorized();
+
+        try {
+            const body = await request.json() as { listingId?: unknown };
+            const listingId = body.listingId;
+            if (typeof listingId !== 'number') return invalidRequest('매물 정보를 확인해 주세요.');
+            if (orderStore.some((order) => order.listingId === listingId)) {
+                return HttpResponse.json({ code: 'ALREADY_ORDERED', message: '이미 주문한 매물입니다.' }, { status: 400 });
+            }
+
+            const order: Order = { id: nextOrderId++, listingId, buyerId: 1, deliveryStatus: 'REQUESTED' };
+            orderStore.unshift(order);
+            return HttpResponse.json(order, { status: 201 });
+        } catch {
+            return invalidRequest('잘못된 주문 요청입니다.');
+        }
+    }),
+
+    http.get('/api/me/orders', ({ request }) => {
+        if (!isAuthenticated(request)) return unauthorized();
+
+        const orders: MyOrder[] = orderStore.map((order) => {
+            const listing = listingStore.find((item) => item.id === order.listingId);
+            return {
+                id: order.id,
+                listing: {
+                    id: order.listingId,
+                    name: listing?.title ?? '판매가 종료된 매물',
+                    price: listing?.price ?? 0,
+                    deliveryFee: listing?.deliveryFee ?? 0
+                },
+                deliveryStatus: order.deliveryStatus
+            };
+        });
+        return HttpResponse.json(orders);
     })
 ];

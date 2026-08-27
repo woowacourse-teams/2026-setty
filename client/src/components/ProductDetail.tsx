@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { fetchListing, type ListingDetail } from '../api/listings';
+import { createOrder } from '../api/orders';
 
 const categoryLabels: Record<string, string> = {
     SOFA: '소파', TABLE: '테이블', DESK: '책상', CHAIR: '의자', STORAGE: '수납장', BED: '침대'
@@ -16,18 +17,22 @@ function HeartIcon() {
 type ProductDetailProps = {
     listingId: number;
     onBack: () => void;
+    onLoginRequired: () => void;
 };
 
-export function ProductDetail({ listingId, onBack }: ProductDetailProps) {
+export function ProductDetail({ listingId, onBack, onLoginRequired }: ProductDetailProps) {
     const [selectedImage, setSelectedImage] = useState(0);
     const [listing, setListing] = useState<ListingDetail | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [purchaseMessage, setPurchaseMessage] = useState<string | null>(null);
+    const [isPurchasing, setIsPurchasing] = useState(false);
 
     useEffect(() => {
         let isCurrent = true;
         setListing(null);
         setError(null);
         setSelectedImage(0);
+        setPurchaseMessage(null);
 
         void fetchListing(listingId)
             .then((result) => isCurrent && setListing(result))
@@ -46,6 +51,25 @@ export function ProductDetail({ listingId, onBack }: ProductDetailProps) {
 
     const images = listing.images;
     const selected = images[selectedImage] ?? images[0];
+
+    const requestPurchase = async () => {
+        if (!window.sessionStorage.getItem('setty:auth-token')) {
+            onLoginRequired();
+            return;
+        }
+
+        setIsPurchasing(true);
+        setPurchaseMessage(null);
+        try {
+            await createOrder(listing.id);
+            setPurchaseMessage('구매 및 배송 요청이 완료되었습니다. 내 주문에서 배송 상태를 확인할 수 있습니다.');
+        } catch (reason) {
+            const message = reason instanceof Error ? reason.message : '주문 요청을 완료하지 못했습니다.';
+            setPurchaseMessage(message);
+        } finally {
+            setIsPurchasing(false);
+        }
+    };
 
     return (
         <section className="product-detail" aria-labelledby="product-title">
@@ -90,8 +114,11 @@ export function ProductDetail({ listingId, onBack }: ProductDetailProps) {
                     </div>
                     <div className="product-detail__actions">
                         <button className="product-detail__like-button" type="button" aria-label="찜하기"><HeartIcon /></button>
-                        <button className="product-detail__purchase-button" type="button">구매 · 배송 요청하기</button>
+                        <button className="product-detail__purchase-button" disabled={isPurchasing || listing.saleStatus !== 'AVAILABLE'} onClick={() => void requestPurchase()} type="button">
+                            {isPurchasing ? '요청 중...' : listing.saleStatus === 'AVAILABLE' ? '구매 · 배송 요청하기' : '구매할 수 없는 매물입니다'}
+                        </button>
                     </div>
+                    {purchaseMessage && <p className="product-detail__purchase-message" role="status">{purchaseMessage}</p>}
                     <div className="product-detail__description">
                         <h2>상세 설명</h2>
                         <p>{listing.description}</p>

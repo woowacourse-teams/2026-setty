@@ -10,12 +10,13 @@ function SearchIcon() {
 interface HeaderProps {
     onHome: () => void;
     onMyListings: () => void;
+    onMyOrders: () => void;
     isLoggedIn: boolean;
     onLogout: () => void;
     onLoginClick: () => void;
 }
 
-export function Header({ onHome, onMyListings, isLoggedIn, onLogout, onLoginClick }: HeaderProps) {
+export function Header({ onHome, onMyListings, onMyOrders, isLoggedIn, onLogout, onLoginClick }: HeaderProps) {
     return (
         <header className="site-header">
             <div className="site-header__content">
@@ -37,6 +38,7 @@ export function Header({ onHome, onMyListings, isLoggedIn, onLogout, onLoginClic
                 {isLoggedIn ? (
                     <nav aria-label="사용자 메뉴" className="site-header__account-menu">
                         <button className="site-header__my-listings" onClick={onMyListings} type="button">내 가구</button>
+                        <button onClick={onMyOrders} type="button">내 주문</button>
                         <i aria-hidden="true" />
                         <strong>내 계정</strong>
                         <button className="site-header__logout-button" onClick={onLogout} type="button">로그아웃</button>
