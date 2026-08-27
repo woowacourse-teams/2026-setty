@@ -8,8 +8,8 @@ public record DeliveryRequestDetailResponse(
         long deliveryId,
         long orderId,
         FurnitureResponse furniture,
-        DeliveryPointResponse pickup,
-        DeliveryPointResponse destination,
+        String pickupAddress,
+        String destinationAddress,
         long deliveryFee,
         DeliveryStatus status,
         Instant requestedAt
@@ -20,8 +20,8 @@ public record DeliveryRequestDetailResponse(
                 detail.deliveryId(),
                 detail.orderId(),
                 new FurnitureResponse(detail.itemName(), detail.category()),
-                new DeliveryPointResponse(detail.pickupAddress(), detail.pickupPhoneNumber()),
-                new DeliveryPointResponse(detail.deliveryAddress(), detail.deliveryPhoneNumber()),
+                detail.pickupAddress(),
+                detail.deliveryAddress(),
                 detail.deliveryFee(),
                 detail.status(),
                 detail.requestedAt()

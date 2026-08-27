@@ -41,8 +41,7 @@ public class JdbcDeliveryQueryRepository implements DeliveryQueryRepository {
         return jdbcTemplate.query(
                         """
                                 SELECT id, order_id, item_name, category,
-                                       pickup_address, pickup_phone_number,
-                                       delivery_address, delivery_phone_number,
+                                       pickup_address, delivery_address,
                                        estimated_fee, status, requested_at
                                 FROM delivery
                                 WHERE id = ? AND status = 'REQUESTED' AND driver_id IS NULL
@@ -115,9 +114,7 @@ public class JdbcDeliveryQueryRepository implements DeliveryQueryRepository {
                 resultSet.getString("item_name"),
                 resultSet.getString("category"),
                 resultSet.getString("pickup_address"),
-                resultSet.getString("pickup_phone_number"),
                 resultSet.getString("delivery_address"),
-                resultSet.getString("delivery_phone_number"),
                 resultSet.getLong("estimated_fee"),
                 status(resultSet),
                 requiredInstant(resultSet, "requested_at")
