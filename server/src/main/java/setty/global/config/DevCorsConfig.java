@@ -10,16 +10,16 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @Profile("dev")
 public class DevCorsConfig implements WebMvcConfigurer {
 
-    private final String allowedOrigin;
+    private final String[] allowedOrigins;
 
-    public DevCorsConfig(@Value("${setty.cors.allowed-origin}") final String allowedOrigin) {
-        this.allowedOrigin = allowedOrigin;
+    public DevCorsConfig(@Value("${setty.cors.allowed-origins}") final String[] allowedOrigins) {
+        this.allowedOrigins = allowedOrigins;
     }
 
     @Override
     public void addCorsMappings(final CorsRegistry registry) {
         registry.addMapping("/api/**")
-                .allowedOrigins(allowedOrigin)
+                .allowedOrigins(allowedOrigins)
                 .allowedMethods("GET", "POST", "PUT", "DELETE")
                 .allowedHeaders("*");
     }
