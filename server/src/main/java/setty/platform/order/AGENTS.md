@@ -26,5 +26,7 @@
   매물 검증·구매 신청 등록은 `ListingService.registerPurchaseRequest()`를 통하고,
   조회 조합은 `ListingRepository`를 **읽기 전용**으로만 쓴다 (DEC-05 합의). listing을 여기서 수정하지 않는다.
 - 본인 주문만 조회할 수 있다. 남의 주문 id는 403이 아니라 **404 `ORDER_NOT_FOUND`**로 응답한다 (주문 존재 여부를 노출하지 않기 위함).
-- 배송 상태 동기화는 **순방향 전이만** 허용한다 (`Order.syncDeliveryStatus()` — enum 선언 순서 기준). 중복·역행 이벤트는 예외 없이 무시한다 (멱등). 이 방어를 제거하면 이벤트 재전송·순서 꼬임 시 상태가 뒤로 간다.
+- 배송 상태 동기화(`Order.syncDeliveryStatus()`)는 배송 팀 `OrderDeliveryState.synchronizeTo()`와 같은 규칙이다 —
+  **직전 상태에서 한 단계 전진만 허용**, 같은 상태 중복 이벤트는 무시(멱등), 그 외 불일치(역행·건너뛰기)는
+  `ORDER_DELIVERY_STATUS_MISMATCH` 예외로 거부한다. 불일치를 조용히 무시하도록 바꾸면 버그가 숨는다.
 - 스키마 변경은 `schema.sql`에 멱등 SQL 추가로만 한다 (`ddl-auto: validate`).
