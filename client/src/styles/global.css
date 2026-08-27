@@ -86,6 +86,17 @@ button {
     stroke-width: 2.4;
 }
 
+.site-header__login-button {
+    margin-left: auto;
+    padding: 8px 0;
+    color: #4d4d4d;
+    background: transparent;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: -0.6px;
+}
+
 .site-header__account-menu {
     display: flex;
     align-items: center;
