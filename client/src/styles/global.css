@@ -41,10 +41,11 @@ button {
 }
 
 .site-header__content {
-    width: calc(100% - 56px);
+    width: auto;
     display: flex;
     align-items: center;
     height: 100%;
+    margin: 0 clamp(28px, 4.3vw, 88px);
 }
 
 .site-header__wordmark {
