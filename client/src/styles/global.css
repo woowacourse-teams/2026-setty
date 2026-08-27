@@ -655,6 +655,27 @@ button {
     background: #302f2a;
 }
 
+.auth-modal__submit:disabled {
+    cursor: wait;
+    opacity: 0.6;
+}
+
+.auth-modal__feedback {
+    margin: -7px 0 -2px;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: -0.8px;
+    line-height: 1.4;
+}
+
+.auth-modal__feedback--error {
+    color: #bb3f2b;
+}
+
+.auth-modal__feedback--success {
+    color: #41733c;
+}
+
 .auth-modal--signup {
     padding-bottom: 100px;
 }
@@ -670,6 +691,7 @@ button {
 
 .auth-modal--signup .auth-modal__submit {
     margin-top: -1px;
+}
 
 .skeleton {
     background: linear-gradient(90deg, #f1f1f1 25%, #e7e7e7 37%, #f1f1f1 63%);
