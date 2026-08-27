@@ -24,7 +24,7 @@ Spring Boot + JPA + MySQL, 단일 서버.
 ## 소유권 (절대 규칙)
 
 - `platform/**`은 플랫폼 팀 소유, `delivery/**`는 배송 팀 소유다. **자기 팀 패키지만 수정한다.** 상대 팀 패키지는 읽기만 허용.
-- `common/**`(DeliveryStatus, OrderRequested)은 팀 간 계약이다. **수정하지 않는다.** 변경이 필요하면 코드를 고치지 말고 사용자에게 "common 변경은 양 팀 합의가 필요합니다"라고 알린다.
+- `common/**`(DeliveryStatus, OrderRequested, DeliveryStatusChanged)은 팀 간 계약이다. **수정하지 않는다.** 변경이 필요하면 코드를 고치지 말고 사용자에게 "common 변경은 양 팀 합의가 필요합니다"라고 알린다.
 - `global/**`(인터셉터, 예외 인프라)은 플랫폼 팀이 관리한다. 배송 팀 작업 중 global 변경이 필요하면 사용자에게 알린다.
 - Order 테이블의 배송상태·driverId 컬럼은 배송 팀만 UPDATE한다. 나머지 컬럼은 플랫폼 팀만 쓴다.
 

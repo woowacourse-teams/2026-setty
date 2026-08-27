@@ -17,8 +17,8 @@ import org.springframework.test.context.event.RecordApplicationEvents;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.mysql.MySQLContainer;
+import setty.common.DeliveryStatusChanged;
 import setty.common.OrderRequested;
-import setty.delivery.application.event.DeliveryStatusChanged;
 import setty.delivery.domain.DeliveryId;
 import setty.delivery.domain.DriverId;
 import setty.global.exception.BusinessException;
@@ -85,15 +85,19 @@ class DeliveryStatusChangeIntegrationTest {
         final DeliveryId deliveryId = prepareRequestedDeliveryAndOrder();
 
         assertStatuses(deliveryId, "REQUESTED");
+        assertThat(listingStatus()).isEqualTo("AVAILABLE");
 
         acceptDeliveryService.accept(deliveryId, DRIVER_ID, ACCEPTED_AT);
         assertStatuses(deliveryId, "ACCEPTED");
+        assertThat(listingStatus()).isEqualTo("RESERVED");
 
         pickupDeliveryService.pickUp(deliveryId, DRIVER_ID, PICKED_UP_AT);
         assertStatuses(deliveryId, "PICKED_UP");
+        assertThat(listingStatus()).isEqualTo("RESERVED");
 
         completeDeliveryService.complete(deliveryId, DRIVER_ID, DELIVERED_AT);
         assertStatuses(deliveryId, "DELIVERED");
+        assertThat(listingStatus()).isEqualTo("SOLD");
     }
 
     @Test
@@ -104,6 +108,7 @@ class DeliveryStatusChangeIntegrationTest {
 
         assertEvent("ACCEPTED", ACCEPTED_AT);
         assertStatuses(deliveryId, "ACCEPTED");
+        assertThat(listingStatus()).isEqualTo("RESERVED");
     }
 
     @Test
@@ -114,6 +119,7 @@ class DeliveryStatusChangeIntegrationTest {
 
         assertEvent("PICKED_UP", PICKED_UP_AT);
         assertStatuses(deliveryId, "PICKED_UP");
+        assertThat(listingStatus()).isEqualTo("RESERVED");
     }
 
     @Test
@@ -124,6 +130,7 @@ class DeliveryStatusChangeIntegrationTest {
 
         assertEvent("DELIVERED", DELIVERED_AT);
         assertStatuses(deliveryId, "DELIVERED");
+        assertThat(listingStatus()).isEqualTo("SOLD");
     }
 
     @Test
@@ -166,6 +173,7 @@ class DeliveryStatusChangeIntegrationTest {
         assertThat(deliveryStatus(deliveryId)).isEqualTo("REQUESTED");
         assertThat(orderStatus()).isEqualTo("DELIVERED");
         assertThat(deliveryDriverId(deliveryId)).isNull();
+        assertThat(listingStatus()).isEqualTo("AVAILABLE");
     }
 
     @Test
@@ -267,7 +275,7 @@ class DeliveryStatusChangeIntegrationTest {
                 50,
                 80,
                 "AVAILABLE",
-                false,
+                true,
                 java.sql.Timestamp.from(REQUESTED_AT),
                 java.sql.Timestamp.from(REQUESTED_AT)
         );
@@ -312,6 +320,14 @@ class DeliveryStatusChangeIntegrationTest {
                 "SELECT delivery_status FROM orders WHERE id = ?",
                 String.class,
                 ORDER_ID
+        );
+    }
+
+    private String listingStatus() {
+        return jdbcTemplate.queryForObject(
+                "SELECT sale_status FROM listings WHERE id = ?",
+                String.class,
+                LISTING_ID
         );
     }
 
