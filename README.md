@@ -16,6 +16,7 @@ SETTY는 중고 가구·가전 거래 전에 예상 운송 가능 여부와 비�
 
 ## Documentation
 
+- [Changelog](CHANGELOG.md)
 - [문서 지도](docs/README.md)
 - [제품 기획](docs/product/product-brief.md)
 - [사용자·운영 흐름](docs/product/user-operation-flow.md)
