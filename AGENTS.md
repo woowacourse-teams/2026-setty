@@ -6,7 +6,9 @@
    - 단순 질문, 설명, 조사, 상태 확인처럼 저장소를 변경하지 않는 작업에는 이슈를 만들지 않는다.
 2. 깃허브 이슈를 `setty-github-issue` 스킬을 통해 만든다.
    - 이슈를 만들기 전에 항상 사용자에게 확인을 받는다.
-3. `이슈번호-브랜치명`으로 체크아웃한다.
+3. 로컬 `develop`을 원격(`origin/develop`) 최신 상태로 맞춘 뒤, 그 위에서 `이슈번호-브랜치명` 브랜치를 만든다.
+   - 예: `git switch develop && git pull origin develop && git switch -c 231-payment`
+   - 낡은 `develop`에서 브랜치를 파면 뒤처진 베이스 위에서 작업하게 되므로 항상 최신화를 먼저 한다.
    - `main`, `develop`에 직접 푸시하지 않는다.
 4. 코드 작업을 진행한다.
 5. `setty-github-pull-request` 스킬을 활용해 PR을 만든다.

@@ -13,6 +13,7 @@
 | [ADR-0002](adr/0002-synchronous-order-status-sync.md) | 기존 동기 트랜잭션 결정 — ADR-0004로 대체됨 |
 | [ADR-0003](adr/0003-temporary-jdbc-order-status-access.md) | Order 상태 JDBC 임시 접근 결정 — ADR-0004로 대체됨 |
 | [ADR-0004](adr/0004-platform-jpa-order-status-sync.md) | 플랫폼 JPA 단일 경로로 Order 상태를 동기화하는 결정 |
+| [ADR-0005](adr/0005-delivery-request-sse.md) | 배송 요청 목록의 SSE 변경 알림과 커밋 이후 전송 결정 |
 | [서버 예외 처리 규칙](../../../../../../docs/exception-handling.md) | `BusinessException`, `ErrorCode`, 오류 응답의 서버 공통 원본 |
 
 ## 변경 라우팅

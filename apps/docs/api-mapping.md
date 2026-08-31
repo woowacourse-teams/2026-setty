@@ -34,6 +34,7 @@
 | 화면 | 메서드 · 경로 | 응답 타입 | 비고 |
 | --- | --- | --- | --- |
 | 홈(요청 목록) | `GET /api/delivery/requests` | `DeliveryRequestSummaryResponse[]` | |
+| 홈(요청 목록 변경) | `GET /api/delivery/requests/events` | SSE `delivery-requests-changed` | 이벤트 수신·연결 재수립 시 목록 재조회 |
 | 수신(단건 상세) | `GET /api/delivery/requests/{deliveryId}` | `DeliveryRequestDetailResponse` | 전화번호 없음, `requestedAt`만 |
 | 수락 | `POST /api/delivery/requests/{deliveryId}` | 없음(204) | 서브패스 `/acceptance` 없음(합의). ⚠️ 서버 제거 대기 — 아래 참고 |
 | 내 배차(목록) | `GET /api/delivery/shipments` | `ShipmentSummaryResponse[]` | 진행중/완료 탭은 앱이 status로 필터 |
@@ -44,6 +45,7 @@
 - shipments 경로의 `{id}`는 `deliveryId`와 같은 값이다.
 - 수락·수령·완료 POST는 응답 바디가 없다. 성공하면 관련 목록/상세를 재조회해 화면을 맞춘다.
 - 상태 전이 가드 위반은 **409 Conflict**다(예: `ACCEPTED`가 아닌데 수령 호출). 앱은 409 메시지를 안내하고 상세를 재조회해 서버 상태와 맞춘다.
+- SSE는 변경 신호만 보낸다. 앱은 foreground에서만 연결하고, 끊기면 1~30초 간격으로 재연결한다.
 
 ## 필드명 불일치(명세대로 유지)
 

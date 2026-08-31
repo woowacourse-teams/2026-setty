@@ -385,6 +385,32 @@ class ListingApiTest {
         }
     }
 
+    @Test
+    void findSummaries는_입력_순서를_유지한다() throws Exception {
+        long first = createListing(SELLER_ID, "첫 번째 책상");
+        long second = createListing(SELLER_ID, "두 번째 책상");
+        long third = createListing(SELLER_ID, "세 번째 책상");
+
+        List<ListingView.Summary> summaries = listingService.findSummaries(List.of(third, first, second));
+
+        assertThat(summaries)
+                .extracting(ListingView.Summary::id)
+                .containsExactly(third, first, second);
+    }
+
+    @Test
+    void findSummaries는_삭제된_매물을_제외한다() throws Exception {
+        long kept = createListing(SELLER_ID, "남는 책상");
+        long deleted = createListing(SELLER_ID, "삭제될 책상");
+        jdbcTemplate.update("UPDATE listings SET deleted_at = NOW(6) WHERE id = ?", deleted);
+
+        List<ListingView.Summary> summaries = listingService.findSummaries(List.of(kept, deleted));
+
+        assertThat(summaries)
+                .extracting(ListingView.Summary::id)
+                .containsExactly(kept);
+    }
+
     private long createListing(long sellerId, String title) throws Exception {
         MvcResult result = mockMvc.perform(multipart("/api/listings")
                         .file(jsonPart("request", createRequest(title)))

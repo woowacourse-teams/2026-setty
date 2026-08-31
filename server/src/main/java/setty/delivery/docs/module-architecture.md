@@ -69,6 +69,7 @@ OrderRequested 수신
 |---|---|---|
 | `OrderRequested` | `setty.common` | 플랫폼이 발행하고 배송이 수신하는 팀 간 계약 |
 | `DeliveryStatusChanged` | `setty.common` | 배송이 발행하고 플랫폼이 Order·Listing 상태를 동기화하는 팀 간 계약 |
+| `DeliveryRequestsChanged` | `setty.delivery.application` | 배송 등록·수락 후 기사 앱 요청 목록 재조회를 알리는 내부 이벤트 |
 
 공용 이벤트를 배송 패키지에 중복 정의하지 않는다. 배송은 `DeliveryStatusChanged`를 발행만 하며, 플랫폼의 주문·매물 리스너가 각 소유 엔티티를 갱신한다.
 
@@ -90,10 +91,26 @@ Delivery 조회
 - 상태 변경 Service와 Listener는 같은 트랜잭션에 참여한다.
 - Listener 예외는 Delivery와 Order 변경을 모두 롤백한다.
 - 플랫폼의 매물 리스너도 같은 이벤트를 동기 처리한다. 주문·매물 리스너의 실행 순서에 의존하지 않는다.
-- `@TransactionalEventListener(AFTER_COMMIT)`, `@Async`, 내부 HTTP 통신을 사용하지 않는다.
+- 상태 동기화에는 `@TransactionalEventListener(AFTER_COMMIT)`, `@Async`, 내부 HTTP 통신을 사용하지 않는다.
 - 동일 상태 이벤트는 멱등 처리하고 잘못된 이전 상태는 거부한다.
 
 선택 근거와 대안은 [ADR-0004](adr/0004-platform-jpa-order-status-sync.md)에 기록한다.
+
+### 기사 앱 요청 목록 알림
+
+```text
+Delivery 저장 또는 수락 커밋
+→ DeliveryRequestsChanged
+→ DeliveryRequestsChangedListener (AFTER_COMMIT)
+→ SSE delivery-requests-changed
+→ 기사 앱 GET /requests 재조회
+```
+
+- 이벤트는 목록 데이터가 아닌 재조회 신호만 전송한다.
+- SSE 전송 실패는 이미 커밋된 배송을 되돌리지 않고 경고 로그만 남긴다.
+- 이 `AFTER_COMMIT` 사용은 외부 UI 알림에만 한정한다. 상태·주문 데이터 변경에는 사용하지 않는다.
+
+선택 근거와 제약은 [ADR-0005](adr/0005-delivery-request-sse.md)에 기록한다.
 
 ## 4. Repository 경계
 

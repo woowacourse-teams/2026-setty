@@ -16,6 +16,8 @@ import { AuthModal } from './components/AuthModal';
 import { FurnitureRegistration } from './components/FurnitureRegistration';
 import { Header } from './components/Header';
 import { MockScenarioController } from './components/MockScenarioController';
+import { MyAccount } from './components/MyAccount';
+import { MyFavorites } from './components/MyFavorites';
 import { MyListings } from './components/MyListings';
 import { MyOrders } from './components/MyOrders';
 import { ProductDetail } from './components/ProductDetail';
@@ -25,6 +27,7 @@ import './styles/global.css';
 type AppLocationState = {
     authModalEntry?: boolean;
     fromHome?: boolean;
+    fromMyFavorites?: boolean;
     fromMyListings?: boolean;
     logout?: boolean;
     openAuthFor?: string;
@@ -52,6 +55,8 @@ function isSafeProtectedPath(path: string | null | undefined): path is string {
 
     return path === '/my-listings'
         || path === '/my-orders'
+        || path === '/my-account'
+        || path === '/my-favorites'
         || path === '/my-listings/new'
         || /^\/my-listings\/\d+\/edit$/.test(path);
 }
@@ -61,6 +66,8 @@ function getViewName(pathname: string) {
     if (/^\/listings\/[^/]+$/.test(pathname)) return 'detail';
     if (pathname === '/my-listings') return 'my-listings';
     if (pathname === '/my-orders') return 'my-orders';
+    if (pathname === '/my-account') return 'my-account';
+    if (pathname === '/my-favorites') return 'my-favorites';
     if (pathname === '/my-listings/new' || /^\/my-listings\/[^/]+\/edit$/.test(pathname)) return 'registration';
     return 'home';
 }
@@ -87,7 +94,7 @@ function RequireAuth({ children, isLoggedIn }: RequireAuthProps) {
     );
 }
 
-function ListingDetailRoute({ onBack, onLoginRequired }: { onBack: () => void; onLoginRequired: () => void }) {
+function ListingDetailRoute({ isLoggedIn, onBack, onLoginRequired }: { isLoggedIn: boolean; onBack: () => void; onLoginRequired: () => void }) {
     const { listingId } = useParams();
     const parsedListingId = Number(listingId);
 
@@ -97,6 +104,7 @@ function ListingDetailRoute({ onBack, onLoginRequired }: { onBack: () => void; o
 
     return (
         <ProductDetail
+            isLoggedIn={isLoggedIn}
             listingId={parsedListingId}
             onBack={onBack}
             onLoginRequired={onLoginRequired}
@@ -293,13 +301,14 @@ function App() {
         navigate('/');
     }, [location.pathname, location.search, navigate]);
 
-    const goToAuthenticatedPath = useCallback((path: '/my-listings' | '/my-orders') => {
+    const goToAuthenticatedPath = useCallback((path: '/my-listings' | '/my-orders' | '/my-account' | '/my-favorites') => {
         if (isLoggedIn) {
+            if (location.pathname === path && !location.search) return;
             navigate(path);
             return;
         }
         openAuthModal(path);
-    }, [isLoggedIn, navigate, openAuthModal]);
+    }, [isLoggedIn, location.pathname, location.search, navigate, openAuthModal]);
 
     const openDetail = useCallback((listingId: number) => {
         homeScrollPositionRef.current = window.scrollY;
@@ -307,12 +316,12 @@ function App() {
     }, [navigate]);
 
     const returnFromDetail = useCallback(() => {
-        if (locationState.fromHome) {
+        if (locationState.fromHome || locationState.fromMyFavorites) {
             navigate(-1);
             return;
         }
         navigate('/', { replace: true });
-    }, [locationState.fromHome, navigate]);
+    }, [locationState.fromHome, locationState.fromMyFavorites, navigate]);
 
     const cancelRegistration = useCallback(() => {
         if (locationState.fromMyListings) {
@@ -340,6 +349,7 @@ function App() {
                     onHome={goHome}
                     onLoginClick={() => openAuthModal()}
                     onLogout={() => navigate('/', { replace: true, state: { logout: true } })}
+                    onMyAccount={() => goToAuthenticatedPath('/my-account')}
                     onMyListings={() => goToAuthenticatedPath('/my-listings')}
                     onMyOrders={() => goToAuthenticatedPath('/my-orders')}
                 />
@@ -347,7 +357,7 @@ function App() {
                     {__ENABLE_MSW__ && location.pathname === '/' && <MockScenarioController />}
                     <Routes>
                         <Route index element={<ProductGrid onProductSelect={openDetail} />} />
-                        <Route path="listings/:listingId" element={<ListingDetailRoute onBack={returnFromDetail} onLoginRequired={() => openAuthModal()} />} />
+                        <Route path="listings/:listingId" element={<ListingDetailRoute isLoggedIn={isLoggedIn} onBack={returnFromDetail} onLoginRequired={() => openAuthModal()} />} />
                         <Route path="my-listings" element={(
                             <RequireAuth isLoggedIn={isLoggedIn}>
                                 <MyListings
@@ -359,6 +369,22 @@ function App() {
                         <Route path="my-orders" element={(
                             <RequireAuth isLoggedIn={isLoggedIn}>
                                 <MyOrders />
+                            </RequireAuth>
+                        )} />
+                        <Route path="my-account" element={(
+                            <RequireAuth isLoggedIn={isLoggedIn}>
+                                <MyAccount
+                                    onFavorites={() => goToAuthenticatedPath('/my-favorites')}
+                                    onListings={() => goToAuthenticatedPath('/my-listings')}
+                                    onOrders={() => goToAuthenticatedPath('/my-orders')}
+                                />
+                            </RequireAuth>
+                        )} />
+                        <Route path="my-favorites" element={(
+                            <RequireAuth isLoggedIn={isLoggedIn}>
+                                <MyFavorites
+                                    onSelect={(listingId) => navigate(`/listings/${listingId}`, { state: { fromMyFavorites: true } })}
+                                />
                             </RequireAuth>
                         )} />
                         <Route path="my-listings/new" element={(

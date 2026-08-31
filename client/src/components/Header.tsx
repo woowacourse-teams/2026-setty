@@ -7,12 +7,13 @@ interface HeaderProps {
     onHome: () => void;
     onMyListings: () => void;
     onMyOrders: () => void;
+    onMyAccount: () => void;
     isLoggedIn: boolean;
     onLogout: () => void;
     onLoginClick: () => void;
 }
 
-export function Header({ onHome, onMyListings, onMyOrders, isLoggedIn, onLogout, onLoginClick }: HeaderProps) {
+export function Header({ onHome, onMyListings, onMyOrders, onMyAccount, isLoggedIn, onLogout, onLoginClick }: HeaderProps) {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const menuId = useId();
     const menuButtonRef = useRef<HTMLButtonElement>(null);
@@ -121,7 +122,7 @@ export function Header({ onHome, onMyListings, onMyOrders, isLoggedIn, onLogout,
                             <button className="site-header__my-listings" onClick={() => runMenuAction(onMyListings)} type="button">내 가구</button>
                             <button className="site-header__my-orders" onClick={() => runMenuAction(onMyOrders)} type="button">내 주문</button>
                             <i aria-hidden="true" />
-                            <strong>내 계정</strong>
+                            <button className="site-header__my-account" onClick={() => runMenuAction(onMyAccount)} type="button"><strong>내 계정</strong></button>
                             <button className="site-header__logout-button" onClick={() => runMenuAction(onLogout)} type="button">로그아웃</button>
                         </>
                     ) : (

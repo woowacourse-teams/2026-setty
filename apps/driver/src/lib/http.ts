@@ -29,6 +29,11 @@ export function setOnUnauthorized(handler: (() => void) | null): void {
   onUnauthorized = handler;
 }
 
+/** HTTP가 아닌 인증 연결에서 토큰 무효를 감지했을 때도 같은 로그아웃 흐름을 사용한다. */
+export function notifyUnauthorized(): void {
+  onUnauthorized?.();
+}
+
 function headers(): Record<string, string> {
   const h: Record<string, string> = { 'Content-Type': 'application/json' };
   const token = tokenStore.get();
@@ -49,7 +54,7 @@ async function readErrorBody(res: Response): Promise<{ code?: string; message?: 
 async function parse<T>(res: Response): Promise<T> {
   if (!res.ok) {
     const body = await readErrorBody(res);
-    if (body.code === 'INVALID_TOKEN') onUnauthorized?.();
+    if (body.code === 'INVALID_TOKEN') notifyUnauthorized();
     throw new HttpError(res.status, body.message ?? `요청 실패 (${res.status})`, body.code);
   }
   if (res.status === 204) return undefined as T;

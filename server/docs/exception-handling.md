@@ -49,6 +49,9 @@ public enum ErrorCode {
     ALREADY_ORDERED(400, "이미 주문된 매물입니다"),
     CANNOT_ORDER_OWN_LISTING(400, "본인 매물은 주문할 수 없습니다"),
 
+    // ===== 찜 (플랫폼 팀) =====
+    CANNOT_FAVORITE_OWN_LISTING(400, "본인 매물은 찜할 수 없습니다"),
+
     // ===== 배송 (배송 팀) =====
     DELIVERY_NOT_FOUND(404, "존재하지 않는 배송 요청입니다"),
     DELIVERY_ALREADY_ACCEPTED(400, "이미 다른 기사가 수락했습니다"),
