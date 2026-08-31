@@ -1,6 +1,7 @@
 import { ArrowLeft } from '@phosphor-icons/react/dist/icons/ArrowLeft';
 import { Heart } from '@phosphor-icons/react/dist/icons/Heart';
 import { useEffect, useState } from 'react';
+import { addFavorite, fetchFavoriteStatus, removeFavorite } from '../api/favorites';
 import { fetchListing, type ListingDetail } from '../api/listings';
 import { createOrder } from '../api/orders';
 
@@ -10,16 +11,33 @@ const categoryLabels: Record<string, string> = {
 
 type ProductDetailProps = {
     listingId: number;
+    isLoggedIn: boolean;
     onBack: () => void;
     onLoginRequired: () => void;
 };
 
-export function ProductDetail({ listingId, onBack, onLoginRequired }: ProductDetailProps) {
+export function ProductDetail({ listingId, isLoggedIn, onBack, onLoginRequired }: ProductDetailProps) {
     const [selectedImage, setSelectedImage] = useState(0);
     const [listing, setListing] = useState<ListingDetail | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [purchaseMessage, setPurchaseMessage] = useState<string | null>(null);
     const [isPurchasing, setIsPurchasing] = useState(false);
+    const [isFavorited, setIsFavorited] = useState(false);
+    const [isFavoriteBusy, setIsFavoriteBusy] = useState(false);
+
+    useEffect(() => {
+        if (!isLoggedIn) {
+            setIsFavorited(false);
+            return;
+        }
+
+        let isCurrent = true;
+        void fetchFavoriteStatus(listingId)
+            .then((favorited) => isCurrent && setIsFavorited(favorited))
+            .catch(() => isCurrent && setIsFavorited(false));
+
+        return () => { isCurrent = false; };
+    }, [listingId, isLoggedIn]);
 
     useEffect(() => {
         let isCurrent = true;
@@ -45,6 +63,25 @@ export function ProductDetail({ listingId, onBack, onLoginRequired }: ProductDet
 
     const images = listing.images;
     const selected = images[selectedImage] ?? images[0];
+
+    const toggleFavorite = async () => {
+        if (!isLoggedIn) {
+            onLoginRequired();
+            return;
+        }
+
+        const nextFavorited = !isFavorited;
+        setIsFavorited(nextFavorited);
+        setIsFavoriteBusy(true);
+        try {
+            await (nextFavorited ? addFavorite(listing.id) : removeFavorite(listing.id));
+        } catch (reason) {
+            setIsFavorited(!nextFavorited);
+            setPurchaseMessage(reason instanceof Error ? reason.message : '찜 처리를 완료하지 못했습니다.');
+        } finally {
+            setIsFavoriteBusy(false);
+        }
+    };
 
     const requestPurchase = async () => {
         if (!window.sessionStorage.getItem('setty:auth-token')) {
@@ -111,8 +148,19 @@ export function ProductDetail({ listingId, onBack, onLoginRequired }: ProductDet
                         <strong>{listing.totalPrice.toLocaleString('ko-KR')}원</strong>
                     </div>
                     <div className="product-detail__actions">
-                        <button className="product-detail__like-button" type="button" aria-label="찜하기">
-                            <Heart aria-hidden="true" className="product-detail__heart-icon" weight="regular" />
+                        <button
+                            className="product-detail__like-button"
+                            type="button"
+                            aria-label={isFavorited ? '찜 해제' : '찜하기'}
+                            aria-pressed={isFavorited}
+                            disabled={isFavoriteBusy}
+                            onClick={() => void toggleFavorite()}
+                        >
+                            <Heart
+                                aria-hidden="true"
+                                className={`product-detail__heart-icon ${isFavorited ? 'product-detail__heart-icon--favorited' : ''}`}
+                                weight={isFavorited ? 'fill' : 'regular'}
+                            />
                         </button>
                         <button className="product-detail__purchase-button" disabled={isPurchasing || listing.saleStatus !== 'AVAILABLE'} onClick={() => void requestPurchase()} type="button">
                             {isPurchasing ? '요청 중...' : listing.saleStatus === 'AVAILABLE' ? '구매 · 배송 요청하기' : '구매할 수 없는 매물입니다'}

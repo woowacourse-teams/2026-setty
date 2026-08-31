@@ -3,6 +3,8 @@ import type { SignupRequest, SignupResponse } from '../api/auth';
 
 type MockMember = SignupResponse & {
     password: string;
+    phoneNumber: string;
+    address: string;
     token: string | null;
 };
 
@@ -73,6 +75,8 @@ export const authHandlers = [
             id: nextMemberId++,
             loginId: body.loginId,
             password: body.password,
+            phoneNumber: body.phoneNumber,
+            address: body.address,
             token: null,
             role: 'MEMBER'
         };
@@ -111,6 +115,22 @@ export const authHandlers = [
         return HttpResponse.json({
             token: member.token,
             role: member.role
+        });
+    }),
+
+    http.get('/api/auth/me', ({ request }) => {
+        const token = request.headers.get('Authorization')?.replace('Bearer ', '') ?? null;
+        const member = token ? members.find((candidate) => candidate.token === token) : undefined;
+        if (!member) {
+            return HttpResponse.json({ code: 'INVALID_TOKEN', message: '로그인이 필요합니다.' }, { status: 401 });
+        }
+
+        return HttpResponse.json({
+            id: member.id,
+            loginId: member.loginId,
+            role: member.role,
+            phoneNumber: member.phoneNumber,
+            address: member.address
         });
     })
 ];
