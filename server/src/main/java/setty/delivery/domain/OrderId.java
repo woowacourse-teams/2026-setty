@@ -6,7 +6,10 @@ import setty.global.exception.BusinessException;
 import setty.global.exception.ErrorCode;
 
 @Embeddable
-public record OrderId(@Column(name = "order_id", nullable = false) Long value) {
+public record OrderId(
+        @Column(name = "order_id", nullable = false)
+        Long value
+) {
 
     public OrderId {
         if (value == null || value <= 0) {

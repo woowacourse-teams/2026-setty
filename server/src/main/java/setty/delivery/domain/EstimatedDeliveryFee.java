@@ -7,7 +7,8 @@ import setty.global.exception.ErrorCode;
 
 @Embeddable
 public record EstimatedDeliveryFee(
-        @Column(name = "estimated_fee", nullable = false) Integer value
+        @Column(name = "estimated_fee", nullable = false)
+        Integer value
 ) {
 
     public EstimatedDeliveryFee {

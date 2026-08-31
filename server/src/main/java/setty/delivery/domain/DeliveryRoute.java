@@ -60,22 +60,6 @@ public class DeliveryRoute {
         this.deliveryPhoneNumber = deliveryPhoneNumber;
     }
 
-    public Address pickupAddress() {
-        return pickupAddress;
-    }
-
-    public Address deliveryAddress() {
-        return deliveryAddress;
-    }
-
-    public PhoneNumber pickupPhoneNumber() {
-        return pickupPhoneNumber;
-    }
-
-    public PhoneNumber deliveryPhoneNumber() {
-        return deliveryPhoneNumber;
-    }
-
     @Override
     public boolean equals(final Object object) {
         if (this == object) {

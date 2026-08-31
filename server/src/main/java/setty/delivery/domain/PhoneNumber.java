@@ -5,7 +5,9 @@ import setty.global.exception.BusinessException;
 import setty.global.exception.ErrorCode;
 
 @Embeddable
-public record PhoneNumber(String value) {
+public record PhoneNumber(
+        String value
+) {
 
     public PhoneNumber {
         if (value == null || value.isBlank()) {

@@ -48,13 +48,7 @@ class DeliveryStatusChangeIntegrationTest {
             .withPassword("setty_test");
 
     @Autowired
-    private AcceptDeliveryService acceptDeliveryService;
-
-    @Autowired
-    private PickupDeliveryService pickupDeliveryService;
-
-    @Autowired
-    private CompleteDeliveryService completeDeliveryService;
+    private DeliveryLifecycleService deliveryLifecycleService;
 
     @Autowired
     private RegisterDeliveryService registerDeliveryService;
@@ -87,15 +81,15 @@ class DeliveryStatusChangeIntegrationTest {
         assertStatuses(deliveryId, "REQUESTED");
         assertThat(listingStatus()).isEqualTo("AVAILABLE");
 
-        acceptDeliveryService.accept(deliveryId, DRIVER_ID, ACCEPTED_AT);
+        deliveryLifecycleService.accept(deliveryId, DRIVER_ID, ACCEPTED_AT);
         assertStatuses(deliveryId, "ACCEPTED");
         assertThat(listingStatus()).isEqualTo("RESERVED");
 
-        pickupDeliveryService.pickUp(deliveryId, DRIVER_ID, PICKED_UP_AT);
+        deliveryLifecycleService.pickUp(deliveryId, DRIVER_ID, PICKED_UP_AT);
         assertStatuses(deliveryId, "PICKED_UP");
         assertThat(listingStatus()).isEqualTo("RESERVED");
 
-        completeDeliveryService.complete(deliveryId, DRIVER_ID, DELIVERED_AT);
+        deliveryLifecycleService.complete(deliveryId, DRIVER_ID, DELIVERED_AT);
         assertStatuses(deliveryId, "DELIVERED");
         assertThat(listingStatus()).isEqualTo("SOLD");
     }
@@ -104,7 +98,7 @@ class DeliveryStatusChangeIntegrationTest {
     void acceptancePublishesEventAndCommitsBothStatuses() {
         final DeliveryId deliveryId = prepareRequestedDeliveryAndOrder();
 
-        acceptDeliveryService.accept(deliveryId, DRIVER_ID, ACCEPTED_AT);
+        deliveryLifecycleService.accept(deliveryId, DRIVER_ID, ACCEPTED_AT);
 
         assertEvent("ACCEPTED", ACCEPTED_AT);
         assertStatuses(deliveryId, "ACCEPTED");
@@ -115,7 +109,7 @@ class DeliveryStatusChangeIntegrationTest {
     void pickupPublishesEventAndCommitsBothStatuses() {
         final DeliveryId deliveryId = prepareAcceptedDeliveryAndOrder();
 
-        pickupDeliveryService.pickUp(deliveryId, DRIVER_ID, PICKED_UP_AT);
+        deliveryLifecycleService.pickUp(deliveryId, DRIVER_ID, PICKED_UP_AT);
 
         assertEvent("PICKED_UP", PICKED_UP_AT);
         assertStatuses(deliveryId, "PICKED_UP");
@@ -126,7 +120,7 @@ class DeliveryStatusChangeIntegrationTest {
     void completionPublishesEventAndCommitsBothStatuses() {
         final DeliveryId deliveryId = preparePickedUpDeliveryAndOrder();
 
-        completeDeliveryService.complete(deliveryId, DRIVER_ID, DELIVERED_AT);
+        deliveryLifecycleService.complete(deliveryId, DRIVER_ID, DELIVERED_AT);
 
         assertEvent("DELIVERED", DELIVERED_AT);
         assertStatuses(deliveryId, "DELIVERED");
@@ -166,7 +160,7 @@ class DeliveryStatusChangeIntegrationTest {
         updateOrderStatus("DELIVERED");
 
         assertBusinessError(
-                () -> acceptDeliveryService.accept(deliveryId, DRIVER_ID, ACCEPTED_AT),
+                () -> deliveryLifecycleService.accept(deliveryId, DRIVER_ID, ACCEPTED_AT),
                 ErrorCode.ORDER_DELIVERY_STATUS_MISMATCH
         );
 
@@ -181,7 +175,7 @@ class DeliveryStatusChangeIntegrationTest {
         final DeliveryId deliveryId = prepareRequestedDeliveryAndOrder();
 
         assertBusinessError(
-                () -> pickupDeliveryService.pickUp(deliveryId, DRIVER_ID, PICKED_UP_AT),
+                () -> deliveryLifecycleService.pickUp(deliveryId, DRIVER_ID, PICKED_UP_AT),
                 ErrorCode.INVALID_DELIVERY_TRANSITION
         );
 
@@ -193,15 +187,15 @@ class DeliveryStatusChangeIntegrationTest {
         final DeliveryId deliveryId = prepareAcceptedDeliveryAndOrder();
 
         assertBusinessError(
-                () -> pickupDeliveryService.pickUp(deliveryId, OTHER_DRIVER_ID, PICKED_UP_AT),
+                () -> deliveryLifecycleService.pickUp(deliveryId, OTHER_DRIVER_ID, PICKED_UP_AT),
                 ErrorCode.DELIVERY_DRIVER_MISMATCH
         );
         assertStatuses(deliveryId, "ACCEPTED");
 
-        pickupDeliveryService.pickUp(deliveryId, DRIVER_ID, PICKED_UP_AT);
+        deliveryLifecycleService.pickUp(deliveryId, DRIVER_ID, PICKED_UP_AT);
 
         assertBusinessError(
-                () -> completeDeliveryService.complete(deliveryId, OTHER_DRIVER_ID, DELIVERED_AT),
+                () -> deliveryLifecycleService.complete(deliveryId, OTHER_DRIVER_ID, DELIVERED_AT),
                 ErrorCode.DELIVERY_DRIVER_MISMATCH
         );
         assertStatuses(deliveryId, "PICKED_UP");
@@ -219,13 +213,13 @@ class DeliveryStatusChangeIntegrationTest {
 
     private DeliveryId prepareAcceptedDeliveryAndOrder() {
         final DeliveryId deliveryId = prepareRequestedDeliveryAndOrder();
-        acceptDeliveryService.accept(deliveryId, DRIVER_ID, ACCEPTED_AT);
+        deliveryLifecycleService.accept(deliveryId, DRIVER_ID, ACCEPTED_AT);
         return deliveryId;
     }
 
     private DeliveryId preparePickedUpDeliveryAndOrder() {
         final DeliveryId deliveryId = prepareAcceptedDeliveryAndOrder();
-        pickupDeliveryService.pickUp(deliveryId, DRIVER_ID, PICKED_UP_AT);
+        deliveryLifecycleService.pickUp(deliveryId, DRIVER_ID, PICKED_UP_AT);
         return deliveryId;
     }
 
