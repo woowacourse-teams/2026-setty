@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { deliveryApi } from '@/api/deliveryApi';
 import { errorMessage } from '@/lib/errorMessage';
 import { DeliveryRequestSummaryResponse } from '@/model/delivery';
@@ -13,14 +13,20 @@ export function useRequests() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const latestLoad = useRef(0);
+  const latestRefresh = useRef(0);
 
   const load = useCallback(async () => {
+    const loadId = ++latestLoad.current;
     setError(null);
     try {
       // 로컬 거절한 요청은 서버에 남아 있어도 목록에서 숨긴다.
-      setItems(rejectedStore.filter(await deliveryApi.getRequests()));
+      const requests = rejectedStore.filter(await deliveryApi.getRequests());
+      if (loadId === latestLoad.current) setItems(requests);
     } catch (e) {
-      setError(errorMessage(e, '요청 목록을 불러오지 못했어요'));
+      if (loadId === latestLoad.current) {
+        setError(errorMessage(e, '요청 목록을 불러오지 못했어요'));
+      }
     }
   }, []);
 
@@ -29,9 +35,18 @@ export function useRequests() {
   }, [load]);
 
   const refresh = useCallback(async () => {
+    const refreshId = ++latestRefresh.current;
     setRefreshing(true);
+    try {
+      await load();
+    } finally {
+      if (refreshId === latestRefresh.current) setRefreshing(false);
+    }
+  }, [load]);
+
+  // SSE 신호는 화면에 새로고침 상태를 노출하지 않고 목록만 다시 맞춘다.
+  const reload = useCallback(async () => {
     await load();
-    setRefreshing(false);
   }, [load]);
 
   const rejectLocal = useCallback((deliveryId: number) => {
@@ -39,5 +54,5 @@ export function useRequests() {
     setItems((prev) => prev.filter((r) => r.deliveryId !== deliveryId));
   }, []);
 
-  return { items, loading, refreshing, error, refresh, rejectLocal };
+  return { items, loading, refreshing, error, refresh, reload, rejectLocal };
 }

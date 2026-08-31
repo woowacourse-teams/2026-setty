@@ -3,12 +3,15 @@ package setty.delivery.api;
 import java.time.Instant;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.CacheControl;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import setty.delivery.application.DeliveryLifecycleService;
 import setty.delivery.application.DeliveryQueryService;
 import setty.delivery.auth.domain.DeliveryMember;
@@ -29,6 +32,7 @@ public class DeliveryController {
 
     private final DeliveryQueryService deliveryQueryService;
     private final DeliveryLifecycleService deliveryLifecycleService;
+    private final DeliveryRequestEventStream deliveryRequestEventStream;
 
     @GetMapping("/requests")
     public ResponseEntity<List<DeliveryRequestSummaryResponse>> findRequests(
@@ -39,6 +43,17 @@ public class DeliveryController {
                 .map(DeliveryRequestSummaryResponse::from)
                 .toList();
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping(value = "/requests/events", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public ResponseEntity<SseEmitter> subscribeRequestEvents(
+            @LoginDeliveryMember final DeliveryMember member
+    ) {
+        authenticatedDriverId(member);
+        return ResponseEntity.ok()
+                .cacheControl(CacheControl.noCache())
+                .header("X-Accel-Buffering", "no")
+                .body(deliveryRequestEventStream.subscribe());
     }
 
     @GetMapping("/requests/{deliveryId}")
