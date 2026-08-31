@@ -94,7 +94,7 @@ function App() {
                 <main className={`app-shell__main app-shell__main--${view}`}>
                     {__ENABLE_MSW__ && view === 'home' && <MockScenarioController />}
                     {view === 'home' && <ProductGrid onProductSelect={openDetail} />}
-                    {view === 'detail' && selectedListingId && <ProductDetail listingId={selectedListingId} onBack={returnToHome} onLoginRequired={() => {
+                    {view === 'detail' && selectedListingId && <ProductDetail listingId={selectedListingId} isLoggedIn={isLoggedIn} onBack={returnToHome} onLoginRequired={() => {
                         setViewAfterLogin('detail');
                         setIsAuthModalOpen(true);
                     }} />}

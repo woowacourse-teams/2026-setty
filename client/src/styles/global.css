@@ -702,6 +702,10 @@ button {
     color: #76716d;
 }
 
+.product-detail__heart-icon--favorited {
+    color: #d64541;
+}
+
 .product-detail__purchase-button {
     flex: 1;
     color: #ffffff;
