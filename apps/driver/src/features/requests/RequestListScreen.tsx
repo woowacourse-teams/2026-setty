@@ -2,6 +2,7 @@ import { useCallback, useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, RefreshControl, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { deliveryApi } from '@/api/deliveryApi';
+import { subscribeDeliveryRequestEvents } from '@/api/deliveryRequestEvents';
 import { errorMessage } from '@/lib/errorMessage';
 import { DeliveryRequestSummaryResponse } from '@/model/delivery';
 import { AppText } from '@/components/AppText';
@@ -15,7 +16,7 @@ import { styles } from './RequestListScreen.styles';
 /** 홈: 수락 대기 중인 배차 요청 목록. */
 export function RequestListScreen() {
   const router = useRouter();
-  const { items, loading, refreshing, error, refresh, rejectLocal } = useRequests();
+  const { items, loading, refreshing, error, refresh, reload, rejectLocal } = useRequests();
   const { message, show } = useToast();
   const [acceptingId, setAcceptingId] = useState<number | null>(null);
 
@@ -25,10 +26,14 @@ export function RequestListScreen() {
     useCallback(() => {
       if (firstFocus.current) {
         firstFocus.current = false;
-        return;
+      } else {
+        void refresh();
       }
-      void refresh();
-    }, [refresh]),
+
+      return subscribeDeliveryRequestEvents(() => {
+        void reload();
+      });
+    }, [refresh, reload]),
   );
 
   const openDetail = useCallback(
