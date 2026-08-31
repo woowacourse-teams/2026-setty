@@ -9,7 +9,7 @@
 - `platform/**`은 읽기만 한다. Order Entity와 플랫폼 Repository를 배송 코드에서 직접 사용하지 않는다.
 - `common/**`은 팀 간 계약이다. 양 팀 합의 없이 `DeliveryStatus`, `OrderRequested`를 수정하지 않는다.
 - `global/**`은 플랫폼 팀 관리 영역이다. 배송 오류 코드를 허용된 구역에 추가하는 경우 외에는 직접 수정하지 않는다.
-- `orders.delivery_status`, `orders.driver_id` 값의 UPDATE는 배송 팀 책임이다. 나머지 Order 컬럼은 수정하지 않는다.
+- Order 상태는 플랫폼이 `common.DeliveryStatusChanged`를 수신해 갱신한다. 배송 팀은 이벤트만 발행하고 `orders`를 직접 UPDATE하지 않는다.
 
 ## 작업별 참조 문서
 
@@ -21,7 +21,7 @@
 | Aggregate, VO, 상태 전이 | [배송 도메인 설계](docs/domain-design.md) |
 | Service, 이벤트, Repository, API | [배송 모듈 구조](docs/module-architecture.md) |
 | Aggregate 경계 변경 | [ADR-0001](docs/adr/0001-delivery-aggregate-boundary.md) |
-| Order 상태 동기화 변경 | [ADR-0002](docs/adr/0002-synchronous-order-status-sync.md) |
+| Order 상태 동기화 변경 | [ADR-0004](docs/adr/0004-platform-jpa-order-status-sync.md) |
 | 예외·오류 응답 변경 | [서버 예외 처리 규칙](../../../../../docs/exception-handling.md) |
 
 새 결정이 기존 ADR과 충돌하면 기존 ADR을 조용히 수정하지 않는다. 새 ADR을 발행하고 대체 관계를 기록한다.
@@ -38,7 +38,6 @@
 
 - `api`: Controller, HTTP DTO, 배송 API 예외 처리
 - `application`: Service, Listener, Repository 인터페이스
-- `application.event`: 배송 모듈 소유 이벤트
 - `application.query`: JDBC 조회 Projection
 - `domain`: Delivery Aggregate, VO, 상태 모델
 - `persistence`: JPA, Spring Data, JDBC 구현체
@@ -65,7 +64,7 @@ Domain 규칙을 바꾸면 코드와 [배송 도메인 설계](docs/domain-desig
 - Service가 트랜잭션과 Repository 호출을 조정하고 Domain 규칙을 다시 구현하지 않는다.
 - `DriverId`, `Instant`는 API 또는 이벤트 경계에서 생성해 Service 입력으로 전달한다.
 - `OrderRequested`는 `common` 계약을 재사용하고 배송 패키지에 중복 정의하지 않는다.
-- `DeliveryStatusChanged`는 `delivery.application.event`가 소유한다.
+- `DeliveryStatusChanged`는 `common` 계약을 재사용한다. 배송 모듈은 발행만 하고 Order 상태를 동기화하는 리스너를 두지 않는다.
 - Listener 클래스명은 `...Listener`, 단일 처리 메서드명은 `handle`을 사용한다.
 - 상태 이벤트는 동기 `@EventListener`로 처리한다.
 - `@TransactionalEventListener(AFTER_COMMIT)`, `@Async`, 내부 HTTP 통신을 사용하지 않는다.

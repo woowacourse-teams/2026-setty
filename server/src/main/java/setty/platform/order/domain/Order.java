@@ -42,7 +42,7 @@ public class Order {
         this.deliveryStatus = DeliveryStatus.REQUESTED;
     }
 
-    // 배송 팀 OrderDeliveryState.synchronizeTo와 같은 규칙: 직전 상태에서 한 단계 전진만 허용,
+    // 직전 상태에서 한 단계 전진만 허용,
     // 같은 상태 중복 이벤트는 무시(멱등), 그 외 불일치는 예외 — 버그를 조용히 삼키지 않는다.
     public void syncDeliveryStatus(final DeliveryStatus newStatus) {
         if (this.deliveryStatus == newStatus) {

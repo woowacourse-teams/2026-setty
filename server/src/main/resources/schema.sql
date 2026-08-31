@@ -100,8 +100,8 @@ CREATE TABLE IF NOT EXISTS orders (
     id              BIGINT       NOT NULL AUTO_INCREMENT,
     listing_id      BIGINT       NOT NULL,
     buyer_id        BIGINT       NOT NULL,
-    delivery_status VARCHAR(20)  NOT NULL,              -- 배송 팀만 UPDATE (DEC-10)
-    driver_id       BIGINT       NULL,                  -- 배송 팀만 UPDATE, 수락 전 NULL
+    delivery_status VARCHAR(20)  NOT NULL,              -- 플랫폼이 DeliveryStatusChanged 이벤트를 수신해 UPDATE
+    driver_id       BIGINT       NULL,                  -- 현재 미사용, 실제 배정 기사는 delivery.driver_id에 저장
     PRIMARY KEY (id),
     UNIQUE KEY uk_orders_listing_id (listing_id),
     CONSTRAINT fk_orders_listing FOREIGN KEY (listing_id) REFERENCES listings (id),

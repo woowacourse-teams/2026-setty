@@ -17,7 +17,6 @@
 | 배송 경로 | `DeliveryRoute` | 출발지·도착지의 주소와 연락처 조합 |
 | 가구 정보 | `FurnitureInfo` | 가구명과 카테고리 조합 |
 | 예상 배송비 | `EstimatedDeliveryFee` | 배송 생성 시 확정되는 0 이상의 예상 비용 |
-| 주문 배송 상태 | `OrderDeliveryState` | Order의 배송 상태를 검증하기 위한 최소 상태 모델 |
 
 용어는 상태와 행위를 함께 맞춘다. 수락은 `accept`, 수령은 `pickUp`, 완료는 `complete`만 사용한다.
 
@@ -53,9 +52,6 @@ classDiagram
     DeliveryRoute "1" *-- "1" Address : deliveryAddress
     DeliveryRoute "1" *-- "1" PhoneNumber : pickupPhoneNumber
     DeliveryRoute "1" *-- "1" PhoneNumber : deliveryPhoneNumber
-
-    OrderDeliveryState "1" *-- "1" OrderId : orderId
-    OrderDeliveryState --> DeliveryStatus : status
 ```
 
 ## 3. Value Object
@@ -99,9 +95,9 @@ REQUESTED → ACCEPTED → PICKED_UP → DELIVERED
 
 상태와 상태별 시각은 하나의 도메인 연산에서 함께 변경한다.
 
-## 5. Order 배송 상태 모델
+## 5. Order 배송 상태의 소유권
 
-`OrderDeliveryState`는 Order Entity가 아니다. Order의 배송 상태 동기화 규칙만 표현한다.
+Order의 배송 상태와 동기화 규칙은 플랫폼의 `Order`가 소유한다. 배송 도메인은 별도 Order 상태 모델을 두지 않고 `OrderId`로만 참조한다.
 
 | 새 상태 | 기대하는 현재 상태 |
 |---|---|
@@ -114,7 +110,7 @@ REQUESTED → ACCEPTED → PICKED_UP → DELIVERED
 - 두 상태 모두 아니면 상태 불일치로 거부한다.
 - `REQUESTED`로 되돌리는 동기화는 허용하지 않는다.
 
-Delivery와 Order 상태를 연결하는 실행 구조는 [모듈 구조](module-architecture.md)와 [ADR-0002](adr/0002-synchronous-order-status-sync.md)에 기록한다.
+Delivery와 Order 상태를 연결하는 실행 구조는 [모듈 구조](module-architecture.md)와 [ADR-0004](adr/0004-platform-jpa-order-status-sync.md)에 기록한다.
 
 ## 6. 식별자와 시간
 

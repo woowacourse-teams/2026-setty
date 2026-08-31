@@ -3,8 +3,10 @@ package setty.delivery.application;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import jakarta.persistence.EntityManagerFactory;
 import java.time.Instant;
 import java.util.List;
+import org.hibernate.SessionFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,17 +16,25 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.event.ApplicationEvents;
 import org.springframework.test.context.event.RecordApplicationEvents;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.mysql.MySQLContainer;
+import setty.common.DeliveryStatus;
 import setty.common.DeliveryStatusChanged;
 import setty.common.OrderRequested;
 import setty.delivery.domain.DeliveryId;
 import setty.delivery.domain.DriverId;
 import setty.global.exception.BusinessException;
 import setty.global.exception.ErrorCode;
+import setty.platform.order.domain.Order;
+import setty.platform.order.repository.OrderRepository;
 
-@SpringBootTest
+@SpringBootTest(properties = {
+        "spring.jpa.properties.hibernate.generate_statistics=true",
+        "spring.jpa.properties.hibernate.session.events.log=false"
+})
 @Testcontainers
 @RecordApplicationEvents
 class DeliveryStatusChangeIntegrationTest {
@@ -62,6 +72,15 @@ class DeliveryStatusChangeIntegrationTest {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
+    @Autowired
+    private EntityManagerFactory entityManagerFactory;
+
+    @Autowired
+    private OrderRepository orderRepository;
+
+    @Autowired
+    private PlatformTransactionManager transactionManager;
+
     @BeforeEach
     void setUp() {
         jdbcTemplate.update("DELETE FROM delivery");
@@ -72,6 +91,7 @@ class DeliveryStatusChangeIntegrationTest {
         insertMember(BUYER_ID, "delivery-test-buyer", "서울시 가상구 구매로 1");
         insertMember(SELLER_ID, "delivery-test-seller", "서울시 가상구 판매로 2");
         insertListing();
+        entityManagerFactory.unwrap(SessionFactory.class).getStatistics().clear();
     }
 
     @Test
@@ -84,12 +104,36 @@ class DeliveryStatusChangeIntegrationTest {
         deliveryLifecycleService.accept(deliveryId, DRIVER_ID, ACCEPTED_AT);
         assertStatuses(deliveryId, "ACCEPTED");
         assertThat(listingStatus()).isEqualTo("RESERVED");
+        assertThat(orderUpdateCount()).isEqualTo(1);
 
         deliveryLifecycleService.pickUp(deliveryId, DRIVER_ID, PICKED_UP_AT);
         assertStatuses(deliveryId, "PICKED_UP");
         assertThat(listingStatus()).isEqualTo("RESERVED");
+        assertThat(orderUpdateCount()).isEqualTo(2);
 
         deliveryLifecycleService.complete(deliveryId, DRIVER_ID, DELIVERED_AT);
+        assertStatuses(deliveryId, "DELIVERED");
+        assertThat(listingStatus()).isEqualTo("SOLD");
+        assertThat(orderUpdateCount()).isEqualTo(3);
+    }
+
+    @Test
+    void consecutiveChangesKeepTheManagedOrderInSyncWithinOneTransaction() {
+        final DeliveryId deliveryId = prepareRequestedDeliveryAndOrder();
+
+        new TransactionTemplate(transactionManager).executeWithoutResult(transaction -> {
+            final Order order = orderRepository.findById(ORDER_ID).orElseThrow();
+
+            deliveryLifecycleService.accept(deliveryId, DRIVER_ID, ACCEPTED_AT);
+            assertThat(order.getDeliveryStatus()).isEqualTo(DeliveryStatus.ACCEPTED);
+
+            deliveryLifecycleService.pickUp(deliveryId, DRIVER_ID, PICKED_UP_AT);
+            assertThat(order.getDeliveryStatus()).isEqualTo(DeliveryStatus.PICKED_UP);
+
+            deliveryLifecycleService.complete(deliveryId, DRIVER_ID, DELIVERED_AT);
+            assertThat(order.getDeliveryStatus()).isEqualTo(DeliveryStatus.DELIVERED);
+        });
+
         assertStatuses(deliveryId, "DELIVERED");
         assertThat(listingStatus()).isEqualTo("SOLD");
     }
@@ -135,9 +179,11 @@ class DeliveryStatusChangeIntegrationTest {
         );
 
         eventPublisher.publishEvent(event);
+        assertThat(orderUpdateCount()).isEqualTo(1);
         eventPublisher.publishEvent(event);
 
         assertThat(orderStatus()).isEqualTo("ACCEPTED");
+        assertThat(orderUpdateCount()).isEqualTo(1);
     }
 
     @Test
@@ -315,6 +361,13 @@ class DeliveryStatusChangeIntegrationTest {
                 String.class,
                 ORDER_ID
         );
+    }
+
+    private long orderUpdateCount() {
+        return entityManagerFactory.unwrap(SessionFactory.class)
+                .getStatistics()
+                .getEntityStatistics(Order.class.getName())
+                .getUpdateCount();
     }
 
     private String listingStatus() {
