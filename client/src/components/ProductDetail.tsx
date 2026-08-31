@@ -2,7 +2,7 @@ import { ArrowLeft } from '@phosphor-icons/react/dist/icons/ArrowLeft';
 import { Heart } from '@phosphor-icons/react/dist/icons/Heart';
 import { useEffect, useState } from 'react';
 import { fetchListing, type ListingDetail } from '../api/listings';
-import { startPayment } from '../payment/tossPayment';
+import { PaymentCheckout } from './PaymentCheckout';
 
 const categoryLabels: Record<string, string> = {
     SOFA: '소파', TABLE: '테이블', DESK: '책상', CHAIR: '의자', STORAGE: '수납장', BED: '침대'
@@ -19,7 +19,7 @@ export function ProductDetail({ listingId, onBack, onLoginRequired }: ProductDet
     const [listing, setListing] = useState<ListingDetail | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [purchaseMessage, setPurchaseMessage] = useState<string | null>(null);
-    const [isPurchasing, setIsPurchasing] = useState(false);
+    const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
 
     useEffect(() => {
         let isCurrent = true;
@@ -27,6 +27,7 @@ export function ProductDetail({ listingId, onBack, onLoginRequired }: ProductDet
         setError(null);
         setSelectedImage(0);
         setPurchaseMessage(null);
+        setIsCheckoutOpen(false);
 
         void fetchListing(listingId)
             .then((result) => isCurrent && setListing(result))
@@ -46,22 +47,13 @@ export function ProductDetail({ listingId, onBack, onLoginRequired }: ProductDet
     const images = listing.images;
     const selected = images[selectedImage] ?? images[0];
 
-    const startCheckout = async () => {
+    const openCheckout = () => {
         if (!window.sessionStorage.getItem('setty:auth-token')) {
             onLoginRequired();
             return;
         }
-
-        setIsPurchasing(true);
         setPurchaseMessage(null);
-        try {
-            // 성공 시 결제창(또는 목 성공 URL)으로 페이지가 이동하며, 승인은 복귀 후 confirm에서 처리된다.
-            await startPayment({ listingId: listing.id, amount: listing.totalPrice, orderName: listing.title });
-        } catch (reason) {
-            const message = reason instanceof Error ? reason.message : '결제를 시작하지 못했습니다.';
-            setPurchaseMessage(message);
-            setIsPurchasing(false);
-        }
+        setIsCheckoutOpen(true);
     };
 
     return (
@@ -113,8 +105,8 @@ export function ProductDetail({ listingId, onBack, onLoginRequired }: ProductDet
                         <button className="product-detail__like-button" type="button" aria-label="찜하기">
                             <Heart aria-hidden="true" className="product-detail__heart-icon" weight="regular" />
                         </button>
-                        <button className="product-detail__purchase-button" disabled={isPurchasing || listing.saleStatus !== 'AVAILABLE'} onClick={() => void startCheckout()} type="button">
-                            {isPurchasing ? '결제 진행 중...' : listing.saleStatus === 'AVAILABLE' ? '결제하고 주문하기' : '구매할 수 없는 매물입니다'}
+                        <button className="product-detail__purchase-button" disabled={listing.saleStatus !== 'AVAILABLE'} onClick={openCheckout} type="button">
+                            {listing.saleStatus === 'AVAILABLE' ? '결제하고 주문하기' : '구매할 수 없는 매물입니다'}
                         </button>
                     </div>
                     {purchaseMessage && <p className="product-detail__purchase-message" role="status">{purchaseMessage}</p>}
@@ -124,6 +116,15 @@ export function ProductDetail({ listingId, onBack, onLoginRequired }: ProductDet
                     </div>
                 </article>
             </div>
+
+            {isCheckoutOpen && (
+                <PaymentCheckout
+                    listingId={listing.id}
+                    amount={listing.totalPrice}
+                    orderName={listing.title}
+                    onClose={() => setIsCheckoutOpen(false)}
+                />
+            )}
         </section>
     );
 }

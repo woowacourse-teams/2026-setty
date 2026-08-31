@@ -62,6 +62,6 @@ export function usePaymentReturn(onConfirmed: () => void) {
 
 function cleanPaymentQuery() {
     const url = new URL(window.location.href);
-    ['payment', 'paymentKey', 'orderId', 'amount', 'code', 'message'].forEach((key) => url.searchParams.delete(key));
+    ['payment', 'paymentKey', 'orderId', 'amount', 'paymentType', 'code', 'message'].forEach((key) => url.searchParams.delete(key));
     window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`);
 }
