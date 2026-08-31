@@ -1678,7 +1678,6 @@ button {
     }
 
     .site-header__account-menu i,
-    .site-header__account-menu strong,
     .site-header__account-menu .site-header__logout-button {
         display: none;
     }
