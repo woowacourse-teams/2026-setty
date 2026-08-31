@@ -1,3 +1,5 @@
+import { ArrowLeft } from '@phosphor-icons/react/dist/icons/ArrowLeft';
+import { Heart } from '@phosphor-icons/react/dist/icons/Heart';
 import { useEffect, useState } from 'react';
 import { fetchListing, type ListingDetail } from '../api/listings';
 import { createOrder } from '../api/orders';
@@ -5,14 +7,6 @@ import { createOrder } from '../api/orders';
 const categoryLabels: Record<string, string> = {
     SOFA: '소파', TABLE: '테이블', DESK: '책상', CHAIR: '의자', STORAGE: '수납장', BED: '침대'
 };
-
-function HeartIcon() {
-    return (
-        <svg aria-hidden="true" className="product-detail__heart-icon" viewBox="0 0 24 24">
-            <path d="M20.8 8.7c0 5-8.8 10.2-8.8 10.2S3.2 13.7 3.2 8.7c0-2.4 1.8-4.2 4.2-4.2 1.9 0 3.4 1.1 4.1 2.6.7-1.5 2.2-2.6 4.1-2.6 2.4 0 4.2 1.8 4.2 4.2Z" />
-        </svg>
-    );
-}
 
 type ProductDetailProps = {
     listingId: number;
@@ -73,6 +67,10 @@ export function ProductDetail({ listingId, onBack, onLoginRequired }: ProductDet
 
     return (
         <section className="product-detail" aria-labelledby="product-title">
+            <button className="product-detail__back-button" onClick={onBack} type="button">
+                <ArrowLeft aria-hidden="true" weight="bold" />
+                <span>목록으로</span>
+            </button>
             <div className="product-detail__layout">
                 <div className="product-detail__gallery">
                     <div className="product-detail__main-image">
@@ -113,7 +111,9 @@ export function ProductDetail({ listingId, onBack, onLoginRequired }: ProductDet
                         <strong>{listing.totalPrice.toLocaleString('ko-KR')}원</strong>
                     </div>
                     <div className="product-detail__actions">
-                        <button className="product-detail__like-button" type="button" aria-label="찜하기"><HeartIcon /></button>
+                        <button className="product-detail__like-button" type="button" aria-label="찜하기">
+                            <Heart aria-hidden="true" className="product-detail__heart-icon" weight="regular" />
+                        </button>
                         <button className="product-detail__purchase-button" disabled={isPurchasing || listing.saleStatus !== 'AVAILABLE'} onClick={() => void requestPurchase()} type="button">
                             {isPurchasing ? '요청 중...' : listing.saleStatus === 'AVAILABLE' ? '구매 · 배송 요청하기' : '구매할 수 없는 매물입니다'}
                         </button>

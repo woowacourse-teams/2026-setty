@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { fetchListing, type ListingDetail } from './api/listings';
 import { AuthModal } from './components/AuthModal';
 import { FurnitureRegistration } from './components/FurnitureRegistration';
@@ -19,6 +19,20 @@ function App() {
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
     const [viewAfterLogin, setViewAfterLogin] = useState<View | null>(null);
     const [isLoggedIn, setIsLoggedIn] = useState(() => Boolean(window.sessionStorage.getItem('setty:auth-token')));
+    const homeScrollPositionRef = useRef(0);
+    const shouldRestoreHomeScrollRef = useRef(false);
+
+    useEffect(() => {
+        const shouldRestoreHomeScroll = view === 'home' && shouldRestoreHomeScrollRef.current;
+        const targetScrollPosition = shouldRestoreHomeScroll ? homeScrollPositionRef.current : 0;
+        shouldRestoreHomeScrollRef.current = false;
+
+        const frame = window.requestAnimationFrame(() => {
+            window.scrollTo({ top: targetScrollPosition, behavior: 'auto' });
+        });
+
+        return () => window.cancelAnimationFrame(frame);
+    }, [view]);
 
     const goToAuthenticatedView = (nextView: View) => {
         if (isLoggedIn) {
@@ -40,36 +54,55 @@ function App() {
     };
 
     const goHome = () => {
+        shouldRestoreHomeScrollRef.current = false;
+        setEditingListing(undefined);
+        setView('home');
+
+        if (view === 'home') {
+            window.scrollTo({ top: 0, behavior: 'auto' });
+        }
+    };
+
+    const returnToHome = () => {
+        shouldRestoreHomeScrollRef.current = true;
         setEditingListing(undefined);
         setView('home');
     };
 
+    const openDetail = (listingId: number) => {
+        homeScrollPositionRef.current = window.scrollY;
+        setSelectedListingId(listingId);
+        setView('detail');
+    };
+
     return (
         <div className="app-shell">
-            <Header
-                isLoggedIn={isLoggedIn}
-                onHome={goHome}
-                onLoginClick={() => setIsAuthModalOpen(true)}
-                onLogout={() => {
-                    window.sessionStorage.removeItem('setty:auth-token');
-                    window.sessionStorage.removeItem('setty:auth-role');
-                    setIsLoggedIn(false);
-                    goHome();
-                }}
-                onMyListings={() => goToAuthenticatedView('my-listings')}
-                onMyOrders={() => goToAuthenticatedView('my-orders')}
-            />
-            <main className={`app-shell__main ${view === 'registration' ? 'app-shell__main--registration' : ''}`}>
-                {__ENABLE_MSW__ && view === 'home' && <MockScenarioController />}
-                {view === 'home' && <ProductGrid onProductSelect={(listingId) => { setSelectedListingId(listingId); setView('detail'); }} />}
-                {view === 'detail' && selectedListingId && <ProductDetail listingId={selectedListingId} onBack={goHome} onLoginRequired={() => {
-                    setViewAfterLogin('detail');
-                    setIsAuthModalOpen(true);
-                }} />}
-                {view === 'my-listings' && <MyListings onEdit={(listingId) => void openEdit(listingId)} onRegister={() => { setEditingListing(undefined); goToAuthenticatedView('registration'); }} />}
-                {view === 'my-orders' && <MyOrders />}
-                {view === 'registration' && <FurnitureRegistration key={editingListing?.id ?? 'new'} listing={editingListing} onCancel={() => setView('my-listings')} onSaved={() => { setEditingListing(undefined); setView('my-listings'); }} />}
-            </main>
+            <div className="app-shell__content" aria-hidden={isAuthModalOpen || undefined} inert={isAuthModalOpen}>
+                <Header
+                    isLoggedIn={isLoggedIn}
+                    onHome={goHome}
+                    onLoginClick={() => setIsAuthModalOpen(true)}
+                    onLogout={() => {
+                        window.sessionStorage.removeItem('setty:auth-token');
+                        window.sessionStorage.removeItem('setty:auth-role');
+                        setIsLoggedIn(false);
+                        goHome();
+                    }}
+                    onMyListings={() => goToAuthenticatedView('my-listings')}
+                    onMyOrders={() => goToAuthenticatedView('my-orders')}
+                />
+                <main className={`app-shell__main app-shell__main--${view}`}>
+                    {__ENABLE_MSW__ && view === 'home' && <MockScenarioController />}
+                    {view === 'home' && <ProductGrid onProductSelect={openDetail} />}
+                    {view === 'detail' && selectedListingId && <ProductDetail listingId={selectedListingId} onBack={returnToHome} onLoginRequired={() => {
+                        setViewAfterLogin('detail');
+                        setIsAuthModalOpen(true);
+                    }} />}
+                    {view === 'my-listings' && <MyListings onEdit={(listingId) => void openEdit(listingId)} onRegister={() => { setEditingListing(undefined); goToAuthenticatedView('registration'); }} />}
+                    {view === 'my-orders' && <MyOrders />}
+                    {view === 'registration' && <FurnitureRegistration key={editingListing?.id ?? 'new'} listing={editingListing} onCancel={() => setView('my-listings')} onSaved={() => { setEditingListing(undefined); setView('my-listings'); }} />}
+                </main>
+            </div>
             {isAuthModalOpen && <AuthModal onClose={() => setIsAuthModalOpen(false)} onLoggedIn={() => {
                 setIsLoggedIn(true);
                 setIsAuthModalOpen(false);

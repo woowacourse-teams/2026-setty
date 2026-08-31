@@ -1,4 +1,5 @@
-import { FormEvent, useEffect, useState } from 'react';
+import { X } from '@phosphor-icons/react/dist/icons/X';
+import { FormEvent, useEffect, useRef, useState } from 'react';
 import { AuthApiError, login, signup } from '../api/auth';
 
 type AuthMode = 'login' | 'signup';
@@ -12,11 +13,19 @@ interface AuthModalProps {
     onLoggedIn: () => void;
 }
 
-function CloseIcon() {
-    return <span aria-hidden="true">×</span>;
-}
+const focusableElementSelector = [
+    'a[href]',
+    'button:not([disabled])',
+    'input:not([disabled])',
+    'select:not([disabled])',
+    'textarea:not([disabled])',
+    '[tabindex]:not([tabindex="-1"])'
+].join(',');
 
 export function AuthModal({ onClose, onLoggedIn }: AuthModalProps) {
+    const dialogRef = useRef<HTMLElement>(null);
+    const loginIdInputRef = useRef<HTMLInputElement>(null);
+    const onCloseRef = useRef(onClose);
     const [mode, setMode] = useState<AuthMode>('login');
     const [loginId, setLoginId] = useState('');
     const [password, setPassword] = useState('');
@@ -26,13 +35,64 @@ export function AuthModal({ onClose, onLoggedIn }: AuthModalProps) {
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
-        const closeOnEscape = (event: KeyboardEvent) => {
-            if (event.key === 'Escape') onClose();
+        onCloseRef.current = onClose;
+    }, [onClose]);
+
+    useEffect(() => {
+        const previouslyFocusedElement = document.activeElement instanceof HTMLElement
+            ? document.activeElement
+            : null;
+        const previousBodyOverflow = document.body.style.overflow;
+
+        document.body.style.overflow = 'hidden';
+        loginIdInputRef.current?.focus();
+
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                onCloseRef.current();
+                return;
+            }
+
+            if (event.key !== 'Tab') return;
+
+            const dialog = dialogRef.current;
+            if (!dialog) return;
+
+            const focusableElements = Array.from(
+                dialog.querySelectorAll<HTMLElement>(focusableElementSelector)
+            ).filter((element) => element.getAttribute('aria-hidden') !== 'true');
+
+            if (focusableElements.length === 0) {
+                event.preventDefault();
+                dialog.focus();
+                return;
+            }
+
+            const firstElement = focusableElements[0];
+            const lastElement = focusableElements[focusableElements.length - 1];
+            const activeElement = document.activeElement;
+
+            if (event.shiftKey && (activeElement === firstElement || !dialog.contains(activeElement))) {
+                event.preventDefault();
+                lastElement.focus();
+            } else if (!event.shiftKey && (activeElement === lastElement || !dialog.contains(activeElement))) {
+                event.preventDefault();
+                firstElement.focus();
+            }
         };
 
-        window.addEventListener('keydown', closeOnEscape);
-        return () => window.removeEventListener('keydown', closeOnEscape);
-    }, [onClose]);
+        window.addEventListener('keydown', handleKeyDown);
+
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+            document.body.style.overflow = previousBodyOverflow;
+
+            if (previouslyFocusedElement?.isConnected) {
+                previouslyFocusedElement.focus({ preventScroll: true });
+            }
+        };
+    }, []);
 
     const changeMode = (nextMode: AuthMode) => {
         setMode(nextMode);
@@ -77,11 +137,13 @@ export function AuthModal({ onClose, onLoggedIn }: AuthModalProps) {
                 aria-labelledby="auth-modal-title"
                 aria-modal="true"
                 className={`auth-modal auth-modal--${mode}`}
+                ref={dialogRef}
                 role="dialog"
+                tabIndex={-1}
                 onMouseDown={(event) => event.stopPropagation()}
             >
                 <button aria-label="닫기" className="auth-modal__close" onClick={onClose} type="button">
-                    <CloseIcon />
+                    <X aria-hidden="true" size={28} weight="light" />
                 </button>
 
                 <div className="auth-modal__brand">
@@ -89,21 +151,19 @@ export function AuthModal({ onClose, onLoggedIn }: AuthModalProps) {
                     <p>배송까지 끝내는 중고 가구 거래</p>
                 </div>
 
-                <div className="auth-modal__tabs" role="tablist" aria-label="인증 방식">
+                <div className="auth-modal__tabs" role="group" aria-label="인증 방식">
                     <button
-                        aria-selected={isLogin}
+                        aria-pressed={isLogin}
                         className={`auth-modal__tab ${isLogin ? 'auth-modal__tab--active' : ''}`}
                         onClick={() => changeMode('login')}
-                        role="tab"
                         type="button"
                     >
                         로그인
                     </button>
                     <button
-                        aria-selected={!isLogin}
+                        aria-pressed={!isLogin}
                         className={`auth-modal__tab ${!isLogin ? 'auth-modal__tab--active' : ''}`}
                         onClick={() => changeMode('signup')}
-                        role="tab"
                         type="button"
                     >
                         회원가입
@@ -118,6 +178,7 @@ export function AuthModal({ onClose, onLoggedIn }: AuthModalProps) {
                             name="loginId"
                             onChange={(event) => setLoginId(event.target.value)}
                             placeholder="영문 소문자·숫자 4~20자"
+                            ref={loginIdInputRef}
                             required
                             type="text"
                             value={loginId}
