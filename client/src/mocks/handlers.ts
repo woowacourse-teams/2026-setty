@@ -10,6 +10,7 @@ let nextImageId = 30;
 let nextOrderId = 1;
 let nextPaymentId = 1;
 const orderStore: Order[] = [];
+const favoriteStore = new Set<number>();
 let listingStore: ListingDetail[] = mockListings.map((listing, index) => ({
     ...listing,
     description: index === 0 ? '사용감이 적은 원목 가구입니다.' : '깨끗하게 관리한 가구입니다.',
@@ -177,6 +178,36 @@ export const handlers = [
         } catch {
             return invalidRequest('잘못된 결제 요청입니다.');
         }
+    }),
+
+    http.get('/api/me/favorites', ({ request }) => {
+        if (!isAuthenticated(request)) return unauthorized();
+        const items = [...favoriteStore].reverse()
+            .map((listingId) => listingStore.find((listing) => listing.id === listingId))
+            .filter((listing): listing is ListingDetail => Boolean(listing))
+            .map(summaryOf);
+        return HttpResponse.json({ items });
+    }),
+
+    http.get('/api/me/favorites/:listingId', ({ params, request }) => {
+        if (!isAuthenticated(request)) return unauthorized();
+        return HttpResponse.json({ favorited: favoriteStore.has(Number(params.listingId)) });
+    }),
+
+    http.put('/api/me/favorites/:listingId', ({ params, request }) => {
+        if (!isAuthenticated(request)) return unauthorized();
+        const listingId = Number(params.listingId);
+        if (!listingStore.some((listing) => listing.id === listingId)) {
+            return HttpResponse.json({ code: 'LISTING_NOT_FOUND', message: '매물을 찾을 수 없습니다.' }, { status: 404 });
+        }
+        favoriteStore.add(listingId);
+        return new HttpResponse(null, { status: 204 });
+    }),
+
+    http.delete('/api/me/favorites/:listingId', ({ params, request }) => {
+        if (!isAuthenticated(request)) return unauthorized();
+        favoriteStore.delete(Number(params.listingId));
+        return new HttpResponse(null, { status: 204 });
     }),
 
     http.get('/api/me/orders', ({ request }) => {

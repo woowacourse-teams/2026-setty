@@ -18,6 +18,8 @@ public interface ListingRepository extends JpaRepository<Listing, Long> {
 
     Optional<Listing> findByIdAndDeletedAtIsNull(Long id);
 
+    List<Listing> findAllByIdInAndDeletedAtIsNull(List<Long> ids);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select listing from Listing listing where listing.id = :id and listing.deletedAt is null")
     Optional<Listing> findActiveByIdForUpdate(@Param("id") Long id);

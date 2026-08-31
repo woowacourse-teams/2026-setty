@@ -27,6 +27,9 @@ public enum ErrorCode {
     ALREADY_ORDERED(400, "이미 주문된 매물입니다"),
     CANNOT_ORDER_OWN_LISTING(400, "본인 매물은 주문할 수 없습니다"),
 
+    // ===== 찜 (플랫폼 팀) =====
+    CANNOT_FAVORITE_OWN_LISTING(400, "본인 매물은 찜할 수 없습니다"),
+
     // ===== 결제 (payment) =====
     PAYMENT_AMOUNT_MISMATCH(400, "결제 금액이 주문 금액과 일치하지 않습니다"),
     PAYMENT_CONFIRM_FAILED(400, "결제 승인에 실패했습니다"),
