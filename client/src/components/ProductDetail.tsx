@@ -2,7 +2,7 @@ import { ArrowLeft } from '@phosphor-icons/react/dist/icons/ArrowLeft';
 import { Heart } from '@phosphor-icons/react/dist/icons/Heart';
 import { useEffect, useState } from 'react';
 import { fetchListing, type ListingDetail } from '../api/listings';
-import { createOrder } from '../api/orders';
+import { startPayment } from '../payment/tossPayment';
 
 const categoryLabels: Record<string, string> = {
     SOFA: '소파', TABLE: '테이블', DESK: '책상', CHAIR: '의자', STORAGE: '수납장', BED: '침대'
@@ -46,7 +46,7 @@ export function ProductDetail({ listingId, onBack, onLoginRequired }: ProductDet
     const images = listing.images;
     const selected = images[selectedImage] ?? images[0];
 
-    const requestPurchase = async () => {
+    const startCheckout = async () => {
         if (!window.sessionStorage.getItem('setty:auth-token')) {
             onLoginRequired();
             return;
@@ -55,12 +55,11 @@ export function ProductDetail({ listingId, onBack, onLoginRequired }: ProductDet
         setIsPurchasing(true);
         setPurchaseMessage(null);
         try {
-            await createOrder(listing.id);
-            setPurchaseMessage('구매 및 배송 요청이 완료되었습니다. 내 주문에서 배송 상태를 확인할 수 있습니다.');
+            // 성공 시 결제창(또는 목 성공 URL)으로 페이지가 이동하며, 승인은 복귀 후 confirm에서 처리된다.
+            await startPayment({ listingId: listing.id, amount: listing.totalPrice, orderName: listing.title });
         } catch (reason) {
-            const message = reason instanceof Error ? reason.message : '주문 요청을 완료하지 못했습니다.';
+            const message = reason instanceof Error ? reason.message : '결제를 시작하지 못했습니다.';
             setPurchaseMessage(message);
-        } finally {
             setIsPurchasing(false);
         }
     };
@@ -114,8 +113,8 @@ export function ProductDetail({ listingId, onBack, onLoginRequired }: ProductDet
                         <button className="product-detail__like-button" type="button" aria-label="찜하기">
                             <Heart aria-hidden="true" className="product-detail__heart-icon" weight="regular" />
                         </button>
-                        <button className="product-detail__purchase-button" disabled={isPurchasing || listing.saleStatus !== 'AVAILABLE'} onClick={() => void requestPurchase()} type="button">
-                            {isPurchasing ? '요청 중...' : listing.saleStatus === 'AVAILABLE' ? '구매 · 배송 요청하기' : '구매할 수 없는 매물입니다'}
+                        <button className="product-detail__purchase-button" disabled={isPurchasing || listing.saleStatus !== 'AVAILABLE'} onClick={() => void startCheckout()} type="button">
+                            {isPurchasing ? '결제 진행 중...' : listing.saleStatus === 'AVAILABLE' ? '결제하고 주문하기' : '구매할 수 없는 매물입니다'}
                         </button>
                     </div>
                     {purchaseMessage && <p className="product-detail__purchase-message" role="status">{purchaseMessage}</p>}

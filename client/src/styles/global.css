@@ -2017,3 +2017,39 @@ button {
         background-position: 0 0;
     }
 }
+
+.payment-notice {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 12px auto 0;
+    max-width: 1200px;
+    padding: 12px 16px;
+    border-radius: 10px;
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+.payment-notice--success {
+    color: #1b5e20;
+    background: #e8f5e9;
+    border: 1px solid #c8e6c9;
+}
+
+.payment-notice--error {
+    color: #8a1c1c;
+    background: #fdecea;
+    border: 1px solid #f5c6c2;
+}
+
+.payment-notice button {
+    flex-shrink: 0;
+    border: none;
+    background: transparent;
+    color: inherit;
+    font-size: 14px;
+    cursor: pointer;
+    padding: 4px;
+    line-height: 1;
+}
