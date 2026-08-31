@@ -1,6 +1,6 @@
 import { Plus } from '@phosphor-icons/react/dist/icons/Plus';
 import { X } from '@phosphor-icons/react/dist/icons/X';
-import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from 'react';
+import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import {
     createListing,
     updateListing,
@@ -28,10 +28,42 @@ type Dimensions = {
 type FurnitureRegistrationProps = {
     listing?: ListingDetail;
     onCancel: () => void;
+    onDirtyChange: (isDirty: boolean) => void;
     onSaved: () => void;
 };
 
-export function FurnitureRegistration({ listing, onCancel, onSaved }: FurnitureRegistrationProps) {
+type InitialFormValues = {
+    images: File[];
+    retainedImageIds: number[];
+    title: string;
+    category: ListingCategory;
+    conditionGrade: (typeof conditionGrades)[number];
+    dimensions: Dimensions;
+    price: string;
+    description: string;
+};
+
+function haveSameItems<T>(current: T[], initial: T[]) {
+    return current.length === initial.length
+        && current.every((item, index) => item === initial[index]);
+}
+
+export function FurnitureRegistration({ listing, onCancel, onDirtyChange, onSaved }: FurnitureRegistrationProps) {
+    const onDirtyChangeRef = useRef(onDirtyChange);
+    const initialFormValuesRef = useRef<InitialFormValues>({
+        images: [],
+        retainedImageIds: listing?.images.map((image) => image.id) ?? [],
+        title: listing?.title ?? '',
+        category: listing?.category ?? 'TABLE',
+        conditionGrade: listing?.conditionGrade ?? 'A',
+        dimensions: {
+            width: listing?.dimensions.widthCm.toString() ?? '',
+            depth: listing?.dimensions.depthCm.toString() ?? '',
+            height: listing?.dimensions.heightCm.toString() ?? ''
+        },
+        price: listing?.price.toString() ?? '',
+        description: listing?.description ?? ''
+    });
     const [images, setImages] = useState<File[]>([]);
     const [retainedImageIds, setRetainedImageIds] = useState(() => listing?.images.map((image) => image.id) ?? []);
     const [title, setTitle] = useState(listing?.title ?? '');
@@ -48,8 +80,26 @@ export function FurnitureRegistration({ listing, onCancel, onSaved }: FurnitureR
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const imageUrls = useMemo(() => images.map((image) => URL.createObjectURL(image)), [images]);
+    const initialFormValues = initialFormValuesRef.current;
+    const isDirty = title !== initialFormValues.title
+        || category !== initialFormValues.category
+        || conditionGrade !== initialFormValues.conditionGrade
+        || dimensions.width !== initialFormValues.dimensions.width
+        || dimensions.depth !== initialFormValues.dimensions.depth
+        || dimensions.height !== initialFormValues.dimensions.height
+        || price !== initialFormValues.price
+        || description !== initialFormValues.description
+        || !haveSameItems(retainedImageIds, initialFormValues.retainedImageIds)
+        || !haveSameItems(images, initialFormValues.images);
 
     useEffect(() => () => imageUrls.forEach((url) => URL.revokeObjectURL(url)), [imageUrls]);
+
+    useEffect(() => {
+        onDirtyChangeRef.current = onDirtyChange;
+        onDirtyChange(isDirty);
+    }, [isDirty, onDirtyChange]);
+
+    useEffect(() => () => onDirtyChangeRef.current(false), []);
 
     const canSubmit = Boolean(
         title.trim()
@@ -102,6 +152,7 @@ export function FurnitureRegistration({ listing, onCancel, onSaved }: FurnitureR
             } else {
                 await createListing(payload, images);
             }
+            onDirtyChange(false);
             onSaved();
         } catch (reason) {
             setError(reason instanceof Error ? reason.message : '가구 정보를 저장하지 못했습니다.');
