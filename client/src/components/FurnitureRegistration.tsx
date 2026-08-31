@@ -1,3 +1,5 @@
+import { Plus } from '@phosphor-icons/react/dist/icons/Plus';
+import { X } from '@phosphor-icons/react/dist/icons/X';
 import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from 'react';
 import {
     createListing,
@@ -22,10 +24,6 @@ type Dimensions = {
     depth: string;
     height: string;
 };
-
-function AddIcon() {
-    return <span aria-hidden="true" className="furniture-registration__add-icon">+</span>;
-}
 
 type FurnitureRegistrationProps = {
     listing?: ListingDetail;
@@ -132,17 +130,23 @@ export function FurnitureRegistration({ listing, onCancel, onSaved }: FurnitureR
                         {listing?.images.filter((image) => retainedImageIds.includes(image.id)).map((image) => (
                             <span className="furniture-registration__image-slot" key={image.id}>
                                 <img alt="기존 가구 사진" src={image.url} />
-                                <button aria-label="기존 사진 삭제" className="furniture-registration__image-remove" onClick={() => removeExistingImage(image.id)} type="button">×</button>
+                                <button aria-label="기존 사진 삭제" className="furniture-registration__image-remove" onClick={() => removeExistingImage(image.id)} type="button">
+                                    <X aria-hidden="true" weight="bold" />
+                                </button>
                             </span>
                         ))}
                         {imageUrls.map((imageUrl, index) => (
                             <span className="furniture-registration__image-slot" key={imageUrl}>
                                 <img alt={`선택한 가구 사진 ${index + 1}`} src={imageUrl} />
-                                <button aria-label="새 사진 삭제" className="furniture-registration__image-remove" onClick={() => setImages((current) => current.filter((_, fileIndex) => fileIndex !== index))} type="button">×</button>
+                                <button aria-label="새 사진 삭제" className="furniture-registration__image-remove" onClick={() => setImages((current) => current.filter((_, fileIndex) => fileIndex !== index))} type="button">
+                                    <X aria-hidden="true" weight="bold" />
+                                </button>
                             </span>
                         ))}
                         {retainedImageIds.length + images.length < 5 && (
-                            <label className="furniture-registration__image-slot furniture-registration__image-slot--add" htmlFor="furniture-registration-images"><AddIcon /></label>
+                            <label aria-label="가구 사진 추가" className="furniture-registration__image-slot furniture-registration__image-slot--add" htmlFor="furniture-registration-images">
+                                <Plus aria-hidden="true" className="furniture-registration__add-icon" weight="regular" />
+                            </label>
                         )}
                     </div>
                 </fieldset>
