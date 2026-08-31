@@ -4,13 +4,15 @@ import { AuthModal } from './components/AuthModal';
 import { FurnitureRegistration } from './components/FurnitureRegistration';
 import { Header } from './components/Header';
 import { MockScenarioController } from './components/MockScenarioController';
+import { MyAccount } from './components/MyAccount';
+import { MyFavorites } from './components/MyFavorites';
 import { MyListings } from './components/MyListings';
 import { MyOrders } from './components/MyOrders';
 import { ProductDetail } from './components/ProductDetail';
 import { ProductGrid } from './components/ProductGrid';
 import './styles/global.css';
 
-type View = 'home' | 'detail' | 'my-listings' | 'my-orders' | 'registration';
+type View = 'home' | 'detail' | 'my-listings' | 'my-orders' | 'registration' | 'my-account' | 'my-favorites';
 
 function App() {
     const [view, setView] = useState<View>('home');
@@ -90,6 +92,7 @@ function App() {
                     }}
                     onMyListings={() => goToAuthenticatedView('my-listings')}
                     onMyOrders={() => goToAuthenticatedView('my-orders')}
+                    onMyAccount={() => goToAuthenticatedView('my-account')}
                 />
                 <main className={`app-shell__main app-shell__main--${view}`}>
                     {__ENABLE_MSW__ && view === 'home' && <MockScenarioController />}
@@ -100,6 +103,15 @@ function App() {
                     }} />}
                     {view === 'my-listings' && <MyListings onEdit={(listingId) => void openEdit(listingId)} onRegister={() => { setEditingListing(undefined); goToAuthenticatedView('registration'); }} />}
                     {view === 'my-orders' && <MyOrders />}
+                    {view === 'my-account' && <MyAccount
+                        onFavorites={() => goToAuthenticatedView('my-favorites')}
+                        onOrders={() => goToAuthenticatedView('my-orders')}
+                        onListings={() => goToAuthenticatedView('my-listings')}
+                    />}
+                    {view === 'my-favorites' && <MyFavorites onSelect={(listingId) => {
+                        setSelectedListingId(listingId);
+                        setView('detail');
+                    }} />}
                     {view === 'registration' && <FurnitureRegistration key={editingListing?.id ?? 'new'} listing={editingListing} onCancel={() => setView('my-listings')} onSaved={() => { setEditingListing(undefined); setView('my-listings'); }} />}
                 </main>
             </div>
