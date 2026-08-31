@@ -8,6 +8,7 @@ import type { MyOrder, Order } from '../api/orders';
 let nextListingId = 3;
 let nextImageId = 30;
 let nextOrderId = 1;
+let nextPaymentId = 1;
 const orderStore: Order[] = [];
 const favoriteStore = new Set<number>();
 let listingStore: ListingDetail[] = mockListings.map((listing, index) => ({
@@ -146,6 +147,36 @@ export const handlers = [
             return HttpResponse.json(order, { status: 201 });
         } catch {
             return invalidRequest('잘못된 주문 요청입니다.');
+        }
+    }),
+
+    http.post('/api/payments/confirm', async ({ request }) => {
+        if (!isAuthenticated(request)) return unauthorized();
+
+        try {
+            const body = await request.json() as { listingId?: unknown; tossOrderId?: unknown; paymentKey?: unknown; amount?: unknown };
+            const { listingId, tossOrderId, paymentKey, amount } = body;
+            if (typeof listingId !== 'number' || typeof tossOrderId !== 'string' || typeof paymentKey !== 'string' || typeof amount !== 'number') {
+                return invalidRequest('결제 정보를 확인해 주세요.');
+            }
+
+            const listing = listingStore.find((item) => item.id === listingId);
+            if (!listing) {
+                return HttpResponse.json({ code: 'LISTING_NOT_FOUND', message: '매물을 찾을 수 없습니다.' }, { status: 404 });
+            }
+            if (amount !== listing.totalPrice) {
+                return HttpResponse.json({ code: 'PAYMENT_AMOUNT_MISMATCH', message: '결제 금액이 주문 금액과 일치하지 않습니다.' }, { status: 400 });
+            }
+            if (orderStore.some((order) => order.listingId === listingId)) {
+                return HttpResponse.json({ code: 'ALREADY_ORDERED', message: '이미 주문한 매물입니다.' }, { status: 400 });
+            }
+
+            // 서버와 동일하게 결제 승인 이후에만 주문을 생성한다.
+            const order: Order = { id: nextOrderId++, listingId, buyerId: 1, deliveryStatus: 'REQUESTED' };
+            orderStore.unshift(order);
+            return HttpResponse.json({ paymentId: nextPaymentId++, orderId: order.id, amount, status: 'DONE' }, { status: 201 });
+        } catch {
+            return invalidRequest('잘못된 결제 요청입니다.');
         }
     }),
 

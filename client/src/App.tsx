@@ -10,6 +10,7 @@ import { MyListings } from './components/MyListings';
 import { MyOrders } from './components/MyOrders';
 import { ProductDetail } from './components/ProductDetail';
 import { ProductGrid } from './components/ProductGrid';
+import { usePaymentReturn } from './payment/usePaymentReturn';
 import './styles/global.css';
 
 type View = 'home' | 'detail' | 'my-listings' | 'my-orders' | 'registration' | 'my-account' | 'my-favorites';
@@ -23,6 +24,7 @@ function App() {
     const [isLoggedIn, setIsLoggedIn] = useState(() => Boolean(window.sessionStorage.getItem('setty:auth-token')));
     const homeScrollPositionRef = useRef(0);
     const shouldRestoreHomeScrollRef = useRef(false);
+    const { notice: paymentNotice, dismiss: dismissPaymentNotice } = usePaymentReturn(() => setView('my-orders'));
 
     useEffect(() => {
         const shouldRestoreHomeScroll = view === 'home' && shouldRestoreHomeScrollRef.current;
@@ -94,6 +96,12 @@ function App() {
                     onMyOrders={() => goToAuthenticatedView('my-orders')}
                     onMyAccount={() => goToAuthenticatedView('my-account')}
                 />
+                {paymentNotice && (
+                    <div className={`payment-notice payment-notice--${paymentNotice.tone}`} role="status">
+                        <span>{paymentNotice.message}</span>
+                        <button type="button" onClick={dismissPaymentNotice} aria-label="알림 닫기">✕</button>
+                    </div>
+                )}
                 <main className={`app-shell__main app-shell__main--${view}`}>
                     {__ENABLE_MSW__ && view === 'home' && <MockScenarioController />}
                     {view === 'home' && <ProductGrid onProductSelect={openDetail} />}
