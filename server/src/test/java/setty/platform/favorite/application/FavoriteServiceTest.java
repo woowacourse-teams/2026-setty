@@ -81,6 +81,15 @@ class FavoriteServiceTest {
     }
 
     @Test
+    void 본인_매물은_찜할_수_없다() {
+        assertThatThrownBy(() -> favoriteService.add(SELLER_ID, FIRST_LISTING_ID))
+                .isInstanceOf(BusinessException.class)
+                .extracting(e -> ((BusinessException) e).getErrorCode())
+                .isEqualTo(ErrorCode.CANNOT_FAVORITE_OWN_LISTING);
+        assertThat(favoriteCount()).isEqualTo(0);
+    }
+
+    @Test
     void 없는_매물을_찜하면_거부된다() {
         assertThatThrownBy(() -> favoriteService.add(MEMBER_ID, 999L))
                 .isInstanceOf(BusinessException.class)
