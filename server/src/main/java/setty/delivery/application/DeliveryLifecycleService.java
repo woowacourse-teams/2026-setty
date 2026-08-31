@@ -25,6 +25,7 @@ public class DeliveryLifecycleService {
         final Delivery delivery = findDelivery(deliveryId);
         delivery.accept(driverId, acceptedAt);
         saveAndPublish(delivery, DeliveryStatus.ACCEPTED, acceptedAt);
+        eventPublisher.publishEvent(new DeliveryRequestsChanged());
     }
 
     public void pickUp(final DeliveryId deliveryId, final DriverId driverId, final Instant pickedUpAt) {

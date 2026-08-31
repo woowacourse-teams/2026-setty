@@ -68,6 +68,7 @@ Domain 규칙을 바꾸면 코드와 [배송 도메인 설계](docs/domain-desig
 - Listener 클래스명은 `...Listener`, 단일 처리 메서드명은 `handle`을 사용한다.
 - 상태 이벤트는 동기 `@EventListener`로 처리한다.
 - `@TransactionalEventListener(AFTER_COMMIT)`, `@Async`, 내부 HTTP 통신을 사용하지 않는다.
+- 단, 기사 앱 요청 목록 SSE 알림은 `DeliveryRequestsChangedListener`만 `AFTER_COMMIT`으로 처리한다. 알림 실패는 로그만 남기고 전파하지 않는다.
 - Listener 예외가 발행자의 트랜잭션을 롤백하도록 유지한다.
 
 ## Repository·조회 규칙
