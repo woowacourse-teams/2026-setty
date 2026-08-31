@@ -11,6 +11,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -104,6 +105,23 @@ public class ListingService {
 
         return listings.stream()
                 .map(listing -> toMine(listing, thumbnails.get(listing.getId())))
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<ListingView.Summary> findSummaries(List<Long> listingIds) {
+        if (listingIds.isEmpty()) {
+            return List.of();
+        }
+        List<Listing> listings = listingRepository.findAllByIdInAndDeletedAtIsNull(listingIds);
+        Map<Long, Listing> listingById = listings.stream()
+                .collect(Collectors.toMap(Listing::getId, Function.identity()));
+        Map<Long, ListingImage> thumbnails = findThumbnails(listings);
+
+        return listingIds.stream()
+                .map(listingById::get)
+                .filter(Objects::nonNull)
+                .map(listing -> toSummary(listing, thumbnails.get(listing.getId())))
                 .toList();
     }
 
