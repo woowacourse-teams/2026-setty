@@ -64,6 +64,11 @@ button {
     display: none;
 }
 
+.site-header__top-actions,
+.site-header__mobile-auth-button {
+    display: none;
+}
+
 .site-header__visually-hidden {
     position: absolute;
     width: 1px;
@@ -888,13 +893,19 @@ button {
 .auth-modal {
     position: relative;
     zoom: 0.7;
-    width: 746px;
-    max-height: calc(100dvh - 64px);
+    width: min(746px, calc(142.857vw - 91.429px));
     padding: 91px 87px 102px;
-    overflow-y: auto;
     background: #ffffff;
     border-radius: 24px;
     box-shadow: 0 18px 48px rgba(0, 0, 0, 0.1);
+}
+
+/* Keep the zoomed dialog within 32px backdrop gutters: (100dvh - 64px) / 0.7. */
+@media (min-width: 561px) {
+    .auth-modal {
+        max-height: calc(142.857dvh - 91.429px);
+        overflow-y: auto;
+    }
 }
 
 .auth-modal__close {
@@ -1419,6 +1430,34 @@ button {
         letter-spacing: -2.3px;
     }
 
+    .site-header__top-actions {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .site-header__mobile-auth-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 64px;
+        height: 44px;
+        padding: 0 13px;
+        color: #2b2926;
+        border: 1px solid #dedbd6;
+        border-radius: 999px;
+        background: #ffffff;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 800;
+        letter-spacing: -0.55px;
+    }
+
+    .site-header__mobile-auth-button:focus-visible {
+        outline: 2px solid #24221f;
+        outline-offset: 2px;
+    }
+
     .site-header__menu-button {
         display: grid;
         width: 44px;
@@ -1463,6 +1502,11 @@ button {
     }
 
     .site-header__account-menu {
+        position: absolute;
+        z-index: 2;
+        top: 77px;
+        right: 20px;
+        left: 20px;
         display: none;
         align-items: stretch;
         gap: 0;
@@ -1480,6 +1524,10 @@ button {
         flex-direction: column;
     }
 
+    .site-header__account-menu--guest {
+        display: none;
+    }
+
     .site-header__account-menu button {
         min-height: 44px;
         padding: 0;
@@ -1494,25 +1542,10 @@ button {
         border-top: 1px solid #ebe7e2;
     }
 
-    .site-header__account-menu i {
+    .site-header__account-menu i,
+    .site-header__account-menu strong,
+    .site-header__account-menu .site-header__logout-button {
         display: none;
-    }
-
-    .site-header__account-menu strong {
-        order: -1;
-        min-height: 40px;
-        line-height: 40px;
-    }
-
-    .site-header__account-menu--guest {
-        padding: 4px 16px;
-    }
-
-    .site-header__login-button {
-        width: 100%;
-        margin: 0;
-        padding: 0;
-        text-align: left;
     }
 
     .app-shell__main,
@@ -1678,6 +1711,12 @@ button {
     .site-header__search-field {
         height: 48px;
         padding: 0 15px;
+    }
+
+    .site-header__account-menu {
+        top: 69px;
+        right: 16px;
+        left: 16px;
     }
 
     .app-shell__main,

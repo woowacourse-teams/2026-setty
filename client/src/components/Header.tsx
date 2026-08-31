@@ -16,6 +16,7 @@ export function Header({ onHome, onMyListings, onMyOrders, isLoggedIn, onLogout,
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const menuId = useId();
     const menuButtonRef = useRef<HTMLButtonElement>(null);
+    const menuRef = useRef<HTMLElement>(null);
 
     useEffect(() => {
         if (!isMenuOpen) {
@@ -31,8 +32,24 @@ export function Header({ onHome, onMyListings, onMyOrders, isLoggedIn, onLogout,
             menuButtonRef.current?.focus();
         };
 
+        const closeMenuOnOutsideClick = (event: PointerEvent) => {
+            if (!(event.target instanceof Node)) {
+                return;
+            }
+
+            if (menuRef.current?.contains(event.target) || menuButtonRef.current?.contains(event.target)) {
+                return;
+            }
+
+            setIsMenuOpen(false);
+        };
+
         window.addEventListener('keydown', closeMenuOnEscape);
-        return () => window.removeEventListener('keydown', closeMenuOnEscape);
+        document.addEventListener('pointerdown', closeMenuOnOutsideClick);
+        return () => {
+            window.removeEventListener('keydown', closeMenuOnEscape);
+            document.removeEventListener('pointerdown', closeMenuOnOutsideClick);
+        };
     }, [isMenuOpen]);
 
     const runMenuAction = (action: () => void) => {
@@ -41,6 +58,11 @@ export function Header({ onHome, onMyListings, onMyOrders, isLoggedIn, onLogout,
         if (shouldRestoreMenuFocus) {
             menuButtonRef.current?.focus();
         }
+        action();
+    };
+
+    const runMobileAuthAction = (action: () => void) => {
+        setIsMenuOpen(false);
         action();
     };
 
@@ -59,19 +81,30 @@ export function Header({ onHome, onMyListings, onMyOrders, isLoggedIn, onLogout,
                     >
                         SETTY
                     </a>
-                    <button
-                        ref={menuButtonRef}
-                        className="site-header__menu-button"
-                        type="button"
-                        aria-controls={menuId}
-                        aria-expanded={isMenuOpen}
-                        onClick={() => setIsMenuOpen((isOpen) => !isOpen)}
-                    >
-                        {isMenuOpen
-                            ? <X aria-hidden="true" className="site-header__menu-icon" weight="bold" />
-                            : <List aria-hidden="true" className="site-header__menu-icon" weight="bold" />}
-                        <span className="site-header__visually-hidden">{isMenuOpen ? '메뉴 닫기' : '메뉴 열기'}</span>
-                    </button>
+                    <div className="site-header__top-actions">
+                        <button
+                            className={`site-header__mobile-auth-button ${isLoggedIn ? 'site-header__mobile-logout-button' : 'site-header__mobile-login-button'}`}
+                            onClick={() => runMobileAuthAction(isLoggedIn ? onLogout : onLoginClick)}
+                            type="button"
+                        >
+                            {isLoggedIn ? '로그아웃' : '로그인'}
+                        </button>
+                        {isLoggedIn && (
+                            <button
+                                ref={menuButtonRef}
+                                className="site-header__menu-button"
+                                type="button"
+                                aria-controls={menuId}
+                                aria-expanded={isMenuOpen}
+                                onClick={() => setIsMenuOpen((isOpen) => !isOpen)}
+                            >
+                                {isMenuOpen
+                                    ? <X aria-hidden="true" className="site-header__menu-icon" weight="bold" />
+                                    : <List aria-hidden="true" className="site-header__menu-icon" weight="bold" />}
+                                <span className="site-header__visually-hidden">{isMenuOpen ? '메뉴 닫기' : '메뉴 열기'}</span>
+                            </button>
+                        )}
+                    </div>
                 </div>
                 <div className="site-header__search-field">
                     <span className="site-header__search-field-placeholder">배송비 고민 없이 원하는 가구를 찾아보세요</span>
@@ -79,13 +112,14 @@ export function Header({ onHome, onMyListings, onMyOrders, isLoggedIn, onLogout,
                 </div>
                 <nav
                     id={menuId}
+                    ref={menuRef}
                     aria-label="사용자 메뉴"
                     className={`site-header__account-menu${isMenuOpen ? ' site-header__account-menu--open' : ''}${isLoggedIn ? '' : ' site-header__account-menu--guest'}`}
                 >
                     {isLoggedIn ? (
                         <>
                             <button className="site-header__my-listings" onClick={() => runMenuAction(onMyListings)} type="button">내 가구</button>
-                            <button onClick={() => runMenuAction(onMyOrders)} type="button">내 주문</button>
+                            <button className="site-header__my-orders" onClick={() => runMenuAction(onMyOrders)} type="button">내 주문</button>
                             <i aria-hidden="true" />
                             <strong>내 계정</strong>
                             <button className="site-header__logout-button" onClick={() => runMenuAction(onLogout)} type="button">로그아웃</button>
