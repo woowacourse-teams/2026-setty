@@ -107,3 +107,19 @@ CREATE TABLE IF NOT EXISTS orders (
     CONSTRAINT fk_orders_listing FOREIGN KEY (listing_id) REFERENCES listings (id),
     CONSTRAINT fk_orders_buyer   FOREIGN KEY (buyer_id)   REFERENCES members (id)
 );
+
+-- 결제 (payment 계층). 토스페이먼츠 테스트 결제 승인 결과를 1주문 1건으로 저장한다.
+-- 주문은 결제 승인 성공 후에만 생성되므로 payments.order_id는 항상 확정된 주문을 가리킨다.
+CREATE TABLE IF NOT EXISTS payments (
+    id            BIGINT       NOT NULL AUTO_INCREMENT,
+    order_id      BIGINT       NOT NULL,                  -- 승인 성공 후 생성된 주문 (1주문 1결제)
+    payment_key   VARCHAR(200) NOT NULL,                  -- 토스가 발급한 결제 키
+    toss_order_id VARCHAR(64)  NOT NULL,                  -- 결제창 호출 시 클라이언트가 만든 주문 식별자
+    amount        INT          NOT NULL,                  -- 승인 금액 (매물 totalPrice와 일치)
+    status        VARCHAR(20)  NOT NULL,                  -- 결제 상태 (해피패스: DONE)
+    approved_at   DATETIME     NOT NULL,                  -- 토스 승인 시각
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_payments_order_id (order_id),
+    UNIQUE KEY uk_payments_toss_order_id (toss_order_id),
+    CONSTRAINT fk_payments_order FOREIGN KEY (order_id) REFERENCES orders (id)
+);
