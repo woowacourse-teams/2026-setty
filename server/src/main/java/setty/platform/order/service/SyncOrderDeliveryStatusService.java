@@ -22,13 +22,16 @@ public class SyncOrderDeliveryStatusService {
     public void sync(final DeliveryStatusChanged event) {
         validateEvent(event);
         final DeliveryStatus newStatus = parseStatus(event.status());
-        final Order order = orderRepository.findById(event.orderId())
+        final Order order = orderRepository.findByIdForUpdate(event.orderId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
         order.syncDeliveryStatus(newStatus);
     }
 
     private void validateEvent(final DeliveryStatusChanged event) {
-        if (event == null || event.orderId() == null || event.changedAt() == null) {
+        if (event == null
+                || event.deliveryId() == null || event.deliveryId() <= 0
+                || event.orderId() == null || event.orderId() <= 0
+                || event.changedAt() == null) {
             throw new BusinessException(ErrorCode.INVALID_REQUEST);
         }
     }

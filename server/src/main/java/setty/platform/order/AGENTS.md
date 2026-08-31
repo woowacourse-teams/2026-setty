@@ -26,7 +26,9 @@
   매물 검증·구매 신청 등록은 `ListingService.registerPurchaseRequest()`를 통하고,
   조회 조합은 `ListingRepository`를 **읽기 전용**으로만 쓴다 (DEC-05 합의). listing을 여기서 수정하지 않는다.
 - 본인 주문만 조회할 수 있다. 남의 주문 id는 403이 아니라 **404 `ORDER_NOT_FOUND`**로 응답한다 (주문 존재 여부를 노출하지 않기 위함).
-- 배송 상태 동기화(`Order.syncDeliveryStatus()`)는 배송 팀 `OrderDeliveryState.synchronizeTo()`와 같은 규칙이다 —
+- 배송 상태 동기화 규칙은 `Order.syncDeliveryStatus()`에서 관리한다 —
   **직전 상태에서 한 단계 전진만 허용**, 같은 상태 중복 이벤트는 무시(멱등), 그 외 불일치(역행·건너뛰기)는
   `ORDER_DELIVERY_STATUS_MISMATCH` 예외로 거부한다. 불일치를 조용히 무시하도록 바꾸면 버그가 숨는다.
+- 배송 상태 동기화는 `OrderRepository.findByIdForUpdate()`의 JPA `PESSIMISTIC_WRITE` 잠금을 사용한다.
+  일반 주문 조회에 잠금을 확대하지 않고, 변경과 잠금은 발행자의 트랜잭션이 끝날 때까지 유지한다.
 - 스키마 변경은 `schema.sql`에 멱등 SQL 추가로만 한다 (`ddl-auto: validate`).

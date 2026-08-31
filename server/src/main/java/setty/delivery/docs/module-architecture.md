@@ -2,7 +2,7 @@
 
 배송 도메인을 실행하는 API, Application, 이벤트, Repository와 Persistence 구조를 정의한다. 도메인 객체와 불변식은 [배송 도메인 설계](domain-design.md)가 원본이다.
 
-[문서 인덱스](README.md) · [ADR-0001](adr/0001-delivery-aggregate-boundary.md) · [ADR-0002](adr/0002-synchronous-order-status-sync.md)
+[문서 인덱스](README.md) · [ADR-0001](adr/0001-delivery-aggregate-boundary.md) · [ADR-0004](adr/0004-platform-jpa-order-status-sync.md)
 
 ## 1. 패키지와 의존 방향
 
@@ -10,7 +10,6 @@
 delivery/
   api/                    HTTP Controller, 응답 DTO, 배송 예외 처리
   application/            Service, Listener, Repository 계약
-    event/                배송 소유 이벤트
     query/                JDBC 조회 Projection
   domain/                 Delivery Aggregate, VO, 상태 모델
   persistence/            JPA, Spring Data, JDBC 구현체
@@ -69,9 +68,9 @@ OrderRequested 수신
 | 이벤트 | 위치 | 역할 |
 |---|---|---|
 | `OrderRequested` | `setty.common` | 플랫폼이 발행하고 배송이 수신하는 팀 간 계약 |
-| `DeliveryStatusChanged` | `delivery.application.event` | 배송 상태 변경 후 Order 배송 상태 동기화 |
+| `DeliveryStatusChanged` | `setty.common` | 배송이 발행하고 플랫폼이 Order·Listing 상태를 동기화하는 팀 간 계약 |
 
-공용 이벤트를 배송 패키지에 중복 정의하지 않는다. `DeliveryStatusChanged`는 플랫폼이 소비하지 않으며 배송 모듈이 소유한다.
+공용 이벤트를 배송 패키지에 중복 정의하지 않는다. 배송은 `DeliveryStatusChanged`를 발행만 하며, 플랫폼의 주문·매물 리스너가 각 소유 엔티티를 갱신한다.
 
 ### 상태 변경 흐름
 
@@ -80,19 +79,21 @@ Delivery 조회
 → Domain 상태 전이
 → Delivery 저장
 → DeliveryStatusChanged 발행
-→ DeliveryStatusChangedListener 동기 실행
-→ Order 상태 행 FOR UPDATE 조회
-→ OrderDeliveryState 검증
-→ Order 배송 상태 저장
+→ 플랫폼 주문 DeliveryStatusChangedListener 동기 실행
+→ SyncOrderDeliveryStatusService
+→ OrderRepository.findByIdForUpdate (JPA PESSIMISTIC_WRITE)
+→ Order.syncDeliveryStatus 검증·변경
+→ JPA 변경 감지로 Order 배송 상태 저장
 → 하나의 트랜잭션으로 커밋
 ```
 
 - 상태 변경 Service와 Listener는 같은 트랜잭션에 참여한다.
 - Listener 예외는 Delivery와 Order 변경을 모두 롤백한다.
+- 플랫폼의 매물 리스너도 같은 이벤트를 동기 처리한다. 주문·매물 리스너의 실행 순서에 의존하지 않는다.
 - `@TransactionalEventListener(AFTER_COMMIT)`, `@Async`, 내부 HTTP 통신을 사용하지 않는다.
 - 동일 상태 이벤트는 멱등 처리하고 잘못된 이전 상태는 거부한다.
 
-선택 근거와 대안은 [ADR-0002](adr/0002-synchronous-order-status-sync.md)에 기록한다.
+선택 근거와 대안은 [ADR-0004](adr/0004-platform-jpa-order-status-sync.md)에 기록한다.
 
 ## 4. Repository 경계
 
@@ -101,7 +102,6 @@ Delivery 조회
 | 계약 | 구현 | 책임 |
 |---|---|---|
 | `DeliveryRepository` | `JpaDeliveryRepository` | 중복 확인, Delivery 단건 조회·저장 |
-| `OrderDeliveryStatusRepository` | `JdbcOrderDeliveryStatusRepository` | Order 배송 상태 행 잠금, 상태 조회·저장 |
 | `DeliveryMemberRepository` | `JpaDeliveryMemberRepository` | 기사 계정 조회·저장 |
 
 - Repository 인터페이스는 `application`, 구현체는 `persistence`에 둔다.
@@ -109,6 +109,7 @@ Delivery 조회
 - `JpaDeliveryRepository`가 `DeliveryId`와 JPA `Long` 식별자 사이를 변환한다.
 - Application에 `JpaRepository` 전체 API를 노출하지 않는다.
 - Delivery에 상태별 `updateStatus` Repository 메서드를 만들지 않는다.
+- Order 상태의 조회·잠금·저장은 플랫폼의 JPA `OrderRepository`가 담당한다. 배송 모듈에 Order 쓰기 Repository를 두지 않는다.
 
 ### Query
 

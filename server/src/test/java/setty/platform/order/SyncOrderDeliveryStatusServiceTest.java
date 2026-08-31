@@ -4,6 +4,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.time.Instant;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -13,6 +18,8 @@ import org.springframework.boot.testcontainers.service.connection.ServiceConnect
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.mysql.MySQLContainer;
@@ -20,6 +27,7 @@ import setty.common.DeliveryStatusChanged;
 import setty.global.exception.BusinessException;
 import setty.global.exception.ErrorCode;
 import setty.platform.listing.storage.ListingImageStorage;
+import setty.platform.order.service.SyncOrderDeliveryStatusService;
 
 @SpringBootTest
 @Testcontainers
@@ -45,6 +53,12 @@ class SyncOrderDeliveryStatusServiceTest {
 
     @MockitoBean
     private ListingImageStorage listingImageStorage;
+
+    @Autowired
+    private SyncOrderDeliveryStatusService syncOrderDeliveryStatusService;
+
+    @Autowired
+    private PlatformTransactionManager transactionManager;
 
     @BeforeEach
     void setUp() {
@@ -101,6 +115,36 @@ class SyncOrderDeliveryStatusServiceTest {
         eventPublisher.publishEvent(new DeliveryStatusChanged(1L, ORDER_ID, "ACCEPTED", Instant.now()));
 
         assertThat(deliveryStatusOf(ORDER_ID)).isEqualTo("ACCEPTED");
+    }
+
+    @Test
+    void 주문_행_잠금은_외부_트랜잭션이_끝날_때까지_유지된다() throws Exception {
+        final ExecutorService executor = Executors.newSingleThreadExecutor();
+        try {
+            final CompletableFuture<Void> nextChange = new TransactionTemplate(transactionManager)
+                    .execute(transaction -> {
+                        syncOrderDeliveryStatusService.sync(
+                                new DeliveryStatusChanged(1L, ORDER_ID, "ACCEPTED", Instant.now()));
+
+                        final CompletableFuture<Void> started = new CompletableFuture<>();
+                        final CompletableFuture<Void> pendingChange = CompletableFuture.runAsync(() -> {
+                            started.complete(null);
+                            syncOrderDeliveryStatusService.sync(
+                                    new DeliveryStatusChanged(1L, ORDER_ID, "PICKED_UP", Instant.now()));
+                        }, executor);
+
+                        started.orTimeout(5, TimeUnit.SECONDS).join();
+                        assertThatThrownBy(() -> pendingChange.get(300, TimeUnit.MILLISECONDS))
+                                .isInstanceOf(TimeoutException.class);
+                        return pendingChange;
+                    });
+
+            assertThat(nextChange).isNotNull();
+            nextChange.get(5, TimeUnit.SECONDS);
+            assertThat(deliveryStatusOf(ORDER_ID)).isEqualTo("PICKED_UP");
+        } finally {
+            executor.shutdownNow();
+        }
     }
 
     @Test
