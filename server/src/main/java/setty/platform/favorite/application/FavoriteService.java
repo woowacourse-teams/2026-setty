@@ -10,6 +10,7 @@ import setty.platform.favorite.domain.Favorite;
 import setty.platform.favorite.repository.FavoriteRepository;
 import setty.platform.listing.application.ListingService;
 import setty.platform.listing.application.ListingView;
+import setty.platform.listing.domain.Listing;
 import setty.platform.listing.repository.ListingRepository;
 
 @Service
@@ -30,8 +31,11 @@ public class FavoriteService {
     }
 
     public void add(final Long memberId, final Long listingId) {
-        listingRepository.findByIdAndDeletedAtIsNull(listingId)
+        final Listing listing = listingRepository.findByIdAndDeletedAtIsNull(listingId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.LISTING_NOT_FOUND));
+        if (listing.isOwnedBy(memberId)) {
+            throw new BusinessException(ErrorCode.CANNOT_FAVORITE_OWN_LISTING);
+        }
         saveIgnoringDuplicate(new Favorite(memberId, listingId));
     }
 
