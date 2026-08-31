@@ -123,3 +123,14 @@ CREATE TABLE IF NOT EXISTS payments (
     UNIQUE KEY uk_payments_toss_order_id (toss_order_id),
     CONSTRAINT fk_payments_order FOREIGN KEY (order_id) REFERENCES orders (id)
 );
+
+CREATE TABLE IF NOT EXISTS favorites (
+    id         BIGINT       NOT NULL AUTO_INCREMENT,
+    member_id  BIGINT       NOT NULL,
+    listing_id BIGINT       NOT NULL,
+    created_at TIMESTAMP(6) NOT NULL,
+    PRIMARY KEY (id),
+    CONSTRAINT uk_favorites_member_listing UNIQUE (member_id, listing_id),
+    CONSTRAINT fk_favorites_member  FOREIGN KEY (member_id)  REFERENCES members (id),
+    CONSTRAINT fk_favorites_listing FOREIGN KEY (listing_id) REFERENCES listings (id)
+);
