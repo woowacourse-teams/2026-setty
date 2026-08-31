@@ -22,6 +22,7 @@ import { MyListings } from './components/MyListings';
 import { MyOrders } from './components/MyOrders';
 import { ProductDetail } from './components/ProductDetail';
 import { ProductGrid } from './components/ProductGrid';
+import { usePaymentReturn } from './payment/usePaymentReturn';
 import './styles/global.css';
 
 type AppLocationState = {
@@ -177,6 +178,9 @@ function App() {
     const formDirtyRef = useRef(false);
     const homeScrollPositionRef = useRef(0);
     const previousPathnameRef = useRef(location.pathname);
+    const { notice: paymentNotice, dismiss: dismissPaymentNotice } = usePaymentReturn(() => {
+        navigate('/my-orders', { replace: true });
+    });
 
     const handleDirtyChange = useCallback((isDirty: boolean) => {
         formDirtyRef.current = isDirty;
@@ -353,6 +357,12 @@ function App() {
                     onMyListings={() => goToAuthenticatedPath('/my-listings')}
                     onMyOrders={() => goToAuthenticatedPath('/my-orders')}
                 />
+                {paymentNotice && (
+                    <div className={`payment-notice payment-notice--${paymentNotice.tone}`} role="status">
+                        <span>{paymentNotice.message}</span>
+                        <button type="button" onClick={dismissPaymentNotice} aria-label="알림 닫기">✕</button>
+                    </div>
+                )}
                 <main className={`app-shell__main app-shell__main--${viewName}`}>
                     {__ENABLE_MSW__ && location.pathname === '/' && <MockScenarioController />}
                     <Routes>
