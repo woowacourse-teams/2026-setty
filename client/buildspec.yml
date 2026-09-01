@@ -1,0 +1,34 @@
+version: 0.2
+
+env:
+  shell: bash
+  variables:
+    DEPLOY_BUCKET: techcourse-project-2026
+    DEPLOY_PREFIX: setty/build
+
+phases:
+  install:
+    runtime-versions:
+      nodejs: 22
+    commands:
+      - node --version
+      - npm --version
+      - npm --prefix client ci --prefer-offline --no-audit --no-fund
+  pre_build:
+    commands:
+      - npm --prefix client run type-check
+  build:
+    commands:
+      - npm --prefix client run build
+  post_build:
+    commands:
+      - test -n "${CLOUDFRONT_DISTRIBUTION_ID:-}" || { echo "CLOUDFRONT_DISTRIBUTION_ID is required" >&2; exit 1; }
+      - time aws s3 sync client/dist/assets/ "s3://${DEPLOY_BUCKET}/${DEPLOY_PREFIX}/assets/" --exclude "*.map" --cache-control "public,max-age=31536000,immutable" --only-show-errors
+      - time aws s3 sync client/dist/ "s3://${DEPLOY_BUCKET}/${DEPLOY_PREFIX}/" --exclude "index.html" --exclude "*.map" --exclude "assets/*" --cache-control "public,max-age=3600,must-revalidate" --only-show-errors
+      - time aws s3 cp client/dist/index.html "s3://${DEPLOY_BUCKET}/${DEPLOY_PREFIX}/index.html" --content-type "text/html; charset=utf-8" --cache-control "no-cache,no-store,max-age=0,must-revalidate" --only-show-errors
+      - time aws cloudfront create-invalidation --distribution-id "${CLOUDFRONT_DISTRIBUTION_ID}" --paths "/" "/index.html" --no-cli-pager
+
+cache:
+  paths:
+    - /root/.npm/**/*
+    - client/.webpack-cache/**/*
