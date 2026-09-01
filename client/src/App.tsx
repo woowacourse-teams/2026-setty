@@ -11,6 +11,7 @@ import {
     useParams,
     type BlockerFunction
 } from 'react-router';
+import { logout } from './api/auth';
 import { fetchListing, type ListingDetail } from './api/listings';
 import { AuthModal } from './components/AuthModal';
 import { FurnitureRegistration } from './components/FurnitureRegistration';
@@ -228,6 +229,7 @@ function App() {
     useEffect(() => {
         if (!locationState.logout) return;
 
+        void logout();
         window.sessionStorage.removeItem('setty:auth-token');
         window.sessionStorage.removeItem('setty:auth-role');
         setIsLoggedIn(false);

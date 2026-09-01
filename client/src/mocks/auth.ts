@@ -119,18 +119,58 @@ export const authHandlers = [
     }),
 
     http.get('/api/auth/me', ({ request }) => {
-        const token = request.headers.get('Authorization')?.replace('Bearer ', '') ?? null;
-        const member = token ? members.find((candidate) => candidate.token === token) : undefined;
+        const member = memberByToken(request);
         if (!member) {
             return HttpResponse.json({ code: 'INVALID_TOKEN', message: '로그인이 필요합니다.' }, { status: 401 });
         }
 
-        return HttpResponse.json({
-            id: member.id,
-            loginId: member.loginId,
-            role: member.role,
-            phoneNumber: member.phoneNumber,
-            address: member.address
-        });
+        return HttpResponse.json(profileOf(member));
+    }),
+
+    http.put('/api/auth/me', async ({ request }) => {
+        const member = memberByToken(request);
+        if (!member) {
+            return HttpResponse.json({ code: 'INVALID_TOKEN', message: '로그인이 필요합니다.' }, { status: 401 });
+        }
+
+        let body: unknown;
+        try {
+            body = await request.json();
+        } catch {
+            return invalidRequest();
+        }
+
+        const { phoneNumber, address } = (body ?? {}) as { phoneNumber?: unknown; address?: unknown };
+        if (typeof phoneNumber !== 'string' || !phoneNumberPattern.test(phoneNumber)
+                || typeof address !== 'string' || address.length === 0 || address.length > 200) {
+            return invalidRequest();
+        }
+
+        member.phoneNumber = phoneNumber;
+        member.address = address;
+        return HttpResponse.json(profileOf(member));
+    }),
+
+    http.post('/api/auth/logout', ({ request }) => {
+        const member = memberByToken(request);
+        if (member) {
+            member.token = null;
+        }
+        return new HttpResponse(null, { status: 204 });
     })
 ];
+
+function memberByToken(request: Request): MockMember | undefined {
+    const token = request.headers.get('Authorization')?.replace('Bearer ', '') ?? null;
+    return token ? members.find((candidate) => candidate.token === token) : undefined;
+}
+
+function profileOf(member: MockMember) {
+    return {
+        id: member.id,
+        loginId: member.loginId,
+        role: member.role,
+        phoneNumber: member.phoneNumber,
+        address: member.address
+    };
+}

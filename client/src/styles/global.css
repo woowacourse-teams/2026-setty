@@ -1456,6 +1456,51 @@ button {
     cursor: pointer;
 }
 
+.my-account__actions {
+    margin: 0 0 42px;
+}
+
+.my-account__edit-toggle {
+    padding: 12px 20px;
+    border: 1px solid #e3ded8;
+    border-radius: 12px;
+    color: #292929;
+    background: #ffffff;
+    font-size: 14px;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.my-account__edit {
+    margin-top: 0;
+}
+
+.my-account__edit-actions {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 12px;
+    margin-top: 6px;
+}
+
+.my-account__edit-cancel {
+    border: 1px solid #e3ded8;
+    border-radius: 19px;
+    color: #5b5753;
+    background: #ffffff;
+    font-size: 18px;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.my-account__edit-cancel:disabled {
+    cursor: wait;
+    opacity: 0.6;
+}
+
+.my-account__edit .auth-modal__submit {
+    margin-top: 0;
+}
+
 @media (max-width: 820px) {
     .my-orders__item.my-favorites__item {
         grid-template-areas: none;

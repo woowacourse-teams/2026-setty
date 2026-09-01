@@ -94,6 +94,37 @@ export async function fetchMe(): Promise<MemberMe> {
     return body as MemberMe;
 }
 
+export async function updateProfile(request: { phoneNumber: string; address: string }): Promise<MemberMe> {
+    const token = window.sessionStorage.getItem('setty:auth-token');
+    const response = await fetch('/api/auth/me', {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify(request)
+    });
+    const body: unknown = await response.json();
+
+    if (!response.ok) {
+        if (isErrorResponse(body)) {
+            throw new AuthApiError(body);
+        }
+
+        throw new Error('회원 정보를 수정하지 못했습니다.');
+    }
+
+    return body as MemberMe;
+}
+
+export async function logout(): Promise<void> {
+    const token = window.sessionStorage.getItem('setty:auth-token');
+    await fetch('/api/auth/logout', {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
+    });
+}
+
 export async function login(request: LoginRequest): Promise<LoginResponse> {
     const response = await fetch('/api/auth/login', {
         method: 'POST',
