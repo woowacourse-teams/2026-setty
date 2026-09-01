@@ -87,6 +87,9 @@ export function subscribeDeliveryRequestEvents(onRequestsChanged: () => void): (
       await readSseEvents(response.body, (eventName) => {
         if (eventName === REQUESTS_CHANGED_EVENT) notifyChanged();
       });
+    } catch {
+      // abort()는 화면 이탈·백그라운드 전환의 정상 종료 경로다.
+      // 실제 연결 오류는 finally에서 재연결한다.
     } finally {
       if (controller === nextController) controller = null;
       if (shouldReconnect && !nextController.signal.aborted) scheduleReconnect();
