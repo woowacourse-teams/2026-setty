@@ -1,13 +1,8 @@
 package setty.platform.order;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import java.util.List;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -25,15 +20,15 @@ import setty.platform.listing.storage.ListingImageStorage;
 import setty.platform.member.domain.Member;
 import setty.platform.member.repository.MemberRepository;
 import setty.platform.order.controller.dto.OrderCreateRequest;
+import setty.platform.order.domain.Order;
 import setty.platform.order.service.OrderService;
 
 @SpringBootTest
 @Testcontainers
-class OrderConcurrencyTest {
+class OrderPendingTest {
 
     private static final long SELLER_ID = 101L;
-    private static final long FIRST_BUYER_ID = 202L;
-    private static final long SECOND_BUYER_ID = 303L;
+    private static final long BUYER_ID = 202L;
     private static final long LISTING_ID = 11L;
 
     @Container
@@ -59,70 +54,45 @@ class OrderConcurrencyTest {
     void setUp() {
         cleanUp();
         insertMember(SELLER_ID);
-        insertMember(FIRST_BUYER_ID);
-        insertMember(SECOND_BUYER_ID);
+        insertMember(BUYER_ID);
         insertListing(LISTING_ID, SELLER_ID);
     }
 
     @AfterEach
     void cleanUp() {
+        jdbcTemplate.update("DELETE FROM payments");
         jdbcTemplate.update("DELETE FROM delivery");
         jdbcTemplate.update("DELETE FROM orders");
+        jdbcTemplate.update("DELETE FROM favorites");
         jdbcTemplate.update("DELETE FROM listing_images");
         jdbcTemplate.update("DELETE FROM listings");
         jdbcTemplate.update("DELETE FROM members");
     }
 
     @Test
-    void 같은_매물에_동시에_주문하면_한_건만_성공한다() throws InterruptedException {
-        final Member firstBuyer = memberRepository.findById(FIRST_BUYER_ID).orElseThrow();
-        final Member secondBuyer = memberRepository.findById(SECOND_BUYER_ID).orElseThrow();
+    void 결제_대기_주문이_생성되고_배차_요청은_발행되지_않는다() {
+        final Member buyer = memberRepository.findById(BUYER_ID).orElseThrow();
 
-        final CountDownLatch ready = new CountDownLatch(2);
-        final CountDownLatch start = new CountDownLatch(1);
-        final CountDownLatch done = new CountDownLatch(2);
-        final List<Object> results = new CopyOnWriteArrayList<>();
+        final Order order = orderService.pending(new OrderCreateRequest(LISTING_ID), buyer);
 
-        final ExecutorService executor = Executors.newFixedThreadPool(2);
-        for (final Member buyer : List.of(firstBuyer, secondBuyer)) {
-            executor.submit(() -> {
-                ready.countDown();
-                try {
-                    start.await();
-                    results.add(orderService.pending(new OrderCreateRequest(LISTING_ID), buyer));
-                } catch (final Exception e) {
-                    results.add(e);
-                } finally {
-                    done.countDown();
-                }
-            });
-        }
+        final String status = jdbcTemplate.queryForObject(
+                "SELECT delivery_status FROM orders WHERE id = ?", String.class, order.getId());
+        assertThat(status).isEqualTo("PENDING");
 
-        ready.await();
-        start.countDown();
-        final boolean finished = done.await(10, TimeUnit.SECONDS);
-        executor.shutdownNow();
+        final Integer deliveryCount = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM delivery", Integer.class);
+        assertThat(deliveryCount).isEqualTo(0);
+    }
 
-        assertThat(finished).isTrue();
+    @Test
+    void 이미_주문된_매물의_결제_대기_주문은_거부된다() {
+        final Member buyer = memberRepository.findById(BUYER_ID).orElseThrow();
+        orderService.pending(new OrderCreateRequest(LISTING_ID), buyer);
 
-        final List<Object> successes = results.stream()
-                .filter(result -> !(result instanceof Exception))
-                .toList();
-        final List<Exception> failures = results.stream()
-                .filter(Exception.class::isInstance)
-                .map(Exception.class::cast)
-                .toList();
-
-        assertThat(successes).hasSize(1);
-        assertThat(failures).hasSize(1);
-        assertThat(failures.get(0))
+        assertThatThrownBy(() -> orderService.pending(new OrderCreateRequest(LISTING_ID), buyer))
                 .isInstanceOf(BusinessException.class)
                 .extracting(e -> ((BusinessException) e).getErrorCode())
                 .isEqualTo(ErrorCode.ALREADY_ORDERED);
-
-        final Integer orderCount = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM orders WHERE listing_id = ?", Integer.class, LISTING_ID);
-        assertThat(orderCount).isEqualTo(1);
     }
 
     private void insertMember(final long memberId) {

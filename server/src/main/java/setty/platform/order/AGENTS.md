@@ -11,7 +11,7 @@
 
 - `Order` — 주문 엔티티. `@Table(name = "orders")` (ORDER는 SQL 예약어), listingId·buyerId·deliveryStatus·driverId
 - `OrderController` — `POST /api/orders` / `GET /api/me/orders` / `GET /api/orders/{id}`
-- `OrderService` — 주문 생성(중복 방지 + `OrderRequested` 이벤트 발행), 내 주문 조회
+- `OrderService` — 결제 대기 주문 생성(`pending()`, 중복 방지), 내 주문 조회. 결제 승인 후 주문을 만들던 `create()`는 결제의 이벤트 전환(#278)으로 제거됨
 - `DeliveryStatusChangedListener` — `DeliveryStatusChanged` 수신 전용의 얇은 리스너. 위임만 한다
 - `SyncOrderDeliveryStatusService` — 이벤트 검증·파싱 후 주문의 배송 상태를 동기화한다
 
@@ -21,11 +21,13 @@
   사전 체크(existsByListingId) → `saveAndFlush` → `DataIntegrityViolationException` catch 후 `ALREADY_ORDERED` 변환.
   `save`로 바꾸면 UNIQUE 위반이 커밋 시점(서비스 밖)에 터져 500이 된다.
 - `OrderRequested` 이벤트는 `setty/common/`의 팀 간 계약이다. 필드 추가·삭제는 배송 팀 합의 없이 하지 않는다.
-  발행은 주문 저장과 **같은 트랜잭션에서 동기**로 한다 — 리스너 실패 시 주문 롤백이 의도된 동작이다.
+  **현재 발행처 없음(과도기)** — `create()` 제거로 비었고, `PaymentCompleted` 수신 시 발행하는 리스너가 후속 작업이다.
+  발행 시에는 주문 상태 변경과 **같은 트랜잭션에서 동기**로 한다 — 리스너 실패 시 롤백이 의도된 동작이다.
 - 조회 응답의 매물 정보는 orders에 스냅샷으로 저장하지 않고 listing을 2차 조회해 조합한다 (DEC-06).
   매물 검증·구매 신청 등록은 `ListingService.registerPurchaseRequest()`를 통하고,
   조회 조합은 `ListingRepository`를 **읽기 전용**으로만 쓴다 (DEC-05 합의). listing을 여기서 수정하지 않는다.
 - 본인 주문만 조회할 수 있다. 남의 주문 id는 403이 아니라 **404 `ORDER_NOT_FOUND`**로 응답한다 (주문 존재 여부를 노출하지 않기 위함).
+- **PENDING은 결제 대기 주문(`OrderService.pending()`) 전용**이다. pending 경로는 `OrderRequested`를 발행하지 않는다 — 결제 전 주문에 배차를 요청하면 안 된다. PENDING 주문에는 delivery 행이 없다.
 - 배송 상태 동기화 규칙은 `Order.syncDeliveryStatus()`에서 관리한다 —
   **직전 상태에서 한 단계 전진만 허용**, 같은 상태 중복 이벤트는 무시(멱등), 그 외 불일치(역행·건너뛰기)는
   `ORDER_DELIVERY_STATUS_MISMATCH` 예외로 거부한다. 불일치를 조용히 무시하도록 바꾸면 버그가 숨는다.

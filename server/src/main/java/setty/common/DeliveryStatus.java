@@ -2,6 +2,7 @@ package setty.common;
 
 public enum DeliveryStatus {
 
+    PENDING("결제 대기"),
     REQUESTED("배송 요청"),
     ACCEPTED("배차"),
     PICKED_UP("수령"),
