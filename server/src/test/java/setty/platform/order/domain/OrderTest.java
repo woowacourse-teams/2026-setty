@@ -12,6 +12,24 @@ import setty.global.exception.ErrorCode;
 class OrderTest {
 
     @Test
+    void 결제_대기_주문은_PENDING으로_생성된다() {
+        final Order order = Order.pending(1L, 2L);
+
+        assertThat(order.getDeliveryStatus()).isEqualTo(DeliveryStatus.PENDING);
+    }
+
+    @Test
+    void 결제_대기_주문에_배송_이벤트가_오면_거부된다() {
+        final Order order = Order.pending(1L, 2L);
+
+        assertThatThrownBy(() -> order.syncDeliveryStatus(DeliveryStatus.ACCEPTED))
+                .isInstanceOf(BusinessException.class)
+                .extracting(e -> ((BusinessException) e).getErrorCode())
+                .isEqualTo(ErrorCode.ORDER_DELIVERY_STATUS_MISMATCH);
+        assertThat(order.getDeliveryStatus()).isEqualTo(DeliveryStatus.PENDING);
+    }
+
+    @Test
     void 순방향_전이는_순서대로_반영된다() {
         final Order order = new Order(1L, 2L);
 

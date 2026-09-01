@@ -51,6 +51,11 @@ public class Order {
         }
         this.deliveryStatus = DeliveryStatus.REQUESTED;
         return true;
+    // 결제 대기 주문 — 배송이 시작되지 않았으므로 OrderRequested를 발행하지 않는 경로에서만 쓴다.
+    public static Order pending(final Long listingId, final Long buyerId) {
+        final Order order = new Order(listingId, buyerId);
+        order.deliveryStatus = DeliveryStatus.PENDING;
+        return order;
     }
 
     // 직전 상태에서 한 단계 전진만 허용,
