@@ -31,6 +31,8 @@ setty:
       bucket: ${SETTY_S3_BUCKET:setty-listing-local}
       public-base-url: ${SETTY_S3_PUBLIC_BASE_URL:https://setty-listing-local.s3.ap-northeast-2.amazonaws.com}
   payment:
+    # 결제 성공/실패 복귀(GET /payments/success·/fail) 처리 후 브라우저를 돌려보낼 프론트 주소.
+    client-redirect-url: ${PAYMENT_CLIENT_REDIRECT_URL:http://localhost:3000}
     toss:
       # 토스페이먼츠 공개 테스트 시크릿키(문서 공개값, 비밀 아님). 실제 결제는 붙이지 않는다.
       secret-key: ${TOSS_SECRET_KEY:test_sk_docs_OaP0k9zOR7Awlz5DFNBrQmp3Xbl4}
