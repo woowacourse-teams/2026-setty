@@ -3,6 +3,8 @@ import { MagnifyingGlass } from '@phosphor-icons/react/dist/icons/MagnifyingGlas
 import { X } from '@phosphor-icons/react/dist/icons/X';
 import { useEffect, useId, useRef, useState } from 'react';
 
+const SEARCH_DEBOUNCE_DELAY = 300;
+
 interface HeaderProps {
     onHome: () => void;
     onSearchQueryChange: (query: string) => void;
@@ -32,12 +34,23 @@ export function Header({
     const menuButtonRef = useRef<HTMLButtonElement>(null);
     const menuRef = useRef<HTMLElement>(null);
     const isSearchComposingRef = useRef(false);
+    const searchDebounceTimerRef = useRef<number | null>(null);
+
+    const clearSearchDebounce = () => {
+        if (searchDebounceTimerRef.current !== null) {
+            window.clearTimeout(searchDebounceTimerRef.current);
+            searchDebounceTimerRef.current = null;
+        }
+    };
 
     useEffect(() => {
+        clearSearchDebounce();
         if (!isSearchComposingRef.current) {
             setSearchInput(searchQuery);
         }
     }, [searchQuery]);
+
+    useEffect(() => clearSearchDebounce, []);
 
     useEffect(() => {
         if (!isMenuOpen) {
@@ -90,7 +103,11 @@ export function Header({
     const changeSearchInput = (value: string) => {
         setSearchInput(value);
         if (!isSearchComposingRef.current) {
-            onSearchQueryChange(value);
+            clearSearchDebounce();
+            searchDebounceTimerRef.current = window.setTimeout(() => {
+                searchDebounceTimerRef.current = null;
+                onSearchQueryChange(value);
+            }, SEARCH_DEBOUNCE_DELAY);
         }
     };
 
@@ -143,7 +160,10 @@ export function Header({
                             isSearchComposingRef.current = false;
                             changeSearchInput(event.currentTarget.value);
                         }}
-                        onCompositionStart={() => { isSearchComposingRef.current = true; }}
+                        onCompositionStart={() => {
+                            isSearchComposingRef.current = true;
+                            clearSearchDebounce();
+                        }}
                         placeholder="배송비 고민 없이 원하는 가구를 찾아보세요"
                         type="search"
                         value={searchInput}
