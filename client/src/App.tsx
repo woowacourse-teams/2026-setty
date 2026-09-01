@@ -46,6 +46,7 @@ type EditListingRouteProps = {
 };
 
 const unsavedChangesMessage = '작성 중인 내용이 저장되지 않습니다. 나가시겠어요?';
+const SEARCH_DEBOUNCE_DELAY = 150;
 
 function getLocationState(state: unknown): AppLocationState {
     return state && typeof state === 'object' ? state as AppLocationState : {};
@@ -173,6 +174,7 @@ function App() {
     const searchParams = new URLSearchParams(location.search);
     const isAuthModalRequested = searchParams.get('auth') === 'login';
     const listingSearchQuery = searchParams.get('q') ?? '';
+    const [debouncedListingSearchQuery, setDebouncedListingSearchQuery] = useState(listingSearchQuery);
     const [isLoggedIn, setIsLoggedIn] = useState(() => Boolean(window.sessionStorage.getItem('setty:auth-token')));
     const isAuthModalOpen = isAuthModalRequested && !isLoggedIn;
     const [isFormDirty, setIsFormDirty] = useState(false);
@@ -240,6 +242,14 @@ function App() {
 
         navigate(removeAuthSearch(location.pathname, location.search), { replace: true, state: null });
     }, [isAuthModalRequested, isLoggedIn, location.pathname, location.search, navigate]);
+
+    useEffect(() => {
+        const timeoutId = window.setTimeout(() => {
+            setDebouncedListingSearchQuery(listingSearchQuery);
+        }, SEARCH_DEBOUNCE_DELAY);
+
+        return () => window.clearTimeout(timeoutId);
+    }, [listingSearchQuery]);
 
     useEffect(() => {
         const requestedPath = locationState.openAuthFor;
@@ -379,7 +389,7 @@ function App() {
                 <main className={`app-shell__main app-shell__main--${viewName}`}>
                     {__ENABLE_MSW__ && location.pathname === '/' && <MockScenarioController />}
                     <Routes>
-                        <Route index element={<ProductGrid onProductSelect={openDetail} searchQuery={listingSearchQuery} />} />
+                        <Route index element={<ProductGrid onProductSelect={openDetail} searchQuery={debouncedListingSearchQuery} />} />
                         <Route path="listings/:listingId" element={<ListingDetailRoute isLoggedIn={isLoggedIn} onBack={returnFromDetail} onLoginRequired={() => openAuthModal()} />} />
                         <Route path="my-listings" element={(
                             <RequireAuth isLoggedIn={isLoggedIn}>
