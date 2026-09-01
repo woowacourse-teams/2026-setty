@@ -4,15 +4,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import setty.common.OrderRequested;
 import setty.global.exception.BusinessException;
 import setty.global.exception.ErrorCode;
 import setty.platform.listing.application.ListingService;
 import setty.platform.listing.domain.Listing;
 import setty.platform.listing.repository.ListingRepository;
 import setty.platform.member.domain.Member;
+import setty.platform.member.repository.MemberRepository;
 import setty.platform.order.controller.dto.MyOrderResponse;
 import setty.platform.order.controller.dto.OrderCreateRequest;
 import setty.platform.order.domain.Order;
@@ -24,15 +27,21 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final ListingService listingService;
     private final ListingRepository listingRepository;
+    private final MemberRepository memberRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     public OrderService(
             final OrderRepository orderRepository,
             final ListingService listingService,
-            final ListingRepository listingRepository
+            final ListingRepository listingRepository,
+            final MemberRepository memberRepository,
+            final ApplicationEventPublisher eventPublisher
     ) {
         this.orderRepository = orderRepository;
         this.listingService = listingService;
         this.listingRepository = listingRepository;
+        this.memberRepository = memberRepository;
+        this.eventPublisher = eventPublisher;
     }
 
     // 결제 대기 주문 생성 — 결제 전이므로 OrderRequested(배차 요청)를 발행하지 않는다.
@@ -49,8 +58,6 @@ public class OrderService {
         } catch (final DataIntegrityViolationException e) {
             throw new BusinessException(ErrorCode.ALREADY_ORDERED);
         }
-
-        return order;
     }
 
     @Transactional
