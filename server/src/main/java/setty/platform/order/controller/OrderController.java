@@ -31,7 +31,7 @@ public class OrderController {
             @Valid @RequestBody final OrderCreateRequest request
     ) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(OrderCreateResponse.from(orderService.create(request, member)));
+                .body(OrderCreateResponse.from(orderService.pending(request, member)));
     }
 
     @GetMapping("/api/me/orders")

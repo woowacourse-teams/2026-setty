@@ -45,6 +45,22 @@ public class OrderService {
         this.eventPublisher = eventPublisher;
     }
 
+    // 결제 대기 주문 생성 — 결제 전이므로 OrderRequested(배차 요청)를 발행하지 않는다.
+    @Transactional
+    public Order pending(final OrderCreateRequest request, final Member buyer) {
+        if (orderRepository.existsByListingId(request.listingId())) {
+            throw new BusinessException(ErrorCode.ALREADY_ORDERED);
+        }
+
+        listingService.registerPurchaseRequest(request.listingId(), buyer.getId());
+
+        try {
+            return orderRepository.saveAndFlush(Order.pending(request.listingId(), buyer.getId()));
+        } catch (final DataIntegrityViolationException e) {
+            throw new BusinessException(ErrorCode.ALREADY_ORDERED);
+        }
+    }
+
     @Transactional
     public Order create(final OrderCreateRequest request, final Member buyer) {
         if (orderRepository.existsByListingId(request.listingId())) {
