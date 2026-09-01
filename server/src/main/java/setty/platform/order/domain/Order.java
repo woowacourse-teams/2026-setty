@@ -42,6 +42,17 @@ public class Order {
         this.deliveryStatus = DeliveryStatus.REQUESTED;
     }
 
+    public boolean requestDelivery() {
+        if (this.deliveryStatus == DeliveryStatus.REQUESTED) {
+            return false;
+        }
+        if (this.deliveryStatus != DeliveryStatus.PENDING) {
+            throw new BusinessException(ErrorCode.ORDER_DELIVERY_STATUS_MISMATCH);
+        }
+        this.deliveryStatus = DeliveryStatus.REQUESTED;
+        return true;
+    }
+
     // 직전 상태에서 한 단계 전진만 허용,
     // 같은 상태 중복 이벤트는 무시(멱등), 그 외 불일치는 예외 — 버그를 조용히 삼키지 않는다.
     public void syncDeliveryStatus(final DeliveryStatus newStatus) {
@@ -62,7 +73,7 @@ public class Order {
             case ACCEPTED -> DeliveryStatus.REQUESTED;
             case PICKED_UP -> DeliveryStatus.ACCEPTED;
             case DELIVERED -> DeliveryStatus.PICKED_UP;
-            case REQUESTED -> throw new BusinessException(ErrorCode.INVALID_REQUEST);
+            case PENDING, REQUESTED -> throw new BusinessException(ErrorCode.INVALID_REQUEST);
         };
     }
 

@@ -12,7 +12,6 @@ import setty.common.OrderRequested;
 import setty.global.exception.BusinessException;
 import setty.global.exception.ErrorCode;
 import setty.platform.listing.application.ListingService;
-import setty.platform.listing.application.ListingView;
 import setty.platform.listing.domain.Listing;
 import setty.platform.listing.repository.ListingRepository;
 import setty.platform.member.domain.Member;
@@ -51,10 +50,7 @@ public class OrderService {
             throw new BusinessException(ErrorCode.ALREADY_ORDERED);
         }
 
-        final ListingView.PurchaseInfo purchaseInfo =
-                listingService.registerPurchaseRequest(request.listingId(), buyer.getId());
-        final Member seller = memberRepository.findById(purchaseInfo.sellerId())
-                .orElseThrow(() -> new BusinessException(ErrorCode.INTERNAL_ERROR));
+        listingService.registerPurchaseRequest(request.listingId(), buyer.getId());
 
         final Order order;
         try {
@@ -63,18 +59,38 @@ public class OrderService {
             throw new BusinessException(ErrorCode.ALREADY_ORDERED);
         }
 
+        return order;
+    }
+
+    @Transactional
+    public void publishOrderRequested(final Long orderId) {
+        if (orderId == null || orderId <= 0) {
+            throw new BusinessException(ErrorCode.INVALID_REQUEST);
+        }
+
+        final Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
+        if (!order.requestDelivery()) {
+            return;
+        }
+
+        final Listing listing = listingRepository.findById(order.getListingId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.LISTING_NOT_FOUND));
+        final Member seller = memberRepository.findById(listing.getSellerId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.INTERNAL_ERROR));
+        final Member buyer = memberRepository.findById(order.getBuyerId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.INTERNAL_ERROR));
+
         eventPublisher.publishEvent(new OrderRequested(
                 order.getId(),
-                purchaseInfo.title(),
-                purchaseInfo.category().name(),
+                listing.getTitle(),
+                listing.getCategory().name(),
                 seller.getAddress(),
                 buyer.getAddress(),
-                purchaseInfo.deliveryFee(),
+                listing.getDeliveryFee(),
                 seller.getPhoneNumber(),
                 buyer.getPhoneNumber()
         ));
-
-        return order;
     }
 
     @Transactional(readOnly = true)
