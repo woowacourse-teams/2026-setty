@@ -172,6 +172,7 @@ function App() {
     const locationState = getLocationState(location.state);
     const searchParams = new URLSearchParams(location.search);
     const isAuthModalRequested = searchParams.get('auth') === 'login';
+    const listingSearchQuery = searchParams.get('q') ?? '';
     const [isLoggedIn, setIsLoggedIn] = useState(() => Boolean(window.sessionStorage.getItem('setty:auth-token')));
     const isAuthModalOpen = isAuthModalRequested && !isLoggedIn;
     const [isFormDirty, setIsFormDirty] = useState(false);
@@ -305,6 +306,16 @@ function App() {
         navigate('/');
     }, [location.pathname, location.search, navigate]);
 
+    const changeListingSearchQuery = useCallback((query: string) => {
+        const normalizedQuery = query.trim();
+        const params = new URLSearchParams();
+        if (normalizedQuery) {
+            params.set('q', normalizedQuery);
+        }
+
+        navigate({ pathname: '/', search: params.toString() }, { replace: location.pathname === '/' });
+    }, [location.pathname, navigate]);
+
     const goToAuthenticatedPath = useCallback((path: '/my-listings' | '/my-orders' | '/my-account' | '/my-favorites') => {
         if (isLoggedIn) {
             if (location.pathname === path && !location.search) return;
@@ -356,6 +367,8 @@ function App() {
                     onMyAccount={() => goToAuthenticatedPath('/my-account')}
                     onMyListings={() => goToAuthenticatedPath('/my-listings')}
                     onMyOrders={() => goToAuthenticatedPath('/my-orders')}
+                    onSearchQueryChange={changeListingSearchQuery}
+                    searchQuery={listingSearchQuery}
                 />
                 {paymentNotice && (
                     <div className={`payment-notice payment-notice--${paymentNotice.tone}`} role="status">
@@ -366,7 +379,7 @@ function App() {
                 <main className={`app-shell__main app-shell__main--${viewName}`}>
                     {__ENABLE_MSW__ && location.pathname === '/' && <MockScenarioController />}
                     <Routes>
-                        <Route index element={<ProductGrid onProductSelect={openDetail} />} />
+                        <Route index element={<ProductGrid onProductSelect={openDetail} searchQuery={listingSearchQuery} />} />
                         <Route path="listings/:listingId" element={<ListingDetailRoute isLoggedIn={isLoggedIn} onBack={returnFromDetail} onLoginRequired={() => openAuthModal()} />} />
                         <Route path="my-listings" element={(
                             <RequireAuth isLoggedIn={isLoggedIn}>
