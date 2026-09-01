@@ -121,6 +121,15 @@ button {
     opacity: 1;
 }
 
+.site-header__search-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    background: transparent;
+    cursor: pointer;
+}
+
 .site-header__search-icon {
     width: 23px;
     height: 23px;

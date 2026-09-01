@@ -3,8 +3,6 @@ import { MagnifyingGlass } from '@phosphor-icons/react/dist/icons/MagnifyingGlas
 import { X } from '@phosphor-icons/react/dist/icons/X';
 import { useEffect, useId, useRef, useState } from 'react';
 
-const SEARCH_DEBOUNCE_DELAY = 150;
-
 interface HeaderProps {
     onHome: () => void;
     onSearchQueryChange: (query: string) => void;
@@ -33,24 +31,11 @@ export function Header({
     const menuId = useId();
     const menuButtonRef = useRef<HTMLButtonElement>(null);
     const menuRef = useRef<HTMLElement>(null);
-    const isSearchComposingRef = useRef(false);
-    const searchDebounceTimerRef = useRef<number | null>(null);
-
-    const clearSearchDebounce = () => {
-        if (searchDebounceTimerRef.current !== null) {
-            window.clearTimeout(searchDebounceTimerRef.current);
-            searchDebounceTimerRef.current = null;
-        }
-    };
+    const searchInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
-        clearSearchDebounce();
-        if (!isSearchComposingRef.current) {
-            setSearchInput(searchQuery);
-        }
+        setSearchInput(searchQuery);
     }, [searchQuery]);
-
-    useEffect(() => clearSearchDebounce, []);
 
     useEffect(() => {
         if (!isMenuOpen) {
@@ -100,15 +85,8 @@ export function Header({
         action();
     };
 
-    const changeSearchInput = (value: string) => {
-        setSearchInput(value);
-        if (!isSearchComposingRef.current) {
-            clearSearchDebounce();
-            searchDebounceTimerRef.current = window.setTimeout(() => {
-                searchDebounceTimerRef.current = null;
-                onSearchQueryChange(value);
-            }, SEARCH_DEBOUNCE_DELAY);
-        }
+    const submitSearch = () => {
+        onSearchQueryChange(searchInputRef.current?.value ?? searchInput);
     };
 
     return (
@@ -151,25 +129,26 @@ export function Header({
                         )}
                     </div>
                 </div>
-                <div className="site-header__search-field">
+                <form
+                    className="site-header__search-field"
+                    onSubmit={(event) => {
+                        event.preventDefault();
+                        submitSearch();
+                    }}
+                >
                     <input
                         aria-label="매물 이름 검색"
                         className="site-header__search-input"
-                        onChange={(event) => changeSearchInput(event.target.value)}
-                        onCompositionEnd={(event) => {
-                            isSearchComposingRef.current = false;
-                            changeSearchInput(event.currentTarget.value);
-                        }}
-                        onCompositionStart={() => {
-                            isSearchComposingRef.current = true;
-                            clearSearchDebounce();
-                        }}
+                        onChange={(event) => setSearchInput(event.target.value)}
                         placeholder="배송비 고민 없이 원하는 가구를 찾아보세요"
-                        type="search"
+                        ref={searchInputRef}
+                        type="text"
                         value={searchInput}
                     />
-                    <MagnifyingGlass aria-hidden="true" className="site-header__search-icon" weight="bold" />
-                </div>
+                    <button aria-label="매물 검색" className="site-header__search-button" type="submit">
+                        <MagnifyingGlass aria-hidden="true" className="site-header__search-icon" weight="bold" />
+                    </button>
+                </form>
                 <nav
                     id={menuId}
                     ref={menuRef}
