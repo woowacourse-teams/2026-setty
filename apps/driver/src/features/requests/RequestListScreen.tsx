@@ -1,5 +1,5 @@
-import { useCallback, useRef, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, RefreshControl, View } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Animated, Easing, FlatList, Pressable, RefreshControl, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { deliveryApi } from '@/api/deliveryApi';
 import { subscribeDeliveryRequestEvents } from '@/api/deliveryRequestEvents';
@@ -16,9 +16,26 @@ import { styles } from './RequestListScreen.styles';
 /** 홈: 수락 대기 중인 배차 요청 목록. */
 export function RequestListScreen() {
   const router = useRouter();
-  const { items, loading, refreshing, error, refresh, reload, rejectLocal } = useRequests();
+  const {
+    items,
+    loading,
+    refreshing,
+    error,
+    newRequestIds,
+    refresh,
+    reload,
+    clearNewRequestIds,
+    rejectLocal,
+  } = useRequests();
   const { message, show } = useToast();
   const [acceptingId, setAcceptingId] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (newRequestIds.size === 0) return;
+
+    const timer = setTimeout(clearNewRequestIds, 360);
+    return () => clearTimeout(timer);
+  }, [clearNewRequestIds, newRequestIds]);
 
   // 상세에서 수락·거절 후 돌아오면 목록을 다시 맞춘다(최초 포커스는 초기 로드가 담당).
   const firstFocus = useRef(true);
@@ -65,13 +82,14 @@ export function RequestListScreen() {
 
   const renderItem = useCallback(
     ({ item }: { item: DeliveryRequestSummaryResponse }) => (
-      <RequestCard
+      <AnimatedRequestCard
         request={item}
         onPress={() => openDetail(item.deliveryId)}
         onAccept={() => acceptInline(item.deliveryId)}
+        animate={newRequestIds.has(item.deliveryId)}
       />
     ),
-    [openDetail, acceptInline],
+    [openDetail, acceptInline, newRequestIds],
   );
 
   return (
@@ -108,6 +126,50 @@ export function RequestListScreen() {
 
       <Toast message={message} />
     </Screen>
+  );
+}
+
+function AnimatedRequestCard({
+  request,
+  onPress,
+  onAccept,
+  animate,
+}: {
+  request: DeliveryRequestSummaryResponse;
+  onPress: () => void;
+  onAccept: () => void;
+  animate: boolean;
+}) {
+  const visibility = useRef(new Animated.Value(animate ? 0 : 1)).current;
+
+  useEffect(() => {
+    if (!animate) return;
+
+    visibility.setValue(0);
+    Animated.timing(visibility, {
+      toValue: 1,
+      duration: 280,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+  }, [animate, visibility]);
+
+  return (
+    <Animated.View
+      style={{
+        opacity: visibility,
+        transform: [
+          {
+            translateY: visibility.interpolate({
+              inputRange: [0, 1],
+              outputRange: [12, 0],
+            }),
+          },
+        ],
+      }}
+    >
+      <RequestCard request={request} onPress={onPress} onAccept={onAccept} />
+    </Animated.View>
   );
 }
 
