@@ -31,13 +31,25 @@ export function Header({
     const menuId = useId();
     const menuButtonRef = useRef<HTMLButtonElement>(null);
     const menuRef = useRef<HTMLElement>(null);
+    const searchInputRef = useRef<HTMLInputElement>(null);
     const isSearchComposingRef = useRef(false);
+    const isSearchCompositionSettlingRef = useRef(false);
+    const compositionEndTimerRef = useRef<number | null>(null);
+
+    const clearCompositionEndTimer = () => {
+        if (compositionEndTimerRef.current !== null) {
+            window.clearTimeout(compositionEndTimerRef.current);
+            compositionEndTimerRef.current = null;
+        }
+    };
 
     useEffect(() => {
-        if (!isSearchComposingRef.current) {
+        if (!isSearchComposingRef.current && !isSearchCompositionSettlingRef.current) {
             setSearchInput(searchQuery);
         }
     }, [searchQuery]);
+
+    useEffect(() => clearCompositionEndTimer, []);
 
     useEffect(() => {
         if (!isMenuOpen) {
@@ -89,9 +101,24 @@ export function Header({
 
     const changeSearchInput = (value: string) => {
         setSearchInput(value);
-        if (!isSearchComposingRef.current) {
+        if (!isSearchComposingRef.current && !isSearchCompositionSettlingRef.current) {
             onSearchQueryChange(value);
         }
+    };
+
+    const finishSearchComposition = () => {
+        isSearchComposingRef.current = false;
+        isSearchCompositionSettlingRef.current = true;
+        clearCompositionEndTimer();
+        compositionEndTimerRef.current = window.setTimeout(() => {
+            compositionEndTimerRef.current = null;
+            if (isSearchComposingRef.current) return;
+
+            isSearchCompositionSettlingRef.current = false;
+            const value = searchInputRef.current?.value ?? '';
+            setSearchInput(value);
+            onSearchQueryChange(value);
+        }, 0);
     };
 
     return (
@@ -139,14 +166,14 @@ export function Header({
                         aria-label="매물 이름 검색"
                         className="site-header__search-input"
                         onChange={(event) => changeSearchInput(event.target.value)}
-                        onCompositionEnd={(event) => {
-                            isSearchComposingRef.current = false;
-                            changeSearchInput(event.currentTarget.value);
-                        }}
+                        onCompositionEnd={finishSearchComposition}
                         onCompositionStart={() => {
                             isSearchComposingRef.current = true;
+                            isSearchCompositionSettlingRef.current = false;
+                            clearCompositionEndTimer();
                         }}
                         placeholder="배송비 고민 없이 원하는 가구를 찾아보세요"
+                        ref={searchInputRef}
                         type="search"
                         value={searchInput}
                     />
