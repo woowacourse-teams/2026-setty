@@ -10,7 +10,9 @@ import setty.global.exception.BusinessException;
 import setty.global.exception.ErrorCode;
 import setty.platform.member.controller.dto.LoginRequest;
 import setty.platform.member.controller.dto.LoginResponse;
+import setty.platform.member.controller.dto.MemberMeResponse;
 import setty.platform.member.controller.dto.SignupRequest;
+import setty.platform.member.controller.dto.UpdateProfileRequest;
 import setty.platform.member.domain.Member;
 import setty.platform.member.domain.MemberRole;
 import setty.platform.member.repository.MemberRepository;
@@ -62,5 +64,20 @@ public class AuthService {
     public Member findByToken(final String token) {
         return memberRepository.findByToken(token)
                 .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_TOKEN));
+    }
+
+    @Transactional
+    public void logout(final Long memberId) {
+        final Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_TOKEN));
+        member.clearToken();
+    }
+
+    @Transactional
+    public MemberMeResponse updateProfile(final Long memberId, final UpdateProfileRequest request) {
+        final Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_TOKEN));
+        member.updateContact(request.phoneNumber(), request.address());
+        return MemberMeResponse.from(member);
     }
 }

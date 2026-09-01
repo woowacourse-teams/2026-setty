@@ -5,6 +5,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -14,6 +15,7 @@ import setty.platform.member.controller.dto.LoginResponse;
 import setty.platform.member.controller.dto.MemberMeResponse;
 import setty.platform.member.controller.dto.SignupRequest;
 import setty.platform.member.controller.dto.SignupResponse;
+import setty.platform.member.controller.dto.UpdateProfileRequest;
 import setty.platform.member.domain.Member;
 import setty.platform.member.service.AuthService;
 
@@ -42,5 +44,19 @@ public class AuthController {
     @GetMapping("/me")
     public ResponseEntity<MemberMeResponse> me(@LoginMember final Member member) {
         return ResponseEntity.ok(MemberMeResponse.from(member));
+    }
+
+    @PutMapping("/me")
+    public ResponseEntity<MemberMeResponse> updateProfile(
+            @LoginMember final Member member,
+            @Valid @RequestBody final UpdateProfileRequest request
+    ) {
+        return ResponseEntity.ok(authService.updateProfile(member.getId(), request));
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout(@LoginMember final Member member) {
+        authService.logout(member.getId());
+        return ResponseEntity.noContent().build();
     }
 }

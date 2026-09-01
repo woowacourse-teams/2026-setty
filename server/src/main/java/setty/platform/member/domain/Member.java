@@ -88,6 +88,15 @@ public class Member {
         this.token = newToken;
     }
 
+    public void clearToken() {
+        this.token = null;
+    }
+
+    public void updateContact(final String phoneNumber, final String address) {
+        this.phoneNumber = phoneNumber;
+        this.address = address;
+    }
+
     public boolean matchPassword(final org.springframework.security.crypto.password.PasswordEncoder encoder, final String rawPassword) {
         return encoder.matches(rawPassword, this.password);
     }
