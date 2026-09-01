@@ -5,28 +5,47 @@ env:
   variables:
     DEPLOY_BUCKET: techcourse-project-2026
     DEPLOY_PREFIX: setty/build
+    DEPLOY_STATE_KEY: setty/build/.deploy/frontend-source.sha256
 
 phases:
   install:
     runtime-versions:
       nodejs: 22
     commands:
+      - |
+        {
+          find client -type f \
+            ! -path 'client/node_modules/*' \
+            ! -path 'client/dist/*' \
+            ! -path 'client/coverage/*' \
+            ! -path 'client/.webpack-cache/*' \
+            -print0 | LC_ALL=C sort -z | xargs -0 sha256sum
+          env | LC_ALL=C sort | awk -F= '$1 == "ENABLE_MSW" || $1 ~ /^SETTY_/'
+        } | sha256sum | awk '{print $1}' > /tmp/current-frontend-source.sha256
+        if aws s3 cp "s3://${DEPLOY_BUCKET}/${DEPLOY_STATE_KEY}" /tmp/previous-frontend-source.sha256 --only-show-errors 2>/dev/null \
+          && cmp -s /tmp/current-frontend-source.sha256 /tmp/previous-frontend-source.sha256; then
+          touch /tmp/skip-frontend-build
+          echo "No frontend changes detected; skipping install, build, deploy, and invalidation."
+        else
+          echo "Frontend changes detected; continuing deployment."
+        fi
       - node --version
       - npm --version
-      - npm --prefix client ci --prefer-offline --no-audit --no-fund
+      - if [ ! -f /tmp/skip-frontend-build ]; then npm --prefix client ci --prefer-offline --no-audit --no-fund; fi
   pre_build:
     commands:
-      - npm --prefix client run type-check
+      - if [ ! -f /tmp/skip-frontend-build ]; then npm --prefix client run type-check; fi
   build:
     commands:
-      - npm --prefix client run build
+      - if [ ! -f /tmp/skip-frontend-build ]; then npm --prefix client run build; fi
   post_build:
     commands:
-      - test -n "${CLOUDFRONT_DISTRIBUTION_ID:-}" || { echo "CLOUDFRONT_DISTRIBUTION_ID is required" >&2; exit 1; }
-      - time aws s3 sync client/dist/assets/ "s3://${DEPLOY_BUCKET}/${DEPLOY_PREFIX}/assets/" --exclude "*.map" --cache-control "public,max-age=31536000,immutable" --only-show-errors
-      - time aws s3 sync client/dist/ "s3://${DEPLOY_BUCKET}/${DEPLOY_PREFIX}/" --exclude "index.html" --exclude "*.map" --exclude "assets/*" --cache-control "public,max-age=3600,must-revalidate" --only-show-errors
-      - time aws s3 cp client/dist/index.html "s3://${DEPLOY_BUCKET}/${DEPLOY_PREFIX}/index.html" --content-type "text/html; charset=utf-8" --cache-control "no-cache,no-store,max-age=0,must-revalidate" --only-show-errors
-      - time aws cloudfront create-invalidation --distribution-id "${CLOUDFRONT_DISTRIBUTION_ID}" --paths "/" "/index.html" --no-cli-pager
+      - if [ ! -f /tmp/skip-frontend-build ]; then test -n "${CLOUDFRONT_DISTRIBUTION_ID:-}" || { echo "CLOUDFRONT_DISTRIBUTION_ID is required" >&2; exit 1; }; fi
+      - if [ ! -f /tmp/skip-frontend-build ]; then time aws s3 sync client/dist/assets/ "s3://${DEPLOY_BUCKET}/${DEPLOY_PREFIX}/assets/" --exclude "*.map" --cache-control "public,max-age=31536000,immutable" --only-show-errors; fi
+      - if [ ! -f /tmp/skip-frontend-build ]; then time aws s3 sync client/dist/ "s3://${DEPLOY_BUCKET}/${DEPLOY_PREFIX}/" --exclude "index.html" --exclude "*.map" --exclude "assets/*" --cache-control "public,max-age=3600,must-revalidate" --only-show-errors; fi
+      - if [ ! -f /tmp/skip-frontend-build ]; then time aws s3 cp client/dist/index.html "s3://${DEPLOY_BUCKET}/${DEPLOY_PREFIX}/index.html" --content-type "text/html; charset=utf-8" --cache-control "no-cache,no-store,max-age=0,must-revalidate" --only-show-errors; fi
+      - if [ ! -f /tmp/skip-frontend-build ]; then time aws cloudfront create-invalidation --distribution-id "${CLOUDFRONT_DISTRIBUTION_ID}" --paths "/" "/index.html" --no-cli-pager; fi
+      - if [ ! -f /tmp/skip-frontend-build ]; then aws s3 cp /tmp/current-frontend-source.sha256 "s3://${DEPLOY_BUCKET}/${DEPLOY_STATE_KEY}" --content-type "text/plain" --cache-control "no-store" --only-show-errors; fi
 
 cache:
   paths:
