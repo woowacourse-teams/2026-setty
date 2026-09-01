@@ -3,7 +3,7 @@ import { MagnifyingGlass } from '@phosphor-icons/react/dist/icons/MagnifyingGlas
 import { X } from '@phosphor-icons/react/dist/icons/X';
 import { useEffect, useId, useRef, useState } from 'react';
 
-const SEARCH_DEBOUNCE_DELAY = 300;
+const SEARCH_DEBOUNCE_DELAY = 150;
 
 interface HeaderProps {
     onHome: () => void;
