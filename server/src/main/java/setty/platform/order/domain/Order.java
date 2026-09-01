@@ -42,6 +42,15 @@ public class Order {
         this.deliveryStatus = DeliveryStatus.REQUESTED;
     }
 
+    public boolean requestDelivery() {
+        if (this.deliveryStatus == DeliveryStatus.REQUESTED) {
+            return false;
+        }
+        if (this.deliveryStatus != DeliveryStatus.PENDING) {
+            throw new BusinessException(ErrorCode.ORDER_DELIVERY_STATUS_MISMATCH);
+        }
+        this.deliveryStatus = DeliveryStatus.REQUESTED;
+        return true;
     // 결제 대기 주문 — 배송이 시작되지 않았으므로 OrderRequested를 발행하지 않는 경로에서만 쓴다.
     public static Order pending(final Long listingId, final Long buyerId) {
         final Order order = new Order(listingId, buyerId);

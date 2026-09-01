@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.test.util.ReflectionTestUtils;
 import setty.common.DeliveryStatus;
 import setty.global.exception.BusinessException;
 import setty.global.exception.ErrorCode;
@@ -82,5 +83,15 @@ class OrderTest {
                 .isInstanceOf(BusinessException.class)
                 .extracting(e -> ((BusinessException) e).getErrorCode())
                 .isEqualTo(ErrorCode.INVALID_REQUEST);
+    }
+
+    @Test
+    void 결제대기_주문은_배송요청으로_전환된다() {
+        final Order order = new Order(1L, 2L);
+        ReflectionTestUtils.setField(order, "deliveryStatus", DeliveryStatus.PENDING);
+
+        assertThat(order.requestDelivery()).isTrue();
+        assertThat(order.getDeliveryStatus()).isEqualTo(DeliveryStatus.REQUESTED);
+        assertThat(order.requestDelivery()).isFalse();
     }
 }
