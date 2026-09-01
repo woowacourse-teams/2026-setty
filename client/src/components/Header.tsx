@@ -105,13 +105,15 @@ export function Header({
                         SETTY
                     </a>
                     <div className="site-header__top-actions">
-                        <button
-                            className={`site-header__mobile-auth-button ${isLoggedIn ? 'site-header__mobile-logout-button' : 'site-header__mobile-login-button'}`}
-                            onClick={() => runMobileAuthAction(isLoggedIn ? onLogout : onLoginClick)}
-                            type="button"
-                        >
-                            {isLoggedIn ? '로그아웃' : '로그인'}
-                        </button>
+                        {!isLoggedIn && (
+                            <button
+                                className="site-header__mobile-auth-button site-header__mobile-login-button"
+                                onClick={() => runMobileAuthAction(onLoginClick)}
+                                type="button"
+                            >
+                                로그인
+                            </button>
+                        )}
                         {isLoggedIn && (
                             <button
                                 ref={menuButtonRef}
