@@ -89,7 +89,7 @@ class OrderConcurrencyTest {
                 ready.countDown();
                 try {
                     start.await();
-                    results.add(orderService.create(new OrderCreateRequest(LISTING_ID), buyer));
+                    results.add(orderService.pending(new OrderCreateRequest(LISTING_ID), buyer));
                 } catch (final Exception e) {
                     results.add(e);
                 } finally {
