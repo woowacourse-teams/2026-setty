@@ -27,9 +27,17 @@ export function Header({
     searchQuery
 }: HeaderProps) {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [searchInput, setSearchInput] = useState(searchQuery);
     const menuId = useId();
     const menuButtonRef = useRef<HTMLButtonElement>(null);
     const menuRef = useRef<HTMLElement>(null);
+    const isSearchComposingRef = useRef(false);
+
+    useEffect(() => {
+        if (!isSearchComposingRef.current) {
+            setSearchInput(searchQuery);
+        }
+    }, [searchQuery]);
 
     useEffect(() => {
         if (!isMenuOpen) {
@@ -79,6 +87,13 @@ export function Header({
         action();
     };
 
+    const changeSearchInput = (value: string) => {
+        setSearchInput(value);
+        if (!isSearchComposingRef.current) {
+            onSearchQueryChange(value);
+        }
+    };
+
     return (
         <header className="site-header">
             <div className="site-header__content">
@@ -123,10 +138,15 @@ export function Header({
                     <input
                         aria-label="매물 이름 검색"
                         className="site-header__search-input"
-                        onChange={(event) => onSearchQueryChange(event.target.value)}
+                        onChange={(event) => changeSearchInput(event.target.value)}
+                        onCompositionEnd={(event) => {
+                            isSearchComposingRef.current = false;
+                            changeSearchInput(event.currentTarget.value);
+                        }}
+                        onCompositionStart={() => { isSearchComposingRef.current = true; }}
                         placeholder="배송비 고민 없이 원하는 가구를 찾아보세요"
                         type="search"
-                        value={searchQuery}
+                        value={searchInput}
                     />
                     <MagnifyingGlass aria-hidden="true" className="site-header__search-icon" weight="bold" />
                 </div>
