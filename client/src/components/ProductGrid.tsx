@@ -72,9 +72,10 @@ function ProductCardSkeleton() {
 
 type ProductGridProps = {
     onProductSelect: (listingId: number) => void;
+    searchQuery: string;
 };
 
-export function ProductGrid({ onProductSelect }: ProductGridProps) {
+export function ProductGrid({ onProductSelect, searchQuery }: ProductGridProps) {
     const [items, setItems] = useState<ListingItem[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -113,13 +114,22 @@ export function ProductGrid({ onProductSelect }: ProductGridProps) {
         );
     }
 
-    if (items.length === 0) {
+    const trimmedSearchQuery = searchQuery.trim();
+    const filteredItems = trimmedSearchQuery
+        ? items.filter((item) => item.title.toLowerCase().includes(trimmedSearchQuery.toLowerCase()))
+        : items;
+
+    if (filteredItems.length === 0) {
+        if (trimmedSearchQuery) {
+            return <p className="product-grid-message">&ldquo;{trimmedSearchQuery}&rdquo;에 해당하는 매물이 없습니다.</p>;
+        }
+
         return <p className="product-grid-message">판매 중인 매물이 없습니다.</p>;
     }
 
     return (
         <section className="product-grid" aria-label="판매 중인 가구 목록">
-            {items.map((product) => <ProductCard key={product.id} product={product} onSelect={() => onProductSelect(product.id)} />)}
+            {filteredItems.map((product) => <ProductCard key={product.id} product={product} onSelect={() => onProductSelect(product.id)} />)}
         </section>
     );
 }

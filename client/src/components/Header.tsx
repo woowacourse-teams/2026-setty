@@ -5,19 +5,37 @@ import { useEffect, useId, useRef, useState } from 'react';
 
 interface HeaderProps {
     onHome: () => void;
+    onSearchQueryChange: (query: string) => void;
     onMyListings: () => void;
     onMyOrders: () => void;
     onMyAccount: () => void;
     isLoggedIn: boolean;
     onLogout: () => void;
     onLoginClick: () => void;
+    searchQuery: string;
 }
 
-export function Header({ onHome, onMyListings, onMyOrders, onMyAccount, isLoggedIn, onLogout, onLoginClick }: HeaderProps) {
+export function Header({
+    onHome,
+    onSearchQueryChange,
+    onMyListings,
+    onMyOrders,
+    onMyAccount,
+    isLoggedIn,
+    onLogout,
+    onLoginClick,
+    searchQuery
+}: HeaderProps) {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [searchInput, setSearchInput] = useState(searchQuery);
     const menuId = useId();
     const menuButtonRef = useRef<HTMLButtonElement>(null);
     const menuRef = useRef<HTMLElement>(null);
+    const searchInputRef = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+        setSearchInput(searchQuery);
+    }, [searchQuery]);
 
     useEffect(() => {
         if (!isMenuOpen) {
@@ -67,6 +85,10 @@ export function Header({ onHome, onMyListings, onMyOrders, onMyAccount, isLogged
         action();
     };
 
+    const submitSearch = () => {
+        onSearchQueryChange(searchInputRef.current?.value ?? searchInput);
+    };
+
     return (
         <header className="site-header">
             <div className="site-header__content">
@@ -107,10 +129,26 @@ export function Header({ onHome, onMyListings, onMyOrders, onMyAccount, isLogged
                         )}
                     </div>
                 </div>
-                <div className="site-header__search-field">
-                    <span className="site-header__search-field-placeholder">배송비 고민 없이 원하는 가구를 찾아보세요</span>
-                    <MagnifyingGlass aria-hidden="true" className="site-header__search-icon" weight="bold" />
-                </div>
+                <form
+                    className="site-header__search-field"
+                    onSubmit={(event) => {
+                        event.preventDefault();
+                        submitSearch();
+                    }}
+                >
+                    <input
+                        aria-label="매물 이름 검색"
+                        className="site-header__search-input"
+                        onChange={(event) => setSearchInput(event.target.value)}
+                        placeholder="배송비 고민 없이 원하는 가구를 찾아보세요"
+                        ref={searchInputRef}
+                        type="text"
+                        value={searchInput}
+                    />
+                    <button aria-label="매물 검색" className="site-header__search-button" type="submit">
+                        <MagnifyingGlass aria-hidden="true" className="site-header__search-icon" weight="bold" />
+                    </button>
+                </form>
                 <nav
                     id={menuId}
                     ref={menuRef}
