@@ -4,5 +4,6 @@
 # 클라이언트 의존성과 빌드 산출물. 레포에 커밋하지 않는다.
 /client/node_modules/
 /client/dist/
+/client/.webpack-cache/
 
 .DS_Store

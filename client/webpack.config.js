@@ -1,37 +1,67 @@
 const path = require('path');
 const webpack = require('webpack');
+const CopyWebpackPlugin = require('copy-webpack-plugin');
+const HtmlWebpackPlugin = require('html-webpack-plugin');
 
 const enableMsw = process.env.ENABLE_MSW === 'true';
 
-module.exports = {
-    entry: './src/main.tsx',
-    resolve: {
-        extensions: ['.tsx', '.ts', '.js']
-    },
-    module: {
-        rules: [
-            {
-                test: /\.tsx?$/,
-                exclude: /node_modules/,
-                use: 'ts-loader'
+module.exports = (_, argv) => {
+    const isProduction = argv.mode === 'production';
+
+    return {
+        entry: './src/main.tsx',
+        cache: isProduction
+            ? {
+                type: 'filesystem',
+                cacheDirectory: path.resolve(__dirname, '.webpack-cache')
             }
-        ]
-    },
-    plugins: [
-        new webpack.DefinePlugin({
-            __ENABLE_MSW__: JSON.stringify(enableMsw)
-        })
-    ],
-    devServer: {
-        static: {
-            directory: path.resolve(__dirname, 'public')
+            : false,
+        resolve: {
+            extensions: ['.tsx', '.ts', '.js']
         },
-        historyApiFallback: true,
-        port: 3000
-    },
-    output: {
-        filename: 'bundle.js',
-        path: path.resolve(__dirname, 'dist'),
-        clean: true
-    }
+        module: {
+            rules: [
+                {
+                    test: /\.tsx?$/,
+                    exclude: /node_modules/,
+                    use: 'ts-loader'
+                }
+            ]
+        },
+        plugins: [
+            new webpack.DefinePlugin({
+                __ENABLE_MSW__: JSON.stringify(enableMsw)
+            }),
+            new HtmlWebpackPlugin({
+                template: path.resolve(__dirname, 'public/index.html')
+            }),
+            new CopyWebpackPlugin({
+                patterns: [
+                    {
+                        from: path.resolve(__dirname, 'public'),
+                        to: '.',
+                        globOptions: {
+                            ignore: ['**/index.html']
+                        }
+                    }
+                ]
+            })
+        ],
+        devServer: {
+            static: {
+                directory: path.resolve(__dirname, 'public')
+            },
+            historyApiFallback: true,
+            port: 3000
+        },
+        output: {
+            filename: isProduction ? 'assets/js/[name].[contenthash:8].js' : 'bundle.js',
+            chunkFilename: isProduction ? 'assets/js/[name].[contenthash:8].js' : '[name].bundle.js',
+            cssFilename: isProduction ? 'assets/css/[name].[contenthash:8].css' : 'bundle.css',
+            cssChunkFilename: isProduction ? 'assets/css/[name].[contenthash:8].css' : '[name].bundle.css',
+            path: path.resolve(__dirname, 'dist'),
+            publicPath: '/',
+            clean: true
+        },
+    };
 };
