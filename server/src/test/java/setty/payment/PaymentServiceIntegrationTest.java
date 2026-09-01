@@ -17,31 +17,34 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.event.ApplicationEvents;
+import org.springframework.test.context.event.RecordApplicationEvents;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.mysql.MySQLContainer;
+import setty.common.PaymentCompleted;
+import setty.common.PaymentFailed;
 import setty.global.exception.BusinessException;
 import setty.global.exception.ErrorCode;
 import setty.payment.application.PaymentService;
 import setty.payment.domain.Payment;
 import setty.payment.infrastructure.TossConfirmResult;
 import setty.payment.infrastructure.TossPaymentClient;
-import setty.payment.presentation.dto.PaymentConfirmRequest;
 import setty.platform.listing.storage.ListingImageStorage;
-import setty.platform.member.domain.Member;
-import setty.platform.member.repository.MemberRepository;
 
 @SpringBootTest
 @Testcontainers
+@RecordApplicationEvents
 class PaymentServiceIntegrationTest {
 
     private static final long SELLER_ID = 101L;
     private static final long BUYER_ID = 202L;
     private static final long LISTING_ID = 11L;
+    private static final long ORDER_ID = 500L;
     private static final int PRICE = 150_000;
     private static final int DELIVERY_FEE = 10_000;
     private static final int TOTAL_PRICE = PRICE + DELIVERY_FEE;
-    private static final String TOSS_ORDER_ID = "toss-order-uuid-1";
+    private static final String TOSS_ORDER_ID = String.valueOf(ORDER_ID);
     private static final String PAYMENT_KEY = "test_payment_key_1";
 
     @Container
@@ -55,10 +58,10 @@ class PaymentServiceIntegrationTest {
     private PaymentService paymentService;
 
     @Autowired
-    private MemberRepository memberRepository;
+    private JdbcTemplate jdbcTemplate;
 
     @Autowired
-    private JdbcTemplate jdbcTemplate;
+    private ApplicationEvents events;
 
     @MockitoBean
     private TossPaymentClient tossPaymentClient;
@@ -72,6 +75,7 @@ class PaymentServiceIntegrationTest {
         insertMember(SELLER_ID);
         insertMember(BUYER_ID);
         insertListing(LISTING_ID, SELLER_ID);
+        insertPendingOrder(ORDER_ID, LISTING_ID, BUYER_ID);
     }
 
     @AfterEach
@@ -85,80 +89,98 @@ class PaymentServiceIntegrationTest {
     }
 
     @Test
-    void 결제_승인에_성공하면_주문과_결제가_생성되고_배차_요청까지_이어진다() {
-        when(tossPaymentClient.confirm(eq(PAYMENT_KEY), eq(TOSS_ORDER_ID), eq(TOTAL_PRICE)))
-                .thenReturn(new TossConfirmResult(
-                        PAYMENT_KEY, TOSS_ORDER_ID, "DONE", TOTAL_PRICE, "2026-08-31T12:00:00+09:00"));
+    void 결제_승인에_성공하면_결제가_저장되고_PaymentCompleted가_발행된다() {
+        stubTossSuccess();
 
-        final Payment payment = paymentService.confirm(confirmRequest(TOTAL_PRICE), buyer());
+        final Payment payment = paymentService.confirm(ORDER_ID, PAYMENT_KEY, TOTAL_PRICE);
 
         assertThat(payment.getId()).isNotNull();
-        assertThat(payment.getAmount()).isEqualTo(TOTAL_PRICE);
-        assertThat(orderCount()).isEqualTo(1);
+        assertThat(payment.getStatus().name()).isEqualTo("DONE");
+        assertThat(payment.getOrderId()).isEqualTo(ORDER_ID);
         assertThat(paymentCount()).isEqualTo(1);
-        // OrderRequested 발행 → 배송 팀이 수신해 배차 요청 row를 만든다 (결제 후에만 발행됨).
-        assertThat(deliveryCount()).isEqualTo(1);
+        // payment는 주문·배차를 만들지 않는다 — 결과만 이벤트로 알린다.
+        assertThat(events.stream(PaymentCompleted.class).map(PaymentCompleted::orderId))
+                .containsExactly(ORDER_ID);
+        assertThat(orderStaysUntouched()).isTrue();
     }
 
     @Test
-    void 금액이_일치하지_않으면_토스를_호출하지_않고_주문도_생기지_않는다() {
-        assertThatThrownBy(() -> paymentService.confirm(confirmRequest(TOTAL_PRICE - 1), buyer()))
+    void 금액이_일치하지_않으면_토스를_호출하지_않고_결제도_저장되지_않는다() {
+        assertThatThrownBy(() -> paymentService.confirm(ORDER_ID, PAYMENT_KEY, TOTAL_PRICE - 1))
                 .isInstanceOf(BusinessException.class)
                 .extracting(e -> ((BusinessException) e).getErrorCode())
                 .isEqualTo(ErrorCode.PAYMENT_AMOUNT_MISMATCH);
 
         verify(tossPaymentClient, never()).confirm(anyString(), anyString(), anyInt());
-        assertThat(orderCount()).isZero();
         assertThat(paymentCount()).isZero();
-        assertThat(deliveryCount()).isZero();
+        assertThat(events.stream(PaymentCompleted.class).count()).isZero();
     }
 
     @Test
-    void 본인_매물은_결제할_수_없다() {
-        final Member seller = memberRepository.findById(SELLER_ID).orElseThrow();
-
-        assertThatThrownBy(() -> paymentService.confirm(confirmRequest(TOTAL_PRICE), seller))
+    void 존재하지_않는_주문이면_주문을_찾을_수_없다() {
+        assertThatThrownBy(() -> paymentService.confirm(9_999L, PAYMENT_KEY, TOTAL_PRICE))
                 .isInstanceOf(BusinessException.class)
                 .extracting(e -> ((BusinessException) e).getErrorCode())
-                .isEqualTo(ErrorCode.CANNOT_ORDER_OWN_LISTING);
-
-        verify(tossPaymentClient, never()).confirm(anyString(), anyString(), anyInt());
-        assertThat(orderCount()).isZero();
-    }
-
-    @Test
-    void 이미_주문된_매물은_결제할_수_없다() {
-        jdbcTemplate.update(
-                "INSERT INTO orders (listing_id, buyer_id, delivery_status) VALUES (?, ?, 'REQUESTED')",
-                LISTING_ID, BUYER_ID);
-
-        assertThatThrownBy(() -> paymentService.confirm(confirmRequest(TOTAL_PRICE), buyer()))
-                .isInstanceOf(BusinessException.class)
-                .extracting(e -> ((BusinessException) e).getErrorCode())
-                .isEqualTo(ErrorCode.ALREADY_ORDERED);
+                .isEqualTo(ErrorCode.ORDER_NOT_FOUND);
 
         verify(tossPaymentClient, never()).confirm(anyString(), anyString(), anyInt());
         assertThat(paymentCount()).isZero();
     }
 
-    private Member buyer() {
-        return memberRepository.findById(BUYER_ID).orElseThrow();
+    @Test
+    void 결제_실패로_복귀하면_ABORTED로_저장되고_PaymentFailed가_발행된다() {
+        final Payment payment = paymentService.fail(ORDER_ID);
+
+        assertThat(payment.getStatus().name()).isEqualTo("ABORTED");
+        assertThat(payment.getPaymentKey()).isNull();
+        assertThat(payment.getApprovedAt()).isNull();
+        assertThat(paymentCount()).isEqualTo(1);
+        assertThat(events.stream(PaymentFailed.class).map(PaymentFailed::orderId))
+                .containsExactly(ORDER_ID);
     }
 
-    private PaymentConfirmRequest confirmRequest(final int amount) {
-        return new PaymentConfirmRequest(LISTING_ID, TOSS_ORDER_ID, PAYMENT_KEY, amount);
+    @Test
+    void 실패한_주문을_재시도해_승인되면_같은_행이_DONE으로_전이된다() {
+        paymentService.fail(ORDER_ID);
+        stubTossSuccess();
+
+        final Payment retried = paymentService.confirm(ORDER_ID, PAYMENT_KEY, TOTAL_PRICE);
+
+        assertThat(retried.getStatus().name()).isEqualTo("DONE");
+        assertThat(retried.getPaymentKey()).isEqualTo(PAYMENT_KEY);
+        // ABORTED → DONE 전이이므로 주문당 결제는 여전히 1행이다.
+        assertThat(paymentCount()).isEqualTo(1);
+        assertThat(events.stream(PaymentCompleted.class).count()).isEqualTo(1);
     }
 
-    private int orderCount() {
-        return jdbcTemplate.queryForObject("SELECT COUNT(*) FROM orders", Integer.class);
+    @Test
+    void 이미_승인된_결제를_다시_승인하면_재승인_없이_멱등_처리된다() {
+        stubTossSuccess();
+        paymentService.confirm(ORDER_ID, PAYMENT_KEY, TOTAL_PRICE);
+
+        final Payment again = paymentService.confirm(ORDER_ID, PAYMENT_KEY, TOTAL_PRICE);
+
+        assertThat(again.getStatus().name()).isEqualTo("DONE");
+        assertThat(paymentCount()).isEqualTo(1);
+        // 두 번째 호출은 토스를 다시 부르지 않는다(총 1회).
+        verify(tossPaymentClient).confirm(eq(PAYMENT_KEY), eq(TOSS_ORDER_ID), eq(TOTAL_PRICE));
+    }
+
+    private void stubTossSuccess() {
+        when(tossPaymentClient.confirm(eq(PAYMENT_KEY), eq(TOSS_ORDER_ID), eq(TOTAL_PRICE)))
+                .thenReturn(new TossConfirmResult(
+                        PAYMENT_KEY, TOSS_ORDER_ID, "DONE", TOTAL_PRICE, "2026-08-31T12:00:00+09:00"));
+    }
+
+    private boolean orderStaysUntouched() {
+        final Integer count = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM orders WHERE id = ? AND delivery_status = 'REQUESTED'",
+                Integer.class, ORDER_ID);
+        return count != null && count == 1;
     }
 
     private int paymentCount() {
         return jdbcTemplate.queryForObject("SELECT COUNT(*) FROM payments", Integer.class);
-    }
-
-    private int deliveryCount() {
-        return jdbcTemplate.queryForObject("SELECT COUNT(*) FROM delivery", Integer.class);
     }
 
     private void insertMember(final long memberId) {
@@ -187,5 +209,11 @@ class PaymentServiceIntegrationTest {
                 PRICE,
                 DELIVERY_FEE
         );
+    }
+
+    private void insertPendingOrder(final long orderId, final long listingId, final long buyerId) {
+        jdbcTemplate.update(
+                "INSERT INTO orders (id, listing_id, buyer_id, delivery_status) VALUES (?, ?, ?, 'REQUESTED')",
+                orderId, listingId, buyerId);
     }
 }
