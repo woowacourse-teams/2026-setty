@@ -5,8 +5,8 @@ import productGridStyles from '../styles/modules/ProductGrid.module.css';
 
 const deliveryStatusLabels: Record<DeliveryStatus, string> = {
     REQUESTED: '배송 요청',
+    ACCEPTED: '배차 완료',
     PICKED_UP: '수거 완료',
-    IN_DELIVERY: '배송 중',
     DELIVERED: '배송 완료'
 };
 

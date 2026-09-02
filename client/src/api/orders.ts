@@ -1,4 +1,4 @@
-export const deliveryStatuses = ['REQUESTED', 'PICKED_UP', 'IN_DELIVERY', 'DELIVERED'] as const;
+export const deliveryStatuses = ['REQUESTED', 'ACCEPTED', 'PICKED_UP', 'DELIVERED'] as const;
 
 export type DeliveryStatus = (typeof deliveryStatuses)[number];
 
