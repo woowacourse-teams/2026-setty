@@ -4,7 +4,6 @@ import {
     setListingMockScenario,
     type ListingMockScenario
 } from '../mocks/scenario';
-import { cx } from '../styles/classNames';
 import mockScenarioControllerStyles from '../styles/modules/MockScenarioController.module.css';
 
 export function MockScenarioController() {
@@ -17,7 +16,7 @@ export function MockScenarioController() {
     }
 
     return (
-        <label className={cx(mockScenarioControllerStyles['mock-scenario-controller'])}>
+        <label className={mockScenarioControllerStyles['mock-scenario-controller']}>
             MSW 응답 속도
             <select
                 value={scenario}

@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { fetchMyFavorites, removeFavorite } from '../api/favorites';
 import type { ListingItem } from '../api/listings';
-import { cx } from '../styles/classNames';
 import accountPagesStyles from '../styles/modules/AccountPages.module.css';
 import productGridStyles from '../styles/modules/ProductGrid.module.css';
 
@@ -44,29 +43,29 @@ export function MyFavorites({ onSelect }: MyFavoritesProps) {
     };
 
     return (
-        <section className={cx(accountPagesStyles['my-orders'], accountPagesStyles['my-favorites'])} aria-labelledby="my-favorites-title">
-            <div className={cx(accountPagesStyles['my-orders__heading'])}>
+        <section className={[accountPagesStyles['my-orders'], accountPagesStyles['my-favorites']].filter(Boolean).join(' ')} aria-labelledby="my-favorites-title">
+            <div className={accountPagesStyles['my-orders__heading']}>
                 <h1 id="my-favorites-title">찜한 매물 <span>{items.length}</span></h1>
             </div>
-            {isLoading && <p className={cx(productGridStyles['product-grid-message'])}>찜 목록을 불러오는 중입니다.</p>}
-            {error && <div className={cx(productGridStyles['product-grid-message'])}><p>{error}</p><button onClick={() => void load()} type="button">다시 시도</button></div>}
-            {!isLoading && !error && items.length === 0 && <p className={cx(productGridStyles['product-grid-message'])}>찜한 가구가 없습니다.</p>}
+            {isLoading && <p className={productGridStyles['product-grid-message']}>찜 목록을 불러오는 중입니다.</p>}
+            {error && <div className={productGridStyles['product-grid-message']}><p>{error}</p><button onClick={() => void load()} type="button">다시 시도</button></div>}
+            {!isLoading && !error && items.length === 0 && <p className={productGridStyles['product-grid-message']}>찜한 가구가 없습니다.</p>}
             {!isLoading && !error && items.length > 0 && (
-                <div className={cx(accountPagesStyles['my-orders__list'])} aria-label="찜한 매물 목록">
+                <div className={accountPagesStyles['my-orders__list']} aria-label="찜한 매물 목록">
                     {items.map((item) => (
-                        <article className={cx(accountPagesStyles['my-orders__item'], accountPagesStyles['my-favorites__item'])} key={item.id}>
-                            <button className={cx(accountPagesStyles['my-favorites__select'])} onClick={() => onSelect(item.id)} type="button">
-                                <span className={cx(accountPagesStyles['my-favorites__thumbnail'])}>
+                        <article className={[accountPagesStyles['my-orders__item'], accountPagesStyles['my-favorites__item']].filter(Boolean).join(' ')} key={item.id}>
+                            <button className={accountPagesStyles['my-favorites__select']} onClick={() => onSelect(item.id)} type="button">
+                                <span className={accountPagesStyles['my-favorites__thumbnail']}>
                                     {item.thumbnailUrl && <img src={item.thumbnailUrl} alt="" />}
                                 </span>
-                                <span className={cx(accountPagesStyles['my-orders__details'])}>
+                                <span className={accountPagesStyles['my-orders__details']}>
                                     <h2>{item.title}</h2>
                                     <p>매물가 {item.price.toLocaleString('ko-KR')}원 <i /> 배송비 {item.deliveryFee.toLocaleString('ko-KR')}원</p>
                                 </span>
                             </button>
-                            <strong className={cx(accountPagesStyles['my-orders__total'])}>{item.totalPrice.toLocaleString('ko-KR')}원</strong>
+                            <strong className={accountPagesStyles['my-orders__total']}>{item.totalPrice.toLocaleString('ko-KR')}원</strong>
                             <button
-                                className={cx(accountPagesStyles['my-favorites__remove'])}
+                                className={accountPagesStyles['my-favorites__remove']}
                                 disabled={removingId === item.id}
                                 onClick={() => void remove(item.id)}
                                 type="button"
@@ -77,7 +76,7 @@ export function MyFavorites({ onSelect }: MyFavoritesProps) {
                     ))}
                 </div>
             )}
-            {removeMessage && <p className={cx(productGridStyles['product-grid-message'])} role="status">{removeMessage}</p>}
+            {removeMessage && <p className={productGridStyles['product-grid-message']} role="status">{removeMessage}</p>}
         </section>
     );
 }

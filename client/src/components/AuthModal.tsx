@@ -1,7 +1,6 @@
 import { X } from '@phosphor-icons/react/dist/icons/X';
 import { FormEvent, useEffect, useRef, useState } from 'react';
 import { AuthApiError, login, signup } from '../api/auth';
-import { cx } from '../styles/classNames';
 import authModalStyles from '../styles/modules/AuthModal.module.css';
 
 type AuthMode = 'login' | 'signup';
@@ -134,29 +133,29 @@ export function AuthModal({ onClose, onLoggedIn }: AuthModalProps) {
     const isLogin = mode === 'login';
 
     return (
-        <div className={cx(authModalStyles['auth-modal-backdrop'])} role="presentation" onMouseDown={onClose}>
+        <div className={authModalStyles['auth-modal-backdrop']} role="presentation" onMouseDown={onClose}>
             <section
                 aria-labelledby="auth-modal-title"
                 aria-modal="true"
-                className={cx(authModalStyles['auth-modal'], authModalStyles[`auth-modal--${mode}`])}
+                className={[authModalStyles['auth-modal'], authModalStyles[`auth-modal--${mode}`]].filter(Boolean).join(' ')}
                 ref={dialogRef}
                 role="dialog"
                 tabIndex={-1}
                 onMouseDown={(event) => event.stopPropagation()}
             >
-                <button aria-label="닫기" className={cx(authModalStyles['auth-modal__close'])} onClick={onClose} type="button">
+                <button aria-label="닫기" className={authModalStyles['auth-modal__close']} onClick={onClose} type="button">
                     <X aria-hidden="true" size={28} weight="light" />
                 </button>
 
-                <div className={cx(authModalStyles['auth-modal__brand'])}>
+                <div className={authModalStyles['auth-modal__brand']}>
                     <h1 id="auth-modal-title">SETTY</h1>
                     <p>배송까지 끝내는 중고 가구 거래</p>
                 </div>
 
-                <div className={cx(authModalStyles['auth-modal__tabs'])} role="group" aria-label="인증 방식">
+                <div className={authModalStyles['auth-modal__tabs']} role="group" aria-label="인증 방식">
                     <button
                         aria-pressed={isLogin}
-                        className={cx(authModalStyles['auth-modal__tab'], isLogin && authModalStyles['auth-modal__tab--active'])}
+                        className={[authModalStyles['auth-modal__tab'], isLogin && authModalStyles['auth-modal__tab--active']].filter(Boolean).join(' ')}
                         onClick={() => changeMode('login')}
                         type="button"
                     >
@@ -164,7 +163,7 @@ export function AuthModal({ onClose, onLoggedIn }: AuthModalProps) {
                     </button>
                     <button
                         aria-pressed={!isLogin}
-                        className={cx(authModalStyles['auth-modal__tab'], !isLogin && authModalStyles['auth-modal__tab--active'])}
+                        className={[authModalStyles['auth-modal__tab'], !isLogin && authModalStyles['auth-modal__tab--active']].filter(Boolean).join(' ')}
                         onClick={() => changeMode('signup')}
                         type="button"
                     >
@@ -172,8 +171,8 @@ export function AuthModal({ onClose, onLoggedIn }: AuthModalProps) {
                     </button>
                 </div>
 
-                <form className={cx(authModalStyles['auth-modal__form'])} onSubmit={(event) => void handleSubmit(event)}>
-                    <label className={cx(authModalStyles['auth-modal__field'])}>
+                <form className={authModalStyles['auth-modal__form']} onSubmit={(event) => void handleSubmit(event)}>
+                    <label className={authModalStyles['auth-modal__field']}>
                         <span>아이디</span>
                         <input
                             autoComplete="username"
@@ -186,7 +185,7 @@ export function AuthModal({ onClose, onLoggedIn }: AuthModalProps) {
                             value={loginId}
                         />
                     </label>
-                    <label className={cx(authModalStyles['auth-modal__field'])}>
+                    <label className={authModalStyles['auth-modal__field']}>
                         <span>비밀번호</span>
                         <input
                             autoComplete={isLogin ? 'current-password' : 'new-password'}
@@ -200,7 +199,7 @@ export function AuthModal({ onClose, onLoggedIn }: AuthModalProps) {
                     </label>
                     {!isLogin && (
                         <>
-                            <label className={cx(authModalStyles['auth-modal__field'])}>
+                            <label className={authModalStyles['auth-modal__field']}>
                                 <span>휴대폰 번호</span>
                                 <input
                                     autoComplete="tel"
@@ -213,7 +212,7 @@ export function AuthModal({ onClose, onLoggedIn }: AuthModalProps) {
                                     value={phoneNumber}
                                 />
                             </label>
-                            <label className={cx(authModalStyles['auth-modal__field'])}>
+                            <label className={authModalStyles['auth-modal__field']}>
                                 <span>주소</span>
                                 <input
                                     autoComplete="street-address"
@@ -230,13 +229,13 @@ export function AuthModal({ onClose, onLoggedIn }: AuthModalProps) {
                     {feedback && (
                         <p
                             aria-live="polite"
-                            className={cx(authModalStyles['auth-modal__feedback'], authModalStyles[`auth-modal__feedback--${feedback.type}`])}
+                            className={[authModalStyles['auth-modal__feedback'], authModalStyles[`auth-modal__feedback--${feedback.type}`]].filter(Boolean).join(' ')}
                             role={feedback.type === 'error' ? 'alert' : 'status'}
                         >
                             {feedback.message}
                         </p>
                     )}
-                    <button className={cx(authModalStyles['auth-modal__submit'])} disabled={isSubmitting} type="submit">
+                    <button className={authModalStyles['auth-modal__submit']} disabled={isSubmitting} type="submit">
                         {isSubmitting ? '처리 중...' : isLogin ? '로그인' : '가입하고 시작하기'}
                     </button>
                 </form>

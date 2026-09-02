@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { fetchListings, type ListingItem } from '../api/listings';
-import { cx } from '../styles/classNames';
 import productGridStyles from '../styles/modules/ProductGrid.module.css';
 
 const categoryLabels: Record<string, string> = {
@@ -29,7 +28,7 @@ function formatRegisteredAt(createdAt: string) {
 
     return (
         <article
-            className={cx(productGridStyles['product-card'], productGridStyles['product-card--interactive'])}
+            className={[productGridStyles['product-card'], productGridStyles['product-card--interactive']].filter(Boolean).join(' ')}
             role="button"
             tabIndex={0}
             onClick={onSelect}
@@ -40,18 +39,18 @@ function formatRegisteredAt(createdAt: string) {
                 }
             }}
         >
-            <div className={cx(productGridStyles['product-card__image-wrap'])}>
+            <div className={productGridStyles['product-card__image-wrap']}>
                 {product.thumbnailUrl && (
-                    <img className={cx(productGridStyles['product-card__image'])} src={product.thumbnailUrl} alt={product.title} />
+                    <img className={productGridStyles['product-card__image']} src={product.thumbnailUrl} alt={product.title} />
                 )}
             </div>
-            <div className={cx(productGridStyles['product-card__details'])}>
-                <h2 className={cx(productGridStyles['product-card__title'])}>{product.title}</h2>
-                <p className={cx(productGridStyles['product-card__price'])}>
+            <div className={productGridStyles['product-card__details']}>
+                <h2 className={productGridStyles['product-card__title']}>{product.title}</h2>
+                <p className={productGridStyles['product-card__price']}>
                     {formatWon(product.price)} <span>+ 배송 {formatWon(product.deliveryFee)}</span>
                 </p>
-                <p className={cx(productGridStyles['product-card__total'])}>총 {formatWon(product.totalPrice)}</p>
-                <p className={cx(productGridStyles['product-card__meta'])}>
+                <p className={productGridStyles['product-card__total']}>총 {formatWon(product.totalPrice)}</p>
+                <p className={productGridStyles['product-card__meta']}>
                     {categoryLabels[product.category] ?? product.category} <i /> {product.conditionGrade}급 <i /> {formatRegisteredAt(product.createdAt)} 등록
                 </p>
             </div>
@@ -61,12 +60,12 @@ function formatRegisteredAt(createdAt: string) {
 
 function ProductCardSkeleton() {
     return (
-        <article className={cx(productGridStyles['product-card'])} aria-label="매물 목록을 불러오는 중">
-            <div className={cx(productGridStyles['product-card__image-wrap'], productGridStyles['skeleton'])} />
-            <div className={cx(productGridStyles['product-card__details'])}>
-                <div className={cx(productGridStyles['skeleton'], productGridStyles['skeleton--title'])} />
-                <div className={cx(productGridStyles['skeleton'], productGridStyles['skeleton--price'])} />
-                <div className={cx(productGridStyles['skeleton'], productGridStyles['skeleton--meta'])} />
+        <article className={productGridStyles['product-card']} aria-label="매물 목록을 불러오는 중">
+            <div className={[productGridStyles['product-card__image-wrap'], productGridStyles['skeleton']].filter(Boolean).join(' ')} />
+            <div className={productGridStyles['product-card__details']}>
+                <div className={[productGridStyles['skeleton'], productGridStyles['skeleton--title']].filter(Boolean).join(' ')} />
+                <div className={[productGridStyles['skeleton'], productGridStyles['skeleton--price']].filter(Boolean).join(' ')} />
+                <div className={[productGridStyles['skeleton'], productGridStyles['skeleton--meta']].filter(Boolean).join(' ')} />
             </div>
         </article>
     );
@@ -101,7 +100,7 @@ export function ProductGrid({ onProductSelect, searchQuery }: ProductGridProps) 
 
     if (isLoading) {
         return (
-            <section className={cx(productGridStyles['product-grid'])} aria-label="판매 중인 가구 목록">
+            <section className={productGridStyles['product-grid']} aria-label="판매 중인 가구 목록">
                 {Array.from({ length: 12 }, (_, index) => <ProductCardSkeleton key={index} />)}
             </section>
         );
@@ -109,7 +108,7 @@ export function ProductGrid({ onProductSelect, searchQuery }: ProductGridProps) 
 
     if (error) {
         return (
-            <section className={cx(productGridStyles['product-grid-message'])} aria-live="polite">
+            <section className={productGridStyles['product-grid-message']} aria-live="polite">
                 <p>{error}</p>
                 <button type="button" onClick={() => void load()}>다시 시도</button>
             </section>
@@ -123,14 +122,14 @@ export function ProductGrid({ onProductSelect, searchQuery }: ProductGridProps) 
 
     if (filteredItems.length === 0) {
         if (trimmedSearchQuery) {
-            return <p className={cx(productGridStyles['product-grid-message'])}>&ldquo;{trimmedSearchQuery}&rdquo;에 해당하는 매물이 없습니다.</p>;
+            return <p className={productGridStyles['product-grid-message']}>&ldquo;{trimmedSearchQuery}&rdquo;에 해당하는 매물이 없습니다.</p>;
         }
 
-        return <p className={cx(productGridStyles['product-grid-message'])}>판매 중인 매물이 없습니다.</p>;
+        return <p className={productGridStyles['product-grid-message']}>판매 중인 매물이 없습니다.</p>;
     }
 
     return (
-        <section className={cx(productGridStyles['product-grid'])} aria-label="판매 중인 가구 목록">
+        <section className={productGridStyles['product-grid']} aria-label="판매 중인 가구 목록">
             {filteredItems.map((product) => <ProductCard key={product.id} product={product} onSelect={() => onProductSelect(product.id)} />)}
         </section>
     );
