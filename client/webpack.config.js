@@ -33,7 +33,10 @@ module.exports = (_, argv) => {
                         {
                             loader: 'css-loader',
                             options: {
-                                modules: true
+                                modules: {
+                                    namedExport: false,
+                                    exportLocalsConvention: 'as-is'
+                                }
                             }
                         }
                     ]
