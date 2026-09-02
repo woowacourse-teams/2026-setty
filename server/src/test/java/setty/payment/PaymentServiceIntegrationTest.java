@@ -44,7 +44,8 @@ class PaymentServiceIntegrationTest {
     private static final int PRICE = 150_000;
     private static final int DELIVERY_FEE = 10_000;
     private static final int TOTAL_PRICE = PRICE + DELIVERY_FEE;
-    private static final String TOSS_ORDER_ID = String.valueOf(ORDER_ID);
+    // 토스 orderId는 `<주문id>_<랜덤>` 복합키. 서버는 앞부분에서 ORDER_ID를 추출한다.
+    private static final String TOSS_ORDER_ID = ORDER_ID + "_test-token";
     private static final String PAYMENT_KEY = "test_payment_key_1";
 
     @Container
@@ -92,7 +93,7 @@ class PaymentServiceIntegrationTest {
     void 결제_승인에_성공하면_결제가_저장되고_PaymentCompleted가_발행된다() {
         stubTossSuccess();
 
-        final Payment payment = paymentService.confirm(ORDER_ID, PAYMENT_KEY, TOTAL_PRICE);
+        final Payment payment = paymentService.confirm(TOSS_ORDER_ID,PAYMENT_KEY, TOTAL_PRICE);
 
         assertThat(payment.getId()).isNotNull();
         assertThat(payment.getStatus().name()).isEqualTo("DONE");
@@ -106,7 +107,7 @@ class PaymentServiceIntegrationTest {
 
     @Test
     void 금액이_일치하지_않으면_토스를_호출하지_않고_결제도_저장되지_않는다() {
-        assertThatThrownBy(() -> paymentService.confirm(ORDER_ID, PAYMENT_KEY, TOTAL_PRICE - 1))
+        assertThatThrownBy(() -> paymentService.confirm(TOSS_ORDER_ID,PAYMENT_KEY, TOTAL_PRICE - 1))
                 .isInstanceOf(BusinessException.class)
                 .extracting(e -> ((BusinessException) e).getErrorCode())
                 .isEqualTo(ErrorCode.PAYMENT_AMOUNT_MISMATCH);
@@ -118,7 +119,7 @@ class PaymentServiceIntegrationTest {
 
     @Test
     void 존재하지_않는_주문이면_주문을_찾을_수_없다() {
-        assertThatThrownBy(() -> paymentService.confirm(9_999L, PAYMENT_KEY, TOTAL_PRICE))
+        assertThatThrownBy(() -> paymentService.confirm("9999_test-token", PAYMENT_KEY, TOTAL_PRICE))
                 .isInstanceOf(BusinessException.class)
                 .extracting(e -> ((BusinessException) e).getErrorCode())
                 .isEqualTo(ErrorCode.ORDER_NOT_FOUND);
@@ -129,7 +130,7 @@ class PaymentServiceIntegrationTest {
 
     @Test
     void 결제_실패로_복귀하면_ABORTED로_저장되고_PaymentFailed가_발행된다() {
-        final Payment payment = paymentService.fail(ORDER_ID);
+        final Payment payment = paymentService.fail(TOSS_ORDER_ID);
 
         assertThat(payment.getStatus().name()).isEqualTo("ABORTED");
         assertThat(payment.getPaymentKey()).isNull();
@@ -141,10 +142,10 @@ class PaymentServiceIntegrationTest {
 
     @Test
     void 실패한_주문을_재시도해_승인되면_같은_행이_DONE으로_전이된다() {
-        paymentService.fail(ORDER_ID);
+        paymentService.fail(TOSS_ORDER_ID);
         stubTossSuccess();
 
-        final Payment retried = paymentService.confirm(ORDER_ID, PAYMENT_KEY, TOTAL_PRICE);
+        final Payment retried = paymentService.confirm(TOSS_ORDER_ID,PAYMENT_KEY, TOTAL_PRICE);
 
         assertThat(retried.getStatus().name()).isEqualTo("DONE");
         assertThat(retried.getPaymentKey()).isEqualTo(PAYMENT_KEY);
@@ -156,9 +157,9 @@ class PaymentServiceIntegrationTest {
     @Test
     void 이미_승인된_결제를_다시_승인하면_재승인_없이_멱등_처리된다() {
         stubTossSuccess();
-        paymentService.confirm(ORDER_ID, PAYMENT_KEY, TOTAL_PRICE);
+        paymentService.confirm(TOSS_ORDER_ID,PAYMENT_KEY, TOTAL_PRICE);
 
-        final Payment again = paymentService.confirm(ORDER_ID, PAYMENT_KEY, TOTAL_PRICE);
+        final Payment again = paymentService.confirm(TOSS_ORDER_ID,PAYMENT_KEY, TOTAL_PRICE);
 
         assertThat(again.getStatus().name()).isEqualTo("DONE");
         assertThat(paymentCount()).isEqualTo(1);

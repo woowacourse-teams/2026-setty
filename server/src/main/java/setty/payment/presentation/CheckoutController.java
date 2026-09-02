@@ -43,7 +43,7 @@ public class CheckoutController {
             @RequestParam final int amount
     ) {
         try {
-            paymentService.confirm(Long.parseLong(orderId), paymentKey, amount);
+            paymentService.confirm(orderId, paymentKey, amount);
             return redirect("success", orderId, null);
         } catch (final BusinessException e) {
             log.warn("결제 승인 처리에 실패했습니다. orderId={}, code={}", orderId, e.getErrorCode(), e);
@@ -58,7 +58,7 @@ public class CheckoutController {
             @RequestParam final String orderId
     ) {
         log.info("결제 실패 복귀. orderId={}, code={}, message={}", orderId, code, message);
-        paymentService.fail(Long.parseLong(orderId));
+        paymentService.fail(orderId);
         return redirect("fail", orderId, code);
     }
 

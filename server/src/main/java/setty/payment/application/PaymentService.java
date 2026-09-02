@@ -39,7 +39,8 @@ public class PaymentService {
      * 결제 성공 복귀 처리. 매물 가격으로 금액을 재검증한 뒤 토스 승인을 호출하고 결제를 저장한다.
      * 같은 주문이 이미 승인 완료면 재승인 없이 기존 결제를 그대로 돌려준다(멱등).
      */
-    public Payment confirm(final Long orderId, final String paymentKey, final int amount) {
+    public Payment confirm(final String tossOrderId, final String paymentKey, final int amount) {
+        final Long orderId = extractOrderId(tossOrderId);
         final int expectedAmount = resolveExpectedAmount(orderId);
         if (expectedAmount != amount) {
             throw new BusinessException(ErrorCode.PAYMENT_AMOUNT_MISMATCH);
@@ -50,15 +51,28 @@ public class PaymentService {
             return alreadyPaid;
         }
 
-        final TossConfirmResult result = tossPaymentClient.confirm(paymentKey, String.valueOf(orderId), amount);
+        // 클라가 토스에 넘긴 orderId 문자열을 그대로 승인에 사용한다(재구성하면 값이 어긋난다).
+        final TossConfirmResult result = tossPaymentClient.confirm(paymentKey, tossOrderId, amount);
 
-        return paymentRecorder.recordCompleted(orderId, paymentKey, amount, result.approvedAtAsLocalDateTime());
+        return paymentRecorder.recordCompleted(orderId, tossOrderId, paymentKey, amount, result.approvedAtAsLocalDateTime());
     }
 
     /** 결제 실패·취소 복귀 처리. 실패 결제를 ABORTED로 저장하고 PaymentFailed를 발행한다. */
-    public Payment fail(final Long orderId) {
+    public Payment fail(final String tossOrderId) {
+        final Long orderId = extractOrderId(tossOrderId);
         final int amount = resolveExpectedAmount(orderId);
-        return paymentRecorder.recordAborted(orderId, amount);
+        return paymentRecorder.recordAborted(orderId, tossOrderId, amount);
+    }
+
+    /** 토스 orderId(`<주문id>_<랜덤>` 복합키)에서 내부 주문 id를 추출한다. */
+    private Long extractOrderId(final String tossOrderId) {
+        final int separator = tossOrderId.indexOf('_');
+        final String idPart = separator >= 0 ? tossOrderId.substring(0, separator) : tossOrderId;
+        try {
+            return Long.parseLong(idPart);
+        } catch (final NumberFormatException e) {
+            throw new BusinessException(ErrorCode.ORDER_NOT_FOUND);
+        }
     }
 
     private int resolveExpectedAmount(final Long orderId) {

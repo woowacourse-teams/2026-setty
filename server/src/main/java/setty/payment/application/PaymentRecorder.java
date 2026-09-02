@@ -33,16 +33,17 @@ public class PaymentRecorder {
     @Transactional
     public Payment recordCompleted(
             final Long orderId,
+            final String tossOrderId,
             final String paymentKey,
             final int amount,
             final java.time.LocalDateTime approvedAt
     ) {
         final Payment payment = paymentRepository.findByOrderId(orderId)
                 .map(existing -> {
-                    existing.markDone(paymentKey, approvedAt);
+                    existing.markDone(tossOrderId, paymentKey, approvedAt);
                     return existing;
                 })
-                .orElseGet(() -> save(Payment.done(orderId, String.valueOf(orderId), paymentKey, amount, approvedAt)));
+                .orElseGet(() -> save(Payment.done(orderId, tossOrderId, paymentKey, amount, approvedAt)));
 
         eventPublisher.publishEvent(new PaymentCompleted(orderId));
         return payment;
@@ -53,7 +54,7 @@ public class PaymentRecorder {
      * 미저장이면 ABORTED로 저장하고, 어느 경우든 PaymentFailed를 발행한다.
      */
     @Transactional
-    public Payment recordAborted(final Long orderId, final int amount) {
+    public Payment recordAborted(final Long orderId, final String tossOrderId, final int amount) {
         final Payment existing = paymentRepository.findByOrderId(orderId).orElse(null);
         if (existing != null && existing.isDone()) {
             return existing;
@@ -61,7 +62,7 @@ public class PaymentRecorder {
 
         final Payment payment = existing != null
                 ? existing
-                : save(Payment.aborted(orderId, String.valueOf(orderId), amount));
+                : save(Payment.aborted(orderId, tossOrderId, amount));
 
         eventPublisher.publishEvent(new PaymentFailed(orderId));
         return payment;
