@@ -79,11 +79,15 @@ public class Payment {
         return new Payment(orderId, tossOrderId, amount, PaymentStatus.ABORTED, null, null);
     }
 
-    /** 실패(ABORTED) 후 재시도 승인 시 같은 행을 DONE으로 전이한다. 이미 DONE이면 중복 승인이므로 막는다. */
-    public void markDone(final String paymentKey, final LocalDateTime approvedAt) {
+    /**
+     * 실패(ABORTED) 후 재시도 승인 시 같은 행을 DONE으로 전이한다. 이미 DONE이면 중복 승인이므로 막는다.
+     * 재시도는 새 토스 orderId로 오므로 실제 승인에 쓰인 값으로 갱신한다.
+     */
+    public void markDone(final String tossOrderId, final String paymentKey, final LocalDateTime approvedAt) {
         if (this.status == PaymentStatus.DONE) {
             throw new BusinessException(ErrorCode.ALREADY_PAID);
         }
+        this.tossOrderId = tossOrderId;
         this.paymentKey = paymentKey;
         this.approvedAt = approvedAt;
         this.status = PaymentStatus.DONE;
