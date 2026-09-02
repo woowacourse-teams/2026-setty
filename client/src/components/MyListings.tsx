@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { deleteListing, fetchMyListings, type MyListing } from '../api/listings';
+import accountPagesStyles from '../styles/modules/AccountPages.module.css';
+import productGridStyles from '../styles/modules/ProductGrid.module.css';
 
 const categoryLabels: Record<string, string> = {
     SOFA: '소파', TABLE: '테이블', DESK: '책상', CHAIR: '의자', STORAGE: '수납장', BED: '침대'
@@ -49,28 +51,28 @@ export function MyListings({ onRegister, onEdit }: MyListingsProps) {
     };
 
     return (
-        <section className="my-furniture" aria-labelledby="my-furniture-title">
-            <div className="my-furniture__heading">
+        <section className={accountPagesStyles['my-furniture']} aria-labelledby="my-furniture-title">
+            <div className={accountPagesStyles['my-furniture__heading']}>
                 <h1 id="my-furniture-title">내 가구 <span>{items.length}</span></h1>
-                <button className="my-furniture__register-button" onClick={onRegister} type="button">새 가구 등록</button>
+                <button className={accountPagesStyles['my-furniture__register-button']} onClick={onRegister} type="button">새 가구 등록</button>
             </div>
-            {isLoading && <p className="product-grid-message">내 가구 목록을 불러오는 중입니다.</p>}
-            {error && <div className="product-grid-message"><p>{error}</p><button onClick={() => void load()} type="button">다시 시도</button></div>}
-            {!isLoading && !error && items.length === 0 && <p className="product-grid-message">등록한 가구가 없습니다.</p>}
+            {isLoading && <p className={productGridStyles['product-grid-message']}>내 가구 목록을 불러오는 중입니다.</p>}
+            {error && <div className={productGridStyles['product-grid-message']}><p>{error}</p><button onClick={() => void load()} type="button">다시 시도</button></div>}
+            {!isLoading && !error && items.length === 0 && <p className={productGridStyles['product-grid-message']}>등록한 가구가 없습니다.</p>}
             {!isLoading && !error && items.length > 0 && (
-                <div className="my-furniture__list" aria-label="등록한 가구 목록">
+                <div className={accountPagesStyles['my-furniture__list']} aria-label="등록한 가구 목록">
                     {items.map((item) => (
-                        <article className={`my-furniture__item ${item.saleStatus === 'SOLD' ? 'my-furniture__item--sold' : ''}`} key={item.id}>
-                            <div className="my-furniture__thumbnail">
+                        <article className={[accountPagesStyles['my-furniture__item'], item.saleStatus === 'SOLD' && accountPagesStyles['my-furniture__item--sold']].filter(Boolean).join(' ')} key={item.id}>
+                            <div className={accountPagesStyles['my-furniture__thumbnail']}>
                                 {item.thumbnailUrl && <img alt="" src={item.thumbnailUrl} />}
                             </div>
-                            <div className="my-furniture__details">
+                            <div className={accountPagesStyles['my-furniture__details']}>
                                 <h2>{item.title}</h2>
                                 <p>{categoryLabels[item.category]} <i /> {item.conditionGrade}급 <i /> {formatRegisteredAt(item.createdAt)} 등록</p>
                             </div>
-                            <strong className="my-furniture__price">{item.price.toLocaleString('ko-KR')}원</strong>
-                            <span className={`my-furniture__status ${item.saleStatus === 'RESERVED' ? 'my-furniture__status--reserved' : ''}`}>{statusLabel(item.saleStatus)}</span>
-                            <div className="my-furniture__controls">
+                            <strong className={accountPagesStyles['my-furniture__price']}>{item.price.toLocaleString('ko-KR')}원</strong>
+                            <span className={[accountPagesStyles['my-furniture__status'], item.saleStatus === 'RESERVED' && accountPagesStyles['my-furniture__status--reserved']].filter(Boolean).join(' ')}>{statusLabel(item.saleStatus)}</span>
+                            <div className={accountPagesStyles['my-furniture__controls']}>
                                 {item.canUpdate && <button onClick={() => onEdit(item.id)} type="button">수정</button>}
                                 {item.canDelete && <button onClick={() => void remove(item)} type="button">내리기</button>}
                             </div>

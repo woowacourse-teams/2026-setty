@@ -7,6 +7,7 @@ import {
     type ListingCategory,
     type ListingDetail
 } from '../api/listings';
+import furnitureRegistrationStyles from '../styles/modules/FurnitureRegistration.module.css';
 
 const categories = [
     { value: 'SOFA', label: '소파' },
@@ -162,47 +163,47 @@ export function FurnitureRegistration({ listing, onCancel, onDirtyChange, onSave
     };
 
     return (
-        <section aria-labelledby="furniture-registration-title" className="furniture-registration">
+        <section aria-labelledby="furniture-registration-title" className={furnitureRegistrationStyles['furniture-registration']}>
             <h1 id="furniture-registration-title">{listing ? '가구 수정' : '새 가구 등록'}</h1>
 
             <form onSubmit={(event) => void handleSubmit(event)}>
-                <fieldset className="furniture-registration__field furniture-registration__field--images">
+                <fieldset className={[furnitureRegistrationStyles['furniture-registration__field'], furnitureRegistrationStyles['furniture-registration__field--images']].filter(Boolean).join(' ')}>
                     <legend>사진</legend>
                     <input
                         accept="image/*"
                         aria-label="가구 사진 선택"
-                        className="furniture-registration__image-input"
+                        className={furnitureRegistrationStyles['furniture-registration__image-input']}
                         id="furniture-registration-images"
                         multiple
                         onChange={changeImages}
                         type="file"
                     />
-                    <div className="furniture-registration__image-list">
+                    <div className={furnitureRegistrationStyles['furniture-registration__image-list']}>
                         {listing?.images.filter((image) => retainedImageIds.includes(image.id)).map((image) => (
-                            <span className="furniture-registration__image-slot" key={image.id}>
+                            <span className={furnitureRegistrationStyles['furniture-registration__image-slot']} key={image.id}>
                                 <img alt="기존 가구 사진" src={image.url} />
-                                <button aria-label="기존 사진 삭제" className="furniture-registration__image-remove" onClick={() => removeExistingImage(image.id)} type="button">
+                                <button aria-label="기존 사진 삭제" className={furnitureRegistrationStyles['furniture-registration__image-remove']} onClick={() => removeExistingImage(image.id)} type="button">
                                     <X aria-hidden="true" weight="bold" />
                                 </button>
                             </span>
                         ))}
                         {imageUrls.map((imageUrl, index) => (
-                            <span className="furniture-registration__image-slot" key={imageUrl}>
+                            <span className={furnitureRegistrationStyles['furniture-registration__image-slot']} key={imageUrl}>
                                 <img alt={`선택한 가구 사진 ${index + 1}`} src={imageUrl} />
-                                <button aria-label="새 사진 삭제" className="furniture-registration__image-remove" onClick={() => setImages((current) => current.filter((_, fileIndex) => fileIndex !== index))} type="button">
+                                <button aria-label="새 사진 삭제" className={furnitureRegistrationStyles['furniture-registration__image-remove']} onClick={() => setImages((current) => current.filter((_, fileIndex) => fileIndex !== index))} type="button">
                                     <X aria-hidden="true" weight="bold" />
                                 </button>
                             </span>
                         ))}
                         {retainedImageIds.length + images.length < 5 && (
-                            <label aria-label="가구 사진 추가" className="furniture-registration__image-slot furniture-registration__image-slot--add" htmlFor="furniture-registration-images">
-                                <Plus aria-hidden="true" className="furniture-registration__add-icon" weight="regular" />
+                            <label aria-label="가구 사진 추가" className={[furnitureRegistrationStyles['furniture-registration__image-slot'], furnitureRegistrationStyles['furniture-registration__image-slot--add']].filter(Boolean).join(' ')} htmlFor="furniture-registration-images">
+                                <Plus aria-hidden="true" className={furnitureRegistrationStyles['furniture-registration__add-icon']} weight="regular" />
                             </label>
                         )}
                     </div>
                 </fieldset>
 
-                <label className="furniture-registration__field">
+                <label className={furnitureRegistrationStyles['furniture-registration__field']}>
                     <span>제목</span>
                     <input
                         maxLength={100}
@@ -213,13 +214,13 @@ export function FurnitureRegistration({ listing, onCancel, onDirtyChange, onSave
                     />
                 </label>
 
-                <fieldset className="furniture-registration__field">
+                <fieldset className={furnitureRegistrationStyles['furniture-registration__field']}>
                     <legend>카테고리</legend>
-                    <div aria-label="카테고리" className="furniture-registration__chips" role="radiogroup">
+                    <div aria-label="카테고리" className={furnitureRegistrationStyles['furniture-registration__chips']} role="radiogroup">
                         {categories.map((item) => (
                             <button
                                 aria-checked={category === item.value}
-                                className={`furniture-registration__chip ${category === item.value ? 'furniture-registration__chip--selected' : ''}`}
+                                className={[furnitureRegistrationStyles['furniture-registration__chip'], category === item.value && furnitureRegistrationStyles['furniture-registration__chip--selected']].filter(Boolean).join(' ')}
                                 key={item.value}
                                 onClick={() => setCategory(item.value)}
                                 role="radio"
@@ -231,13 +232,13 @@ export function FurnitureRegistration({ listing, onCancel, onDirtyChange, onSave
                     </div>
                 </fieldset>
 
-                <fieldset className="furniture-registration__field">
+                <fieldset className={furnitureRegistrationStyles['furniture-registration__field']}>
                     <legend>상태</legend>
-                    <div aria-label="가구 상태" className="furniture-registration__chips" role="radiogroup">
+                    <div aria-label="가구 상태" className={furnitureRegistrationStyles['furniture-registration__chips']} role="radiogroup">
                         {conditionGrades.map((grade) => (
                             <button
                                 aria-checked={conditionGrade === grade}
-                                className={`furniture-registration__chip ${conditionGrade === grade ? 'furniture-registration__chip--selected' : ''}`}
+                                className={[furnitureRegistrationStyles['furniture-registration__chip'], conditionGrade === grade && furnitureRegistrationStyles['furniture-registration__chip--selected']].filter(Boolean).join(' ')}
                                 key={grade}
                                 onClick={() => setConditionGrade(grade)}
                                 role="radio"
@@ -249,32 +250,32 @@ export function FurnitureRegistration({ listing, onCancel, onDirtyChange, onSave
                     </div>
                 </fieldset>
 
-                <fieldset className="furniture-registration__field">
+                <fieldset className={furnitureRegistrationStyles['furniture-registration__field']}>
                     <legend>크기 (cm)</legend>
-                    <div className="furniture-registration__dimensions">
+                    <div className={furnitureRegistrationStyles['furniture-registration__dimensions']}>
                         <label><span>W</span><input aria-label="가로" inputMode="numeric" min="1" onChange={(event) => changeDimension('width', event.target.value)} type="number" value={dimensions.width} /></label>
                         <i aria-hidden="true">×</i>
                         <label><span>D</span><input aria-label="세로" inputMode="numeric" min="1" onChange={(event) => changeDimension('depth', event.target.value)} type="number" value={dimensions.depth} /></label>
                         <i aria-hidden="true">×</i>
                         <label><span>H</span><input aria-label="높이" inputMode="numeric" min="1" onChange={(event) => changeDimension('height', event.target.value)} type="number" value={dimensions.height} /></label>
                     </div>
-                    <p className="furniture-registration__hint">예상 배송비 크기 입력 필요</p>
+                    <p className={furnitureRegistrationStyles['furniture-registration__hint']}>예상 배송비 크기 입력 필요</p>
                 </fieldset>
 
-                <label className="furniture-registration__field">
+                <label className={furnitureRegistrationStyles['furniture-registration__field']}>
                     <span>가격</span>
-                    <div className="furniture-registration__price-input"><b>₩</b><input aria-label="가격" inputMode="numeric" min="0" onChange={(event) => setPrice(event.target.value)} placeholder="180000" type="number" value={price} /></div>
+                    <div className={furnitureRegistrationStyles['furniture-registration__price-input']}><b>₩</b><input aria-label="가격" inputMode="numeric" min="0" onChange={(event) => setPrice(event.target.value)} placeholder="180000" type="number" value={price} /></div>
                 </label>
 
-                <label className="furniture-registration__field furniture-registration__field--description">
+                <label className={[furnitureRegistrationStyles['furniture-registration__field'], furnitureRegistrationStyles['furniture-registration__field--description']].filter(Boolean).join(' ')}>
                     <span>설명</span>
                     <textarea maxLength={1000} onChange={(event) => setDescription(event.target.value)} placeholder="사용 기간, 흠집, 분해 여부" value={description} />
                 </label>
 
-                {error && <p className="furniture-registration__error" role="alert">{error}</p>}
-                <div className="furniture-registration__actions">
-                    <button className="furniture-registration__cancel" onClick={onCancel} type="button">취소</button>
-                    <button className="furniture-registration__submit" disabled={!canSubmit || isSubmitting} type="submit">{isSubmitting ? '저장 중...' : listing ? '수정하기' : '등록하기'}</button>
+                {error && <p className={furnitureRegistrationStyles['furniture-registration__error']} role="alert">{error}</p>}
+                <div className={furnitureRegistrationStyles['furniture-registration__actions']}>
+                    <button className={furnitureRegistrationStyles['furniture-registration__cancel']} onClick={onCancel} type="button">취소</button>
+                    <button className={furnitureRegistrationStyles['furniture-registration__submit']} disabled={!canSubmit || isSubmitting} type="submit">{isSubmitting ? '저장 중...' : listing ? '수정하기' : '등록하기'}</button>
                 </div>
             </form>
         </section>

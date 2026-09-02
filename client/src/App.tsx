@@ -24,6 +24,9 @@ import { MyOrders } from './components/MyOrders';
 import { ProductDetail } from './components/ProductDetail';
 import { ProductGrid } from './components/ProductGrid';
 import { usePaymentReturn } from './payment/usePaymentReturn';
+import productGridStyles from './styles/modules/ProductGrid.module.css';
+import layoutStyles from './styles/modules/Layout.module.css';
+import paymentStyles from './styles/modules/Payment.module.css';
 import './styles/global.css';
 
 type AppLocationState = {
@@ -144,7 +147,7 @@ function EditListingRoute({ onCancel, onDirtyChange, onSaved }: EditListingRoute
 
     if (error) {
         return (
-            <section className="product-grid-message">
+            <section className={productGridStyles['product-grid-message']}>
                 <p>{error}</p>
                 <button onClick={() => setReloadKey((current) => current + 1)} type="button">다시 시도</button>
             </section>
@@ -152,7 +155,7 @@ function EditListingRoute({ onCancel, onDirtyChange, onSaved }: EditListingRoute
     }
 
     if (!listing) {
-        return <section aria-live="polite" className="product-grid-message">가구 정보를 불러오는 중입니다.</section>;
+        return <section aria-live="polite" className={productGridStyles['product-grid-message']}>가구 정보를 불러오는 중입니다.</section>;
     }
 
     return (
@@ -359,8 +362,8 @@ function App() {
     const viewName = getViewName(location.pathname);
 
     return (
-        <div className="app-shell">
-            <div className="app-shell__content" aria-hidden={isAuthModalOpen || undefined} inert={isAuthModalOpen}>
+        <div className={layoutStyles['app-shell']}>
+            <div className={layoutStyles['app-shell__content']} aria-hidden={isAuthModalOpen || undefined} inert={isAuthModalOpen}>
                 <Header
                     isLoggedIn={isLoggedIn}
                     onHome={goHome}
@@ -373,12 +376,12 @@ function App() {
                     searchQuery={listingSearchQuery}
                 />
                 {paymentNotice && (
-                    <div className={`payment-notice payment-notice--${paymentNotice.tone}`} role="status">
+                    <div className={[paymentStyles['payment-notice'], paymentStyles[`payment-notice--${paymentNotice.tone}`]].filter(Boolean).join(' ')} role="status">
                         <span>{paymentNotice.message}</span>
                         <button type="button" onClick={dismissPaymentNotice} aria-label="알림 닫기">✕</button>
                     </div>
                 )}
-                <main className={`app-shell__main app-shell__main--${viewName}`}>
+                <main className={[layoutStyles['app-shell__main'], layoutStyles[`app-shell__main--${viewName}`]].filter(Boolean).join(' ')}>
                     {__ENABLE_MSW__ && location.pathname === '/' && <MockScenarioController />}
                     <Routes>
                         <Route index element={<ProductGrid onProductSelect={openDetail} searchQuery={listingSearchQuery} />} />
@@ -440,7 +443,7 @@ function App() {
                     onLoggedIn={finishLogin}
                 />
             )}
-            <span aria-live="polite" className="site-header__visually-hidden">
+            <span aria-live="polite" className={layoutStyles['site-header__visually-hidden']}>
                 {isFormDirty ? '작성 중인 가구 정보가 있습니다.' : ''}
             </span>
         </div>

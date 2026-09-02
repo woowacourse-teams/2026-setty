@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react';
 import { fetchMe, updateProfile, type MemberMe } from '../api/auth';
+import accountPagesStyles from '../styles/modules/AccountPages.module.css';
+import productGridStyles from '../styles/modules/ProductGrid.module.css';
+import authModalStyles from '../styles/modules/AuthModal.module.css';
 
 type MyAccountProps = {
     onFavorites: () => void;
@@ -54,23 +57,23 @@ export function MyAccount({ onFavorites, onOrders, onListings }: MyAccountProps)
     };
 
     return (
-        <section className="my-orders my-account" aria-labelledby="my-account-title">
-            <div className="my-orders__heading">
+        <section className={[accountPagesStyles['my-orders'], accountPagesStyles['my-account']].filter(Boolean).join(' ')} aria-labelledby="my-account-title">
+            <div className={accountPagesStyles['my-orders__heading']}>
                 <h1 id="my-account-title">내 계정</h1>
             </div>
-            {isLoading && <p className="product-grid-message">내 정보를 불러오는 중입니다.</p>}
-            {error && <div className="product-grid-message"><p>{error}</p><button onClick={() => void load()} type="button">다시 시도</button></div>}
+            {isLoading && <p className={productGridStyles['product-grid-message']}>내 정보를 불러오는 중입니다.</p>}
+            {error && <div className={productGridStyles['product-grid-message']}><p>{error}</p><button onClick={() => void load()} type="button">다시 시도</button></div>}
             {!isLoading && !error && me && !isEditing && (
                 <>
-                    <dl className="my-account__profile">
+                    <dl className={accountPagesStyles['my-account__profile']}>
                         <div><dt>아이디</dt><dd>{me.loginId}</dd></div>
                         <div><dt>연락처</dt><dd>{me.phoneNumber}</dd></div>
                         <div><dt>주소</dt><dd>{me.address}</dd></div>
                     </dl>
-                    <div className="my-account__actions">
-                        <button className="my-account__edit-toggle" onClick={startEdit} type="button">정보 수정</button>
+                    <div className={accountPagesStyles['my-account__actions']}>
+                        <button className={accountPagesStyles['my-account__edit-toggle']} onClick={startEdit} type="button">정보 수정</button>
                     </div>
-                    <nav className="my-account__links" aria-label="내 활동 바로가기">
+                    <nav className={accountPagesStyles['my-account__links']} aria-label="내 활동 바로가기">
                         <button onClick={onFavorites} type="button">찜한 매물</button>
                         <button onClick={onOrders} type="button">내 주문</button>
                         <button onClick={onListings} type="button">내 가구</button>
@@ -78,8 +81,8 @@ export function MyAccount({ onFavorites, onOrders, onListings }: MyAccountProps)
                 </>
             )}
             {!isLoading && !error && me && isEditing && (
-                <form className="auth-modal__form my-account__edit" onSubmit={(event) => void save(event)}>
-                    <label className="auth-modal__field">
+                <form className={[authModalStyles['auth-modal__form'], accountPagesStyles['my-account__edit']].filter(Boolean).join(' ')} onSubmit={(event) => void save(event)}>
+                    <label className={authModalStyles['auth-modal__field']}>
                         <span>연락처</span>
                         <input
                             autoComplete="tel"
@@ -92,7 +95,7 @@ export function MyAccount({ onFavorites, onOrders, onListings }: MyAccountProps)
                             value={phoneNumber}
                         />
                     </label>
-                    <label className="auth-modal__field">
+                    <label className={authModalStyles['auth-modal__field']}>
                         <span>주소</span>
                         <input
                             autoComplete="street-address"
@@ -104,10 +107,10 @@ export function MyAccount({ onFavorites, onOrders, onListings }: MyAccountProps)
                             value={address}
                         />
                     </label>
-                    {editError && <p className="auth-modal__feedback auth-modal__feedback--error" role="alert">{editError}</p>}
-                    <div className="my-account__edit-actions">
-                        <button className="my-account__edit-cancel" disabled={isSaving} onClick={() => setIsEditing(false)} type="button">취소</button>
-                        <button className="auth-modal__submit" disabled={isSaving} type="submit">{isSaving ? '저장 중...' : '저장'}</button>
+                    {editError && <p className={[authModalStyles['auth-modal__feedback'], authModalStyles['auth-modal__feedback--error']].filter(Boolean).join(' ')} role="alert">{editError}</p>}
+                    <div className={accountPagesStyles['my-account__edit-actions']}>
+                        <button className={accountPagesStyles['my-account__edit-cancel']} disabled={isSaving} onClick={() => setIsEditing(false)} type="button">취소</button>
+                        <button className={[authModalStyles['auth-modal__submit'], accountPagesStyles['my-account__edit-submit']].filter(Boolean).join(' ')} disabled={isSaving} type="submit">{isSaving ? '저장 중...' : '저장'}</button>
                     </div>
                 </form>
             )}

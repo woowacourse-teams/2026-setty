@@ -2,6 +2,7 @@ import { ANONYMOUS, loadTossPayments, type TossPaymentsWidgets } from '@tosspaym
 import { useEffect, useRef, useState } from 'react';
 import { createOrder } from '../api/orders';
 import { TOSS_CLIENT_KEY, mockReturn, paymentReturnUrl } from '../payment/tossPayment';
+import paymentStyles from '../styles/modules/Payment.module.css';
 
 type PaymentCheckoutProps = {
     listingId: number;
@@ -69,14 +70,14 @@ export function PaymentCheckout({ listingId, amount, orderName, onClose }: Payme
     };
 
     return (
-        <div className="payment-checkout-backdrop" role="dialog" aria-modal="true" aria-label="결제">
-            <div className="payment-checkout">
-                <button className="payment-checkout__close" onClick={onClose} type="button" aria-label="결제 닫기">✕</button>
-                <h2 className="payment-checkout__title">{orderName}</h2>
-                <p className="payment-checkout__amount">{amount.toLocaleString('ko-KR')}원</p>
+        <div className={paymentStyles['payment-checkout-backdrop']} role="dialog" aria-modal="true" aria-label="결제">
+            <div className={paymentStyles['payment-checkout']}>
+                <button className={paymentStyles['payment-checkout__close']} onClick={onClose} type="button" aria-label="결제 닫기">✕</button>
+                <h2 className={paymentStyles['payment-checkout__title']}>{orderName}</h2>
+                <p className={paymentStyles['payment-checkout__amount']}>{amount.toLocaleString('ko-KR')}원</p>
 
                 {__ENABLE_MSW__ ? (
-                    <p className="payment-checkout__mock-note">목 모드: 실제 결제창 없이 결제 성공을 흉내냅니다.</p>
+                    <p className={paymentStyles['payment-checkout__mock-note']}>목 모드: 실제 결제창 없이 결제 성공을 흉내냅니다.</p>
                 ) : (
                     <>
                         <div id="payment-method" />
@@ -84,10 +85,10 @@ export function PaymentCheckout({ listingId, amount, orderName, onClose }: Payme
                     </>
                 )}
 
-                {error && <p className="payment-checkout__error" role="alert">{error}</p>}
+                {error && <p className={paymentStyles['payment-checkout__error']} role="alert">{error}</p>}
 
                 <button
-                    className="payment-checkout__pay"
+                    className={paymentStyles['payment-checkout__pay']}
                     disabled={!ready || requesting}
                     onClick={() => void requestPayment()}
                     type="button"
