@@ -18,7 +18,7 @@ import setty.global.exception.ErrorCode;
 @Table(name = "orders")
 public class Order {
 
-    private static final Duration DEFAULT_PENDING_TIMEOUT = Duration.ofMinutes(10);
+    private static final Duration DEFAULT_PENDING_TIMEOUT = Duration.ofMinutes(3);
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

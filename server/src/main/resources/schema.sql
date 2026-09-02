@@ -128,9 +128,9 @@ PREPARE add_orders_pending_expires_at_statement FROM @add_orders_pending_expires
 EXECUTE add_orders_pending_expires_at_statement;
 DEALLOCATE PREPARE add_orders_pending_expires_at_statement;
 
--- 생성 시각을 알 수 없는 기존 PENDING 주문에는 배포 시점부터 기본 10분을 부여한다.
+-- 생성 시각을 알 수 없는 기존 PENDING 주문에는 배포 시점부터 기본 3분을 부여한다.
 UPDATE orders
-SET pending_expires_at = CURRENT_TIMESTAMP(6) + INTERVAL 10 MINUTE
+SET pending_expires_at = CURRENT_TIMESTAMP(6) + INTERVAL 3 MINUTE
 WHERE delivery_status = 'PENDING'
   AND pending_expires_at IS NULL;
 

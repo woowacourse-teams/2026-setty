@@ -27,7 +27,7 @@ spring:
 setty:
   order:
     pending-expiration:
-      timeout: ${PENDING_ORDER_EXPIRATION_TIMEOUT:PT10M}
+      timeout: ${PENDING_ORDER_EXPIRATION_TIMEOUT:PT3M}
       scan-interval: ${PENDING_ORDER_EXPIRATION_SCAN_INTERVAL:PT1M}
   storage:
     listing-images:

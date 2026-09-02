@@ -67,7 +67,7 @@ class OrderServiceTest {
     @Test
     void 결제_대기_주문에_설정된_만료_시간을_저장한다() {
         final Instant createdAt = Instant.parse("2026-09-02T05:00:00Z");
-        final Duration timeout = Duration.ofMinutes(10);
+        final Duration timeout = Duration.ofMinutes(3);
         final Member buyer = mock(Member.class);
         when(buyer.getId()).thenReturn(BUYER_ID);
         when(clock.instant()).thenReturn(createdAt);
