@@ -4,6 +4,7 @@ import {
     setListingMockScenario,
     type ListingMockScenario
 } from '../mocks/scenario';
+import { cx } from '../styles/styles';
 
 export function MockScenarioController() {
     const [scenario, setScenario] = useState(getListingMockScenario);
@@ -15,7 +16,7 @@ export function MockScenarioController() {
     }
 
     return (
-        <label className="mock-scenario-controller">
+        <label className={cx('mock-scenario-controller')}>
             MSW 응답 속도
             <select
                 value={scenario}

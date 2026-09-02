@@ -1,0 +1,555 @@
+.my-furniture {
+    width: min(1134px, 100%);
+    margin: 0 auto;
+}
+
+.my-furniture__heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 50px;
+}
+
+.my-furniture__heading h1 {
+    margin: 0;
+    color: #202020;
+    font-size: 31px;
+    font-weight: 900;
+    letter-spacing: -1.8px;
+}
+
+.my-furniture__heading h1 span {
+    margin-left: 8px;
+    color: #aeaeae;
+    font-size: 20px;
+}
+
+.my-furniture__register-button {
+    padding: 0 0 7px;
+    color: #292929;
+    border-bottom: 2px solid #292929;
+    background: transparent;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 800;
+}
+
+.my-furniture__list {
+    display: grid;
+    gap: 25px;
+}
+
+.my-furniture__item {
+    display: grid;
+    grid-template-columns: 74px minmax(0, 1fr) 150px 78px 105px;
+    align-items: center;
+    column-gap: 25px;
+    min-height: 74px;
+}
+
+.my-furniture__thumbnail {
+    width: 74px;
+    height: 74px;
+    overflow: hidden;
+    border-radius: 4px;
+    background: #f4f2ef;
+}
+
+.my-furniture__thumbnail img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.my-furniture__details h2,
+.my-furniture__details p {
+    margin: 0;
+}
+
+.my-furniture__details h2 {
+    overflow: hidden;
+    color: #292929;
+    font-size: 17px;
+    font-weight: 800;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.my-furniture__details p {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding-top: 6px;
+    color: #ababab;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.my-furniture__details i {
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: currentColor;
+}
+
+.my-furniture__price {
+    color: #222;
+    font-size: 17px;
+    font-weight: 900;
+    text-align: right;
+}
+
+.my-furniture__status {
+    color: #292929;
+    font-size: 14px;
+    font-weight: 800;
+    text-align: center;
+}
+
+.my-furniture__status--reserved {
+    color: #f04d2e;
+}
+
+.my-furniture__controls {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+.my-furniture__controls button {
+    padding: 5px 0;
+    color: #77736e;
+    background: transparent;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.my-furniture__controls button:last-child {
+    color: #b35d4d;
+}
+
+.my-furniture__item--sold {
+    opacity: 0.54;
+}
+
+.my-orders {
+    width: min(1134px, 100%);
+    margin: 0 auto;
+}
+
+.my-orders__heading {
+    padding-bottom: 50px;
+}
+
+.my-orders__heading h1 {
+    margin: 0;
+    color: #202020;
+    font-size: 31px;
+    font-weight: 900;
+    letter-spacing: -1.8px;
+}
+
+.my-orders__heading h1 span {
+    margin-left: 8px;
+    color: #aeaeae;
+    font-size: 20px;
+}
+
+.my-orders__list {
+    display: grid;
+    gap: 25px;
+}
+
+.my-orders__item {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 150px 88px;
+    align-items: center;
+    column-gap: 25px;
+    min-height: 74px;
+    padding: 0 0 25px;
+    border-bottom: 1px solid #efede9;
+}
+
+.my-orders__details h2,
+.my-orders__details p {
+    margin: 0;
+}
+
+.my-orders__details h2 {
+    overflow: hidden;
+    color: #292929;
+    font-size: 17px;
+    font-weight: 800;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.my-orders__details p {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding-top: 7px;
+    color: #ababab;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.my-orders__details i {
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: currentColor;
+}
+
+.my-orders__total {
+    color: #222;
+    font-size: 17px;
+    font-weight: 900;
+    text-align: right;
+}
+
+.my-orders__status {
+    color: #292929;
+    font-size: 14px;
+    font-weight: 800;
+    text-align: center;
+}
+
+.my-orders__status--requested {
+    color: #ef7b32;
+}
+
+.my-orders__status--in_delivery {
+    color: #3974c5;
+}
+
+.my-orders__status--delivered {
+    color: #41733c;
+}
+
+.my-favorites__select {
+    display: grid;
+    grid-template-columns: 74px minmax(0, 1fr);
+    align-items: center;
+    column-gap: 18px;
+    padding: 0;
+    text-align: left;
+    background: transparent;
+    cursor: pointer;
+}
+
+.my-favorites__thumbnail {
+    overflow: hidden;
+    width: 74px;
+    height: 74px;
+    border-radius: 12px;
+    background: #f4f2ee;
+}
+
+.my-favorites__thumbnail img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.my-favorites__remove {
+    padding: 9px 4px;
+    border: 1px solid #e3ded8;
+    border-radius: 10px;
+    color: #5b5753;
+    background: #ffffff;
+    font-size: 13px;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.my-favorites__remove:disabled {
+    cursor: wait;
+    opacity: 0.58;
+}
+
+.my-account__profile {
+    display: grid;
+    gap: 21px;
+    margin: 0 0 42px;
+}
+
+.my-account__profile div {
+    display: grid;
+    grid-template-columns: 88px minmax(0, 1fr);
+    align-items: center;
+    padding-bottom: 21px;
+    border-bottom: 1px solid #efede9;
+}
+
+.my-account__profile dt {
+    color: #ababab;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.my-account__profile dd {
+    margin: 0;
+    color: #292929;
+    font-size: 15px;
+    font-weight: 800;
+    overflow-wrap: anywhere;
+}
+
+.my-account__links {
+    display: grid;
+    gap: 13px;
+}
+
+.my-account__links button {
+    display: block;
+    width: 100%;
+    padding: 17px 20px;
+    border: 1px solid #e3ded8;
+    border-radius: 14px;
+    color: #292929;
+    background: #ffffff;
+    font-size: 15px;
+    font-weight: 800;
+    text-align: left;
+    cursor: pointer;
+}
+
+.my-account__actions {
+    margin: 0 0 42px;
+}
+
+.my-account__edit-toggle {
+    padding: 12px 20px;
+    border: 1px solid #e3ded8;
+    border-radius: 12px;
+    color: #292929;
+    background: #ffffff;
+    font-size: 14px;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.my-account__edit {
+    margin-top: 0;
+}
+
+.my-account__edit-actions {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 12px;
+    margin-top: 6px;
+}
+
+.my-account__edit-submit {
+    margin-top: 0;
+}
+
+.my-account__edit-cancel {
+    border: 1px solid #e3ded8;
+    border-radius: 19px;
+    color: #5b5753;
+    background: #ffffff;
+    font-size: 18px;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.my-account__edit-cancel:disabled {
+    cursor: wait;
+    opacity: 0.6;
+}
+
+@media (max-width: 820px) {
+    .my-orders__item.my-favorites__item {
+            grid-template-areas: none;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 13px 16px;
+        }
+
+    .my-favorites__item .my-favorites__select {
+            grid-column: 1 / -1;
+        }
+
+    .my-favorites__select .my-orders__details {
+            grid-area: auto;
+        }
+
+    .my-favorites__item .my-orders__total {
+            grid-area: auto;
+            text-align: left;
+        }
+
+    .my-favorites__remove {
+            padding: 8px 14px;
+            font-size: 12px;
+        }
+}
+
+@media (max-width: 560px) {
+    .my-favorites__select {
+            grid-template-columns: 56px minmax(0, 1fr);
+            column-gap: 12px;
+        }
+
+    .my-favorites__thumbnail {
+            width: 56px;
+            height: 56px;
+            border-radius: 10px;
+        }
+
+    .my-account__profile div {
+            grid-template-columns: 68px minmax(0, 1fr);
+        }
+}
+
+@media (max-width: 1199px) {
+    .my-furniture__item {
+            grid-template-columns: 68px minmax(0, 1fr) 120px 68px 90px;
+            column-gap: 16px;
+        }
+
+    .my-furniture__thumbnail {
+            width: 68px;
+            height: 68px;
+        }
+}
+
+@media (max-width: 820px) {
+    .my-furniture__heading,
+        .my-orders__heading {
+            padding-bottom: 34px;
+        }
+
+    .my-furniture__item {
+            grid-template-columns: 72px minmax(0, 1fr);
+            grid-template-areas:
+                'thumbnail details'
+                'thumbnail price'
+                'status controls';
+            gap: 8px 16px;
+            min-height: 0;
+            padding: 0 0 22px;
+            border-bottom: 1px solid #efede9;
+        }
+
+    .my-furniture__thumbnail {
+            grid-area: thumbnail;
+            width: 72px;
+            height: 72px;
+        }
+
+    .my-furniture__details {
+            grid-area: details;
+            min-width: 0;
+        }
+
+    .my-furniture__details p {
+            flex-wrap: wrap;
+            row-gap: 4px;
+        }
+
+    .my-furniture__price {
+            grid-area: price;
+            text-align: left;
+        }
+
+    .my-furniture__status {
+            grid-area: status;
+            text-align: left;
+        }
+
+    .my-furniture__controls {
+            grid-area: controls;
+        }
+
+    .my-furniture__controls button {
+            min-width: 44px;
+            min-height: 44px;
+            padding: 0;
+        }
+
+    .my-orders__item {
+            grid-template-columns: minmax(0, 1fr) auto;
+            grid-template-areas:
+                'details status'
+                'total total';
+            gap: 13px 16px;
+        }
+
+    .my-orders__details {
+            grid-area: details;
+            min-width: 0;
+        }
+
+    .my-orders__details p {
+            flex-wrap: wrap;
+            row-gap: 4px;
+        }
+
+    .my-orders__total {
+            grid-area: total;
+            text-align: right;
+        }
+
+    .my-orders__status {
+            grid-area: status;
+            white-space: nowrap;
+        }
+}
+
+@media (max-width: 560px) {
+    .my-furniture__heading,
+        .my-orders__heading {
+            align-items: flex-end;
+            padding-bottom: 28px;
+        }
+
+    .my-furniture__heading h1,
+        .my-orders__heading h1 {
+            font-size: 27px;
+        }
+
+    .my-furniture__register-button {
+            min-height: 44px;
+            padding-top: 9px;
+            font-size: 14px;
+        }
+
+    .my-furniture__list,
+        .my-orders__list {
+            gap: 20px;
+        }
+
+    .my-furniture__item {
+            grid-template-columns: 68px minmax(0, 1fr);
+            gap: 7px 13px;
+        }
+
+    .my-furniture__thumbnail {
+            width: 68px;
+            height: 68px;
+        }
+
+    .my-furniture__details h2,
+        .my-orders__details h2 {
+            font-size: 16px;
+        }
+
+    .my-furniture__details p,
+        .my-orders__details p {
+            font-size: 12px;
+            line-height: 1.45;
+        }
+
+    .my-furniture__price,
+        .my-orders__total {
+            font-size: 16px;
+        }
+
+    .my-furniture__status,
+        .my-orders__status {
+            font-size: 13px;
+        }
+}

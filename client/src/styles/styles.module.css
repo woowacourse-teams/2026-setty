@@ -1,0 +1,563 @@
+.app-shell {
+    composes: app-shell from './modules/Layout.module.css';
+}
+
+.app-shell__content {
+    composes: app-shell__content from './modules/Layout.module.css';
+}
+
+.app-shell__main {
+    composes: app-shell__main from './modules/Layout.module.css';
+}
+
+.app-shell__main--registration {
+    composes: app-shell__main--registration from './modules/Layout.module.css';
+}
+
+.site-header {
+    composes: site-header from './modules/Layout.module.css';
+}
+
+.site-header__account-menu {
+    composes: site-header__account-menu from './modules/Layout.module.css';
+}
+
+.site-header__account-menu--guest {
+    composes: site-header__account-menu--guest from './modules/Layout.module.css';
+}
+
+.site-header__account-menu--open {
+    composes: site-header__account-menu--open from './modules/Layout.module.css';
+}
+
+.site-header__content {
+    composes: site-header__content from './modules/Layout.module.css';
+}
+
+.site-header__login-button {
+    composes: site-header__login-button from './modules/Layout.module.css';
+}
+
+.site-header__logout-button {
+    composes: site-header__logout-button from './modules/Layout.module.css';
+}
+
+.site-header__menu-button {
+    composes: site-header__menu-button from './modules/Layout.module.css';
+}
+
+.site-header__menu-icon {
+    composes: site-header__menu-icon from './modules/Layout.module.css';
+}
+
+.site-header__mobile-auth-button {
+    composes: site-header__mobile-auth-button from './modules/Layout.module.css';
+}
+
+.site-header__search-button {
+    composes: site-header__search-button from './modules/Layout.module.css';
+}
+
+.site-header__search-field {
+    composes: site-header__search-field from './modules/Layout.module.css';
+}
+
+.site-header__search-icon {
+    composes: site-header__search-icon from './modules/Layout.module.css';
+}
+
+.site-header__search-input {
+    composes: site-header__search-input from './modules/Layout.module.css';
+}
+
+.site-header__top-actions {
+    composes: site-header__top-actions from './modules/Layout.module.css';
+}
+
+.site-header__top-row {
+    composes: site-header__top-row from './modules/Layout.module.css';
+}
+
+.site-header__visually-hidden {
+    composes: site-header__visually-hidden from './modules/Layout.module.css';
+}
+
+.site-header__wordmark {
+    composes: site-header__wordmark from './modules/Layout.module.css';
+}
+
+.furniture-registration {
+    composes: furniture-registration from './modules/FurnitureRegistration.module.css';
+}
+
+.furniture-registration__actions {
+    composes: furniture-registration__actions from './modules/FurnitureRegistration.module.css';
+}
+
+.furniture-registration__add-icon {
+    composes: furniture-registration__add-icon from './modules/FurnitureRegistration.module.css';
+}
+
+.furniture-registration__cancel {
+    composes: furniture-registration__cancel from './modules/FurnitureRegistration.module.css';
+}
+
+.furniture-registration__chip {
+    composes: furniture-registration__chip from './modules/FurnitureRegistration.module.css';
+}
+
+.furniture-registration__chip--selected {
+    composes: furniture-registration__chip--selected from './modules/FurnitureRegistration.module.css';
+}
+
+.furniture-registration__chips {
+    composes: furniture-registration__chips from './modules/FurnitureRegistration.module.css';
+}
+
+.furniture-registration__dimensions {
+    composes: furniture-registration__dimensions from './modules/FurnitureRegistration.module.css';
+}
+
+.furniture-registration__error {
+    composes: furniture-registration__error from './modules/FurnitureRegistration.module.css';
+}
+
+.furniture-registration__field {
+    composes: furniture-registration__field from './modules/FurnitureRegistration.module.css';
+}
+
+.furniture-registration__field--description {
+    composes: furniture-registration__field--description from './modules/FurnitureRegistration.module.css';
+}
+
+.furniture-registration__field--images {
+    composes: furniture-registration__field--images from './modules/FurnitureRegistration.module.css';
+}
+
+.furniture-registration__hint {
+    composes: furniture-registration__hint from './modules/FurnitureRegistration.module.css';
+}
+
+.furniture-registration__image-input {
+    composes: furniture-registration__image-input from './modules/FurnitureRegistration.module.css';
+}
+
+.furniture-registration__image-list {
+    composes: furniture-registration__image-list from './modules/FurnitureRegistration.module.css';
+}
+
+.furniture-registration__image-remove {
+    composes: furniture-registration__image-remove from './modules/FurnitureRegistration.module.css';
+}
+
+.furniture-registration__image-slot {
+    composes: furniture-registration__image-slot from './modules/FurnitureRegistration.module.css';
+}
+
+.furniture-registration__image-slot--add {
+    composes: furniture-registration__image-slot--add from './modules/FurnitureRegistration.module.css';
+}
+
+.furniture-registration__price-input {
+    composes: furniture-registration__price-input from './modules/FurnitureRegistration.module.css';
+}
+
+.furniture-registration__submit {
+    composes: furniture-registration__submit from './modules/FurnitureRegistration.module.css';
+}
+
+.product-detail {
+    composes: product-detail from './modules/ProductDetail.module.css';
+}
+
+.product-detail__actions {
+    composes: product-detail__actions from './modules/ProductDetail.module.css';
+}
+
+.product-detail__back-button {
+    composes: product-detail__back-button from './modules/ProductDetail.module.css';
+}
+
+.product-detail__description {
+    composes: product-detail__description from './modules/ProductDetail.module.css';
+}
+
+.product-detail__dimensions {
+    composes: product-detail__dimensions from './modules/ProductDetail.module.css';
+}
+
+.product-detail__heart-icon {
+    composes: product-detail__heart-icon from './modules/ProductDetail.module.css';
+}
+
+.product-detail__heart-icon--favorited {
+    composes: product-detail__heart-icon--favorited from './modules/ProductDetail.module.css';
+}
+
+.product-detail__image-counter {
+    composes: product-detail__image-counter from './modules/ProductDetail.module.css';
+}
+
+.product-detail__information {
+    composes: product-detail__information from './modules/ProductDetail.module.css';
+}
+
+.product-detail__layout {
+    composes: product-detail__layout from './modules/ProductDetail.module.css';
+}
+
+.product-detail__like-button {
+    composes: product-detail__like-button from './modules/ProductDetail.module.css';
+}
+
+.product-detail__main-image {
+    composes: product-detail__main-image from './modules/ProductDetail.module.css';
+}
+
+.product-detail__metadata {
+    composes: product-detail__metadata from './modules/ProductDetail.module.css';
+}
+
+.product-detail__price-list {
+    composes: product-detail__price-list from './modules/ProductDetail.module.css';
+}
+
+.product-detail__purchase-button {
+    composes: product-detail__purchase-button from './modules/ProductDetail.module.css';
+}
+
+.product-detail__purchase-message {
+    composes: product-detail__purchase-message from './modules/ProductDetail.module.css';
+}
+
+.product-detail__status {
+    composes: product-detail__status from './modules/ProductDetail.module.css';
+}
+
+.product-detail__thumbnail {
+    composes: product-detail__thumbnail from './modules/ProductDetail.module.css';
+}
+
+.product-detail__thumbnail--selected {
+    composes: product-detail__thumbnail--selected from './modules/ProductDetail.module.css';
+}
+
+.product-detail__thumbnails {
+    composes: product-detail__thumbnails from './modules/ProductDetail.module.css';
+}
+
+.product-detail__total {
+    composes: product-detail__total from './modules/ProductDetail.module.css';
+}
+
+.mock-scenario-controller {
+    composes: mock-scenario-controller from './modules/MockScenarioController.module.css';
+}
+
+.image-count {
+    composes: image-count from './modules/ProductGrid.module.css';
+}
+
+.product-card {
+    composes: product-card from './modules/ProductGrid.module.css';
+}
+
+.product-card--interactive {
+    composes: product-card--interactive from './modules/ProductGrid.module.css';
+}
+
+.product-card__details {
+    composes: product-card__details from './modules/ProductGrid.module.css';
+}
+
+.product-card__image {
+    composes: product-card__image from './modules/ProductGrid.module.css';
+}
+
+.product-card__image-wrap {
+    composes: product-card__image-wrap from './modules/ProductGrid.module.css';
+}
+
+.product-card__meta {
+    composes: product-card__meta from './modules/ProductGrid.module.css';
+}
+
+.product-card__price {
+    composes: product-card__price from './modules/ProductGrid.module.css';
+}
+
+.product-card__title {
+    composes: product-card__title from './modules/ProductGrid.module.css';
+}
+
+.product-card__total {
+    composes: product-card__total from './modules/ProductGrid.module.css';
+}
+
+.product-grid {
+    composes: product-grid from './modules/ProductGrid.module.css';
+}
+
+.product-grid-message {
+    composes: product-grid-message from './modules/ProductGrid.module.css';
+}
+
+.skeleton {
+    composes: skeleton from './modules/ProductGrid.module.css';
+}
+
+.skeleton--meta {
+    composes: skeleton--meta from './modules/ProductGrid.module.css';
+}
+
+.skeleton--price {
+    composes: skeleton--price from './modules/ProductGrid.module.css';
+}
+
+.skeleton--title {
+    composes: skeleton--title from './modules/ProductGrid.module.css';
+}
+
+.status-badge {
+    composes: status-badge from './modules/ProductGrid.module.css';
+}
+
+.status-badge--reserved {
+    composes: status-badge--reserved from './modules/ProductGrid.module.css';
+}
+
+.auth-modal {
+    composes: auth-modal from './modules/AuthModal.module.css';
+}
+
+.auth-modal--signup {
+    composes: auth-modal--signup from './modules/AuthModal.module.css';
+}
+
+.auth-modal-backdrop {
+    composes: auth-modal-backdrop from './modules/AuthModal.module.css';
+}
+
+.auth-modal__brand {
+    composes: auth-modal__brand from './modules/AuthModal.module.css';
+}
+
+.auth-modal__close {
+    composes: auth-modal__close from './modules/AuthModal.module.css';
+}
+
+.auth-modal__feedback {
+    composes: auth-modal__feedback from './modules/AuthModal.module.css';
+}
+
+.auth-modal__feedback--error {
+    composes: auth-modal__feedback--error from './modules/AuthModal.module.css';
+}
+
+.auth-modal__feedback--success {
+    composes: auth-modal__feedback--success from './modules/AuthModal.module.css';
+}
+
+.auth-modal__field {
+    composes: auth-modal__field from './modules/AuthModal.module.css';
+}
+
+.auth-modal__form {
+    composes: auth-modal__form from './modules/AuthModal.module.css';
+}
+
+.auth-modal__submit {
+    composes: auth-modal__submit from './modules/AuthModal.module.css';
+}
+
+.auth-modal__tab {
+    composes: auth-modal__tab from './modules/AuthModal.module.css';
+}
+
+.auth-modal__tab--active {
+    composes: auth-modal__tab--active from './modules/AuthModal.module.css';
+}
+
+.auth-modal__tabs {
+    composes: auth-modal__tabs from './modules/AuthModal.module.css';
+}
+
+.my-account__actions {
+    composes: my-account__actions from './modules/AccountPages.module.css';
+}
+
+.my-account__edit {
+    composes: my-account__edit from './modules/AccountPages.module.css';
+}
+
+.my-account__edit-actions {
+    composes: my-account__edit-actions from './modules/AccountPages.module.css';
+}
+
+.my-account__edit-cancel {
+    composes: my-account__edit-cancel from './modules/AccountPages.module.css';
+}
+
+.my-account__edit-submit {
+    composes: my-account__edit-submit from './modules/AccountPages.module.css';
+}
+
+.my-account__edit-toggle {
+    composes: my-account__edit-toggle from './modules/AccountPages.module.css';
+}
+
+.my-account__links {
+    composes: my-account__links from './modules/AccountPages.module.css';
+}
+
+.my-account__profile {
+    composes: my-account__profile from './modules/AccountPages.module.css';
+}
+
+.my-favorites__item {
+    composes: my-favorites__item from './modules/AccountPages.module.css';
+}
+
+.my-favorites__remove {
+    composes: my-favorites__remove from './modules/AccountPages.module.css';
+}
+
+.my-favorites__select {
+    composes: my-favorites__select from './modules/AccountPages.module.css';
+}
+
+.my-favorites__thumbnail {
+    composes: my-favorites__thumbnail from './modules/AccountPages.module.css';
+}
+
+.my-furniture {
+    composes: my-furniture from './modules/AccountPages.module.css';
+}
+
+.my-furniture__controls {
+    composes: my-furniture__controls from './modules/AccountPages.module.css';
+}
+
+.my-furniture__details {
+    composes: my-furniture__details from './modules/AccountPages.module.css';
+}
+
+.my-furniture__heading {
+    composes: my-furniture__heading from './modules/AccountPages.module.css';
+}
+
+.my-furniture__item {
+    composes: my-furniture__item from './modules/AccountPages.module.css';
+}
+
+.my-furniture__item--sold {
+    composes: my-furniture__item--sold from './modules/AccountPages.module.css';
+}
+
+.my-furniture__list {
+    composes: my-furniture__list from './modules/AccountPages.module.css';
+}
+
+.my-furniture__price {
+    composes: my-furniture__price from './modules/AccountPages.module.css';
+}
+
+.my-furniture__register-button {
+    composes: my-furniture__register-button from './modules/AccountPages.module.css';
+}
+
+.my-furniture__status {
+    composes: my-furniture__status from './modules/AccountPages.module.css';
+}
+
+.my-furniture__status--reserved {
+    composes: my-furniture__status--reserved from './modules/AccountPages.module.css';
+}
+
+.my-furniture__thumbnail {
+    composes: my-furniture__thumbnail from './modules/AccountPages.module.css';
+}
+
+.my-orders {
+    composes: my-orders from './modules/AccountPages.module.css';
+}
+
+.my-orders__details {
+    composes: my-orders__details from './modules/AccountPages.module.css';
+}
+
+.my-orders__heading {
+    composes: my-orders__heading from './modules/AccountPages.module.css';
+}
+
+.my-orders__item {
+    composes: my-orders__item from './modules/AccountPages.module.css';
+}
+
+.my-orders__list {
+    composes: my-orders__list from './modules/AccountPages.module.css';
+}
+
+.my-orders__status {
+    composes: my-orders__status from './modules/AccountPages.module.css';
+}
+
+.my-orders__status--delivered {
+    composes: my-orders__status--delivered from './modules/AccountPages.module.css';
+}
+
+.my-orders__status--in_delivery {
+    composes: my-orders__status--in_delivery from './modules/AccountPages.module.css';
+}
+
+.my-orders__status--requested {
+    composes: my-orders__status--requested from './modules/AccountPages.module.css';
+}
+
+.my-orders__total {
+    composes: my-orders__total from './modules/AccountPages.module.css';
+}
+
+.payment-checkout {
+    composes: payment-checkout from './modules/Payment.module.css';
+}
+
+.payment-checkout-backdrop {
+    composes: payment-checkout-backdrop from './modules/Payment.module.css';
+}
+
+.payment-checkout__amount {
+    composes: payment-checkout__amount from './modules/Payment.module.css';
+}
+
+.payment-checkout__close {
+    composes: payment-checkout__close from './modules/Payment.module.css';
+}
+
+.payment-checkout__error {
+    composes: payment-checkout__error from './modules/Payment.module.css';
+}
+
+.payment-checkout__mock-note {
+    composes: payment-checkout__mock-note from './modules/Payment.module.css';
+}
+
+.payment-checkout__pay {
+    composes: payment-checkout__pay from './modules/Payment.module.css';
+}
+
+.payment-checkout__title {
+    composes: payment-checkout__title from './modules/Payment.module.css';
+}
+
+.payment-notice {
+    composes: payment-notice from './modules/Payment.module.css';
+}
+
+.payment-notice--error {
+    composes: payment-notice--error from './modules/Payment.module.css';
+}
+
+.payment-notice--success {
+    composes: payment-notice--success from './modules/Payment.module.css';
+}
