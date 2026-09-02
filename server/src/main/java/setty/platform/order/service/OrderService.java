@@ -9,6 +9,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import setty.common.DeliveryStatus;
 import setty.common.OrderRequested;
 import setty.global.exception.BusinessException;
 import setty.global.exception.ErrorCode;
@@ -101,6 +102,25 @@ public class OrderService {
                 seller.getPhoneNumber(),
                 buyer.getPhoneNumber()
         ));
+    }
+
+    /**
+     * 결제 실패(PaymentFailed) 보상 — PENDING 주문을 삭제하고 매물 선점을 해제해 다시 구매 가능하게 한다.
+     * 주문이 없거나(중복 실패 복귀) 이미 REQUESTED 이상이면(결제 완료된 주문 보호) 조용히 무시한다.
+     */
+    @Transactional
+    public void cancelPending(final Long orderId) {
+        if (orderId == null || orderId <= 0) {
+            return;
+        }
+
+        final Order order = orderRepository.findByIdForUpdate(orderId).orElse(null);
+        if (order == null || order.getDeliveryStatus() != DeliveryStatus.PENDING) {
+            return;
+        }
+
+        listingService.releasePurchaseRequest(order.getListingId());
+        orderRepository.delete(order);
     }
 
     @Transactional(readOnly = true)

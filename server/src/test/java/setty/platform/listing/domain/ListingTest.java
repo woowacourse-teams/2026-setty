@@ -137,6 +137,24 @@ class ListingTest {
         assertBusinessError(listing::softDelete, ErrorCode.LISTING_DELETE_NOT_ALLOWED);
     }
 
+    @DisplayName("선점 해제는 구매 신청을 되돌리고, 이미 해제된 매물에도 멱등하게 동작한다")
+    @Test
+    void releasesPurchaseRequestIdempotently() {
+        Listing listing = createListing();
+        listing.registerPurchaseRequest();
+
+        listing.releasePurchaseRequest();
+        assertThat(listing.hasPurchaseRequest()).isFalse();
+        assertThat(listing.canUpdate()).isTrue();
+
+        listing.releasePurchaseRequest();
+        assertThat(listing.hasPurchaseRequest()).isFalse();
+
+        // 해제 후에는 다시 구매 신청을 받을 수 있다.
+        listing.registerPurchaseRequest();
+        assertThat(listing.hasPurchaseRequest()).isTrue();
+    }
+
     @DisplayName("만료된 PENDING 주문의 구매 신청을 해제하면 매물을 다시 주문할 수 있다")
     @Test
     void releasesPurchaseRequestAndAllowsAnotherRequest() {

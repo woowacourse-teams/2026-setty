@@ -141,7 +141,16 @@ public class Listing {
         touch();
     }
 
+    // 결제 실패로 주문이 취소될 때 선점을 되돌린다. 멱등 — 이미 해제돼 있어도 예외 없이 통과한다.
+    public void releasePurchaseRequest() {
+        releasePurchaseRequestState();
+    }
+
     public void releasePurchaseRequestForExpiredPendingOrder() {
+        releasePurchaseRequestState();
+    }
+
+    private void releasePurchaseRequestState() {
         if (!hasPurchaseRequest) {
             return;
         }

@@ -47,6 +47,7 @@ public class CheckoutController {
             return redirect("success", orderId, null);
         } catch (final BusinessException e) {
             log.warn("결제 승인 처리에 실패했습니다. orderId={}, code={}", orderId, e.getErrorCode(), e);
+            failQuietly(orderId);
             return redirect("fail", orderId, e.getErrorCode().name());
         }
     }
@@ -58,8 +59,17 @@ public class CheckoutController {
             @RequestParam final String orderId
     ) {
         log.info("결제 실패 복귀. orderId={}, code={}, message={}", orderId, code, message);
-        paymentService.fail(orderId);
+        failQuietly(orderId);
         return redirect("fail", orderId, code);
+    }
+
+    // 실패 정리는 최선 노력 — 잘못된 orderId 등으로 실패해도 사용자 리다이렉트는 막지 않는다.
+    private void failQuietly(final String orderId) {
+        try {
+            paymentService.fail(orderId);
+        } catch (final BusinessException e) {
+            log.warn("결제 실패 정리에 실패했습니다. orderId={}, code={}", orderId, e.getErrorCode(), e);
+        }
     }
 
     private ResponseEntity<Void> redirect(final String result, final String orderId, final String reason) {
