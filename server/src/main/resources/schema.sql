@@ -102,11 +102,53 @@ CREATE TABLE IF NOT EXISTS orders (
     buyer_id        BIGINT       NOT NULL,
     delivery_status VARCHAR(20)  NOT NULL,              -- 플랫폼이 DeliveryStatusChanged 이벤트를 수신해 UPDATE
     driver_id       BIGINT       NULL,                  -- 현재 미사용, 실제 배정 기사는 delivery.driver_id에 저장
+    pending_expires_at TIMESTAMP(6) NULL,                -- PENDING 주문 자동 만료 시각
     PRIMARY KEY (id),
     UNIQUE KEY uk_orders_listing_id (listing_id),
     CONSTRAINT fk_orders_listing FOREIGN KEY (listing_id) REFERENCES listings (id),
-    CONSTRAINT fk_orders_buyer   FOREIGN KEY (buyer_id)   REFERENCES members (id)
+    CONSTRAINT fk_orders_buyer   FOREIGN KEY (buyer_id)   REFERENCES members (id),
+    INDEX idx_orders_pending_expiration (delivery_status, pending_expires_at)
 );
+
+-- 기존 orders 테이블 마이그레이션. MySQL은 ADD COLUMN/INDEX IF NOT EXISTS를 지원하지 않으므로
+-- information_schema 확인 결과에 따라 동적 DDL을 실행한다.
+SET @orders_pending_expires_at_exists = (
+    SELECT COUNT(*)
+    FROM information_schema.columns
+    WHERE table_schema = DATABASE()
+      AND table_name = 'orders'
+      AND column_name = 'pending_expires_at'
+);
+SET @add_orders_pending_expires_at = IF(
+    @orders_pending_expires_at_exists = 0,
+    'ALTER TABLE orders ADD COLUMN pending_expires_at TIMESTAMP(6) NULL AFTER driver_id',
+    'SELECT 1'
+);
+PREPARE add_orders_pending_expires_at_statement FROM @add_orders_pending_expires_at;
+EXECUTE add_orders_pending_expires_at_statement;
+DEALLOCATE PREPARE add_orders_pending_expires_at_statement;
+
+-- 생성 시각을 알 수 없는 기존 PENDING 주문에는 배포 시점부터 기본 10분을 부여한다.
+UPDATE orders
+SET pending_expires_at = CURRENT_TIMESTAMP(6) + INTERVAL 10 MINUTE
+WHERE delivery_status = 'PENDING'
+  AND pending_expires_at IS NULL;
+
+SET @orders_pending_expiration_index_exists = (
+    SELECT COUNT(*)
+    FROM information_schema.statistics
+    WHERE table_schema = DATABASE()
+      AND table_name = 'orders'
+      AND index_name = 'idx_orders_pending_expiration'
+);
+SET @add_orders_pending_expiration_index = IF(
+    @orders_pending_expiration_index_exists = 0,
+    'ALTER TABLE orders ADD INDEX idx_orders_pending_expiration (delivery_status, pending_expires_at)',
+    'SELECT 1'
+);
+PREPARE add_orders_pending_expiration_index_statement FROM @add_orders_pending_expiration_index;
+EXECUTE add_orders_pending_expiration_index_statement;
+DEALLOCATE PREPARE add_orders_pending_expiration_index_statement;
 
 -- 결제 (payment 계층). 토스페이먼츠 결제 결과(성공 DONE / 실패 ABORTED)를 1주문 1행으로 저장한다.
 -- 주문은 결제 이전에 PENDING으로 먼저 생성되므로 payments.order_id는 항상 존재하는 주문을 가리킨다.
