@@ -8,6 +8,8 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import java.time.Duration;
+import java.time.Instant;
 import setty.common.DeliveryStatus;
 import setty.global.exception.BusinessException;
 import setty.global.exception.ErrorCode;
@@ -15,6 +17,8 @@ import setty.global.exception.ErrorCode;
 @Entity
 @Table(name = "orders")
 public class Order {
+
+    private static final Duration DEFAULT_PENDING_TIMEOUT = Duration.ofMinutes(3);
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -32,6 +36,9 @@ public class Order {
 
     @Column(name = "driver_id")
     private Long driverId;
+
+    @Column(name = "pending_expires_at")
+    private Instant pendingExpiresAt;
 
     protected Order() {
     }
@@ -55,9 +62,21 @@ public class Order {
 
     // 결제 대기 주문 — 배송이 시작되지 않았으므로 OrderRequested를 발행하지 않는 경로에서만 쓴다.
     public static Order pending(final Long listingId, final Long buyerId) {
+        return pending(listingId, buyerId, Instant.now().plus(DEFAULT_PENDING_TIMEOUT));
+    }
+
+    public static Order pending(final Long listingId, final Long buyerId, final Instant pendingExpiresAt) {
         final Order order = new Order(listingId, buyerId);
         order.deliveryStatus = DeliveryStatus.PENDING;
+        order.pendingExpiresAt = pendingExpiresAt;
         return order;
+    }
+
+    public boolean canExpire(final Instant referenceTime) {
+        return deliveryStatus == DeliveryStatus.PENDING
+                && pendingExpiresAt != null
+                && referenceTime != null
+                && !pendingExpiresAt.isAfter(referenceTime);
     }
 
     // 직전 상태에서 한 단계 전진만 허용,
@@ -102,5 +121,9 @@ public class Order {
 
     public Long getDriverId() {
         return driverId;
+    }
+
+    public Instant getPendingExpiresAt() {
+        return pendingExpiresAt;
     }
 }

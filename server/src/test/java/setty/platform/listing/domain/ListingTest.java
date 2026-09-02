@@ -155,6 +155,41 @@ class ListingTest {
         assertThat(listing.hasPurchaseRequest()).isTrue();
     }
 
+    @DisplayName("만료된 PENDING 주문의 구매 신청을 해제하면 매물을 다시 주문할 수 있다")
+    @Test
+    void releasesPurchaseRequestAndAllowsAnotherRequest() {
+        Listing listing = createListing();
+        listing.registerPurchaseRequest();
+
+        listing.releasePurchaseRequestForExpiredPendingOrder();
+
+        assertThat(listing.hasPurchaseRequest()).isFalse();
+        assertThat(listing.getSaleStatus()).isEqualTo(SaleStatus.AVAILABLE);
+        listing.registerPurchaseRequest();
+        assertThat(listing.hasPurchaseRequest()).isTrue();
+    }
+
+    @DisplayName("구매 신청 해제는 예약·판매 완료 상태를 판매 가능으로 덮어쓰지 않는다")
+    @Test
+    void preservesReservedAndSoldStatusWhenReleasingPurchaseRequest() {
+        Listing reservedListing = createListing();
+        reservedListing.registerPurchaseRequest();
+        reservedListing.reserve();
+
+        Listing soldListing = createListing();
+        soldListing.registerPurchaseRequest();
+        soldListing.reserve();
+        soldListing.completeSale();
+
+        reservedListing.releasePurchaseRequestForExpiredPendingOrder();
+        soldListing.releasePurchaseRequestForExpiredPendingOrder();
+
+        assertThat(reservedListing.hasPurchaseRequest()).isFalse();
+        assertThat(reservedListing.getSaleStatus()).isEqualTo(SaleStatus.RESERVED);
+        assertThat(soldListing.hasPurchaseRequest()).isFalse();
+        assertThat(soldListing.getSaleStatus()).isEqualTo(SaleStatus.SOLD);
+    }
+
     @DisplayName("구매 신청이 있는 매물만 한 번 예약되고 예약된 매물만 판매 완료된다")
     @Test
     void transitionsFromAvailableToReservedToSold() {

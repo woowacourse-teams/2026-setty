@@ -25,6 +25,10 @@ spring:
       max-request-size: 26MB
 
 setty:
+  order:
+    pending-expiration:
+      timeout: ${PENDING_ORDER_EXPIRATION_TIMEOUT:PT3M}
+      scan-interval: ${PENDING_ORDER_EXPIRATION_SCAN_INTERVAL:PT1M}
   storage:
     listing-images:
       region: ${AWS_REGION:ap-northeast-2}

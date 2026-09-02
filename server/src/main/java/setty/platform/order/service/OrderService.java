@@ -1,5 +1,6 @@
 package setty.platform.order.service;
 
+import java.time.Clock;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -17,6 +18,7 @@ import setty.platform.listing.domain.Listing;
 import setty.platform.listing.repository.ListingRepository;
 import setty.platform.member.domain.Member;
 import setty.platform.member.repository.MemberRepository;
+import setty.platform.order.config.PendingOrderExpirationProperties;
 import setty.platform.order.controller.dto.MyOrderResponse;
 import setty.platform.order.controller.dto.OrderCreateRequest;
 import setty.platform.order.domain.Order;
@@ -30,19 +32,25 @@ public class OrderService {
     private final ListingRepository listingRepository;
     private final MemberRepository memberRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final Clock clock;
+    private final PendingOrderExpirationProperties pendingOrderExpirationProperties;
 
     public OrderService(
             final OrderRepository orderRepository,
             final ListingService listingService,
             final ListingRepository listingRepository,
             final MemberRepository memberRepository,
-            final ApplicationEventPublisher eventPublisher
+            final ApplicationEventPublisher eventPublisher,
+            final Clock clock,
+            final PendingOrderExpirationProperties pendingOrderExpirationProperties
     ) {
         this.orderRepository = orderRepository;
         this.listingService = listingService;
         this.listingRepository = listingRepository;
         this.memberRepository = memberRepository;
         this.eventPublisher = eventPublisher;
+        this.clock = clock;
+        this.pendingOrderExpirationProperties = pendingOrderExpirationProperties;
     }
 
     // 결제 대기 주문 생성 — 결제 전이므로 OrderRequested(배차 요청)를 발행하지 않는다.
@@ -55,7 +63,11 @@ public class OrderService {
         listingService.registerPurchaseRequest(request.listingId(), buyer.getId());
 
         try {
-            return orderRepository.saveAndFlush(Order.pending(request.listingId(), buyer.getId()));
+            return orderRepository.saveAndFlush(Order.pending(
+                    request.listingId(),
+                    buyer.getId(),
+                    clock.instant().plus(pendingOrderExpirationProperties.timeout())
+            ));
         } catch (final DataIntegrityViolationException e) {
             throw new BusinessException(ErrorCode.ALREADY_ORDERED);
         }
@@ -67,7 +79,7 @@ public class OrderService {
             throw new BusinessException(ErrorCode.INVALID_REQUEST);
         }
 
-        final Order order = orderRepository.findById(orderId)
+        final Order order = orderRepository.findByIdForUpdate(orderId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
         if (!order.requestDelivery()) {
             return;

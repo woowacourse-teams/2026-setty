@@ -23,4 +23,8 @@ public interface ListingRepository extends JpaRepository<Listing, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select listing from Listing listing where listing.id = :id and listing.deletedAt is null")
     Optional<Listing> findActiveByIdForUpdate(@Param("id") Long id);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select listing from Listing listing where listing.id = :id")
+    Optional<Listing> findByIdForUpdate(@Param("id") Long id);
 }

@@ -1,12 +1,16 @@
 package setty.platform.order.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -24,6 +28,8 @@ import setty.platform.listing.domain.ListingCategory;
 import setty.platform.listing.repository.ListingRepository;
 import setty.platform.member.domain.Member;
 import setty.platform.member.repository.MemberRepository;
+import setty.platform.order.config.PendingOrderExpirationProperties;
+import setty.platform.order.controller.dto.OrderCreateRequest;
 import setty.platform.order.domain.Order;
 import setty.platform.order.repository.OrderRepository;
 
@@ -50,8 +56,32 @@ class OrderServiceTest {
     @Mock
     private ApplicationEventPublisher eventPublisher;
 
+    @Mock
+    private Clock clock;
+
+    @Mock
+    private PendingOrderExpirationProperties pendingOrderExpirationProperties;
+
     @InjectMocks
     private OrderService orderService;
+
+    @Test
+    void 결제_대기_주문에_설정된_만료_시간을_저장한다() {
+        final Instant createdAt = Instant.parse("2026-09-02T05:00:00Z");
+        final Duration timeout = Duration.ofMinutes(3);
+        final Member buyer = mock(Member.class);
+        when(buyer.getId()).thenReturn(BUYER_ID);
+        when(clock.instant()).thenReturn(createdAt);
+        when(pendingOrderExpirationProperties.timeout()).thenReturn(timeout);
+        when(orderRepository.saveAndFlush(any(Order.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        final Order order = orderService.pending(new OrderCreateRequest(LISTING_ID), buyer);
+
+        assertThat(order.getDeliveryStatus()).isEqualTo(DeliveryStatus.PENDING);
+        assertThat(order.getPendingExpiresAt()).isEqualTo(createdAt.plus(timeout));
+        verify(listingService).registerPurchaseRequest(LISTING_ID, BUYER_ID);
+    }
 
     @Test
     void 결제완료_주문으로_배송요청_이벤트를_발행한다() {
@@ -59,7 +89,7 @@ class OrderServiceTest {
         final Listing listing = listing();
         final Member seller = member("판매자 주소", "010-0000-0001");
         final Member buyer = member("구매자 주소", "010-0000-0002");
-        when(orderRepository.findById(ORDER_ID)).thenReturn(Optional.of(order));
+        when(orderRepository.findByIdForUpdate(ORDER_ID)).thenReturn(Optional.of(order));
         when(listingRepository.findById(LISTING_ID)).thenReturn(Optional.of(listing));
         when(memberRepository.findById(SELLER_ID)).thenReturn(Optional.of(seller));
         when(memberRepository.findById(BUYER_ID)).thenReturn(Optional.of(buyer));
@@ -79,13 +109,14 @@ class OrderServiceTest {
                 "010-0000-0001",
                 "010-0000-0002"
         ));
+        verify(orderRepository).findByIdForUpdate(ORDER_ID);
     }
 
     @Test
     void 이미_배송요청_상태인_주문에는_이벤트를_다시_발행하지_않는다() {
         final Order order = new Order(LISTING_ID, BUYER_ID);
         ReflectionTestUtils.setField(order, "id", ORDER_ID);
-        when(orderRepository.findById(ORDER_ID)).thenReturn(Optional.of(order));
+        when(orderRepository.findByIdForUpdate(ORDER_ID)).thenReturn(Optional.of(order));
 
         orderService.publishOrderRequested(ORDER_ID);
 

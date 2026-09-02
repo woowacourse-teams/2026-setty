@@ -3,7 +3,10 @@ package setty.platform.order.domain;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.time.Instant;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.test.util.ReflectionTestUtils;
 import setty.common.DeliveryStatus;
 import setty.global.exception.BusinessException;
@@ -13,9 +16,32 @@ class OrderTest {
 
     @Test
     void 결제_대기_주문은_PENDING으로_생성된다() {
-        final Order order = Order.pending(1L, 2L);
+        final Instant pendingExpiresAt = Instant.parse("2026-09-02T05:10:00Z");
+
+        final Order order = Order.pending(1L, 2L, pendingExpiresAt);
 
         assertThat(order.getDeliveryStatus()).isEqualTo(DeliveryStatus.PENDING);
+        assertThat(order.getPendingExpiresAt()).isEqualTo(pendingExpiresAt);
+    }
+
+    @Test
+    void PENDING_주문은_만료_시각부터_만료할_수_있다() {
+        final Instant pendingExpiresAt = Instant.parse("2026-09-02T05:10:00Z");
+        final Order order = Order.pending(1L, 2L, pendingExpiresAt);
+
+        assertThat(order.canExpire(pendingExpiresAt.minusNanos(1))).isFalse();
+        assertThat(order.canExpire(pendingExpiresAt)).isTrue();
+        assertThat(order.canExpire(pendingExpiresAt.plusSeconds(1))).isTrue();
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = DeliveryStatus.class, names = {"REQUESTED", "ACCEPTED", "PICKED_UP", "DELIVERED"})
+    void PENDING이_아닌_주문은_만료_시각이_지나도_만료할_수_없다(final DeliveryStatus deliveryStatus) {
+        final Instant pendingExpiresAt = Instant.parse("2026-09-02T05:10:00Z");
+        final Order order = Order.pending(1L, 2L, pendingExpiresAt);
+        ReflectionTestUtils.setField(order, "deliveryStatus", deliveryStatus);
+
+        assertThat(order.canExpire(pendingExpiresAt.plusSeconds(1))).isFalse();
     }
 
     @Test
