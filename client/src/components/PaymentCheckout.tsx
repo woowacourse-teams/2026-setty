@@ -71,7 +71,15 @@ export function PaymentCheckout({ listingId, amount, orderName, onClose }: Payme
                 const code = typeof reason === 'object' && reason !== null && 'code' in reason && typeof reason.code === 'string'
                     ? reason.code
                     : 'PAY_PROCESS_CANCELED';
-                window.location.assign(`${paymentReturnUrl('fail')}?orderId=${tossOrderId}&code=${encodeURIComponent(code)}`);
+                // 페이지 이동 없이 서버 실패 복귀만 호출해 PENDING 주문 정리(선점 해제)를 태운다.
+                void fetch(`${paymentReturnUrl('fail')}?orderId=${tossOrderId}&code=${encodeURIComponent(code)}`);
+                if (code === 'PAY_PROCESS_CANCELED') {
+                    // 사용자가 직접 닫은 취소 — 모달을 닫고 매물 상세로 조용히 복귀한다.
+                    onClose();
+                    return;
+                }
+                setError(reason instanceof Error ? reason.message : '결제를 진행하지 못했습니다.');
+                setRequesting(false);
                 return;
             }
             setError(reason instanceof Error ? reason.message : '결제를 시작하지 못했습니다.');
