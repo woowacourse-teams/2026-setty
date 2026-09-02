@@ -1,6 +1,7 @@
 import { ANONYMOUS, loadTossPayments, type TossPaymentsWidgets } from '@tosspayments/tosspayments-sdk';
 import { useEffect, useRef, useState } from 'react';
-import { TOSS_CLIENT_KEY, mockRedirect, paymentReturnUrl, savePending } from '../payment/tossPayment';
+import { createOrder } from '../api/orders';
+import { TOSS_CLIENT_KEY, mockReturn, paymentReturnUrl } from '../payment/tossPayment';
 
 type PaymentCheckoutProps = {
     listingId: number;
@@ -14,7 +15,6 @@ export function PaymentCheckout({ listingId, amount, orderName, onClose }: Payme
     const [requesting, setRequesting] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const widgetsRef = useRef<TossPaymentsWidgets | null>(null);
-    const tossOrderIdRef = useRef(crypto.randomUUID());
 
     useEffect(() => {
         if (__ENABLE_MSW__) return;
@@ -44,17 +44,21 @@ export function PaymentCheckout({ listingId, amount, orderName, onClose }: Payme
         setRequesting(true);
         setError(null);
 
-        const tossOrderId = tossOrderIdRef.current;
-        savePending({ tossOrderId, listingId, amount });
-        const successUrl = paymentReturnUrl('success');
-        const failUrl = paymentReturnUrl('fail');
-
         try {
+            // 결제 전에 PENDING 주문을 만들고, 그 내부 주문 id를 토스 orderId로 쓴다(서버가 이 id로 조회·승인).
+            const order = await createOrder(listingId);
+
             if (__ENABLE_MSW__) {
-                mockRedirect(successUrl, tossOrderId, amount);
+                mockReturn(order.id);
                 return;
             }
-            await widgetsRef.current?.requestPayment({ orderId: tossOrderId, orderName, successUrl, failUrl });
+
+            await widgetsRef.current?.requestPayment({
+                orderId: String(order.id),
+                orderName,
+                successUrl: paymentReturnUrl('success'),
+                failUrl: paymentReturnUrl('fail')
+            });
         } catch (reason) {
             setError(reason instanceof Error ? reason.message : '결제를 시작하지 못했습니다.');
             setRequesting(false);
