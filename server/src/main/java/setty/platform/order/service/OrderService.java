@@ -78,7 +78,7 @@ public class OrderService {
             throw new BusinessException(ErrorCode.INVALID_REQUEST);
         }
 
-        final Order order = orderRepository.findById(orderId)
+        final Order order = orderRepository.findByIdForUpdate(orderId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
         if (!order.requestDelivery()) {
             return;

@@ -141,6 +141,14 @@ public class Listing {
         touch();
     }
 
+    public void releasePurchaseRequestForExpiredPendingOrder() {
+        if (!hasPurchaseRequest) {
+            return;
+        }
+        this.hasPurchaseRequest = false;
+        touch();
+    }
+
     public boolean reserve() {
         if (isDeleted()) {
             return false;

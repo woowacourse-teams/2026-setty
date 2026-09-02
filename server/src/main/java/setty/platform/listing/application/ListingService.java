@@ -202,6 +202,13 @@ public class ListingService {
     }
 
     @Transactional
+    public void releasePurchaseRequestForExpiredPendingOrder(Long listingId) {
+        Listing listing = listingRepository.findByIdForUpdate(listingId)
+                .orElseThrow(() -> new BusinessException(LISTING_NOT_FOUND));
+        listing.releasePurchaseRequestForExpiredPendingOrder();
+    }
+
+    @Transactional
     public boolean reserveForDelivery(Long listingId) {
         return findActiveForUpdate(listingId).reserve();
     }
