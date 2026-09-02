@@ -45,12 +45,15 @@ export function PaymentCheckout({ listingId, amount, orderName, onClose }: Payme
         setRequesting(true);
         setError(null);
 
+        // 데스크톱 오버레이 결제창은 취소 시 failUrl로 리다이렉트하지 않고 requestPayment를 reject한다.
+        // 주문 생성 이후의 취소·실패는 서버 실패 복귀로 보내 PENDING 주문 정리(선점 해제)를 태운다.
+        let tossOrderId: string | null = null;
         try {
             // 결제 전에 PENDING 주문을 만들고, 그 내부 주문 id를 토스 orderId로 쓴다(서버가 이 id로 조회·승인).
             const order = await createOrder(listingId);
             // 토스 orderId는 6~64자이며 매번 유일해야 한다(승인/취소된 값은 재사용 불가).
             // `<내부 주문id>_<랜덤>` 복합키로 만들어 매 시도 유일하게 하고, 서버는 앞부분에서 주문 id를 추출한다.
-            const tossOrderId = `${order.id}_${crypto.randomUUID()}`;
+            tossOrderId = `${order.id}_${crypto.randomUUID()}`;
 
             if (__ENABLE_MSW__) {
                 mockReturn(order.id);
@@ -64,6 +67,21 @@ export function PaymentCheckout({ listingId, amount, orderName, onClose }: Payme
                 failUrl: paymentReturnUrl('fail')
             });
         } catch (reason) {
+            if (tossOrderId) {
+                const code = typeof reason === 'object' && reason !== null && 'code' in reason && typeof reason.code === 'string'
+                    ? reason.code
+                    : 'PAY_PROCESS_CANCELED';
+                // 페이지 이동 없이 서버 실패 복귀만 호출해 PENDING 주문 정리(선점 해제)를 태운다.
+                void fetch(`${paymentReturnUrl('fail')}?orderId=${tossOrderId}&code=${encodeURIComponent(code)}`);
+                if (code === 'PAY_PROCESS_CANCELED') {
+                    // 사용자가 직접 닫은 취소 — 모달을 닫고 매물 상세로 조용히 복귀한다.
+                    onClose();
+                    return;
+                }
+                setError(reason instanceof Error ? reason.message : '결제를 진행하지 못했습니다.');
+                setRequesting(false);
+                return;
+            }
             setError(reason instanceof Error ? reason.message : '결제를 시작하지 못했습니다.');
             setRequesting(false);
         }
