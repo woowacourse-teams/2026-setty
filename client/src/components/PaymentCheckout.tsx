@@ -47,6 +47,9 @@ export function PaymentCheckout({ listingId, amount, orderName, onClose }: Payme
         try {
             // 결제 전에 PENDING 주문을 만들고, 그 내부 주문 id를 토스 orderId로 쓴다(서버가 이 id로 조회·승인).
             const order = await createOrder(listingId);
+            // 토스 orderId는 6자 이상이어야 한다. 앞에 0을 채워 최소 길이를 맞춘다.
+            // 서버는 Long.parseLong으로 선행 0을 무시해 파싱하므로 왕복이 그대로 유지된다("000001" → 1).
+            const tossOrderId = String(order.id).padStart(6, '0');
 
             if (__ENABLE_MSW__) {
                 mockReturn(order.id);
@@ -54,7 +57,7 @@ export function PaymentCheckout({ listingId, amount, orderName, onClose }: Payme
             }
 
             await widgetsRef.current?.requestPayment({
-                orderId: String(order.id),
+                orderId: tossOrderId,
                 orderName,
                 successUrl: paymentReturnUrl('success'),
                 failUrl: paymentReturnUrl('fail')
