@@ -2,7 +2,8 @@ import { ANONYMOUS, loadTossPayments, type TossPaymentsWidgets } from '@tosspaym
 import { useEffect, useRef, useState } from 'react';
 import { createOrder } from '../api/orders';
 import { TOSS_CLIENT_KEY, mockReturn, paymentReturnUrl } from '../payment/tossPayment';
-import { cx } from '../styles/styles';
+import { cx } from '../styles/classNames';
+import paymentStyles from '../styles/modules/Payment.module.css';
 
 type PaymentCheckoutProps = {
     listingId: number;
@@ -70,14 +71,14 @@ export function PaymentCheckout({ listingId, amount, orderName, onClose }: Payme
     };
 
     return (
-        <div className={cx('payment-checkout-backdrop')} role="dialog" aria-modal="true" aria-label="결제">
-            <div className={cx('payment-checkout')}>
-                <button className={cx('payment-checkout__close')} onClick={onClose} type="button" aria-label="결제 닫기">✕</button>
-                <h2 className={cx('payment-checkout__title')}>{orderName}</h2>
-                <p className={cx('payment-checkout__amount')}>{amount.toLocaleString('ko-KR')}원</p>
+        <div className={cx(paymentStyles['payment-checkout-backdrop'])} role="dialog" aria-modal="true" aria-label="결제">
+            <div className={cx(paymentStyles['payment-checkout'])}>
+                <button className={cx(paymentStyles['payment-checkout__close'])} onClick={onClose} type="button" aria-label="결제 닫기">✕</button>
+                <h2 className={cx(paymentStyles['payment-checkout__title'])}>{orderName}</h2>
+                <p className={cx(paymentStyles['payment-checkout__amount'])}>{amount.toLocaleString('ko-KR')}원</p>
 
                 {__ENABLE_MSW__ ? (
-                    <p className={cx('payment-checkout__mock-note')}>목 모드: 실제 결제창 없이 결제 성공을 흉내냅니다.</p>
+                    <p className={cx(paymentStyles['payment-checkout__mock-note'])}>목 모드: 실제 결제창 없이 결제 성공을 흉내냅니다.</p>
                 ) : (
                     <>
                         <div id="payment-method" />
@@ -85,10 +86,10 @@ export function PaymentCheckout({ listingId, amount, orderName, onClose }: Payme
                     </>
                 )}
 
-                {error && <p className={cx('payment-checkout__error')} role="alert">{error}</p>}
+                {error && <p className={cx(paymentStyles['payment-checkout__error'])} role="alert">{error}</p>}
 
                 <button
-                    className={cx('payment-checkout__pay')}
+                    className={cx(paymentStyles['payment-checkout__pay'])}
                     disabled={!ready || requesting}
                     onClick={() => void requestPayment()}
                     type="button"

@@ -2,7 +2,8 @@ import { List } from '@phosphor-icons/react/dist/icons/List';
 import { MagnifyingGlass } from '@phosphor-icons/react/dist/icons/MagnifyingGlass';
 import { X } from '@phosphor-icons/react/dist/icons/X';
 import { useEffect, useId, useRef, useState } from 'react';
-import { cx } from '../styles/styles';
+import { cx } from '../styles/classNames';
+import layoutStyles from '../styles/modules/Layout.module.css';
 
 interface HeaderProps {
     onHome: () => void;
@@ -91,11 +92,11 @@ export function Header({
     };
 
     return (
-        <header className={cx('site-header')}>
-            <div className={cx('site-header__content')}>
-                <div className={cx('site-header__top-row')}>
+        <header className={cx(layoutStyles['site-header'])}>
+            <div className={cx(layoutStyles['site-header__content'])}>
+                <div className={cx(layoutStyles['site-header__top-row'])}>
                     <a
-                        className={cx('site-header__wordmark')}
+                        className={cx(layoutStyles['site-header__wordmark'])}
                         href="/"
                         aria-label="SETTY 홈"
                         onClick={(event) => {
@@ -105,10 +106,10 @@ export function Header({
                     >
                         SETTY
                     </a>
-                    <div className={cx('site-header__top-actions')}>
+                    <div className={cx(layoutStyles['site-header__top-actions'])}>
                         {!isLoggedIn && (
                             <button
-                                className={cx('site-header__mobile-auth-button')}
+                                className={cx(layoutStyles['site-header__mobile-auth-button'])}
                                 onClick={() => runMobileAuthAction(onLoginClick)}
                                 type="button"
                             >
@@ -118,22 +119,22 @@ export function Header({
                         {isLoggedIn && (
                             <button
                                 ref={menuButtonRef}
-                                className={cx('site-header__menu-button')}
+                                className={cx(layoutStyles['site-header__menu-button'])}
                                 type="button"
                                 aria-controls={menuId}
                                 aria-expanded={isMenuOpen}
                                 onClick={() => setIsMenuOpen((isOpen) => !isOpen)}
                             >
                                 {isMenuOpen
-                                    ? <X aria-hidden="true" className={cx('site-header__menu-icon')} weight="bold" />
-                                    : <List aria-hidden="true" className={cx('site-header__menu-icon')} weight="bold" />}
-                                <span className={cx('site-header__visually-hidden')}>{isMenuOpen ? '메뉴 닫기' : '메뉴 열기'}</span>
+                                    ? <X aria-hidden="true" className={cx(layoutStyles['site-header__menu-icon'])} weight="bold" />
+                                    : <List aria-hidden="true" className={cx(layoutStyles['site-header__menu-icon'])} weight="bold" />}
+                                <span className={cx(layoutStyles['site-header__visually-hidden'])}>{isMenuOpen ? '메뉴 닫기' : '메뉴 열기'}</span>
                             </button>
                         )}
                     </div>
                 </div>
                 <form
-                    className={cx('site-header__search-field')}
+                    className={cx(layoutStyles['site-header__search-field'])}
                     onSubmit={(event) => {
                         event.preventDefault();
                         submitSearch();
@@ -141,15 +142,15 @@ export function Header({
                 >
                     <input
                         aria-label="매물 이름 검색"
-                        className={cx('site-header__search-input')}
+                        className={cx(layoutStyles['site-header__search-input'])}
                         onChange={(event) => setSearchInput(event.target.value)}
                         placeholder="배송비 고민 없이 원하는 가구를 찾아보세요"
                         ref={searchInputRef}
                         type="text"
                         value={searchInput}
                     />
-                    <button aria-label="매물 검색" className={cx('site-header__search-button')} type="submit">
-                        <MagnifyingGlass aria-hidden="true" className={cx('site-header__search-icon')} weight="bold" />
+                    <button aria-label="매물 검색" className={cx(layoutStyles['site-header__search-button'])} type="submit">
+                        <MagnifyingGlass aria-hidden="true" className={cx(layoutStyles['site-header__search-icon'])} weight="bold" />
                     </button>
                 </form>
                 <nav
@@ -157,9 +158,9 @@ export function Header({
                     ref={menuRef}
                     aria-label="사용자 메뉴"
                     className={cx(
-                        'site-header__account-menu',
-                        isMenuOpen && 'site-header__account-menu--open',
-                        !isLoggedIn && 'site-header__account-menu--guest'
+                        layoutStyles['site-header__account-menu'],
+                        isMenuOpen && layoutStyles['site-header__account-menu--open'],
+                        !isLoggedIn && layoutStyles['site-header__account-menu--guest']
                     )}
                 >
                     {isLoggedIn ? (
@@ -168,10 +169,10 @@ export function Header({
                             <button onClick={() => runMenuAction(onMyOrders)} type="button">내 주문</button>
                             <i aria-hidden="true" />
                             <button onClick={() => runMenuAction(onMyAccount)} type="button"><strong>내 계정</strong></button>
-                            <button className={cx('site-header__logout-button')} onClick={() => runMenuAction(onLogout)} type="button">로그아웃</button>
+                            <button className={cx(layoutStyles['site-header__logout-button'])} onClick={() => runMenuAction(onLogout)} type="button">로그아웃</button>
                         </>
                     ) : (
-                        <button className={cx('site-header__login-button')} onClick={() => runMenuAction(onLoginClick)} type="button">로그인</button>
+                        <button className={cx(layoutStyles['site-header__login-button'])} onClick={() => runMenuAction(onLoginClick)} type="button">로그인</button>
                     )}
                 </nav>
             </div>
