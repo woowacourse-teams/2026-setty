@@ -34,6 +34,7 @@ setty:
     # 결제 성공/실패 복귀(GET /payments/success·/fail) 처리 후 브라우저를 돌려보낼 프론트 주소.
     client-redirect-url: ${PAYMENT_CLIENT_REDIRECT_URL:http://localhost:3000}
     toss:
-      # 토스페이먼츠 공개 테스트 시크릿키(문서 공개값, 비밀 아님). 실제 결제는 붙이지 않는다.
-      secret-key: ${TOSS_SECRET_KEY:test_sk_docs_OaP0k9zOR7Awlz5DFNBrQmp3Xbl4}
+      # 토스페이먼츠 결제위젯 공개 테스트 시크릿키(문서 공개값, 비밀 아님). 실제 결제는 붙이지 않는다.
+      # 클라 위젯 클라이언트 키(test_gck_docs_Ovk5rk1…)와 짝이 되는 위젯 시크릿(gsk). 쌍이 맞아야 승인이 통과한다.
+      secret-key: ${TOSS_SECRET_KEY:test_gsk_docs_Ovk5rk1EwkEbP0W43n07xlzm}
       base-url: ${TOSS_BASE_URL:https://api.tosspayments.com}
