@@ -129,27 +129,52 @@ class PaymentServiceIntegrationTest {
     }
 
     @Test
-    void 결제_실패로_복귀하면_ABORTED로_저장되고_PaymentFailed가_발행된다() {
-        final Payment payment = paymentService.fail(TOSS_ORDER_ID);
+    void 결제_실패로_복귀하면_결제를_저장하지_않고_PaymentFailed만_발행된다() {
+        paymentService.fail(TOSS_ORDER_ID);
 
-        assertThat(payment.getStatus().name()).isEqualTo("ABORTED");
-        assertThat(payment.getPaymentKey()).isNull();
-        assertThat(payment.getApprovedAt()).isNull();
-        assertThat(paymentCount()).isEqualTo(1);
+        assertThat(paymentCount()).isZero();
+        assertThat(events.stream(PaymentFailed.class).map(PaymentFailed::orderId))
+                .containsExactly(ORDER_ID);
+        // 기본 픽스처 주문은 REQUESTED — PENDING이 아닌 주문은 실패 복귀에도 삭제되지 않는다.
+        assertThat(orderStaysUntouched()).isTrue();
+    }
+
+    @Test
+    void PENDING_주문의_결제가_실패하면_주문이_삭제되고_매물_선점이_해제된다() {
+        markOrderPending(ORDER_ID);
+        markListingPurchaseRequested(LISTING_ID);
+
+        paymentService.fail(TOSS_ORDER_ID);
+
+        assertThat(paymentCount()).isZero();
+        assertThat(orderExists(ORDER_ID)).isFalse();
+        assertThat(listingPurchaseRequested(LISTING_ID)).isFalse();
         assertThat(events.stream(PaymentFailed.class).map(PaymentFailed::orderId))
                 .containsExactly(ORDER_ID);
     }
 
     @Test
-    void 실패한_주문을_재시도해_승인되면_같은_행이_DONE으로_전이된다() {
+    void 승인_완료된_주문의_실패_복귀는_무시된다() {
+        stubTossSuccess();
+        paymentService.confirm(TOSS_ORDER_ID, PAYMENT_KEY, TOTAL_PRICE);
+
+        paymentService.fail(TOSS_ORDER_ID);
+
+        assertThat(paymentCount()).isEqualTo(1);
+        assertThat(events.stream(PaymentFailed.class).count()).isZero();
+        assertThat(orderStaysUntouched()).isTrue();
+    }
+
+    @Test
+    void 실패한_주문을_재시도해_승인되면_DONE_1행이_저장된다() {
         paymentService.fail(TOSS_ORDER_ID);
         stubTossSuccess();
 
-        final Payment retried = paymentService.confirm(TOSS_ORDER_ID,PAYMENT_KEY, TOTAL_PRICE);
+        final Payment retried = paymentService.confirm(TOSS_ORDER_ID, PAYMENT_KEY, TOTAL_PRICE);
 
         assertThat(retried.getStatus().name()).isEqualTo("DONE");
         assertThat(retried.getPaymentKey()).isEqualTo(PAYMENT_KEY);
-        // ABORTED → DONE 전이이므로 주문당 결제는 여전히 1행이다.
+        // 실패는 무기록이므로 재승인 시 DONE 1행이 새로 저장된다.
         assertThat(paymentCount()).isEqualTo(1);
         assertThat(events.stream(PaymentCompleted.class).count()).isEqualTo(1);
     }
@@ -182,6 +207,25 @@ class PaymentServiceIntegrationTest {
 
     private int paymentCount() {
         return jdbcTemplate.queryForObject("SELECT COUNT(*) FROM payments", Integer.class);
+    }
+
+    private void markOrderPending(final long orderId) {
+        jdbcTemplate.update("UPDATE orders SET delivery_status = 'PENDING' WHERE id = ?", orderId);
+    }
+
+    private void markListingPurchaseRequested(final long listingId) {
+        jdbcTemplate.update("UPDATE listings SET has_purchase_request = true WHERE id = ?", listingId);
+    }
+
+    private boolean orderExists(final long orderId) {
+        final Integer count = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM orders WHERE id = ?", Integer.class, orderId);
+        return count != null && count == 1;
+    }
+
+    private boolean listingPurchaseRequested(final long listingId) {
+        return Boolean.TRUE.equals(jdbcTemplate.queryForObject(
+                "SELECT has_purchase_request FROM listings WHERE id = ?", Boolean.class, listingId));
     }
 
     private void insertMember(final long memberId) {

@@ -17,18 +17,18 @@
 3. `PaymentService`가 `orderId`로 주문·매물을 읽어 **매물 `totalPrice`를 재계산해 `amount`와 대조**한다(위변조 방지).
 4. `TossPaymentClient`가 토스 승인을 호출한다 — **DB 트랜잭션 밖**. (외부 호출을 트랜잭션에 넣지 않는다.)
 5. 승인되면 `PaymentRecorder`가 **하나의 트랜잭션**으로 `Payment` 저장 + `PaymentCompleted(orderId)` 발행을 처리한다. (payment는 주문을 만들지 않는다.)
-6. 실패 복귀(`fail()`)는 `Payment(ABORTED)` 저장 + `PaymentFailed(orderId)` 발행. 처리 후 프론트 결과 페이지로 302 리다이렉트한다.
+6. 실패 복귀(`fail()`)는 **기록 없이 `PaymentFailed(orderId)` 발행만** 한다 — 수신한 플랫폼(주문) 팀이 PENDING 주문 삭제·선점 해제를 처리한다. 승인 실패(`confirm()`의 `BusinessException`)도 같은 정리를 태운다. 이미 `DONE`인 주문의 실패 복귀는 무시한다(주문 보호). 처리 후 프론트 결과 페이지로 302 리다이렉트한다.
 
 ## 규칙
 
 - 실제 결제는 붙이지 않는다. 토스 **테스트 시크릿키**로 승인만 흉내낸다.
 - 예외는 `BusinessException` + `ErrorCode`만 사용한다 (`server/docs/exception-handling.md`).
-- 주문당 결제 1행(upsert): `payments.order_id` UNIQUE. 실패(ABORTED) 후 재승인 시 같은 행을 `DONE`으로 전이하고, 이미 `DONE`이면 재승인 없이 멱등 반환한다. 동시 중복 저장은 `DataIntegrityViolationException` → `ALREADY_PAID`.
-- 실패 저장을 위해 `payment_key`·`approved_at`은 NULL 허용.
+- 주문당 결제 1행: `payments.order_id` UNIQUE. 이미 `DONE`이면 재승인 없이 멱등 반환한다. 동시 중복 저장은 `DataIntegrityViolationException` → `ALREADY_PAID`.
+- `ABORTED`는 **더 이상 저장하지 않는다**(실패는 무기록). enum 상수와 `payment_key`·`approved_at` NULL 허용은 기존 DB 행을 읽기 위한 레거시 호환 — 재승인 시 레거시 ABORTED 행은 `markDone`으로 `DONE` 전이된다.
 - `PaymentCompleted`/`PaymentFailed`는 `common`의 팀 간 계약이다 — 필드 변경은 양 팀 합의가 필요하다.
 - 스키마 변경은 `schema.sql`에만 추가한다 (`ddl-auto: validate`).
 
 ## 범위 밖 (추후 이슈)
 
-- 결제 취소/부분취소·실제 환불, PENDING 주문 만료 처리, 판매자·배송원 포인트 정산.
-- 이벤트 수신 측(주문 CONFIRMED 전이·`OrderRequested` 발행·PENDING 취소)은 플랫폼(주문) 팀 담당.
+- 결제 취소/부분취소·실제 환불, PENDING 주문 만료 처리(브라우저 이탈 대응), 판매자·배송원 포인트 정산.
+- 이벤트 수신 측(주문 CONFIRMED 전이·`OrderRequested` 발행·PENDING 취소)은 플랫폼(주문) 팀 담당 — PENDING 취소는 `PaymentFailedListener`로 구현됨.
