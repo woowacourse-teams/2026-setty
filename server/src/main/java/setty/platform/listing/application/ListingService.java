@@ -201,6 +201,13 @@ public class ListingService {
         );
     }
 
+    // 결제 실패로 주문이 취소될 때 선점을 해제한다. 매물이 이미 삭제됐으면 되돌릴 선점도 없으므로 조용히 통과한다.
+    @Transactional
+    public void releasePurchaseRequest(Long listingId) {
+        listingRepository.findActiveByIdForUpdate(listingId)
+                .ifPresent(Listing::releasePurchaseRequest);
+    }
+
     @Transactional
     public boolean reserveForDelivery(Long listingId) {
         return findActiveForUpdate(listingId).reserve();

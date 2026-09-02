@@ -2,6 +2,7 @@ package setty.platform.order.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -89,6 +90,38 @@ class OrderServiceTest {
         orderService.publishOrderRequested(ORDER_ID);
 
         verifyNoInteractions(listingRepository, memberRepository, eventPublisher);
+    }
+
+    @Test
+    void 결제대기_주문을_취소하면_주문이_삭제되고_선점이_해제된다() {
+        final Order order = order();
+        when(orderRepository.findByIdForUpdate(ORDER_ID)).thenReturn(Optional.of(order));
+
+        orderService.cancelPending(ORDER_ID);
+
+        verify(listingService).releasePurchaseRequest(LISTING_ID);
+        verify(orderRepository).delete(order);
+    }
+
+    @Test
+    void 결제대기가_아닌_주문은_취소_요청을_무시한다() {
+        final Order order = new Order(LISTING_ID, BUYER_ID);
+        ReflectionTestUtils.setField(order, "id", ORDER_ID);
+        when(orderRepository.findByIdForUpdate(ORDER_ID)).thenReturn(Optional.of(order));
+
+        orderService.cancelPending(ORDER_ID);
+
+        verifyNoInteractions(listingService);
+        verify(orderRepository, never()).delete(order);
+    }
+
+    @Test
+    void 존재하지_않는_주문의_취소_요청은_무시한다() {
+        when(orderRepository.findByIdForUpdate(ORDER_ID)).thenReturn(Optional.empty());
+
+        orderService.cancelPending(ORDER_ID);
+
+        verifyNoInteractions(listingService);
     }
 
     private static Order order() {
