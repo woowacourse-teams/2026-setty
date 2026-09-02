@@ -49,6 +49,14 @@ function haveSameItems<T>(current: T[], initial: T[]) {
         && current.every((item, index) => item === initial[index]);
 }
 
+function toDigits(value: string) {
+    return value.replace(/\D/g, '');
+}
+
+function groupThousands(value: string) {
+    return value.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
 export function FurnitureRegistration({ listing, onCancel, onDirtyChange, onSaved }: FurnitureRegistrationProps) {
     const onDirtyChangeRef = useRef(onDirtyChange);
     const initialFormValuesRef = useRef<InitialFormValues>({
@@ -253,18 +261,18 @@ export function FurnitureRegistration({ listing, onCancel, onDirtyChange, onSave
                 <fieldset className={furnitureRegistrationStyles['furniture-registration__field']}>
                     <legend>크기 (cm)</legend>
                     <div className={furnitureRegistrationStyles['furniture-registration__dimensions']}>
-                        <label><span>W</span><input aria-label="가로" inputMode="numeric" min="1" onChange={(event) => changeDimension('width', event.target.value)} type="number" value={dimensions.width} /></label>
+                        <label><span>W</span><input aria-label="가로" inputMode="numeric" onChange={(event) => changeDimension('width', toDigits(event.target.value))} type="text" value={dimensions.width} /></label>
                         <i aria-hidden="true">×</i>
-                        <label><span>D</span><input aria-label="세로" inputMode="numeric" min="1" onChange={(event) => changeDimension('depth', event.target.value)} type="number" value={dimensions.depth} /></label>
+                        <label><span>D</span><input aria-label="세로" inputMode="numeric" onChange={(event) => changeDimension('depth', toDigits(event.target.value))} type="text" value={dimensions.depth} /></label>
                         <i aria-hidden="true">×</i>
-                        <label><span>H</span><input aria-label="높이" inputMode="numeric" min="1" onChange={(event) => changeDimension('height', event.target.value)} type="number" value={dimensions.height} /></label>
+                        <label><span>H</span><input aria-label="높이" inputMode="numeric" onChange={(event) => changeDimension('height', toDigits(event.target.value))} type="text" value={dimensions.height} /></label>
                     </div>
                     <p className={furnitureRegistrationStyles['furniture-registration__hint']}>예상 배송비 크기 입력 필요</p>
                 </fieldset>
 
                 <label className={furnitureRegistrationStyles['furniture-registration__field']}>
                     <span>가격</span>
-                    <div className={furnitureRegistrationStyles['furniture-registration__price-input']}><b>₩</b><input aria-label="가격" inputMode="numeric" min="0" onChange={(event) => setPrice(event.target.value)} placeholder="180000" type="number" value={price} /></div>
+                    <div className={furnitureRegistrationStyles['furniture-registration__price-input']}><b>₩</b><input aria-label="가격" inputMode="numeric" onChange={(event) => setPrice(toDigits(event.target.value))} placeholder="180,000" type="text" value={groupThousands(price)} /></div>
                 </label>
 
                 <label className={[furnitureRegistrationStyles['furniture-registration__field'], furnitureRegistrationStyles['furniture-registration__field--description']].filter(Boolean).join(' ')}>
