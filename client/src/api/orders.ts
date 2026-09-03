@@ -14,6 +14,7 @@ export type MyOrder = {
     listing: {
         id: number;
         name: string;
+        thumbnailUrl: string | null;
         price: number;
         deliveryFee: number;
     };

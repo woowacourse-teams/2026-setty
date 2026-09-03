@@ -11,6 +11,7 @@ import static org.mockito.Mockito.when;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -23,12 +24,15 @@ import org.springframework.test.util.ReflectionTestUtils;
 import setty.common.DeliveryStatus;
 import setty.common.OrderRequested;
 import setty.platform.listing.application.ListingService;
+import setty.platform.listing.application.ListingView;
+import setty.platform.listing.domain.ConditionGrade;
 import setty.platform.listing.domain.Listing;
 import setty.platform.listing.domain.ListingCategory;
 import setty.platform.listing.repository.ListingRepository;
 import setty.platform.member.domain.Member;
 import setty.platform.member.repository.MemberRepository;
 import setty.platform.order.config.PendingOrderExpirationProperties;
+import setty.platform.order.controller.dto.MyOrderResponse;
 import setty.platform.order.controller.dto.OrderCreateRequest;
 import setty.platform.order.domain.Order;
 import setty.platform.order.repository.OrderRepository;
@@ -153,6 +157,34 @@ class OrderServiceTest {
         orderService.cancelPending(ORDER_ID);
 
         verifyNoInteractions(listingService);
+    }
+
+    @Test
+    void 내_주문_목록에_매물_썸네일을_포함한다() {
+        final Order order = new Order(LISTING_ID, BUYER_ID);
+        ReflectionTestUtils.setField(order, "id", ORDER_ID);
+        final ListingView.Summary listing = new ListingView.Summary(
+                LISTING_ID,
+                "가상 책상",
+                "https://example.com/listings/desk.jpg",
+                100_000,
+                10_000,
+                110_000,
+                ListingCategory.DESK,
+                ConditionGrade.A,
+                new ListingView.Dimensions(120, 60, 75),
+                Instant.parse("2026-09-03T00:00:00Z")
+        );
+        when(orderRepository.findAllByBuyerIdOrderByIdDesc(BUYER_ID)).thenReturn(List.of(order));
+        when(listingService.findSummaries(List.of(LISTING_ID))).thenReturn(List.of(listing));
+
+        final List<MyOrderResponse> responses = orderService.findMyOrders(BUYER_ID);
+
+        assertThat(responses).singleElement().satisfies(response -> {
+            assertThat(response.listing().id()).isEqualTo(LISTING_ID);
+            assertThat(response.listing().name()).isEqualTo("가상 책상");
+            assertThat(response.listing().thumbnailUrl()).isEqualTo("https://example.com/listings/desk.jpg");
+        });
     }
 
     private static Order order() {

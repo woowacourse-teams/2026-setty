@@ -14,6 +14,7 @@ import setty.common.OrderRequested;
 import setty.global.exception.BusinessException;
 import setty.global.exception.ErrorCode;
 import setty.platform.listing.application.ListingService;
+import setty.platform.listing.application.ListingView;
 import setty.platform.listing.domain.Listing;
 import setty.platform.listing.repository.ListingRepository;
 import setty.platform.member.domain.Member;
@@ -127,8 +128,8 @@ public class OrderService {
     public List<MyOrderResponse> findMyOrders(final Long buyerId) {
         final List<Order> orders = orderRepository.findAllByBuyerIdOrderByIdDesc(buyerId);
         final List<Long> listingIds = orders.stream().map(Order::getListingId).toList();
-        final Map<Long, Listing> listings = listingRepository.findAllById(listingIds).stream()
-                .collect(Collectors.toMap(Listing::getId, Function.identity()));
+        final Map<Long, ListingView.Summary> listings = listingService.findSummaries(listingIds).stream()
+                .collect(Collectors.toMap(ListingView.Summary::id, Function.identity()));
 
         return orders.stream()
                 .map(order -> MyOrderResponse.of(order, listings.get(order.getListingId())))
@@ -139,7 +140,9 @@ public class OrderService {
     public MyOrderResponse findMyOrder(final Long orderId, final Long buyerId) {
         final Order order = orderRepository.findByIdAndBuyerId(orderId, buyerId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
-        final Listing listing = listingRepository.findById(order.getListingId()).orElse(null);
+        final ListingView.Summary listing = listingService.findSummaries(List.of(order.getListingId())).stream()
+                .findFirst()
+                .orElse(null);
         return MyOrderResponse.of(order, listing);
     }
 }
