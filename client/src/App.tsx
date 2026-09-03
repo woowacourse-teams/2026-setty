@@ -186,6 +186,7 @@ function App() {
     const { notice: paymentNotice, dismiss: dismissPaymentNotice } = usePaymentReturn(() => {
         navigate('/my-orders', { replace: true });
     });
+    const paymentNoticeSettledRef = useRef(false);
 
     const handleDirtyChange = useCallback((isDirty: boolean) => {
         formDirtyRef.current = isDirty;
@@ -212,6 +213,24 @@ function App() {
             blocker.reset();
         }
     }, [blocker]);
+
+    useEffect(() => {
+        // 결제 완료(성공) 알림은 내 주문에서만 노출한다. /my-orders에 표시된 뒤
+        // 사용자가 그 화면을 벗어나면 자동으로 닫는다. 실패 알림은 /my-orders로 이동하지
+        // 않으므로 여기서 다루지 않는다(사용자가 직접 닫는다).
+        if (paymentNotice?.tone !== 'success') {
+            paymentNoticeSettledRef.current = false;
+            return;
+        }
+        if (location.pathname === '/my-orders') {
+            paymentNoticeSettledRef.current = true;
+            return;
+        }
+        // 복귀 직후 /my-orders로 리다이렉트되는 도중에는 아직 정착하지 않았으므로 닫지 않는다.
+        if (paymentNoticeSettledRef.current) {
+            dismissPaymentNotice();
+        }
+    }, [location.pathname, paymentNotice, dismissPaymentNotice]);
 
     useEffect(() => {
         const previousPathname = previousPathnameRef.current;
