@@ -34,6 +34,7 @@ type AppLocationState = {
     fromHome?: boolean;
     fromMyFavorites?: boolean;
     fromMyListings?: boolean;
+    fromMyOrders?: boolean;
     logout?: boolean;
     openAuthFor?: string;
 };
@@ -99,7 +100,7 @@ function RequireAuth({ children, isLoggedIn }: RequireAuthProps) {
     );
 }
 
-function ListingDetailRoute({ isLoggedIn, onBack, onLoginRequired }: { isLoggedIn: boolean; onBack: () => void; onLoginRequired: () => void }) {
+function ListingDetailRoute({ isLoggedIn, isReadOnly, onBack, onLoginRequired }: { isLoggedIn: boolean; isReadOnly: boolean; onBack: () => void; onLoginRequired: () => void }) {
     const { listingId } = useParams();
     const parsedListingId = Number(listingId);
 
@@ -110,6 +111,7 @@ function ListingDetailRoute({ isLoggedIn, onBack, onLoginRequired }: { isLoggedI
     return (
         <ProductDetail
             isLoggedIn={isLoggedIn}
+            isReadOnly={isReadOnly}
             listingId={parsedListingId}
             onBack={onBack}
             onLoginRequired={onLoginRequired}
@@ -355,12 +357,18 @@ function App() {
     }, [navigate]);
 
     const returnFromDetail = useCallback(() => {
-        if (locationState.fromHome || locationState.fromMyFavorites) {
+        if (locationState.fromHome || locationState.fromMyFavorites || locationState.fromMyListings || locationState.fromMyOrders) {
             navigate(-1);
             return;
         }
         navigate('/', { replace: true });
-    }, [locationState.fromHome, locationState.fromMyFavorites, navigate]);
+    }, [
+        locationState.fromHome,
+        locationState.fromMyFavorites,
+        locationState.fromMyListings,
+        locationState.fromMyOrders,
+        navigate
+    ]);
 
     const cancelRegistration = useCallback(() => {
         if (locationState.fromMyListings) {
@@ -404,18 +412,19 @@ function App() {
                     {__ENABLE_MSW__ && location.pathname === '/' && <MockScenarioController />}
                     <Routes>
                         <Route index element={<ProductGrid onProductSelect={openDetail} searchQuery={listingSearchQuery} />} />
-                        <Route path="listings/:listingId" element={<ListingDetailRoute isLoggedIn={isLoggedIn} onBack={returnFromDetail} onLoginRequired={() => openAuthModal()} />} />
+                        <Route path="listings/:listingId" element={<ListingDetailRoute isLoggedIn={isLoggedIn} isReadOnly={Boolean(locationState.fromMyListings || locationState.fromMyOrders)} onBack={returnFromDetail} onLoginRequired={() => openAuthModal()} />} />
                         <Route path="my-listings" element={(
                             <RequireAuth isLoggedIn={isLoggedIn}>
                                 <MyListings
                                     onEdit={(listingId) => navigate(`/my-listings/${listingId}/edit`, { state: { fromMyListings: true } })}
                                     onRegister={() => navigate('/my-listings/new', { state: { fromMyListings: true } })}
+                                    onSelect={(listingId) => navigate(`/listings/${listingId}`, { state: { fromMyListings: true } })}
                                 />
                             </RequireAuth>
                         )} />
                         <Route path="my-orders" element={(
                             <RequireAuth isLoggedIn={isLoggedIn}>
-                                <MyOrders />
+                                <MyOrders onSelect={(listingId) => navigate(`/listings/${listingId}`, { state: { fromMyOrders: true } })} />
                             </RequireAuth>
                         )} />
                         <Route path="my-account" element={(

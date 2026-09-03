@@ -1,6 +1,6 @@
 package setty.platform.order.controller.dto;
 
-import setty.platform.listing.domain.Listing;
+import setty.platform.listing.application.ListingView;
 import setty.platform.order.domain.Order;
 
 public record MyOrderResponse(
@@ -12,19 +12,21 @@ public record MyOrderResponse(
     public record ListingInfo(
             Long id,
             String name,
+            String thumbnailUrl,
             Integer price,
             Integer deliveryFee
     ) {
     }
 
-    public static MyOrderResponse of(final Order order, final Listing listing) {
+    public static MyOrderResponse of(final Order order, final ListingView.Summary listing) {
         return new MyOrderResponse(
                 order.getId(),
                 listing == null ? null : new ListingInfo(
-                        listing.getId(),
-                        listing.getTitle(),
-                        listing.getPrice(),
-                        listing.getDeliveryFee()
+                        listing.id(),
+                        listing.title(),
+                        listing.thumbnailUrl(),
+                        listing.price(),
+                        listing.deliveryFee()
                 ),
                 order.getDeliveryStatus().name()
         );

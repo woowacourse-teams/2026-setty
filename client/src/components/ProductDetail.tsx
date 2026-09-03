@@ -14,11 +14,12 @@ const categoryLabels: Record<string, string> = {
 type ProductDetailProps = {
     listingId: number;
     isLoggedIn: boolean;
+    isReadOnly?: boolean;
     onBack: () => void;
     onLoginRequired: () => void;
 };
 
-export function ProductDetail({ listingId, isLoggedIn, onBack, onLoginRequired }: ProductDetailProps) {
+export function ProductDetail({ listingId, isLoggedIn, isReadOnly = false, onBack, onLoginRequired }: ProductDetailProps) {
     const [selectedImage, setSelectedImage] = useState(0);
     const [listing, setListing] = useState<ListingDetail | null>(null);
     const [error, setError] = useState<string | null>(null);
@@ -28,7 +29,7 @@ export function ProductDetail({ listingId, isLoggedIn, onBack, onLoginRequired }
     const [isFavoriteBusy, setIsFavoriteBusy] = useState(false);
 
     useEffect(() => {
-        if (!isLoggedIn) {
+        if (!isLoggedIn || isReadOnly) {
             setIsFavorited(false);
             return;
         }
@@ -39,7 +40,7 @@ export function ProductDetail({ listingId, isLoggedIn, onBack, onLoginRequired }
             .catch(() => isCurrent && setIsFavorited(false));
 
         return () => { isCurrent = false; };
-    }, [listingId, isLoggedIn]);
+    }, [listingId, isLoggedIn, isReadOnly]);
 
     useEffect(() => {
         let isCurrent = true;
@@ -140,25 +141,27 @@ export function ProductDetail({ listingId, isLoggedIn, onBack, onLoginRequired }
                         <span>총 결제 예상액</span>
                         <strong>{listing.totalPrice.toLocaleString('ko-KR')}원</strong>
                     </div>
-                    <div className={productDetailStyles['product-detail__actions']}>
-                        <button
-                            className={productDetailStyles['product-detail__like-button']}
-                            type="button"
-                            aria-label={isFavorited ? '찜 해제' : '찜하기'}
-                            aria-pressed={isFavorited}
-                            disabled={isFavoriteBusy}
-                            onClick={() => void toggleFavorite()}
-                        >
-                            <Heart
-                                aria-hidden="true"
-                                className={[productDetailStyles['product-detail__heart-icon'], isFavorited && productDetailStyles['product-detail__heart-icon--favorited']].filter(Boolean).join(' ')}
-                                weight={isFavorited ? 'fill' : 'regular'}
-                            />
-                        </button>
-                        <button className={productDetailStyles['product-detail__purchase-button']} disabled={listing.saleStatus !== 'AVAILABLE'} onClick={openCheckout} type="button">
-                            {listing.saleStatus === 'AVAILABLE' ? '결제하고 주문하기' : '구매할 수 없는 매물입니다'}
-                        </button>
-                    </div>
+                    {!isReadOnly && (
+                        <div className={productDetailStyles['product-detail__actions']}>
+                            <button
+                                className={productDetailStyles['product-detail__like-button']}
+                                type="button"
+                                aria-label={isFavorited ? '찜 해제' : '찜하기'}
+                                aria-pressed={isFavorited}
+                                disabled={isFavoriteBusy}
+                                onClick={() => void toggleFavorite()}
+                            >
+                                <Heart
+                                    aria-hidden="true"
+                                    className={[productDetailStyles['product-detail__heart-icon'], isFavorited && productDetailStyles['product-detail__heart-icon--favorited']].filter(Boolean).join(' ')}
+                                    weight={isFavorited ? 'fill' : 'regular'}
+                                />
+                            </button>
+                            <button className={productDetailStyles['product-detail__purchase-button']} disabled={listing.saleStatus !== 'AVAILABLE'} onClick={openCheckout} type="button">
+                                {listing.saleStatus === 'AVAILABLE' ? '결제하고 주문하기' : '구매할 수 없는 매물입니다'}
+                            </button>
+                        </div>
+                    )}
                     {purchaseMessage && <p className={productDetailStyles['product-detail__purchase-message']} role="status">{purchaseMessage}</p>}
                     <div className={productDetailStyles['product-detail__description']}>
                         <h2>상세 설명</h2>

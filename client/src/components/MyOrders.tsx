@@ -10,7 +10,11 @@ const deliveryStatusLabels: Record<DeliveryStatus, string> = {
     DELIVERED: '배송 완료'
 };
 
-export function MyOrders() {
+type MyOrdersProps = {
+    onSelect: (listingId: number) => void;
+};
+
+export function MyOrders({ onSelect }: MyOrdersProps) {
     const [items, setItems] = useState<MyOrder[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -41,10 +45,15 @@ export function MyOrders() {
                 <div className={accountPagesStyles['my-orders__list']} aria-label="내 주문 목록">
                     {items.map((item) => (
                         <article className={accountPagesStyles['my-orders__item']} key={item.id}>
-                            <div className={accountPagesStyles['my-orders__details']}>
-                                <h2>{item.listing.name}</h2>
-                                <p>매물가 {item.listing.price.toLocaleString('ko-KR')}원 <i /> 배송비 {item.listing.deliveryFee.toLocaleString('ko-KR')}원</p>
-                            </div>
+                            <button className={accountPagesStyles['my-orders__select']} onClick={() => onSelect(item.listing.id)} type="button">
+                                <span className={accountPagesStyles['my-orders__thumbnail']}>
+                                    {item.listing.thumbnailUrl && <img alt="" src={item.listing.thumbnailUrl} />}
+                                </span>
+                                <span className={accountPagesStyles['my-orders__details']}>
+                                    <strong>{item.listing.name}</strong>
+                                    <span>매물가 {item.listing.price.toLocaleString('ko-KR')}원 <i /> 배송비 {item.listing.deliveryFee.toLocaleString('ko-KR')}원</span>
+                                </span>
+                            </button>
                             <strong className={accountPagesStyles['my-orders__total']}>{(item.listing.price + item.listing.deliveryFee).toLocaleString('ko-KR')}원</strong>
                             <span className={[accountPagesStyles['my-orders__status'], accountPagesStyles[`my-orders__status--${item.deliveryStatus.toLowerCase()}`]].filter(Boolean).join(' ')}>{deliveryStatusLabels[item.deliveryStatus]}</span>
                         </article>

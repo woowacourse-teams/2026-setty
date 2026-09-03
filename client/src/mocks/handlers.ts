@@ -189,6 +189,7 @@ export const handlers = [
                 listing: {
                     id: order.listingId,
                     name: listing?.title ?? '판매가 종료된 매물',
+                    thumbnailUrl: listing?.images[0]?.url ?? null,
                     price: listing?.price ?? 0,
                     deliveryFee: listing?.deliveryFee ?? 0
                 },

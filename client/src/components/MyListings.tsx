@@ -10,6 +10,7 @@ const categoryLabels: Record<string, string> = {
 type MyListingsProps = {
     onRegister: () => void;
     onEdit: (listingId: number) => void;
+    onSelect: (listingId: number) => void;
 };
 
 function formatRegisteredAt(createdAt: string) {
@@ -21,7 +22,7 @@ function statusLabel(status: MyListing['saleStatus']) {
     return status === 'AVAILABLE' ? '판매중' : status === 'RESERVED' ? '예약중' : '판매완료';
 }
 
-export function MyListings({ onRegister, onEdit }: MyListingsProps) {
+export function MyListings({ onRegister, onEdit, onSelect }: MyListingsProps) {
     const [items, setItems] = useState<MyListing[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -63,13 +64,15 @@ export function MyListings({ onRegister, onEdit }: MyListingsProps) {
                 <div className={accountPagesStyles['my-furniture__list']} aria-label="등록한 가구 목록">
                     {items.map((item) => (
                         <article className={[accountPagesStyles['my-furniture__item'], item.saleStatus === 'SOLD' && accountPagesStyles['my-furniture__item--sold']].filter(Boolean).join(' ')} key={item.id}>
-                            <div className={accountPagesStyles['my-furniture__thumbnail']}>
-                                {item.thumbnailUrl && <img alt="" src={item.thumbnailUrl} />}
-                            </div>
-                            <div className={accountPagesStyles['my-furniture__details']}>
-                                <h2>{item.title}</h2>
-                                <p>{categoryLabels[item.category]} <i /> {item.conditionGrade}급 <i /> {formatRegisteredAt(item.createdAt)} 등록</p>
-                            </div>
+                            <button className={accountPagesStyles['my-furniture__select']} onClick={() => onSelect(item.id)} type="button">
+                                <span className={accountPagesStyles['my-furniture__thumbnail']}>
+                                    {item.thumbnailUrl && <img alt="" src={item.thumbnailUrl} />}
+                                </span>
+                                <span className={accountPagesStyles['my-furniture__details']}>
+                                    <strong>{item.title}</strong>
+                                    <span>{categoryLabels[item.category]} <i /> {item.conditionGrade}급 <i /> {formatRegisteredAt(item.createdAt)} 등록</span>
+                                </span>
+                            </button>
                             <strong className={accountPagesStyles['my-furniture__price']}>{item.price.toLocaleString('ko-KR')}원</strong>
                             <span className={[accountPagesStyles['my-furniture__status'], item.saleStatus === 'RESERVED' && accountPagesStyles['my-furniture__status--reserved']].filter(Boolean).join(' ')}>{statusLabel(item.saleStatus)}</span>
                             <div className={accountPagesStyles['my-furniture__controls']}>
