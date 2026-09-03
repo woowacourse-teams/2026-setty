@@ -20,7 +20,7 @@
 
 .my-furniture__heading h1 span {
     margin-left: 8px;
-    color: #aeaeae;
+    color: #6d6964;
     font-size: 20px;
 }
 
@@ -32,11 +32,15 @@
     cursor: pointer;
     font-size: 16px;
     font-weight: 800;
+    text-decoration: none;
 }
 
 .my-furniture__list {
     display: grid;
     gap: 25px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
 }
 
 .my-furniture__item {
@@ -80,7 +84,7 @@
     align-items: center;
     gap: 7px;
     padding-top: 6px;
-    color: #ababab;
+    color: #6d6964;
     font-size: 13px;
     font-weight: 700;
 }
@@ -107,7 +111,7 @@
 }
 
 .my-furniture__status--reserved {
-    color: #f04d2e;
+    color: #a93418;
 }
 
 .my-furniture__controls {
@@ -116,21 +120,25 @@
     gap: 12px;
 }
 
-.my-furniture__controls button {
+.my-furniture__controls button,
+.my-furniture__controls a {
+    min-width: 32px;
+    min-height: 32px;
     padding: 5px 0;
     color: #77736e;
     background: transparent;
     cursor: pointer;
     font-size: 13px;
     font-weight: 800;
+    text-decoration: none;
 }
 
-.my-furniture__controls button:last-child {
+.my-furniture__controls :last-child {
     color: #b35d4d;
 }
 
-.my-furniture__item--sold {
-    opacity: 0.54;
+.my-furniture__item--sold .my-furniture__status {
+    text-decoration: line-through;
 }
 
 .my-orders {
@@ -152,13 +160,16 @@
 
 .my-orders__heading h1 span {
     margin-left: 8px;
-    color: #aeaeae;
+    color: #6d6964;
     font-size: 20px;
 }
 
 .my-orders__list {
     display: grid;
     gap: 25px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
 }
 
 .my-orders__item {
@@ -190,7 +201,7 @@
     align-items: center;
     gap: 7px;
     padding-top: 7px;
-    color: #ababab;
+    color: #6d6964;
     font-size: 13px;
     font-weight: 700;
 }
@@ -217,7 +228,7 @@
 }
 
 .my-orders__status--requested {
-    color: #ef7b32;
+    color: #994000;
 }
 
 .my-orders__status--accepted {
@@ -237,6 +248,8 @@
     text-align: left;
     background: transparent;
     cursor: pointer;
+    color: inherit;
+    text-decoration: none;
 }
 
 .my-favorites__thumbnail {
@@ -284,7 +297,7 @@
 }
 
 .my-account__profile dt {
-    color: #ababab;
+    color: #6d6964;
     font-size: 14px;
     font-weight: 700;
 }
@@ -302,7 +315,7 @@
     gap: 13px;
 }
 
-.my-account__links button {
+.my-account__links a {
     display: block;
     width: 100%;
     padding: 17px 20px;
@@ -314,10 +327,18 @@
     font-weight: 800;
     text-align: left;
     cursor: pointer;
+    text-decoration: none;
 }
 
 .my-account__actions {
     margin: 0 0 42px;
+}
+
+.my-account__status {
+    margin: -26px 0 32px;
+    color: #41733c;
+    font-size: 14px;
+    font-weight: 700;
 }
 
 .my-account__edit-toggle {
@@ -464,7 +485,8 @@
             grid-area: controls;
         }
 
-    .my-furniture__controls button {
+    .my-furniture__controls button,
+        .my-furniture__controls a {
             min-width: 44px;
             min-height: 44px;
             padding: 0;

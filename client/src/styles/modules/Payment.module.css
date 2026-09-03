@@ -39,10 +39,24 @@
     z-index: 20;
     inset: 0;
     display: grid;
+    width: 100%;
+    max-width: none;
+    height: 100%;
+    max-height: none;
+    margin: 0;
     place-items: center;
     padding: 24px;
+    border: 0;
     overflow-y: auto;
+    background: transparent;
+}
+
+.payment-checkout-backdrop::backdrop {
     background: rgba(0, 0, 0, 0.4);
+}
+
+.payment-checkout-backdrop:not([open]) {
+    display: none;
 }
 
 .payment-checkout {
@@ -63,7 +77,7 @@
     width: 32px;
     height: 32px;
     padding: 0;
-    color: #8a8681;
+    color: #68645f;
     background: transparent;
     cursor: pointer;
     font-size: 18px;

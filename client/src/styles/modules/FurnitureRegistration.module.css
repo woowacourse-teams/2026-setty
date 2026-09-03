@@ -24,7 +24,7 @@
     display: block;
     margin: 0 0 12px;
     padding: 0;
-    color: #918e89;
+    color: #605c57;
     font-size: 13px;
     font-weight: 700;
     letter-spacing: -0.8px;
@@ -37,9 +37,8 @@
     padding: 0;
     color: #383532;
     border: 0;
-    border-bottom: 1px solid #eae7e3;
+    border-bottom: 1px solid #76716b;
     border-radius: 0;
-    outline: 0;
     font-size: 17px;
     font-weight: 700;
     letter-spacing: -1.05px;
@@ -51,7 +50,7 @@
 
 .furniture-registration__field input::placeholder,
 .furniture-registration__field textarea::placeholder {
-    color: #b8b5b0;
+    color: #6f6b66;
     opacity: 1;
 }
 
@@ -64,7 +63,7 @@
     margin-bottom: 4px;
 }
 
-.furniture-registration__image-input {
+.furniture-registration__field .furniture-registration__image-input {
     position: absolute;
     width: 1px;
     height: 1px;
@@ -94,6 +93,12 @@
     cursor: pointer;
 }
 
+.furniture-registration__image-slot--add:focus-within,
+.furniture-registration__chip:focus-within {
+    outline: 3px solid #005fcc;
+    outline-offset: 3px;
+}
+
 .furniture-registration__image-slot img {
     width: 100%;
     height: 100%;
@@ -103,15 +108,15 @@
 .furniture-registration__add-icon {
     width: 24px;
     height: 24px;
-    color: #a7a39e;
+    color: #69645f;
 }
 
 .furniture-registration__image-remove {
     position: absolute;
     top: 5px;
     right: 5px;
-    width: 22px;
-    height: 22px;
+    width: 28px;
+    height: 28px;
     padding: 0;
     color: #ffffff;
     border-radius: 50%;
@@ -132,16 +137,31 @@
 }
 
 .furniture-registration__chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     height: 39px;
     padding: 0 17px;
-    color: #8d8985;
+    color: #615d58;
     background: #ffffff;
-    border: 1px solid #e6e3df;
+    border: 1px solid #817c76;
     border-radius: 999px;
     cursor: pointer;
     font-size: 14px;
     font-weight: 700;
     letter-spacing: -0.85px;
+}
+
+.furniture-registration__field .furniture-registration__choice-input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    overflow: hidden;
+    border: 0;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
 }
 
 .furniture-registration__chip--selected {
@@ -155,7 +175,7 @@
     grid-template-columns: 1fr auto 1fr auto 1fr;
     align-items: end;
     height: 38px;
-    border-bottom: 1px solid #eae7e3;
+    border-bottom: 1px solid #76716b;
 }
 
 .furniture-registration__dimensions label {
@@ -166,7 +186,7 @@
 
 .furniture-registration__dimensions label span {
     margin-right: 9px;
-    color: #b9b5b0;
+    color: #6f6a65;
     font-size: 17px;
     font-weight: 700;
 }
@@ -186,7 +206,7 @@
 
 .furniture-registration__hint {
     margin: 10px 0 0;
-    color: #aaa6a1;
+    color: #68645f;
     font-size: 13px;
     font-weight: 700;
     letter-spacing: -0.8px;
@@ -195,16 +215,16 @@
 .furniture-registration__price-input {
     display: flex;
     align-items: center;
-    border-bottom: 1px solid #eae7e3;
+    border-bottom: 1px solid #76716b;
 }
 
 .furniture-registration__price-input:focus-within {
     border-bottom-color: #272522;
 }
 
-.furniture-registration__price-input b {
+.furniture-registration__price-input > span {
     margin-right: 9px;
-    color: #b8b5b0;
+    color: #6f6a65;
     font-size: 17px;
     font-weight: 700;
 }
@@ -214,7 +234,7 @@
 }
 
 .furniture-registration__field--description > span em {
-    color: #b8b5b0;
+    color: #6f6a65;
     font-style: normal;
     font-weight: 600;
 }

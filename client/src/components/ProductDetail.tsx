@@ -103,18 +103,18 @@ export function ProductDetail({ listingId, isLoggedIn, onBack, onLoginRequired }
             </button>
             <div className={productDetailStyles['product-detail__layout']}>
                 <div>
-                    <div className={productDetailStyles['product-detail__main-image']}>
-                        {selected && <img src={selected.url} alt={`${listing.title} 대표 이미지`} />}
-                        <span className={productDetailStyles['product-detail__image-counter']}>{images.length ? selectedImage + 1 : 0} / {images.length}</span>
-                    </div>
-                    <div className={productDetailStyles['product-detail__thumbnails']} aria-label="상품 이미지 선택">
+                    <figure className={productDetailStyles['product-detail__main-image']}>
+                        {selected && <img src={selected.url} alt={`${listing.title} ${selectedImage + 1}번째 이미지`} />}
+                        <figcaption className={productDetailStyles['product-detail__image-counter']}>{images.length ? selectedImage + 1 : 0} / {images.length}</figcaption>
+                    </figure>
+                    <div className={productDetailStyles['product-detail__thumbnails']} aria-label="상품 이미지 선택" role="group">
                         {images.map((image, index) => (
                             <button
                                 className={[productDetailStyles['product-detail__thumbnail'], index === selectedImage && productDetailStyles['product-detail__thumbnail--selected']].filter(Boolean).join(' ')}
                                 key={image.id}
                                 type="button"
-                                aria-label={`${index + 1}번째 이미지 보기`}
-                                aria-pressed={index === selectedImage}
+                                aria-current={index === selectedImage ? 'true' : undefined}
+                                aria-label={`${index + 1}번째 이미지${index === selectedImage ? ', 현재 선택됨' : ' 보기'}`}
                                 onClick={() => setSelectedImage(index)}
                             >
                                 <img src={image.url} alt="" />
@@ -127,10 +127,13 @@ export function ProductDetail({ listingId, isLoggedIn, onBack, onLoginRequired }
                 <article className={productDetailStyles['product-detail__information']}>
                     <div className={productDetailStyles['product-detail__metadata']}>
                         <span className={productDetailStyles['product-detail__status']}>{listing.saleStatus === 'AVAILABLE' ? '판매중' : listing.saleStatus === 'RESERVED' ? '예약중' : '판매완료'}</span>
-                        <span>{categoryLabels[listing.category]}</span><i /> <span>{listing.conditionGrade}급</span>
+                        <span>{categoryLabels[listing.category]}</span><i aria-hidden="true" /> <span>{listing.conditionGrade}급</span>
                     </div>
                     <h1 id="product-title">{listing.title}</h1>
-                    <span className={productDetailStyles['product-detail__dimensions']}>W{listing.dimensions.widthCm} × D{listing.dimensions.depthCm} × H{listing.dimensions.heightCm} cm</span>
+                    <span className={productDetailStyles['product-detail__dimensions']}>
+                        <span aria-hidden="true">W{listing.dimensions.widthCm} × D{listing.dimensions.depthCm} × H{listing.dimensions.heightCm} cm</span>
+                        <span className="visually-hidden">가로 {listing.dimensions.widthCm}, 세로 {listing.dimensions.depthCm}, 높이 {listing.dimensions.heightCm} 센티미터</span>
+                    </span>
 
                     <dl className={productDetailStyles['product-detail__price-list']}>
                         <div><dt>매물 가격</dt><dd>{listing.price.toLocaleString('ko-KR')}원</dd></div>
@@ -144,8 +147,7 @@ export function ProductDetail({ listingId, isLoggedIn, onBack, onLoginRequired }
                         <button
                             className={productDetailStyles['product-detail__like-button']}
                             type="button"
-                            aria-label={isFavorited ? '찜 해제' : '찜하기'}
-                            aria-pressed={isFavorited}
+                            aria-label={isFavorited ? '찜한 매물, 찜 해제' : '찜하지 않은 매물, 찜하기'}
                             disabled={isFavoriteBusy}
                             onClick={() => void toggleFavorite()}
                         >
@@ -159,7 +161,7 @@ export function ProductDetail({ listingId, isLoggedIn, onBack, onLoginRequired }
                             {listing.saleStatus === 'AVAILABLE' ? '결제하고 주문하기' : '구매할 수 없는 매물입니다'}
                         </button>
                     </div>
-                    {purchaseMessage && <p className={productDetailStyles['product-detail__purchase-message']} role="status">{purchaseMessage}</p>}
+                    {purchaseMessage && <p className={productDetailStyles['product-detail__purchase-message']} role="alert">{purchaseMessage}</p>}
                     <div className={productDetailStyles['product-detail__description']}>
                         <h2>상세 설명</h2>
                         <p>{listing.description}</p>

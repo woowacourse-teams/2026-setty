@@ -66,7 +66,11 @@ export function Header({
 
         window.addEventListener('keydown', closeMenuOnEscape);
         document.addEventListener('pointerdown', closeMenuOnOutsideClick);
+        const frame = window.requestAnimationFrame(() => {
+            menuRef.current?.querySelector<HTMLElement>('a, button')?.focus();
+        });
         return () => {
+            window.cancelAnimationFrame(frame);
             window.removeEventListener('keydown', closeMenuOnEscape);
             document.removeEventListener('pointerdown', closeMenuOnOutsideClick);
         };
@@ -84,6 +88,11 @@ export function Header({
     const runMobileAuthAction = (action: () => void) => {
         setIsMenuOpen(false);
         action();
+    };
+
+    const runNavigation = (event: React.MouseEvent<HTMLAnchorElement>, action: () => void) => {
+        event.preventDefault();
+        runMenuAction(action);
     };
 
     const submitSearch = () => {
@@ -134,6 +143,7 @@ export function Header({
                 </div>
                 <form
                     className={layoutStyles['site-header__search-field']}
+                    role="search"
                     onSubmit={(event) => {
                         event.preventDefault();
                         submitSearch();
@@ -145,7 +155,8 @@ export function Header({
                         onChange={(event) => setSearchInput(event.target.value)}
                         placeholder="배송비 고민 없이 원하는 가구를 찾아보세요"
                         ref={searchInputRef}
-                        type="text"
+                        name="q"
+                        type="search"
                         value={searchInput}
                     />
                     <button aria-label="매물 검색" className={layoutStyles['site-header__search-button']} type="submit">
@@ -160,10 +171,10 @@ export function Header({
                 >
                     {isLoggedIn ? (
                         <>
-                            <button onClick={() => runMenuAction(onMyListings)} type="button">내 가구</button>
-                            <button onClick={() => runMenuAction(onMyOrders)} type="button">내 주문</button>
+                            <a href="/my-listings" onClick={(event) => runNavigation(event, onMyListings)}>내 가구</a>
+                            <a href="/my-orders" onClick={(event) => runNavigation(event, onMyOrders)}>내 주문</a>
                             <i aria-hidden="true" />
-                            <button onClick={() => runMenuAction(onMyAccount)} type="button"><strong>내 계정</strong></button>
+                            <a href="/my-account" onClick={(event) => runNavigation(event, onMyAccount)}><strong>내 계정</strong></a>
                             <button className={layoutStyles['site-header__logout-button']} onClick={() => runMenuAction(onLogout)} type="button">로그아웃</button>
                         </>
                     ) : (

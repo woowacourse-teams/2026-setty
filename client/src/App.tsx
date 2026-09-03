@@ -77,6 +77,18 @@ function getViewName(pathname: string) {
     return 'home';
 }
 
+function getViewTitle(pathname: string) {
+    if (pathname === '/') return '판매 중인 가구';
+    if (/^\/listings\/[^/]+$/.test(pathname)) return '매물 상세';
+    if (pathname === '/my-listings') return '내 가구';
+    if (pathname === '/my-orders') return '내 주문';
+    if (pathname === '/my-account') return '내 계정';
+    if (pathname === '/my-favorites') return '찜한 매물';
+    if (pathname === '/my-listings/new') return '새 가구 등록';
+    if (/^\/my-listings\/[^/]+\/edit$/.test(pathname)) return '가구 수정';
+    return '판매 중인 가구';
+}
+
 function removeAuthSearch(pathname: string, search: string) {
     const params = new URLSearchParams(search);
     params.delete('auth');
@@ -183,6 +195,8 @@ function App() {
     const formDirtyRef = useRef(false);
     const homeScrollPositionRef = useRef(0);
     const previousPathnameRef = useRef(location.pathname);
+    const focusedPathnameRef = useRef(location.pathname);
+    const mainRef = useRef<HTMLElement>(null);
     const { notice: paymentNotice, dismiss: dismissPaymentNotice } = usePaymentReturn(() => {
         navigate('/my-orders', { replace: true });
     });
@@ -229,6 +243,18 @@ function App() {
 
         return () => window.cancelAnimationFrame(frame);
     }, [location.pathname, navigationType]);
+
+    useEffect(() => {
+        document.title = `${getViewTitle(location.pathname)} | SETTY`;
+        if (focusedPathnameRef.current === location.pathname) return;
+
+        focusedPathnameRef.current = location.pathname;
+        const frame = window.requestAnimationFrame(() => {
+            mainRef.current?.focus({ preventScroll: true });
+        });
+
+        return () => window.cancelAnimationFrame(frame);
+    }, [location.pathname]);
 
     useEffect(() => {
         if (!locationState.logout) return;
@@ -301,6 +327,9 @@ function App() {
         }
 
         closeAuthModal();
+        window.requestAnimationFrame(() => {
+            mainRef.current?.focus({ preventScroll: true });
+        });
     }, [closeAuthModal, navigate, searchParams]);
 
     const goHome = useCallback(() => {
@@ -364,6 +393,7 @@ function App() {
     return (
         <div className={layoutStyles['app-shell']}>
             <div className={layoutStyles['app-shell__content']} aria-hidden={isAuthModalOpen || undefined} inert={isAuthModalOpen}>
+                <a className={layoutStyles['skip-link']} href="#main-content">본문으로 건너뛰기</a>
                 <Header
                     isLoggedIn={isLoggedIn}
                     onHome={goHome}
@@ -381,7 +411,12 @@ function App() {
                         <button type="button" onClick={dismissPaymentNotice} aria-label="알림 닫기">✕</button>
                     </div>
                 )}
-                <main className={[layoutStyles['app-shell__main'], layoutStyles[`app-shell__main--${viewName}`]].filter(Boolean).join(' ')}>
+                <main
+                    className={[layoutStyles['app-shell__main'], layoutStyles[`app-shell__main--${viewName}`]].filter(Boolean).join(' ')}
+                    id="main-content"
+                    ref={mainRef}
+                    tabIndex={-1}
+                >
                     {__ENABLE_MSW__ && location.pathname === '/' && <MockScenarioController />}
                     <Routes>
                         <Route index element={<ProductGrid onProductSelect={openDetail} searchQuery={listingSearchQuery} />} />
