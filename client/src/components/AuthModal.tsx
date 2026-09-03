@@ -127,6 +127,7 @@ export function AuthModal({ onClose, onLoggedIn }: AuthModalProps) {
             setPassword('');
             setMode('login');
             setFeedback({ type: 'success', message: '회원가입이 완료되었습니다. 로그인해 주세요.' });
+            window.requestAnimationFrame(() => loginIdInputRef.current?.focus());
         } catch (error) {
             const message = error instanceof AuthApiError
                 ? error.message
@@ -140,7 +141,7 @@ export function AuthModal({ onClose, onLoggedIn }: AuthModalProps) {
     const isLogin = mode === 'login';
 
     return (
-        <div className={authModalStyles['auth-modal-backdrop']} role="presentation" onMouseDown={onClose}>
+        <div className={authModalStyles['auth-modal-backdrop']} onMouseDown={onClose}>
             <section
                 aria-labelledby="auth-modal-title"
                 aria-modal="true"
@@ -150,18 +151,19 @@ export function AuthModal({ onClose, onLoggedIn }: AuthModalProps) {
                 tabIndex={-1}
                 onMouseDown={(event) => event.stopPropagation()}
             >
-                <button aria-label="닫기" className={authModalStyles['auth-modal__close']} onClick={onClose} type="button">
+                <h2 className="visually-hidden" id="auth-modal-title">SETTY {isLogin ? '로그인' : '회원가입'}</h2>
+                <button aria-label={`${isLogin ? '로그인' : '회원가입'} 창 닫기`} className={authModalStyles['auth-modal__close']} onClick={onClose} type="button">
                     <X aria-hidden="true" size={28} weight="light" />
                 </button>
 
                 <div className={authModalStyles['auth-modal__brand']}>
-                    <h1 id="auth-modal-title">SETTY</h1>
+                    <div className={authModalStyles['auth-modal__brand-name']} aria-hidden="true">SETTY</div>
                     <p>배송까지 끝내는 중고 가구 거래</p>
                 </div>
 
                 <div className={authModalStyles['auth-modal__tabs']} role="group" aria-label="인증 방식">
                     <button
-                        aria-pressed={isLogin}
+                        aria-current={isLogin ? 'true' : undefined}
                         className={[authModalStyles['auth-modal__tab'], isLogin && authModalStyles['auth-modal__tab--active']].filter(Boolean).join(' ')}
                         onClick={() => changeMode('login')}
                         type="button"
@@ -169,7 +171,7 @@ export function AuthModal({ onClose, onLoggedIn }: AuthModalProps) {
                         로그인
                     </button>
                     <button
-                        aria-pressed={!isLogin}
+                        aria-current={!isLogin ? 'true' : undefined}
                         className={[authModalStyles['auth-modal__tab'], !isLogin && authModalStyles['auth-modal__tab--active']].filter(Boolean).join(' ')}
                         onClick={() => changeMode('signup')}
                         type="button"
@@ -178,16 +180,20 @@ export function AuthModal({ onClose, onLoggedIn }: AuthModalProps) {
                     </button>
                 </div>
 
-                <form className={authModalStyles['auth-modal__form']} onSubmit={(event) => void handleSubmit(event)}>
+                <form aria-busy={isSubmitting} className={authModalStyles['auth-modal__form']} onSubmit={(event) => void handleSubmit(event)}>
                     <label className={authModalStyles['auth-modal__field']}>
                         <span>아이디</span>
                         <input
                             autoComplete="username"
+                            maxLength={isLogin ? undefined : 20}
+                            minLength={isLogin ? undefined : 4}
                             name="loginId"
                             onChange={(event) => setLoginId(event.target.value)}
+                            pattern={isLogin ? undefined : '[a-z0-9]+'}
                             placeholder="영문 소문자·숫자 4~20자"
                             ref={loginIdInputRef}
                             required
+                            title={isLogin ? undefined : '영문 소문자와 숫자를 조합해 4자 이상 20자 이하로 입력해 주세요.'}
                             type="text"
                             value={loginId}
                         />
@@ -196,6 +202,8 @@ export function AuthModal({ onClose, onLoggedIn }: AuthModalProps) {
                         <span>비밀번호</span>
                         <input
                             autoComplete={isLogin ? 'current-password' : 'new-password'}
+                            maxLength={isLogin ? undefined : 64}
+                            minLength={isLogin ? undefined : 8}
                             name="password"
                             onChange={(event) => setPassword(event.target.value)}
                             placeholder="8자 이상"
@@ -211,10 +219,13 @@ export function AuthModal({ onClose, onLoggedIn }: AuthModalProps) {
                                 <input
                                     autoComplete="tel"
                                     inputMode="tel"
+                                    maxLength={13}
                                     name="phoneNumber"
                                     onChange={(event) => setPhoneNumber(formatPhoneNumber(event.target.value))}
+                                    pattern="010-[0-9]{4}-[0-9]{4}"
                                     placeholder="010-0000-0000"
                                     required
+                                    title="010으로 시작하는 휴대폰 번호 11자리를 입력해 주세요."
                                     type="tel"
                                     value={phoneNumber}
                                 />
@@ -223,6 +234,7 @@ export function AuthModal({ onClose, onLoggedIn }: AuthModalProps) {
                                 <span>주소</span>
                                 <input
                                     autoComplete="street-address"
+                                    maxLength={200}
                                     name="address"
                                     onChange={(event) => setAddress(event.target.value)}
                                     placeholder="주소를 입력해 주세요"
@@ -235,7 +247,6 @@ export function AuthModal({ onClose, onLoggedIn }: AuthModalProps) {
                     )}
                     {feedback && (
                         <p
-                            aria-live="polite"
                             className={[authModalStyles['auth-modal__feedback'], authModalStyles[`auth-modal__feedback--${feedback.type}`]].filter(Boolean).join(' ')}
                             role={feedback.type === 'error' ? 'alert' : 'status'}
                         >

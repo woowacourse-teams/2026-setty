@@ -54,31 +54,51 @@ export function MyListings({ onRegister, onEdit }: MyListingsProps) {
         <section className={accountPagesStyles['my-furniture']} aria-labelledby="my-furniture-title">
             <div className={accountPagesStyles['my-furniture__heading']}>
                 <h1 id="my-furniture-title">내 가구 <span>{items.length}</span></h1>
-                <button className={accountPagesStyles['my-furniture__register-button']} onClick={onRegister} type="button">새 가구 등록</button>
+                <a
+                    className={accountPagesStyles['my-furniture__register-button']}
+                    href="/my-listings/new"
+                    onClick={(event) => {
+                        event.preventDefault();
+                        onRegister();
+                    }}
+                >
+                    새 가구 등록
+                </a>
             </div>
-            {isLoading && <p className={productGridStyles['product-grid-message']}>내 가구 목록을 불러오는 중입니다.</p>}
-            {error && <div className={productGridStyles['product-grid-message']}><p>{error}</p><button onClick={() => void load()} type="button">다시 시도</button></div>}
-            {!isLoading && !error && items.length === 0 && <p className={productGridStyles['product-grid-message']}>등록한 가구가 없습니다.</p>}
+            {isLoading && <p className={productGridStyles['product-grid-message']} role="status">내 가구 목록을 불러오는 중입니다.</p>}
+            {error && <div className={productGridStyles['product-grid-message']} role="alert"><p>{error}</p><button onClick={() => void load()} type="button">다시 시도</button></div>}
+            {!isLoading && !error && items.length === 0 && <p className={productGridStyles['product-grid-message']} role="status">등록한 가구가 없습니다.</p>}
             {!isLoading && !error && items.length > 0 && (
-                <div className={accountPagesStyles['my-furniture__list']} aria-label="등록한 가구 목록">
+                <ul className={accountPagesStyles['my-furniture__list']} aria-label="등록한 가구 목록">
                     {items.map((item) => (
-                        <article className={[accountPagesStyles['my-furniture__item'], item.saleStatus === 'SOLD' && accountPagesStyles['my-furniture__item--sold']].filter(Boolean).join(' ')} key={item.id}>
+                        <li className={[accountPagesStyles['my-furniture__item'], item.saleStatus === 'SOLD' && accountPagesStyles['my-furniture__item--sold']].filter(Boolean).join(' ')} key={item.id}>
                             <div className={accountPagesStyles['my-furniture__thumbnail']}>
                                 {item.thumbnailUrl && <img alt="" src={item.thumbnailUrl} />}
                             </div>
                             <div className={accountPagesStyles['my-furniture__details']}>
                                 <h2>{item.title}</h2>
-                                <p>{categoryLabels[item.category]} <i /> {item.conditionGrade}급 <i /> {formatRegisteredAt(item.createdAt)} 등록</p>
+                                <p>{categoryLabels[item.category]} <i aria-hidden="true" /> {item.conditionGrade}급 <i aria-hidden="true" /> {formatRegisteredAt(item.createdAt)} 등록</p>
                             </div>
                             <strong className={accountPagesStyles['my-furniture__price']}>{item.price.toLocaleString('ko-KR')}원</strong>
                             <span className={[accountPagesStyles['my-furniture__status'], item.saleStatus === 'RESERVED' && accountPagesStyles['my-furniture__status--reserved']].filter(Boolean).join(' ')}>{statusLabel(item.saleStatus)}</span>
                             <div className={accountPagesStyles['my-furniture__controls']}>
-                                {item.canUpdate && <button onClick={() => onEdit(item.id)} type="button">수정</button>}
-                                {item.canDelete && <button onClick={() => void remove(item)} type="button">내리기</button>}
+                                {item.canUpdate && (
+                                    <a
+                                        aria-label={`${item.title} 수정`}
+                                        href={`/my-listings/${item.id}/edit`}
+                                        onClick={(event) => {
+                                            event.preventDefault();
+                                            onEdit(item.id);
+                                        }}
+                                    >
+                                        수정
+                                    </a>
+                                )}
+                                {item.canDelete && <button aria-label={`${item.title} 내리기`} onClick={() => void remove(item)} type="button">내리기</button>}
                             </div>
-                        </article>
+                        </li>
                     ))}
-                </div>
+                </ul>
             )}
         </section>
     );

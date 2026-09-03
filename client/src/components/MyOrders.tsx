@@ -34,22 +34,22 @@ export function MyOrders() {
             <div className={accountPagesStyles['my-orders__heading']}>
                 <h1 id="my-orders-title">내 주문 <span>{items.length}</span></h1>
             </div>
-            {isLoading && <p className={productGridStyles['product-grid-message']}>내 주문 목록을 불러오는 중입니다.</p>}
-            {error && <div className={productGridStyles['product-grid-message']}><p>{error}</p><button onClick={() => void load()} type="button">다시 시도</button></div>}
-            {!isLoading && !error && items.length === 0 && <p className={productGridStyles['product-grid-message']}>주문한 가구가 없습니다.</p>}
+            {isLoading && <p className={productGridStyles['product-grid-message']} role="status">내 주문 목록을 불러오는 중입니다.</p>}
+            {error && <div className={productGridStyles['product-grid-message']} role="alert"><p>{error}</p><button onClick={() => void load()} type="button">다시 시도</button></div>}
+            {!isLoading && !error && items.length === 0 && <p className={productGridStyles['product-grid-message']} role="status">주문한 가구가 없습니다.</p>}
             {!isLoading && !error && items.length > 0 && (
-                <div className={accountPagesStyles['my-orders__list']} aria-label="내 주문 목록">
+                <ul className={accountPagesStyles['my-orders__list']} aria-label="내 주문 목록">
                     {items.map((item) => (
-                        <article className={accountPagesStyles['my-orders__item']} key={item.id}>
+                        <li className={accountPagesStyles['my-orders__item']} key={item.id}>
                             <div className={accountPagesStyles['my-orders__details']}>
                                 <h2>{item.listing.name}</h2>
-                                <p>매물가 {item.listing.price.toLocaleString('ko-KR')}원 <i /> 배송비 {item.listing.deliveryFee.toLocaleString('ko-KR')}원</p>
+                                <p>매물가 {item.listing.price.toLocaleString('ko-KR')}원 <i aria-hidden="true" /> 배송비 {item.listing.deliveryFee.toLocaleString('ko-KR')}원</p>
                             </div>
                             <strong className={accountPagesStyles['my-orders__total']}>{(item.listing.price + item.listing.deliveryFee).toLocaleString('ko-KR')}원</strong>
                             <span className={[accountPagesStyles['my-orders__status'], accountPagesStyles[`my-orders__status--${item.deliveryStatus.toLowerCase()}`]].filter(Boolean).join(' ')}>{deliveryStatusLabels[item.deliveryStatus]}</span>
-                        </article>
+                        </li>
                     ))}
-                </div>
+                </ul>
             )}
         </section>
     );

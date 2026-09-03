@@ -36,7 +36,7 @@
     height: 28px;
     padding: 0;
     place-items: center;
-    color: #9a9790;
+    color: #6f6b65;
     background: transparent;
     cursor: pointer;
     font-size: 28px;
@@ -57,12 +57,12 @@
     text-align: center;
 }
 
-.auth-modal__brand h1,
+.auth-modal__brand-name,
 .auth-modal__brand p {
     margin: 0;
 }
 
-.auth-modal__brand h1 {
+.auth-modal__brand-name {
     color: #171613;
     font-size: 52px;
     font-weight: 900;
@@ -72,7 +72,7 @@
 
 .auth-modal__brand p {
     margin-top: 17px;
-    color: #94918c;
+    color: #69655f;
     font-size: 18px;
     font-weight: 700;
     letter-spacing: -1.1px;
@@ -90,7 +90,7 @@
     position: relative;
     height: 57px;
     padding: 0 1px;
-    color: #aaa7a2;
+    color: #6f6b65;
     background: transparent;
     cursor: pointer;
     font-size: 21px;
@@ -140,8 +140,7 @@
     height: 70px;
     padding: 0 22px;
     color: #24221e;
-    outline: none;
-    border: 2px solid #e8e3dc;
+    border: 2px solid #817c75;
     border-radius: 18px;
     background: #ffffff;
     font-size: 18px;
@@ -149,7 +148,7 @@
 }
 
 .auth-modal__field input::placeholder {
-    color: #bdb9b2;
+    color: #706b65;
     opacity: 1;
 }
 
@@ -236,7 +235,7 @@
             font-size: 0;
         }
 
-    .auth-modal__brand h1 {
+    .auth-modal__brand-name {
             font-size: 38px;
             letter-spacing: -3px;
         }

@@ -16,6 +16,23 @@ export function PaymentCheckout({ listingId, amount, orderName, onClose }: Payme
     const [requesting, setRequesting] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const widgetsRef = useRef<TossPaymentsWidgets | null>(null);
+    const dialogRef = useRef<HTMLDialogElement>(null);
+
+    useEffect(() => {
+        const dialog = dialogRef.current;
+        if (!dialog) return;
+        const previouslyFocusedElement = document.activeElement instanceof HTMLElement
+            ? document.activeElement
+            : null;
+
+        dialog.showModal();
+        return () => {
+            if (dialog.open) dialog.close();
+            if (previouslyFocusedElement?.isConnected) {
+                previouslyFocusedElement.focus({ preventScroll: true });
+            }
+        };
+    }, []);
 
     useEffect(() => {
         if (__ENABLE_MSW__) return;
@@ -88,10 +105,21 @@ export function PaymentCheckout({ listingId, amount, orderName, onClose }: Payme
     };
 
     return (
-        <div className={paymentStyles['payment-checkout-backdrop']} role="dialog" aria-modal="true" aria-label="결제">
-            <div className={paymentStyles['payment-checkout']}>
+        <dialog
+            aria-labelledby="payment-checkout-title"
+            className={paymentStyles['payment-checkout-backdrop']}
+            onCancel={(event) => {
+                event.preventDefault();
+                onClose();
+            }}
+            onMouseDown={(event) => {
+                if (event.target === event.currentTarget) onClose();
+            }}
+            ref={dialogRef}
+        >
+            <div aria-busy={!ready || requesting} className={paymentStyles['payment-checkout']}>
                 <button className={paymentStyles['payment-checkout__close']} onClick={onClose} type="button" aria-label="결제 닫기">✕</button>
-                <h2 className={paymentStyles['payment-checkout__title']}>{orderName}</h2>
+                <h2 className={paymentStyles['payment-checkout__title']} id="payment-checkout-title">{orderName} 결제</h2>
                 <p className={paymentStyles['payment-checkout__amount']}>{amount.toLocaleString('ko-KR')}원</p>
 
                 {__ENABLE_MSW__ ? (
@@ -102,6 +130,8 @@ export function PaymentCheckout({ listingId, amount, orderName, onClose }: Payme
                         <div id="agreement" />
                     </>
                 )}
+
+                {!ready && !error && <p className="visually-hidden" role="status">결제 수단을 불러오는 중입니다.</p>}
 
                 {error && <p className={paymentStyles['payment-checkout__error']} role="alert">{error}</p>}
 
@@ -114,6 +144,6 @@ export function PaymentCheckout({ listingId, amount, orderName, onClose }: Payme
                     {requesting ? '결제 진행 중...' : `${amount.toLocaleString('ko-KR')}원 결제하기`}
                 </button>
             </div>
-        </div>
+        </dialog>
     );
 }
