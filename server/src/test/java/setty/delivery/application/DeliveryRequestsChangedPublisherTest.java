@@ -12,11 +12,15 @@ import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.ApplicationEventPublisher;
 import org.mockito.InOrder;
-import setty.common.OrderRequested;
+import setty.delivery.domain.Address;
 import setty.delivery.domain.Delivery;
 import setty.delivery.domain.DeliveryId;
+import setty.delivery.domain.DeliveryRoute;
 import setty.delivery.domain.DriverId;
+import setty.delivery.domain.EstimatedDeliveryFee;
+import setty.delivery.domain.FurnitureInfo;
 import setty.delivery.domain.OrderId;
+import setty.delivery.domain.PhoneNumber;
 
 class DeliveryRequestsChangedPublisherTest {
 
@@ -29,7 +33,18 @@ class DeliveryRequestsChangedPublisherTest {
         when(deliveryRepository.existsByOrderId(any(OrderId.class))).thenReturn(false);
         final RegisterDeliveryService service = new RegisterDeliveryService(deliveryRepository, eventPublisher);
 
-        service.register(orderRequested(), REQUESTED_AT);
+        service.register(
+                new OrderId(1L),
+                new FurnitureInfo("가상 원목 의자", "CHAIR"),
+                new DeliveryRoute(
+                        new Address("서울시 가상구 출발로 1"),
+                        new Address("서울시 가상구 도착로 2"),
+                        new PhoneNumber("010-0000-0001"),
+                        new PhoneNumber("010-0000-0002")
+                ),
+                new EstimatedDeliveryFee(10_000),
+                REQUESTED_AT
+        );
 
         final InOrder inOrder = inOrder(deliveryRepository, eventPublisher);
         inOrder.verify(deliveryRepository).save(any(Delivery.class));
@@ -49,18 +64,5 @@ class DeliveryRequestsChangedPublisherTest {
         service.accept(new DeliveryId(1L), new DriverId(3L), REQUESTED_AT);
 
         verify(eventPublisher).publishEvent(isA(DeliveryRequestsChanged.class));
-    }
-
-    private static OrderRequested orderRequested() {
-        return new OrderRequested(
-                1L,
-                "가상 원목 의자",
-                "CHAIR",
-                "서울시 가상구 출발로 1",
-                "서울시 가상구 도착로 2",
-                10_000,
-                "010-0000-0001",
-                "010-0000-0002"
-        );
     }
 }

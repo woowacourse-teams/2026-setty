@@ -11,8 +11,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 import setty.common.DeliveryStatus;
 import setty.delivery.application.DeliveryQueryRepository;
-import setty.delivery.application.query.DeliveryRequest;
-import setty.delivery.application.query.Shipment;
+import setty.delivery.application.readmodel.DeliveryRequest;
+import setty.delivery.application.readmodel.Shipment;
 import setty.delivery.domain.DeliveryId;
 import setty.delivery.domain.DriverId;
 

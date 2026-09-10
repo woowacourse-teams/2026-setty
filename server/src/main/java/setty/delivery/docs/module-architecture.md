@@ -10,7 +10,7 @@
 delivery/
   api/                    HTTP Controller, 응답 DTO, 배송 예외 처리
   application/            Service, Listener, Repository 계약
-    query/                JDBC 조회 Projection
+    readmodel/            JDBC 조회 Projection
   domain/                 Delivery Aggregate, VO, 상태 모델
   persistence/            JPA, Spring Data, JDBC 구현체
   auth/
@@ -39,12 +39,13 @@ api → application → domain
 
 | 유스케이스 | 진입 | Domain 호출 | 결과 |
 |---|---|---|---|
-| 배송 등록 | `OrderRequestedListener` | `Delivery.request(...)` | `REQUESTED` Delivery 저장 |
+| 배송 등록 | `DeliveryEventListener` | `Delivery.request(...)` | `REQUESTED` Delivery 저장 |
 | 배송 수락 | `DeliveryLifecycleService.accept(...)` | `Delivery.accept(...)` | Delivery와 Order를 `ACCEPTED`로 변경 |
 | 가구 수령 | `DeliveryLifecycleService.pickUp(...)` | `Delivery.pickUp(...)` | 두 상태를 `PICKED_UP`으로 변경 |
 | 배송 완료 | `DeliveryLifecycleService.complete(...)` | `Delivery.complete(...)` | 두 상태를 `DELIVERED`로 변경 |
 
 - `DeliveryLifecycleService`는 상태별 메서드에서 `DeliveryId`, `DriverId`, `Instant`를 입력으로 받는다.
+- `DeliveryEventListener`는 `common.OrderRequested`를 도메인 값(`OrderId`, `FurnitureInfo`, `DeliveryRoute`, `EstimatedDeliveryFee`)으로 번역해 `RegisterDeliveryService`에 넘긴다. Service는 wire 이벤트 타입을 알지 않는다.
 - 현재 기사와 현재 시각은 API 또는 이벤트 경계에서 구한다.
 - Application과 Domain에서 SecurityContext를 직접 조회하지 않는다.
 - Repository가 상태를 직접 변경하지 않고 Aggregate 메서드를 호출한 결과를 저장한다.
@@ -53,6 +54,7 @@ api → application → domain
 
 ```text
 OrderRequested 수신
+→ DeliveryEventListener가 도메인 값으로 번역
 → existsByOrderId 확인
 → Delivery.request
 → Delivery 저장
@@ -101,7 +103,7 @@ Delivery 조회
 ```text
 Delivery 저장 또는 수락 커밋
 → DeliveryRequestsChanged
-→ DeliveryRequestsChangedListener (AFTER_COMMIT)
+→ DeliveryEventListener.handle(DeliveryRequestsChanged) (AFTER_COMMIT)
 → SSE delivery-requests-changed
 → 기사 앱 GET /requests 재조회
 ```

@@ -38,7 +38,7 @@
 
 - `api`: Controller, HTTP DTO, 배송 API 예외 처리
 - `application`: Service, Listener, Repository 인터페이스
-- `application.query`: JDBC 조회 Projection
+- `application.readmodel`: JDBC 조회 Projection
 - `domain`: Delivery Aggregate, VO, 상태 모델
 - `persistence`: JPA, Spring Data, JDBC 구현체
 - `auth`: 기사 인증 하위 도메인의 api/application/domain/persistence
@@ -63,12 +63,13 @@ Domain 규칙을 바꾸면 코드와 [배송 도메인 설계](docs/domain-desig
 
 - Service가 트랜잭션과 Repository 호출을 조정하고 Domain 규칙을 다시 구현하지 않는다.
 - `DriverId`, `Instant`는 API 또는 이벤트 경계에서 생성해 Service 입력으로 전달한다.
+- 외부(`common`) 이벤트는 리스너 경계에서 도메인 값으로 번역해 Service에 전달하고, Service는 wire 이벤트 타입(`common.*`)을 직접 받지 않는다.
 - `OrderRequested`는 `common` 계약을 재사용하고 배송 패키지에 중복 정의하지 않는다.
 - `DeliveryStatusChanged`는 `common` 계약을 재사용한다. 배송 모듈은 발행만 하고 Order 상태를 동기화하는 리스너를 두지 않는다.
-- Listener 클래스명은 `...Listener`, 단일 처리 메서드명은 `handle`을 사용한다.
+- 인바운드 이벤트는 컨텍스트 단위 단일 리스너 `DeliveryEventListener`에서 이벤트별 `handle` 오버로드로 처리한다. 이벤트가 늘어도 클래스가 아니라 메서드를 늘린다.
 - 상태 이벤트는 동기 `@EventListener`로 처리한다.
 - `@TransactionalEventListener(AFTER_COMMIT)`, `@Async`, 내부 HTTP 통신을 사용하지 않는다.
-- 단, 기사 앱 요청 목록 SSE 알림은 `DeliveryRequestsChangedListener`만 `AFTER_COMMIT`으로 처리한다. 알림 실패는 로그만 남기고 전파하지 않는다.
+- 단, 기사 앱 요청 목록 SSE 알림은 `DeliveryEventListener`의 `DeliveryRequestsChanged` 처리만 `AFTER_COMMIT`으로 둔다. 알림 실패는 로그만 남기고 전파하지 않는다.
 - Listener 예외가 발행자의 트랜잭션을 롤백하도록 유지한다.
 
 ## Repository·조회 규칙

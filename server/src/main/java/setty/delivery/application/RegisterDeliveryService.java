@@ -5,14 +5,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import setty.common.OrderRequested;
-import setty.delivery.domain.Address;
 import setty.delivery.domain.Delivery;
 import setty.delivery.domain.DeliveryRoute;
 import setty.delivery.domain.EstimatedDeliveryFee;
 import setty.delivery.domain.FurnitureInfo;
 import setty.delivery.domain.OrderId;
-import setty.delivery.domain.PhoneNumber;
 import setty.global.exception.BusinessException;
 import setty.global.exception.ErrorCode;
 
@@ -24,28 +21,22 @@ public class RegisterDeliveryService {
     private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
-    public void register(final OrderRequested event, final Instant requestedAt) {
-        if (event == null || requestedAt == null) {
+    public void register(
+            final OrderId orderId,
+            final FurnitureInfo furniture,
+            final DeliveryRoute route,
+            final EstimatedDeliveryFee fee,
+            final Instant requestedAt
+    ) {
+        if (orderId == null || furniture == null || route == null || fee == null || requestedAt == null) {
             throw new BusinessException(ErrorCode.INVALID_REQUEST);
         }
 
-        final OrderId orderId = new OrderId(event.orderId());
         if (deliveryRepository.existsByOrderId(orderId)) {
             return;
         }
 
-        final Delivery delivery = Delivery.request(
-                orderId,
-                new FurnitureInfo(event.itemName(), event.category()),
-                new DeliveryRoute(
-                        new Address(event.pickupAddress()),
-                        new Address(event.deliveryAddress()),
-                        new PhoneNumber(event.pickupPhoneNumber()),
-                        new PhoneNumber(event.deliveryPhoneNumber())
-                ),
-                new EstimatedDeliveryFee(event.deliveryFee()),
-                requestedAt
-        );
+        final Delivery delivery = Delivery.request(orderId, furniture, route, fee, requestedAt);
         deliveryRepository.save(delivery);
         eventPublisher.publishEvent(new DeliveryRequestsChanged());
     }
