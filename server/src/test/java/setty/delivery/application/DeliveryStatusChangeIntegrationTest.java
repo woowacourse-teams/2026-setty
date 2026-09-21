@@ -23,9 +23,14 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.mysql.MySQLContainer;
 import setty.common.DeliveryStatus;
 import setty.common.DeliveryStatusChanged;
-import setty.common.OrderRequested;
+import setty.delivery.domain.Address;
 import setty.delivery.domain.DeliveryId;
+import setty.delivery.domain.DeliveryRoute;
 import setty.delivery.domain.DriverId;
+import setty.delivery.domain.EstimatedDeliveryFee;
+import setty.delivery.domain.FurnitureInfo;
+import setty.delivery.domain.OrderId;
+import setty.delivery.domain.PhoneNumber;
 import setty.global.exception.BusinessException;
 import setty.global.exception.ErrorCode;
 import setty.platform.order.domain.Order;
@@ -249,7 +254,18 @@ class DeliveryStatusChangeIntegrationTest {
 
     private DeliveryId prepareRequestedDeliveryAndOrder() {
         insertOrder("REQUESTED");
-        registerDeliveryService.register(orderRequested(), REQUESTED_AT);
+        registerDeliveryService.register(
+                new OrderId(ORDER_ID),
+                new FurnitureInfo("가상 원목 의자", "CHAIR"),
+                new DeliveryRoute(
+                        new Address("서울시 가상구 출발로 1"),
+                        new Address("서울시 가상구 도착로 2"),
+                        new PhoneNumber("010-0000-0001"),
+                        new PhoneNumber("010-0000-0002")
+                ),
+                new EstimatedDeliveryFee(10_000),
+                REQUESTED_AT
+        );
         return new DeliveryId(jdbcTemplate.queryForObject(
                 "SELECT id FROM delivery WHERE order_id = ?",
                 Long.class,
@@ -375,19 +391,6 @@ class DeliveryStatusChangeIntegrationTest {
                 "SELECT sale_status FROM listings WHERE id = ?",
                 String.class,
                 LISTING_ID
-        );
-    }
-
-    private static OrderRequested orderRequested() {
-        return new OrderRequested(
-                ORDER_ID,
-                "가상 원목 의자",
-                "CHAIR",
-                "서울시 가상구 출발로 1",
-                "서울시 가상구 도착로 2",
-                10_000,
-                "010-0000-0001",
-                "010-0000-0002"
         );
     }
 

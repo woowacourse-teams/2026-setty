@@ -1,4 +1,4 @@
-package setty.delivery.application.query;
+package setty.delivery.application.readmodel;
 
 import java.time.Instant;
 import setty.common.DeliveryStatus;
