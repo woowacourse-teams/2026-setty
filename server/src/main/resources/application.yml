@@ -24,6 +24,10 @@ spring:
       max-file-size: 25MB
       max-request-size: 26MB
 
+logging:
+  pattern:
+    level: "%5p [requestId=%X{requestId:-}]"
+
 setty:
   order:
     pending-expiration:
