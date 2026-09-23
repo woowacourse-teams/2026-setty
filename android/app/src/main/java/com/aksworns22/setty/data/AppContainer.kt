@@ -1,7 +1,8 @@
 package com.aksworns22.setty.data
 
-import android.os.Build
+import android.content.Context
 import com.aksworns22.setty.BuildConfig
+import com.aksworns22.setty.network.AuthInterceptor
 import com.aksworns22.setty.network.SettyNetworkApi
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
@@ -10,7 +11,14 @@ import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
 
-class AppContainer {
+class AppContainer(
+    private val context: Context
+) {
+    private val tokenLocalDataSource =
+        TokenLocalDataSource(context.applicationContext)
+
+    private val authInterceptor =
+        AuthInterceptor(tokenLocalDataSource)
     private val okHttpClient: OkHttpClient = OkHttpClient
         .Builder()
         .apply {
@@ -19,6 +27,7 @@ class AppContainer {
                     level = HttpLoggingInterceptor.Level.BODY
                 })
             }
+            addInterceptor(authInterceptor)
         }
         .build()
     private val retrofit: Retrofit =
@@ -29,5 +38,8 @@ class AppContainer {
         ).build()
     private val settyNetworkApi = retrofit.create(SettyNetworkApi::class.java)
 
-    val userRepository = UserRepository(settyNetworkApi)
+    val userRepository = UserRepository(
+        settyNetworkApi = settyNetworkApi,
+        tokenLocalDataSource = tokenLocalDataSource,
+    )
 }
