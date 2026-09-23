@@ -3,7 +3,7 @@ import java.util.Properties
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
-    kotlin("plugin.serialization") version "2.3.20"
+    alias(libs.plugins.kotlin.serialization)
 }
 
 val localProperties = Properties()
