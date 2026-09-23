@@ -7,10 +7,12 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.aksworns22.setty.SettyApp
 import com.aksworns22.setty.data.UserRepository
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -37,8 +39,8 @@ class LoginViewModel(
     )
     val uiState = _uiState.asStateFlow()
 
-    private val _event = MutableSharedFlow<LoginEvent>()
-    val event = _event.asSharedFlow()
+    private val _event = Channel<LoginEvent>(Channel.BUFFERED)
+    val event = _event.receiveAsFlow()
 
     fun login() {
         viewModelScope.launch {
@@ -49,10 +51,10 @@ class LoginViewModel(
                 userRepository.login(_uiState.value.username, _uiState.value.password)
             }.onSuccess {
                 _uiState.update { it.copy(isLoading = false) }
-                _event.emit(LoginEvent.SUCCESS)
+                _event.send(LoginEvent.SUCCESS)
             }.onFailure {
                 _uiState.update { it.copy(isLoading = false) }
-                _event.emit(LoginEvent.UNKNOWN_ERROR)
+                _event.send(LoginEvent.UNKNOWN_ERROR)
             }
         }
     }
