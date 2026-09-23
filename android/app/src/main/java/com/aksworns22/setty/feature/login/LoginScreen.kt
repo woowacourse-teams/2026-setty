@@ -31,6 +31,7 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
@@ -161,6 +162,7 @@ private fun LoginContent(
                     visualTransformation = PasswordVisualTransformation(),
                     label = { Text("세티 비밀번호", style = MaterialTheme.typography.bodyMediumEmphasized) },
                     keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Password,
                         imeAction = ImeAction.Go
                     ),
                     keyboardActions = KeyboardActions(
