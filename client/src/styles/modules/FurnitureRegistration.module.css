@@ -1,0 +1,331 @@
+.furniture-registration h1 {
+    margin: 0 0 42px;
+    color: #24221f;
+    font-size: 25px;
+    font-weight: 900;
+    letter-spacing: -2px;
+    line-height: 1.2;
+}
+
+.furniture-registration form {
+    display: grid;
+    gap: 41px;
+}
+
+.furniture-registration__field {
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+.furniture-registration__field > span,
+.furniture-registration__field > legend {
+    display: block;
+    margin: 0 0 12px;
+    padding: 0;
+    color: #918e89;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: -0.8px;
+    line-height: 1;
+}
+
+.furniture-registration__field input,
+.furniture-registration__field textarea {
+    width: 100%;
+    padding: 0;
+    color: #383532;
+    border: 0;
+    border-bottom: 1px solid #eae7e3;
+    border-radius: 0;
+    outline: 0;
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: -1.05px;
+}
+
+.furniture-registration__field input {
+    height: 35px;
+}
+
+.furniture-registration__field input::placeholder,
+.furniture-registration__field textarea::placeholder {
+    color: #b8b5b0;
+    opacity: 1;
+}
+
+.furniture-registration__field input:focus,
+.furniture-registration__field textarea:focus {
+    border-bottom-color: #272522;
+}
+
+.furniture-registration__field--images {
+    margin-bottom: 4px;
+}
+
+.furniture-registration__image-input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+
+.furniture-registration__image-list {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 10px;
+}
+
+.furniture-registration__image-slot {
+    position: relative;
+    display: grid;
+    aspect-ratio: 1;
+    overflow: hidden;
+    place-items: center;
+    background: #fbfaf8;
+    border: 1px solid #efede9;
+}
+
+.furniture-registration__image-slot--add {
+    cursor: pointer;
+}
+
+.furniture-registration__image-slot img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.furniture-registration__add-icon {
+    width: 24px;
+    height: 24px;
+    color: #a7a39e;
+}
+
+.furniture-registration__image-remove {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    color: #ffffff;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.56);
+    cursor: pointer;
+    line-height: 1;
+}
+
+.furniture-registration__image-remove svg {
+    width: 13px;
+    height: 13px;
+}
+
+.furniture-registration__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+}
+
+.furniture-registration__chip {
+    height: 39px;
+    padding: 0 17px;
+    color: #8d8985;
+    background: #ffffff;
+    border: 1px solid #e6e3df;
+    border-radius: 999px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: -0.85px;
+}
+
+.furniture-registration__chip--selected {
+    color: #ffffff;
+    background: #1d1c19;
+    border-color: #1d1c19;
+}
+
+.furniture-registration__dimensions {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr auto 1fr;
+    align-items: end;
+    height: 38px;
+    border-bottom: 1px solid #eae7e3;
+}
+
+.furniture-registration__dimensions label {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+}
+
+.furniture-registration__dimensions label span {
+    margin-right: 9px;
+    color: #b9b5b0;
+    font-size: 17px;
+    font-weight: 700;
+}
+
+.furniture-registration__dimensions input {
+    min-width: 0;
+    height: 37px;
+    border-bottom: 0;
+}
+
+.furniture-registration__dimensions i {
+    padding: 0 20px 9px;
+    color: #d3d0cb;
+    font-size: 14px;
+    font-style: normal;
+}
+
+.furniture-registration__hint {
+    margin: 10px 0 0;
+    color: #aaa6a1;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: -0.8px;
+}
+
+.furniture-registration__price-input {
+    display: flex;
+    align-items: center;
+    border-bottom: 1px solid #eae7e3;
+}
+
+.furniture-registration__price-input:focus-within {
+    border-bottom-color: #272522;
+}
+
+.furniture-registration__price-input b {
+    margin-right: 9px;
+    color: #b8b5b0;
+    font-size: 17px;
+    font-weight: 700;
+}
+
+.furniture-registration__price-input input {
+    border-bottom: 0;
+}
+
+.furniture-registration__field--description > span em {
+    color: #b8b5b0;
+    font-style: normal;
+    font-weight: 600;
+}
+
+.furniture-registration__field textarea {
+    display: block;
+    height: 96px;
+    padding-top: 7px;
+    resize: vertical;
+    line-height: 1.5;
+}
+
+.furniture-registration__submit {
+    height: 61px;
+    margin-top: 9px;
+    color: #ffffff;
+    background: #1d1c19;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: 800;
+    letter-spacing: -0.9px;
+}
+
+.furniture-registration__actions {
+    display: grid;
+    grid-template-columns: 1fr 3fr;
+    gap: 10px;
+    margin-top: 9px;
+}
+
+.furniture-registration__actions .furniture-registration__submit {
+    margin-top: 0;
+}
+
+.furniture-registration__cancel {
+    height: 61px;
+    color: #58544f;
+    border: 1px solid #dedad5;
+    border-radius: 5px;
+    background: #ffffff;
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: 800;
+}
+
+.furniture-registration__error {
+    margin: -22px 0 0;
+    color: #b9412d;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.furniture-registration__submit:disabled {
+    color: #ffffff;
+    background: #b8b5af;
+    cursor: not-allowed;
+}
+
+@media (max-width: 820px) {
+    .furniture-registration form {
+            gap: 34px;
+        }
+
+    .furniture-registration__image-list {
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
+
+    .furniture-registration__chip {
+            min-height: 44px;
+        }
+
+    .furniture-registration__dimensions i {
+            padding-right: 12px;
+            padding-left: 12px;
+        }
+
+    .furniture-registration__submit,
+        .furniture-registration__cancel {
+            min-height: 56px;
+        }
+}
+
+@media (max-width: 560px) {
+    .furniture-registration h1 {
+            margin-bottom: 32px;
+            font-size: 23px;
+        }
+
+    .furniture-registration__image-list {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 8px;
+        }
+
+    .furniture-registration__image-remove {
+            width: 30px;
+            height: 30px;
+        }
+
+    .furniture-registration__dimensions i {
+            padding-right: 6px;
+            padding-left: 6px;
+        }
+
+    .furniture-registration__dimensions label span {
+            margin-right: 5px;
+            font-size: 15px;
+        }
+
+    .furniture-registration__actions {
+            grid-template-columns: minmax(88px, 1fr) 2fr;
+            gap: 8px;
+        }
+}

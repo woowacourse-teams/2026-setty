@@ -1,0 +1,28 @@
+:root {
+    color: #202020;
+    background: #ffffff;
+    font-family: Arial, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+    font-synthesis: none;
+    text-rendering: geometricPrecision;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    min-width: 320px;
+    margin: 0;
+    overflow-x: hidden;
+    background: #ffffff;
+}
+
+button,
+input,
+textarea {
+    font: inherit;
+}
+
+button {
+    border: 0;
+}

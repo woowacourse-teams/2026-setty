@@ -1,42 +1,47 @@
-# SETTY server guidance
+# SETTY Server — Agent 공통 규칙
 
-루트 `AGENTS.md`와 함께 적용한다.
+중고 가구 거래 플랫폼. 구매자가 가구 가격 + 예상 배송비를 한 번에 보고 주문하면,
+기사 앱에서 수락 → 픽업 → 배송 완료로 이어진다.
+Spring Boot + JPA + MySQL, 단일 서버.
 
-## Confirmed environment
+> 경로 표기: 아래에서 `platform/`, `delivery/`, `common/`, `global/`은
+> `server/src/main/java/setty/` 아래의 패키지 디렉터리를 가리킨다.
 
-- Java 21
-- Spring Boot, Gradle Wrapper
-- 실행: `./gradlew bootRun`
-- 테스트: `./gradlew test`
-- 빌드: `./gradlew build`
+## 작업 전 지침 확인
 
-JPA와 MySQL을 사용한다. 첫 MVP는 가상 데이터 기반 사용자 행동 검증을 위해 JPA의 `ddl-auto=update`로 개발 스키마를 만든다. Flyway는 MVP 검증 후 도입 여부를 재검토한다.
+- 이 파일은 `server/` 전체에 적용한다.
+- 작업 전에 수정할 패키지를 먼저 식별한다.
+- 작업 대상 경로(패키지·하위 모듈)에 `AGENTS.md`가 있다면 **반드시 직접 읽고 함께 적용한다**
+  (하위 파일은 자동으로 발견되지 않는다). 하위 `AGENTS.md`는 개발자가 필요할 때 만든다.
+- 여러 패키지를 수정한다면 각 패키지의 `AGENTS.md`를 모두 읽는다.
+- 하위 지침이 상위 지침과 충돌하거나 소유 범위가 불분명하면 작업을 멈추고 사용자에게 확인한다.
 
-## Before editing
+## 필수 문서
 
-- `docs/product/user-operation-flow.md`, `docs/product/mvp-scope.md`, 관련 DEC와 Issue를 읽는다.
-- 필수 입력·상태·권한·보관 정책을 코드로 임의 확정하지 않는다.
-- 현재 Issue에 필요하지 않은 자동화와 일반화를 추가하지 않는다.
+- 예외 처리가 조금이라도 관련된 작업이라면 (예외 던지기, 에러 응답, 검증 실패, 상태 전이 실패 등)
+  → `server/docs/exception-handling.md`를 먼저 읽는다. 예외 처리 규칙의 유일한 원본이다.
 
-## Domain boundaries
+## 소유권 (절대 규칙)
 
-- 예상 견적과 배차 요청은 서로 다른 요청과 상태를 가진다.
-- 견적 BE는 견적 생성·검증·저장과 운영자 조회를 맡는다.
-- 배차 BE1은 구매자 요청과 판매자 입력 링크·세션을 맡는다.
-- 배차 BE2는 판매자 입력 저장, 양쪽 정보 결합과 운영자 조회를 맡는다.
-- 배차 BE1·BE2는 공통 모델·상태·트랜잭션·API 계약을 코드 전에 합의한다.
-- 가격·차량·운송 가능 여부는 운영자가 입력한 결과로만 저장한다.
-- SMS·운송사 호출·실제 배차는 외부 수동 업무다.
+- `platform/**`은 플랫폼 팀 소유, `delivery/**`는 배송 팀 소유다. **자기 팀 패키지만 수정한다.** 상대 팀 패키지는 읽기만 허용.
+- `common/**`(DeliveryStatus, OrderRequested, DeliveryStatusChanged)은 팀 간 계약이다. **수정하지 않는다.** 변경이 필요하면 코드를 고치지 말고 사용자에게 "common 변경은 양 팀 합의가 필요합니다"라고 알린다.
+- `global/**`(인터셉터, 예외 인프라)은 플랫폼 팀이 관리한다. 배송 팀 작업 중 global 변경이 필요하면 사용자에게 알린다.
+- orders 테이블은 플랫폼 팀만 쓴다. 배송 팀은 orders를 직접 UPDATE하지 않고, 배송 상태 변경을
+  `DeliveryStatusChanged` 이벤트(common/)로 발행한다. 플랫폼이 이 이벤트를 수신해 `orders.delivery_status`를
+  갱신한다 (#236에서 전환, DEC-13). `orders.driver_id`는 현재 미사용이며 정리 예정.
 
-## Security
+## 공통 코드 규칙
 
-- 실제 개인정보·접근 토큰·DB 접속정보를 로그에 남기지 않는다.
-- 오류 응답에 내부 스택·운영 메모·상대방 정보를 포함하지 않는다.
-- 구매자·판매자·운영자 응답을 분리한다.
-- 관리자 인증, 사용자 링크 만료와 개인정보 삭제가 미정이면 실제 공개를 완료로 표시하지 않는다.
+- 엔티티에 setter 금지. 상태 변경은 의도가 드러나는 메서드로만.
+- 엔티티를 API 응답으로 직접 반환 금지. DTO(record)로 변환한다.
+- 엔티티 간 JPA 연관관계(@ManyToOne 등) 금지. Long id 참조만 사용.
+- JPA ddl-auto는 validate 고정. 스키마 변경은 `schema.sql`에 SQL 추가로만.
+- 컨트롤러는 위임만. 비즈니스 로직과 트랜잭션 경계는 service에 둔다.
 
-## Verification
+## 스코프 제한 (요청받아도 구현하지 않는 것)
 
-- 정상·4xx·DB 실패·중복·권한·허용되지 않은 상태를 테스트한다.
-- 역할별 응답에 불필요한 개인정보가 없는지 확인한다.
-- 변경 후 관련 테스트와 `./gradlew build`를 실행한다.
+다음은 구현하지 않고 "Sprint 범위 밖입니다"라고 알린다:
+비밀번호 재설정 / 이메일 인증 / 소셜 로그인 / JWT·토큰 만료 / Spring Security 풀 세팅 /
+푸시 알림 / 관리자 페이지 / 배차 알고리즘
+
+> 결제(PG)는 스프린트2부터 범위 안이다(토스페이먼츠 테스트 결제). `payment/` 패키지를 참고한다.

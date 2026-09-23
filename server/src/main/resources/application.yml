@@ -1,38 +1,45 @@
-aws:
-  s3:
-    region: ap-northeast-2
-    bucket-name: techcourse-project-2026
 spring:
+  application:
+    name: setty
+
   datasource:
     url: jdbc:mysql://localhost:3306/setty
     username: setty
     password: setty
+
   jpa:
     hibernate:
-      ddl-auto: update
-      open-in-view: false
+      # 스키마는 schema.sql로만 변경한다 (server/AGENTS.md). 엔티티와 스키마가 어긋나면 부팅이 실패한다.
+      ddl-auto: validate
+
+  sql:
+    init:
+      mode: always
+
   servlet:
     multipart:
-      max-file-size: 10MB
-      max-request-size: 12MB
-server:
-  error:
-    include-message: never
-    include-stacktrace: never
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health
-  endpoint:
-    health:
-      show-details: never
+      max-file-size: 25MB
+      max-request-size: 26MB
+
+logging:
+  pattern:
+    level: "%5p [requestId=%X{requestId:-}]"
+
 setty:
-  operator:
-    secret: ${SETTY_OPERATOR_SECRET:}
-  front:
-    base-url: ${SETTY_FRONT_BASE_URL:http://localhost:3000}
-  notification:
-    discord:
-      dispatch-webhook-url: ${SETTY_DISCORD_DISPATCH_WEBHOOK_URL:}
-      estimate-webhook-url: ${SETTY_DISCORD_ESTIMATE_WEBHOOK_URL:}
+  order:
+    pending-expiration:
+      timeout: ${PENDING_ORDER_EXPIRATION_TIMEOUT:PT3M}
+      scan-interval: ${PENDING_ORDER_EXPIRATION_SCAN_INTERVAL:PT1M}
+  storage:
+    listing-images:
+      region: ${AWS_REGION:ap-northeast-2}
+      bucket: ${SETTY_S3_BUCKET:setty-listing-local}
+      public-base-url: ${SETTY_S3_PUBLIC_BASE_URL:https://setty-listing-local.s3.ap-northeast-2.amazonaws.com}
+  payment:
+    # 결제 성공/실패 복귀(GET /payments/success·/fail) 처리 후 브라우저를 돌려보낼 프론트 주소.
+    client-redirect-url: ${PAYMENT_CLIENT_REDIRECT_URL:http://localhost:3000}
+    toss:
+      # 토스페이먼츠 결제위젯 공개 테스트 시크릿키(문서 공개값, 비밀 아님). 실제 결제는 붙이지 않는다.
+      # 클라 위젯 클라이언트 키(test_gck_docs_Ovk5rk1…)와 짝이 되는 위젯 시크릿(gsk). 쌍이 맞아야 승인이 통과한다.
+      secret-key: ${TOSS_SECRET_KEY:test_gsk_docs_Ovk5rk1EwkEbP0W43n07xlzm}
+      base-url: ${TOSS_BASE_URL:https://api.tosspayments.com}
