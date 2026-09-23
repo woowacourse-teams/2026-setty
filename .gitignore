@@ -7,3 +7,4 @@
 /client/.webpack-cache/
 
 .DS_Store
+.idea/
