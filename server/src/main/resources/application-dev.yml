@@ -6,3 +6,20 @@ logging:
   structured:
     format:
       console: logstash
+
+management:
+  opentelemetry:
+    resource-attributes:
+      service.name: setty-backend
+      deployment.environment.name: dev
+  otlp:
+    metrics:
+      export:
+        enabled: true
+        url: http://127.0.0.1:4318/v1/metrics
+        step: 1m
+        histogram-flavor: exponential-histogram
+  metrics:
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
