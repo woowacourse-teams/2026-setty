@@ -78,8 +78,10 @@ class DevHttpMetricsHttpIntegrationTest {
                         .containsEntry("deployment.environment.name", "dev");
                 List<Metric> metrics = resourceMetrics.getScopeMetricsList().stream()
                         .flatMap(scope -> scope.getMetricsList().stream()).toList();
-                assertThat(metrics).hasSize(1);
-                Metric metric = metrics.getFirst();
+                assertThat(metrics).extracting(Metric::getName)
+                        .containsExactlyInAnyOrder("http.server.requests", "jvm.memory.used", "jvm.memory.max");
+                Metric metric = metrics.stream().filter(m -> m.getName().equals("http.server.requests"))
+                        .findFirst().orElseThrow();
                 assertThat(metric.getName()).isEqualTo("http.server.requests");
                 assertThat(metric.getUnit()).isEqualTo("milliseconds");
                 assertThat(metric.hasExponentialHistogram()).isTrue();
@@ -120,7 +122,7 @@ class DevHttpMetricsHttpIntegrationTest {
 
     @TestConfiguration(proxyBeanMethods = false)
     @EnableAutoConfiguration(exclude = DataSourceAutoConfiguration.class)
-    @Import({DevHttpMetricsConfig.class, ProbeController.class})
+    @Import({DevMetricsConfig.class, ProbeController.class})
     static class ProbeApplication {
     }
 
