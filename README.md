@@ -17,7 +17,7 @@ SETTY는 중고 가구·가전 거래 전에 예상 운송 가능 여부와 비�
 
 ## Documentation
 
-- [살아있는 정책 문서 운영 가이드](docs/policy/policy-guide.md)
+- [도메인·서비스 흐름 정책](docs/policy/README.md)
 
 ## Client
 

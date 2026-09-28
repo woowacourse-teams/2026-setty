@@ -17,7 +17,7 @@ body:
         - `style`: 코드 의미에 영향을 주지 않는 서식·표현 변경
         - `test`: 테스트 추가 또는 기존 테스트 수정만 수행
 
-        공유 정책 변경은 `docs/team/policy-guide.md`의 절차를 따릅니다.
+        공유 정책 변경은 `docs/policy/policy-guide.md`의 절차를 따릅니다.
   - type: textarea
     id: reason
     attributes:
