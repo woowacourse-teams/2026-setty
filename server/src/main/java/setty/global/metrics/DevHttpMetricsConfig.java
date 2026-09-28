@@ -24,9 +24,14 @@ public class DevHttpMetricsConfig {
                         if (!id.getName().equals("http.server.requests")) {
                             return id;
                         }
-                        String outcome = id.getTag("outcome");
-                        return id.replaceTags(List.of(Tag.of("outcome", outcome == null ? "UNKNOWN" : outcome)));
+                        // uri는 원본 URL이 아니라 Spring HTTP 관측이 제공하는 매핑 패턴이다.
+                        return id.replaceTags(List.of(tag(id, "uri"), tag(id, "method"), tag(id, "outcome")));
                     }
                 });
+    }
+
+    private static Tag tag(Meter.Id id, String key) {
+        String value = id.getTag(key);
+        return Tag.of(key, value == null ? "UNKNOWN" : value);
     }
 }
