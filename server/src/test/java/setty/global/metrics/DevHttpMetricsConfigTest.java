@@ -14,7 +14,7 @@ class DevHttpMetricsConfigTest {
 
     @Test
     void exportsOnlyHttpRequestsGroupedByOutcome() {
-        OtlpConfig config = key -> null;
+        OtlpConfig config = key -> "otlp.enabled".equals(key) ? "false" : null;
         OtlpMeterRegistry registry = new OtlpMeterRegistry(config, Clock.SYSTEM);
         try {
             new DevHttpMetricsConfig().devHttpMetricsOnly().customize(registry);

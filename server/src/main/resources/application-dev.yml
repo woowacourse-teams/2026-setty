@@ -18,7 +18,10 @@ management:
         enabled: true
         url: http://127.0.0.1:4318/v1/metrics
         step: 1m
-        histogram-flavor: exponential-histogram
+        base-time-unit: milliseconds
+        aggregation-temporality: cumulative
+        histogram-flavor: base2-exponential-bucket-histogram
+        publish-max-gauge-for-histograms: false
   metrics:
     distribution:
       percentiles-histogram:
