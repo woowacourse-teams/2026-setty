@@ -9,22 +9,15 @@ SETTY는 중고 가구·가전 거래 전에 예상 운송 가능 여부와 비�
 ```text
 .
 ├─ client/     React·TypeScript·Webpack
+├─ apps/       배송원 앱 및 전용 문서
 ├─ server/     Java·Spring Boot·Gradle
-├─ docs/       제품·결정·협업 문서
+├─ docs/       도메인·서비스 흐름 정책
 └─ .github/    CI와 Issue·PR 양식
 ```
 
 ## Documentation
 
-- [Changelog](CHANGELOG.md)
-- [문서 지도](docs/README.md)
-- [제품 기획](docs/product/product-brief.md)
-- [사용자·운영 흐름](docs/product/user-operation-flow.md)
-- [MVP 범위](docs/product/mvp-scope.md)
-- [결정 로그](docs/decisions/DECISION-LOG.md)
-- [첫 개발 작업 계획](docs/team/initial-development-plan.md)
-- [역할과 책임](docs/team/roles-and-ownership.md)
-- [백엔드 DEV 배포](docs/deployment.md)
+- [도메인·서비스 흐름 정책](docs/policy/README.md)
 
 ## Client
 
@@ -61,7 +54,7 @@ cd server
 ./gradlew build
 ```
 
-첫 MVP 개발 환경은 MySQL과 JPA 스키마 자동 생성을 사용합니다. Flyway 도입 여부는 사용자 행동 검증 후 재검토합니다. 백엔드 DEV EC2는 [DEC-026](docs/decisions/DEC-026-backend-auto-deploy.md)에 따라 CodePipeline·CodeDeploy·systemd로 배포하며, 실제 환경 변수는 EC2에서만 관리합니다.
+개발 환경은 MySQL을 사용합니다. 스키마는 [schema.sql](server/src/main/resources/schema.sql)로 관리하고, JPA는 실행 시 스키마 일치 여부를 검증합니다.
 
 ## Git workflow
 
@@ -70,6 +63,5 @@ cd server
 - `feature/<issue>-<slug>`, `fix/<issue>-<slug>`, `refactor/<issue>-<slug>`, `chore/<slug>` 사용
 - 작성자가 아닌 팀원 1명 리뷰
 - Merge commit으로 병합
-- DEC-026 제안안은 `develop` 병합으로 백엔드 DEV 배포를 시작하고, 프론트 배포는 수동으로 유지
 
 실제 작업 범위와 완료 조건은 GitHub Issue를 기준으로 합니다.
