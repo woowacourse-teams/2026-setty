@@ -1,0 +1,8 @@
+setty:
+  cors:
+    allowed-origins: https://www.setty.cloud
+
+logging:
+  structured:
+    format:
+      console: logstash
