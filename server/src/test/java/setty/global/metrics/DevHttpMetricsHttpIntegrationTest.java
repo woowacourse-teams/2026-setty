@@ -31,6 +31,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 class DevHttpMetricsHttpIntegrationTest {
@@ -59,8 +60,13 @@ class DevHttpMetricsHttpIntegrationTest {
             int port = ((WebServerApplicationContext) context).getWebServer().getPort();
             assertThat(get(client, port, "/metrics-probe/one?userId=synthetic-user")).isEqualTo(200);
             assertThat(get(client, port, "/metrics-probe/two")).isEqualTo(200);
+            assertThat(client.send(HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + port + "/metrics-probe/three"))
+                    .timeout(Duration.ofSeconds(5)).POST(HttpRequest.BodyPublishers.noBody()).build(),
+                    HttpResponse.BodyHandlers.discarding()).statusCode()).isEqualTo(200);
+            assertThat(get(client, port, "/metrics-probe/other")).isEqualTo(200);
             assertThat(get(client, port, "/metrics-probe/server-error")).isEqualTo(503);
             assertThat(get(client, port, "/metrics-probe/missing/path")).isEqualTo(404);
+            assertThat(get(client, port, "/metrics-probe/another/missing/path")).isEqualTo(404);
 
             await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> {
                 ExportMetricsServiceRequest request = received.get();
@@ -80,17 +86,21 @@ class DevHttpMetricsHttpIntegrationTest {
                 assertThat(metric.getExponentialHistogram().getAggregationTemporality())
                         .isEqualTo(AggregationTemporality.AGGREGATION_TEMPORALITY_CUMULATIVE);
                 List<ExponentialHistogramDataPoint> points = metric.getExponentialHistogram().getDataPointsList();
-                assertThat(points).hasSize(3).allSatisfy(point -> {
-                    assertThat(attributes(point.getAttributesList())).containsOnlyKeys("outcome");
+                assertThat(points).hasSize(5).allSatisfy(point -> {
+                    assertThat(attributes(point.getAttributesList())).containsOnlyKeys("uri", "method", "outcome");
                     assertThat(point.getSum()).isPositive();
                     assertThat(point.getPositive().getBucketCountsList().stream().mapToLong(Long::longValue).sum()
                             + point.getZeroCount()).isEqualTo(point.getCount());
                 });
                 assertThat(points.stream().collect(Collectors.toMap(
-                        point -> attributes(point.getAttributesList()).get("outcome"),
+                        point -> attributes(point.getAttributesList()),
                         ExponentialHistogramDataPoint::getCount)))
-                        .containsExactlyInAnyOrderEntriesOf(Map.of("SUCCESS", 2L, "SERVER_ERROR", 1L,
-                                "CLIENT_ERROR", 1L));
+                        .containsExactlyInAnyOrderEntriesOf(Map.of(
+                                Map.of("uri", "/metrics-probe/{id}", "method", "GET", "outcome", "SUCCESS"), 2L,
+                                Map.of("uri", "/metrics-probe/{id}", "method", "POST", "outcome", "SUCCESS"), 1L,
+                                Map.of("uri", "/metrics-probe/other", "method", "GET", "outcome", "SUCCESS"), 1L,
+                                Map.of("uri", "/metrics-probe/server-error", "method", "GET", "outcome", "SERVER_ERROR"), 1L,
+                                Map.of("uri", "/**", "method", "GET", "outcome", "CLIENT_ERROR"), 2L));
             });
         } finally {
             receiver.stop(0);
@@ -119,6 +129,16 @@ class DevHttpMetricsHttpIntegrationTest {
 
         @GetMapping("/metrics-probe/{id}")
         String success(@PathVariable String id) {
+            return "synthetic response";
+        }
+
+        @PostMapping("/metrics-probe/{id}")
+        String post(@PathVariable String id) {
+            return "synthetic response";
+        }
+
+        @GetMapping("/metrics-probe/other")
+        String other() {
             return "synthetic response";
         }
 
