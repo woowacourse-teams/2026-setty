@@ -28,7 +28,7 @@ class DevHttpMetricsAutoConfigurationTest {
             .withConfiguration(AutoConfigurations.of(MetricsAutoConfiguration.class,
                     CompositeMeterRegistryAutoConfiguration.class, SimpleMetricsExportAutoConfiguration.class,
                     OtlpMetricsExportAutoConfiguration.class))
-            .withUserConfiguration(DevHttpMetricsConfig.class)
+            .withUserConfiguration(DevMetricsConfig.class)
             .withBean(OtlpMetricsSender.class, () -> mock(OtlpMetricsSender.class));
 
     @Test
@@ -54,7 +54,7 @@ class DevHttpMetricsAutoConfigurationTest {
         runner.withPropertyValues("spring.profiles.active=" + profile).run(context -> {
             assertThat(context).hasNotFailed();
             assertThat(context).doesNotHaveBean(OtlpMeterRegistry.class);
-            assertThat(context).doesNotHaveBean(DevHttpMetricsConfig.class);
+            assertThat(context).doesNotHaveBean(DevMetricsConfig.class);
         });
     }
 }

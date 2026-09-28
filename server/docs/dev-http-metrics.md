@@ -2,7 +2,9 @@
 
 Spring Boot Actuator의 `http.server.requests` 타이머를 OTLP로 내보낸다. dev 프로필에서만 1분마다 로컬 CloudWatch Agent(`127.0.0.1:4318`)로 전송하며, 다른 프로필에서는 OTLP 전송을 끈다. 기존 EC2 CPU 지표, `Setty/Dev` 메모리 지표, `/setty/dev/backend` 로그 수집은 별개로 유지한다.
 
-OTLP에는 HTTP 타이머와 `uri`, `method`, `outcome` 태그를 남긴다. 서비스/환경은 리소스 속성 `service.name=setty-backend`, `deployment.environment.name=dev`로 구분한다. 요청 수는 히스토그램의 count, 5xx는 `outcome=SERVER_ERROR`인 count, p95는 히스토그램의 95백분위수로 구한다. `/actuator/health` 같은 HTTP 요청도 합계에 포함된다. CloudWatch에서는 기존 **Classic metrics** 네임스페이스가 아니라 **Metrics → Query Studio**에서 OTLP 지표를 찾는다.
+HTTP 지표에는 HTTP 타이머와 `uri`, `method`, `outcome` 태그를 남긴다. 서비스/환경은 리소스 속성 `service.name=setty-backend`, `deployment.environment.name=dev`로 구분한다. 요청 수는 히스토그램의 count, 5xx는 `outcome=SERVER_ERROR`인 count, p95는 히스토그램의 95백분위수로 구한다. `/actuator/health` 같은 HTTP 요청도 합계에 포함된다. CloudWatch에서는 기존 **Classic metrics** 네임스페이스가 아니라 **Metrics → Query Studio**에서 OTLP 지표를 찾는다.
+
+JVM Heap과 DB 커넥션 풀의 최소 게이지도 같은 전송 경로를 사용한다. 허용 지표와 조회 방법은 [dev 자원 지표](dev-resource-metrics.md)를 참고한다.
 
 ## 경로별 관측 범위
 
@@ -27,7 +29,7 @@ Spring Boot 4.1의 OTLP 자동 설정에는 `micrometer-registry-otlp`뿐 아니
 - 다른 ID의 요청은 같은 매핑 경로로 합산하고, 다른 경로·메서드·결과는 분리하며 버킷의 요청 수를 보존
 - 서비스/환경 리소스 속성과 `uri`, `method`, `outcome`만 남는 데이터 포인트 라벨
 - 서로 다른 미등록 경로의 404 요청도 하나의 정적 리소스 매핑으로 집계
-- 다른 지표, 원본 URL, 쿼리 문자열, 상태 코드, 사용자·요청 ID가 전송 데이터에 포함되지 않음
+- 허용한 HTTP·Heap 지표만 전송하고, HTTP 데이터에 원본 URL, 쿼리 문자열, 상태 코드, 사용자·요청 ID가 포함되지 않음
 
 ## EC2에서 기존 Agent 설정에 수신기 추가
 
@@ -64,7 +66,7 @@ Spring Boot 4.1의 OTLP 자동 설정에는 `micrometer-registry-otlp`뿐 아니
 1. EC2 배포 JAR에 설정 클래스와 두 라이브러리가 모두 있는지 확인한다. `jar` 명령이 없는 JRE 환경에서는 `unzip`을 사용한다.
 
    ```sh
-   unzip -l /opt/setty/app/app.jar | grep -E 'DevHttpMetricsConfig|micrometer-registry-otlp|spring-boot-opentelemetry'
+   unzip -l /opt/setty/app/app.jar | grep -E 'DevMetricsConfig|micrometer-registry-otlp|spring-boot-opentelemetry'
    sudo journalctl -u setty-backend.service --since "1 hour ago" --no-pager \
      | grep -Ei 'profile|OtlpMeterRegistry|publishing metrics|failed to publish|4318'
    ```
