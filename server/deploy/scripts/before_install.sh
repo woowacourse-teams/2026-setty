@@ -95,6 +95,7 @@ has_non_blank_value() {
 }
 
 for variable_name in \
+    SPRING_PROFILES_ACTIVE \
     SETTY_OPERATOR_SECRET \
     SETTY_FRONT_BASE_URL \
     SPRING_DATASOURCE_URL \
