@@ -90,15 +90,22 @@ class DevResourceMetricsIntegrationTest {
                                     Map<String, Metric> metrics = metrics(received.get());
                                     assertThat(metrics).containsOnlyKeys("jvm.memory.used", "jvm.memory.max",
                                             "hikaricp.connections.active", "hikaricp.connections.max",
-                                            "hikaricp.connections.pending");
+                                            "hikaricp.connections.pending", "hikaricp.connections.acquire",
+                                            "hikaricp.connections.timeout");
                                     assertHeap(metrics);
                                     assertPool(metrics, 1, 1);
                                 });
                             }
                             assertThat(waiting.get(5, TimeUnit.SECONDS)).isTrue();
                             // A later export must observe the released pool, not stale cumulative values.
-                            await().atMost(Duration.ofSeconds(15)).untilAsserted(() ->
-                                    assertPool(metrics(received.get()), 0, 0));
+                            await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> {
+                                Map<String, Metric> exported = metrics(received.get());
+                                assertPool(exported, 0, 0);
+                                var acquire = exported.get("hikaricp.connections.acquire");
+                                assertThat(acquire.hasExponentialHistogram()).isTrue();
+                                assertThat(acquire.getExponentialHistogram().getDataPoints(0).getCount()).isEqualTo(2);
+                                assertThat(acquire.getExponentialHistogram().getDataPoints(0).getSum()).isPositive();
+                            });
                         }
                     });
         } finally {

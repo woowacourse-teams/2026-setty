@@ -3,6 +3,7 @@ package setty.global.metrics;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.micrometer.core.instrument.Clock;
+import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.Timer;
@@ -39,7 +40,7 @@ class DevMetricsConfigTest {
                         .tag("pool", "synthetic-second").register(registry);
             }
             for (String name : new String[]{"jvm.memory.committed", "jvm.gc.pause", "jvm.threads.live",
-                    "jdbc.connections.active", "hikaricp.connections.idle", "hikaricp.connections.acquire"}) {
+                    "jdbc.connections.active", "hikaricp.connections.idle", "hikaricp.connections.usage"}) {
                 Gauge.builder(name, first, AtomicInteger::doubleValue).register(registry);
             }
             assertThat(registry.getMeters()).hasSize(10);
@@ -55,6 +56,36 @@ class DevMetricsConfigTest {
                     assertThat(meter.getId().getTags()).extracting(Tag::getKey).containsExactly("pool");
                 }
             });
+        } finally {
+            registry.close();
+        }
+    }
+
+    @Test
+    void keepsAcquisitionEventsSeparateByPoolWithoutUnboundedTags() {
+        OtlpConfig config = key -> "otlp.enabled".equals(key) ? "false" : null;
+        OtlpMeterRegistry registry = new OtlpMeterRegistry(config, Clock.SYSTEM);
+        try {
+            new DevMetricsConfig().devMetrics().customize(registry);
+            for (String pool : new String[]{"first", "second"}) {
+                for (String request : new String[]{"request-a", "request-b"}) {
+                    Timer.builder("hikaricp.connections.acquire")
+                            .tags("pool", pool, "requestId", request).register(registry)
+                            .record(pool.equals("first") ? 10 : 20, TimeUnit.MILLISECONDS);
+                    Counter.builder("hikaricp.connections.timeout")
+                            .tags("pool", pool, "requestId", request).register(registry)
+                            .increment(pool.equals("first") ? 1 : 2);
+                }
+            }
+            assertThat(registry.getMeters()).hasSize(4).allSatisfy(meter ->
+                    assertThat(meter.getId().getTags()).extracting(Tag::getKey).containsExactly("pool"));
+            for (String pool : new String[]{"first", "second"}) {
+                Timer timer = registry.get("hikaricp.connections.acquire").tag("pool", pool).timer();
+                assertThat(timer.count()).isEqualTo(2);
+                assertThat(timer.totalTime(TimeUnit.MILLISECONDS)).isEqualTo(pool.equals("first") ? 20 : 40);
+                assertThat(registry.get("hikaricp.connections.timeout").tag("pool", pool).counter().count())
+                        .isEqualTo(pool.equals("first") ? 2 : 4);
+            }
         } finally {
             registry.close();
         }
