@@ -18,6 +18,7 @@ import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.zip.GZIPInputStream;
@@ -58,6 +59,8 @@ class DevHttpMetricsHttpIntegrationTest {
                 "--management.otlp.metrics.export.step=1s");
                 HttpClient client = HttpClient.newHttpClient()) {
             int port = ((WebServerApplicationContext) context).getWebServer().getPort();
+            // No HTTP requests yet: publish a real zero baseline, including the error counter.
+            await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> assertCounts(received.get(), 0, 0));
             assertThat(get(client, port, "/metrics-probe/one?userId=synthetic-user")).isEqualTo(200);
             assertThat(get(client, port, "/metrics-probe/two")).isEqualTo(200);
             assertThat(client.send(HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + port + "/metrics-probe/three"))
@@ -79,7 +82,9 @@ class DevHttpMetricsHttpIntegrationTest {
                 List<Metric> metrics = resourceMetrics.getScopeMetricsList().stream()
                         .flatMap(scope -> scope.getMetricsList().stream()).toList();
                 assertThat(metrics).extracting(Metric::getName)
-                        .containsExactlyInAnyOrder("http.server.requests", "jvm.memory.used", "jvm.memory.max");
+                        .containsExactlyInAnyOrder("http.server.requests", "jvm.memory.used", "jvm.memory.max",
+                                "setty.http.requests.completed", "setty.http.requests.server.errors");
+                assertCounts(request, 7, 1);
                 Metric metric = metrics.stream().filter(m -> m.getName().equals("http.server.requests"))
                         .findFirst().orElseThrow();
                 assertThat(metric.getName()).isEqualTo("http.server.requests");
@@ -112,9 +117,46 @@ class DevHttpMetricsHttpIntegrationTest {
             }
             await().atMost(Duration.ofSeconds(15)).untilAsserted(() ->
                     assertThat(successCount(received.get()) - baseline).isEqualTo(30));
+
+            // A new route's first 5xx must increment the already published aggregate counter.
+            assertThat(get(client, port, "/actuator/health")).isEqualTo(200);
+            assertThat(get(client, port, "/metrics-probe/new-server-error")).isEqualTo(503);
+            // Async redispatch/completion must count one completed response, not two.
+            assertThat(get(client, port, "/metrics-probe/async-error")).isEqualTo(503);
+            // A thrown exception and its error dispatch must also count exactly once.
+            assertThat(get(client, port, "/metrics-probe/unhandled-error")).isEqualTo(500);
+            await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> assertCounts(received.get(), 40, 4));
+            long exportedAt = counter(received.get(), "setty.http.requests.server.errors")
+                    .getSum().getDataPoints(0).getTimeUnixNano();
+            await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> {
+                assertThat(counter(received.get(), "setty.http.requests.server.errors")
+                        .getSum().getDataPoints(0).getTimeUnixNano()).isGreaterThan(exportedAt);
+                assertCounts(received.get(), 40, 4);
+            });
         } finally {
             receiver.stop(0);
         }
+    }
+
+    private void assertCounts(ExportMetricsServiceRequest request, long completed, long errors) {
+        assertThat(request).isNotNull();
+        for (var expected : Map.of("setty.http.requests.completed", completed,
+                "setty.http.requests.server.errors", errors).entrySet()) {
+            var sum = counter(request, expected.getKey()).getSum();
+            assertThat(sum.getIsMonotonic()).isTrue();
+            assertThat(sum.getAggregationTemporality())
+                    .isEqualTo(AggregationTemporality.AGGREGATION_TEMPORALITY_CUMULATIVE);
+            assertThat(sum.getDataPointsList()).hasSize(1);
+            var point = sum.getDataPoints(0);
+            assertThat(point.getAttributesList()).isEmpty();
+            assertThat(point.getAsDouble()).isEqualTo(expected.getValue().doubleValue());
+        }
+    }
+
+    private Metric counter(ExportMetricsServiceRequest request, String name) {
+        return request.getResourceMetricsList().stream().flatMap(resource -> resource.getScopeMetricsList().stream())
+                .flatMap(scope -> scope.getMetricsList().stream()).filter(metric -> metric.getName().equals(name))
+                .findFirst().orElseThrow();
     }
 
     private long successCount(ExportMetricsServiceRequest request) {
@@ -165,6 +207,21 @@ class DevHttpMetricsHttpIntegrationTest {
         @GetMapping("/metrics-probe/server-error")
         ResponseEntity<Void> serverError() {
             return ResponseEntity.status(503).build();
+        }
+
+        @GetMapping("/metrics-probe/new-server-error")
+        ResponseEntity<Void> newServerError() {
+            return ResponseEntity.status(503).build();
+        }
+
+        @GetMapping("/metrics-probe/async-error")
+        CompletableFuture<ResponseEntity<Void>> asyncError() {
+            return CompletableFuture.supplyAsync(() -> ResponseEntity.status(503).build());
+        }
+
+        @GetMapping("/metrics-probe/unhandled-error")
+        String unhandledError() {
+            throw new IllegalStateException("synthetic metrics probe failure");
         }
     }
 }

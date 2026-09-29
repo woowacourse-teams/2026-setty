@@ -1,6 +1,7 @@
 package setty.global.metrics;
 
 import io.micrometer.core.instrument.Meter;
+import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.config.MeterFilter;
 import io.micrometer.registry.otlp.OtlpMeterRegistry;
@@ -15,6 +16,11 @@ import org.springframework.context.annotation.Profile;
 public class DevMetricsConfig {
 
     @Bean
+    DevHttpRequestCountHandler devHttpRequestCountHandler(MeterRegistry registry) {
+        return new DevHttpRequestCountHandler(registry);
+    }
+
+    @Bean
     MeterRegistryCustomizer<OtlpMeterRegistry> devMetrics() {
         return registry -> registry.config()
                 .meterFilter(MeterFilter.denyUnless(DevMetricsConfig::isAllowed))
@@ -25,6 +31,8 @@ public class DevMetricsConfig {
                             // uri는 원본 URL이 아니라 Spring HTTP 관측이 제공하는 매핑 패턴이다.
                             case "http.server.requests" -> id.replaceTags(
                                     List.of(tag(id, "uri"), tag(id, "method"), tag(id, "outcome")));
+                            case "setty.http.requests.completed", "setty.http.requests.server.errors" ->
+                                    id.replaceTags(List.of());
                             // pool별 게이지를 하나로 합치면 합계가 아니라 첫 번째 값만 남는다.
                             case "jvm.memory.used", "jvm.memory.max" -> id.replaceTags(
                                     List.of(tag(id, "area"), tag(id, "id")));
@@ -39,7 +47,8 @@ public class DevMetricsConfig {
 
     private static boolean isAllowed(Meter.Id id) {
         return switch (id.getName()) {
-            case "http.server.requests", "hikaricp.connections.active", "hikaricp.connections.max",
+            case "http.server.requests", "setty.http.requests.completed", "setty.http.requests.server.errors",
+                    "hikaricp.connections.active", "hikaricp.connections.max",
                     "hikaricp.connections.pending", "hikaricp.connections.acquire",
                     "hikaricp.connections.timeout" -> true;
             case "jvm.memory.used", "jvm.memory.max" -> "heap".equals(id.getTag("area"));

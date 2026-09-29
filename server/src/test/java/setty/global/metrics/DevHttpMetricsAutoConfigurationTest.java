@@ -35,6 +35,10 @@ class DevHttpMetricsAutoConfigurationTest {
     void devCreatesOtlpRegistryWithApplicationConfiguration() {
         runner.withPropertyValues("spring.profiles.active=dev").run(context -> {
             assertThat(context).hasSingleBean(OtlpMeterRegistry.class);
+            assertThat(context).hasSingleBean(DevHttpRequestCountHandler.class);
+            var registry = context.getBean(OtlpMeterRegistry.class);
+            assertThat(registry.get("setty.http.requests.completed").counter().count()).isZero();
+            assertThat(registry.get("setty.http.requests.server.errors").counter().count()).isZero();
             OtlpConfig config = context.getBean(OtlpConfig.class);
             assertThat(config.url()).isEqualTo("http://127.0.0.1:4318/v1/metrics");
             assertThat(config.step()).isEqualTo(Duration.ofMinutes(1));
@@ -55,6 +59,7 @@ class DevHttpMetricsAutoConfigurationTest {
             assertThat(context).hasNotFailed();
             assertThat(context).doesNotHaveBean(OtlpMeterRegistry.class);
             assertThat(context).doesNotHaveBean(DevMetricsConfig.class);
+            assertThat(context).doesNotHaveBean(DevHttpRequestCountHandler.class);
         });
     }
 }
