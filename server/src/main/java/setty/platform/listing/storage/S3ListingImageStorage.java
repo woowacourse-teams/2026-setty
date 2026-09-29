@@ -32,7 +32,9 @@ public class S3ListingImageStorage implements ListingImageStorage {
     private static final int MIN_IMAGE_COUNT = 1;
     private static final int MAX_IMAGE_COUNT = 5;
     private static final long MAX_TOTAL_BYTES = 25L * 1024L * 1024L;
-    private static final String OBJECT_KEY_PREFIX = "listings/";
+    private static final String OBJECT_KEY_PREFIX = "setty/images/listings/";
+    // TODO(#329): 기존 listings/ 객체와 DB 키 이관이 끝나면 제거한다.
+    private static final String LEGACY_OBJECT_KEY_PREFIX = "listings/";
 
     private final S3Client s3Client;
     private final String bucket;
@@ -197,9 +199,13 @@ public class S3ListingImageStorage implements ListingImageStorage {
     }
 
     private void validateObjectKey(String objectKey) {
-        if (objectKey == null || objectKey.isBlank() || !objectKey.startsWith(OBJECT_KEY_PREFIX)) {
+        if (objectKey == null || objectKey.isBlank() || !hasListingPrefix(objectKey)) {
             throw new BusinessException(INVALID_LISTING_IMAGE_REFERENCE);
         }
+    }
+
+    private static boolean hasListingPrefix(String objectKey) {
+        return objectKey.startsWith(OBJECT_KEY_PREFIX) || objectKey.startsWith(LEGACY_OBJECT_KEY_PREFIX);
     }
 
     private static String removeTrailingSlashes(String value) {
