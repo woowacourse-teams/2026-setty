@@ -23,7 +23,10 @@ flowchart LR
 | `ACCEPTED` | 픽업 전 담당 기사가 배차 취소 | 즉시 `REQUESTED` |
 | `ACCEPTED` | 담당 기사가 인수 등록 | `PICKED_UP` |
 | `PICKED_UP` | 담당 기사가 배송 완료 등록 | `DELIVERED` |
-| `REQUESTED` | 허용된 구매자 주문 취소 | 배송 요청을 `CANCELLED`로 보존 |
+| `REQUESTED` | 구매자 주문 취소 요청 처리 | 배송 요청을 `CANCELLED`로 보존하고 취소 성공 결과를 주문에 알림 |
+| `ACCEPTED`, `PICKED_UP`, `DELIVERED` | 구매자 주문 취소 요청 처리 | 배송 상태를 유지하고 취소 거절 결과를 주문에 알림 |
+
+배송 취소 가능 여부는 요청 접수 시점이 아니라 배송이 취소 요청을 처리할 때의 상태로 결정한다. 기사 수락과 구매자 취소가 동시에 요청되면 먼저 확정된 상태 변경만 성공한다.
 
 픽업 후 배송이 불가능해지면 운송원의 책임으로 오프라인에서 처리하고 시스템 상태는 `PICKED_UP`을 유지한다. 배송 실패와 일정 변경은 현재 서비스에서 다루지 않는다. `DELIVERED` 이후 판매 완료 시점은 [판매 완료·정산 정책](completion-settlement.md)을 따른다.
 
@@ -31,8 +34,9 @@ flowchart LR
 flowchart LR
     R["REQUESTED"] -->|"기사 수락"| A["ACCEPTED"]
     R -->|"기사 거절·장기 미배정"| R
-    R -->|"허용된 구매자 취소"| C["CANCELLED<br/>기록 보존"]
+    R -->|"구매자 취소 요청 처리·성공 결과"| C["CANCELLED<br/>기록 보존"]
     A -->|"픽업 전 기사 배차 취소"| R
+    A -->|"구매자 취소 요청 처리·거절 결과"| A
     A -->|"담당 기사 인수 등록"| P["PICKED_UP"]
     P -->|"담당 기사 완료 등록"| D["DELIVERED"]
     P -->|"배송 불가·오프라인 처리"| P
