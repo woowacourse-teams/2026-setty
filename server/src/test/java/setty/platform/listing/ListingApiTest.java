@@ -101,7 +101,7 @@ class ListingApiTest {
         when(listingImageStorage.upload(anyList())).thenAnswer(invocation -> {
             List<MultipartFile> images = invocation.getArgument(0);
             return IntStream.range(0, images.size())
-                    .mapToObj(ignored -> "listings/test-" + objectKeySequence.incrementAndGet() + ".jpg")
+                    .mapToObj(ignored -> "setty/images/listings/test-" + objectKeySequence.incrementAndGet() + ".jpg")
                     .toList();
         });
         when(listingImageStorage.publicUrl(anyString()))
@@ -118,7 +118,7 @@ class ListingApiTest {
                 .andExpect(jsonPath("$.items[0].id").value(listingId))
                 .andExpect(jsonPath("$.items[0].title").value("가상 원목 의자"))
                 .andExpect(jsonPath("$.items[0].thumbnailUrl")
-                        .value("https://images.example.test/listings/test-1.jpg"))
+                        .value("https://images.example.test/setty/images/listings/test-1.jpg"))
                 .andExpect(jsonPath("$.items[0].price").value(120_000))
                 .andExpect(jsonPath("$.items[0].deliveryFee").value(10_000))
                 .andExpect(jsonPath("$.items[0].totalPrice").value(130_000));
@@ -165,9 +165,9 @@ class ListingApiTest {
                 .andExpect(jsonPath("$.images", hasSize(2)))
                 .andExpect(jsonPath("$.images[0].id").value(retainedImageId))
                 .andExpect(jsonPath("$.images[0].url")
-                        .value("https://images.example.test/listings/test-1.jpg"))
+                        .value("https://images.example.test/setty/images/listings/test-1.jpg"))
                 .andExpect(jsonPath("$.images[1].url")
-                        .value("https://images.example.test/listings/test-2.jpg"));
+                        .value("https://images.example.test/setty/images/listings/test-2.jpg"));
 
         mockMvc.perform(delete("/api/listings/{listingId}", listingId)
                         .header(HttpHeaders.AUTHORIZATION, bearerToken(SELLER_ID)))
@@ -186,8 +186,8 @@ class ListingApiTest {
 
         verify(listingImageStorage).deleteAll(argThat(objectKeys ->
                 objectKeys.size() == 2
-                        && objectKeys.contains("listings/test-1.jpg")
-                        && objectKeys.contains("listings/test-2.jpg")
+                        && objectKeys.contains("setty/images/listings/test-1.jpg")
+                        && objectKeys.contains("setty/images/listings/test-2.jpg")
         ));
     }
 
@@ -248,15 +248,15 @@ class ListingApiTest {
                 .andExpect(jsonPath("$.images", hasSize(2)))
                 .andExpect(jsonPath("$.images[0].id").value(retainedImageId))
                 .andExpect(jsonPath("$.images[0].url")
-                        .value("https://images.example.test/listings/test-2.jpg"))
+                        .value("https://images.example.test/setty/images/listings/test-2.jpg"))
                 .andExpect(jsonPath("$.images[1].url")
-                        .value("https://images.example.test/listings/test-3.jpg"))
+                        .value("https://images.example.test/setty/images/listings/test-3.jpg"))
                 .andReturn();
         long newImageId = read(afterUpdate).path("images").get(1).path("id").asLong();
         assertThat(newImageId).isNotIn(removedImageId, retainedImageId);
 
         verify(listingImageStorage).deleteAll(argThat(objectKeys ->
-                objectKeys.size() == 1 && objectKeys.contains("listings/test-1.jpg")
+                objectKeys.size() == 1 && objectKeys.contains("setty/images/listings/test-1.jpg")
         ));
     }
 
