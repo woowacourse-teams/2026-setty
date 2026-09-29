@@ -89,6 +89,7 @@ class DevResourceMetricsIntegrationTest {
                                 await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> {
                                     Map<String, Metric> metrics = metrics(received.get());
                                     assertThat(metrics).containsOnlyKeys("jvm.memory.used", "jvm.memory.max",
+                                            "setty.http.requests.completed", "setty.http.requests.server.errors",
                                             "hikaricp.connections.active", "hikaricp.connections.max",
                                             "hikaricp.connections.pending", "hikaricp.connections.acquire",
                                             "hikaricp.connections.timeout");
