@@ -29,7 +29,8 @@ public class DevMetricsConfig {
                             case "jvm.memory.used", "jvm.memory.max" -> id.replaceTags(
                                     List.of(tag(id, "area"), tag(id, "id")));
                             case "hikaricp.connections.active", "hikaricp.connections.max",
-                                    "hikaricp.connections.pending" -> id.replaceTags(List.of(tag(id, "pool")));
+                                    "hikaricp.connections.pending", "hikaricp.connections.acquire",
+                                    "hikaricp.connections.timeout" -> id.replaceTags(List.of(tag(id, "pool")));
                             default -> id;
                         };
                     }
@@ -39,7 +40,8 @@ public class DevMetricsConfig {
     private static boolean isAllowed(Meter.Id id) {
         return switch (id.getName()) {
             case "http.server.requests", "hikaricp.connections.active", "hikaricp.connections.max",
-                    "hikaricp.connections.pending" -> true;
+                    "hikaricp.connections.pending", "hikaricp.connections.acquire",
+                    "hikaricp.connections.timeout" -> true;
             case "jvm.memory.used", "jvm.memory.max" -> "heap".equals(id.getTag("area"));
             default -> false;
         };

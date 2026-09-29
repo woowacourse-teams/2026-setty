@@ -104,9 +104,27 @@ class DevHttpMetricsHttpIntegrationTest {
                                 Map.of("uri", "/metrics-probe/server-error", "method", "GET", "outcome", "SERVER_ERROR"), 1L,
                                 Map.of("uri", "/**", "method", "GET", "outcome", "CLIENT_ERROR"), 2L));
             });
+
+            // Once the series has a published baseline, 30 additional requests must add exactly 30.
+            long baseline = successCount(received.get());
+            for (int i = 0; i < 30; i++) {
+                assertThat(get(client, port, "/metrics-probe/burst-" + i)).isEqualTo(200);
+            }
+            await().atMost(Duration.ofSeconds(15)).untilAsserted(() ->
+                    assertThat(successCount(received.get()) - baseline).isEqualTo(30));
         } finally {
             receiver.stop(0);
         }
+    }
+
+    private long successCount(ExportMetricsServiceRequest request) {
+        return request.getResourceMetricsList().stream().flatMap(resource -> resource.getScopeMetricsList().stream())
+                .flatMap(scope -> scope.getMetricsList().stream())
+                .filter(metric -> metric.getName().equals("http.server.requests"))
+                .flatMap(metric -> metric.getExponentialHistogram().getDataPointsList().stream())
+                .filter(point -> attributes(point.getAttributesList()).equals(
+                        Map.of("uri", "/metrics-probe/{id}", "method", "GET", "outcome", "SUCCESS")))
+                .mapToLong(ExponentialHistogramDataPoint::getCount).findFirst().orElseThrow();
     }
 
     private int get(HttpClient client, int port, String path) throws Exception {
