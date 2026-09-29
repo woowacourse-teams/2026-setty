@@ -6,7 +6,7 @@
 
 - 결제 전에 주문을 `PENDING`으로 생성하고, 해당 매물을 선점한다. 다른 구매자의 구매는 차단한다.
 - `orderStatus`와 `deliveryStatus`는 별개의 상태다.
-- 결제 승인으로 주문이 `CONFIRMED`가 된 뒤에도 [판매 완료 조건](completion-settlement.md)이 충족될 때까지 매물 선점을 유지한다.
+- 결제 승인으로 주문이 `CONFIRMED`가 된 뒤에도 [판매 완료 조건](completion-settlement.md)이 충족될 때까지 매물 선점을 유지한다. 취소에 따른 선점 종료는 [취소 정책](#취소)을 따른다.
 
 ## 만료·재결제
 
