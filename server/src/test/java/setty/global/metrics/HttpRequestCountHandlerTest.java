@@ -9,13 +9,13 @@ import org.springframework.http.server.observation.ServerRequestObservationConte
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 
-class DevHttpRequestCountHandlerTest {
+class HttpRequestCountHandlerTest {
 
     @Test
     void excludesHealthChecksUnderContextPathButIncludesSimilarlyNamedBusinessRoute() {
         var registry = new SimpleMeterRegistry();
         try {
-            var handler = new DevHttpRequestCountHandler(registry);
+            var handler = new HttpRequestCountHandler(registry);
             complete(handler, "/app/actuator/health", "/app", 503);
             complete(handler, "/app/actuator/health/readiness", "/app", 503);
             complete(handler, "/app/actuator/healthy-orders", "/app", 500);
@@ -32,7 +32,7 @@ class DevHttpRequestCountHandlerTest {
     void selectsServletContextBeforeNameIsAssignedAndIgnoresOtherObservations() {
         var registry = new SimpleMeterRegistry();
         try {
-            var handler = new DevHttpRequestCountHandler(registry);
+            var handler = new HttpRequestCountHandler(registry);
             var context = new ServerRequestObservationContext(
                     new MockHttpServletRequest("GET", "/api/listings"), new MockHttpServletResponse());
             assertThat(handler.supportsContext(context)).isTrue();
@@ -45,7 +45,7 @@ class DevHttpRequestCountHandlerTest {
         }
     }
 
-    private void complete(DevHttpRequestCountHandler handler, String uri, String contextPath, int status) {
+    private void complete(HttpRequestCountHandler handler, String uri, String contextPath, int status) {
         var request = new MockHttpServletRequest("GET", uri);
         request.setContextPath(contextPath);
         var response = new MockHttpServletResponse();

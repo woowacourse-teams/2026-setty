@@ -11,14 +11,18 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
-import setty.delivery.application.DeliveryRequestNotifier;
+import setty.delivery.application.DeliveryRequestsChanged;
 
 /**
  * 단일 서버에서 활성 SSE 연결을 관리한다. 이벤트에는 목록 변경 여부만 담는다.
  */
 @Component
-public class DeliveryRequestEventStream implements DeliveryRequestNotifier {
+public class DeliveryRequestEventStream {
+
+    private static final System.Logger LOGGER = System.getLogger(DeliveryRequestEventStream.class.getName());
 
     static final long CONNECTION_TIMEOUT_MILLIS = 120_000L;
     private static final long HEARTBEAT_INTERVAL_SECONDS = 15L;
@@ -61,8 +65,17 @@ public class DeliveryRequestEventStream implements DeliveryRequestNotifier {
         return emitter;
     }
 
-    @Override
-    public void notifyRequestsChanged() {
+    // 커밋 전에 알리면 기사 앱이 아직 반영되지 않은 목록을 다시 조회하므로 커밋 후에 보낸다.
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void on(final DeliveryRequestsChanged event) {
+        try {
+            notifyRequestsChanged();
+        } catch (final RuntimeException exception) {
+            LOGGER.log(System.Logger.Level.WARNING, "배송 요청 SSE 알림 전송에 실패했습니다.", exception);
+        }
+    }
+
+    void notifyRequestsChanged() {
         emitters.forEach((emitterId, emitter) -> send(
                 emitterId,
                 emitter,

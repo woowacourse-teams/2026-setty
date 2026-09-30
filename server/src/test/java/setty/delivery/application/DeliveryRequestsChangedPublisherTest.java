@@ -1,6 +1,7 @@
 package setty.delivery.application;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.isA;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
@@ -10,17 +11,18 @@ import static org.mockito.Mockito.when;
 import java.time.Instant;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
-import org.springframework.context.ApplicationEventPublisher;
 import org.mockito.InOrder;
-import setty.delivery.domain.Address;
-import setty.delivery.domain.Delivery;
+import org.springframework.context.ApplicationEventPublisher;
 import setty.delivery.domain.DeliveryId;
-import setty.delivery.domain.DeliveryRoute;
 import setty.delivery.domain.DriverId;
-import setty.delivery.domain.EstimatedDeliveryFee;
-import setty.delivery.domain.FurnitureInfo;
 import setty.delivery.domain.OrderId;
-import setty.delivery.domain.PhoneNumber;
+import setty.delivery.domain.delivery.Delivery;
+import setty.delivery.domain.delivery.DeliveryPoint;
+import setty.delivery.domain.delivery.DeliveryRoute;
+import setty.delivery.domain.delivery.EstimatedDeliveryFee;
+import setty.delivery.domain.delivery.FurnitureInfo;
+import setty.delivery.persistence.DeliveryCancellationRepository;
+import setty.delivery.persistence.DeliveryRepository;
 
 class DeliveryRequestsChangedPublisherTest {
 
@@ -31,18 +33,17 @@ class DeliveryRequestsChangedPublisherTest {
         final DeliveryRepository deliveryRepository = mock(DeliveryRepository.class);
         final ApplicationEventPublisher eventPublisher = mock(ApplicationEventPublisher.class);
         when(deliveryRepository.existsByOrderId(any(OrderId.class))).thenReturn(false);
-        final RegisterDeliveryService service = new RegisterDeliveryService(deliveryRepository, eventPublisher);
+        final RegisterDeliveryService service = new RegisterDeliveryService(
+                deliveryRepository, mock(DeliveryCancellationRepository.class), eventPublisher);
 
         service.register(
-                new OrderId(1L),
-                new FurnitureInfo("가상 원목 의자", "CHAIR"),
-                new DeliveryRoute(
-                        new Address("서울시 가상구 출발로 1"),
-                        new Address("서울시 가상구 도착로 2"),
-                        new PhoneNumber("010-0000-0001"),
-                        new PhoneNumber("010-0000-0002")
+                OrderId.from(1L),
+                FurnitureInfo.of("가상 원목 의자", "CHAIR"),
+                DeliveryRoute.of(
+                        DeliveryPoint.pickup("서울시 가상구 출발로 1", "010-0000-0001"),
+                        DeliveryPoint.destination("서울시 가상구 도착로 2", "010-0000-0002")
                 ),
-                new EstimatedDeliveryFee(10_000),
+                EstimatedDeliveryFee.from(10_000),
                 REQUESTED_AT
         );
 
@@ -57,9 +58,10 @@ class DeliveryRequestsChangedPublisherTest {
         final ApplicationEventPublisher eventPublisher = mock(ApplicationEventPublisher.class);
         final Delivery delivery = mock(Delivery.class);
         when(delivery.getId()).thenReturn(new DeliveryId(1L));
-        when(delivery.getOrderId()).thenReturn(new OrderId(2L));
-        when(deliveryRepository.findById(any(DeliveryId.class))).thenReturn(Optional.of(delivery));
-        final DeliveryLifecycleService service = new DeliveryLifecycleService(deliveryRepository, eventPublisher);
+        when(delivery.getOrderId()).thenReturn(OrderId.from(2L));
+        when(deliveryRepository.findById(anyLong())).thenReturn(Optional.of(delivery));
+        final DeliveryLifecycleService service = new DeliveryLifecycleService(
+                deliveryRepository, mock(DeliveryCancellationRepository.class), eventPublisher);
 
         service.accept(new DeliveryId(1L), new DriverId(3L), REQUESTED_AT);
 

@@ -4,12 +4,15 @@ import java.time.Instant;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-import setty.delivery.domain.Delivery;
-import setty.delivery.domain.DeliveryRoute;
-import setty.delivery.domain.EstimatedDeliveryFee;
-import setty.delivery.domain.FurnitureInfo;
 import setty.delivery.domain.OrderId;
+import setty.delivery.domain.delivery.Delivery;
+import setty.delivery.domain.delivery.DeliveryRoute;
+import setty.delivery.domain.delivery.EstimatedDeliveryFee;
+import setty.delivery.domain.delivery.FurnitureInfo;
+import setty.delivery.persistence.DeliveryCancellationRepository;
+import setty.delivery.persistence.DeliveryRepository;
 import setty.global.exception.BusinessException;
 import setty.global.exception.ErrorCode;
 
@@ -18,9 +21,11 @@ import setty.global.exception.ErrorCode;
 public class RegisterDeliveryService {
 
     private final DeliveryRepository deliveryRepository;
+    private final DeliveryCancellationRepository cancellationRepository;
     private final ApplicationEventPublisher eventPublisher;
 
-    @Transactional
+    // 발행한 쪽 트랜잭션이 커밋된 뒤 호출되므로 배송만의 새 트랜잭션에서 처리한다.
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void register(
             final OrderId orderId,
             final FurnitureInfo furniture,
@@ -32,7 +37,8 @@ public class RegisterDeliveryService {
             throw new BusinessException(ErrorCode.INVALID_REQUEST);
         }
 
-        if (deliveryRepository.existsByOrderId(orderId)) {
+        // 재전달된 배차 요청이거나, 배차 요청보다 취소가 먼저 확정된 주문이면 배송을 만들지 않는다.
+        if (deliveryRepository.existsByOrderId(orderId) || cancellationRepository.existsByOrderId(orderId)) {
             return;
         }
 

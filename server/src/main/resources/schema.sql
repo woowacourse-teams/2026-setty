@@ -78,6 +78,17 @@ CREATE TABLE IF NOT EXISTS delivery (
     CONSTRAINT chk_delivery_estimated_fee CHECK (estimated_fee >= 0)
 );
 
+-- 배송에서 확정된 주문 취소 기록. 배송 요청 전에 취소된 주문은 delivery_id가 NULL이다.
+CREATE TABLE IF NOT EXISTS delivery_cancellation (
+    id                      BIGINT       NOT NULL AUTO_INCREMENT,
+    order_id                BIGINT       NOT NULL,
+    delivery_id             BIGINT       NULL,
+    cancellation_request_id VARCHAR(100) NOT NULL,
+    cancelled_at            TIMESTAMP(6) NOT NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_delivery_cancellation_order_id (order_id)
+);
+
 CREATE TABLE IF NOT EXISTS delivery_member (
     id                           BIGINT       NOT NULL AUTO_INCREMENT,
     login_id                     VARCHAR(20)  NOT NULL,
@@ -100,7 +111,7 @@ CREATE TABLE IF NOT EXISTS orders (
     id              BIGINT       NOT NULL AUTO_INCREMENT,
     listing_id      BIGINT       NOT NULL,
     buyer_id        BIGINT       NOT NULL,
-    delivery_status VARCHAR(20)  NOT NULL,              -- 플랫폼이 DeliveryStatusChanged 이벤트를 수신해 UPDATE
+    delivery_status VARCHAR(20)  NOT NULL,              -- 플랫폼이 배송 상태 이벤트를 수신해 UPDATE
     order_status    VARCHAR(20)  NOT NULL,              -- 주문의 결제 및 취소 상태
     cancellation_request_id VARCHAR(36) NULL,           -- 현재 취소 SAGA 요청 식별자
     driver_id       BIGINT       NULL,                  -- 현재 미사용, 실제 배정 기사는 delivery.driver_id에 저장

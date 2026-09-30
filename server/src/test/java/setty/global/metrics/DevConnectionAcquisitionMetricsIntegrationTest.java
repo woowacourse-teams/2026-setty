@@ -68,7 +68,7 @@ class DevConnectionAcquisitionMetricsIntegrationTest {
                     .withConfiguration(AutoConfigurations.of(MetricsAutoConfiguration.class,
                             CompositeMeterRegistryAutoConfiguration.class, OtlpMetricsExportAutoConfiguration.class,
                             DataSourcePoolMetricsAutoConfiguration.class))
-                    .withUserConfiguration(DevMetricsConfig.class)
+                    .withUserConfiguration(MetricsConfig.class)
                     .withBean(DataSource.class, () -> pool)
                     .withPropertyValues("spring.profiles.active=dev",
                             "management.otlp.metrics.export.url=http://127.0.0.1:"

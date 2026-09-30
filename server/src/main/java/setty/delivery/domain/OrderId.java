@@ -16,4 +16,8 @@ public record OrderId(
             throw new BusinessException(ErrorCode.INVALID_REQUEST);
         }
     }
+
+    public static OrderId from(final Long value) {
+        return new OrderId(value);
+    }
 }

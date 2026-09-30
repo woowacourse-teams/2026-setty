@@ -13,14 +13,14 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 
-class DevMetricsConfigTest {
+class MetricsConfigTest {
 
     @Test
     void keepsHeapAndConnectionPoolDimensionsWithoutExportingOtherResourceMetrics() {
         OtlpConfig config = key -> "otlp.enabled".equals(key) ? "false" : null;
         OtlpMeterRegistry registry = new OtlpMeterRegistry(config, Clock.SYSTEM);
         try {
-            new DevMetricsConfig().devMetrics().customize(registry);
+            new MetricsConfig().metrics().customize(registry);
             AtomicInteger first = new AtomicInteger(10);
             AtomicInteger second = new AtomicInteger(20);
             for (String name : new String[]{"jvm.memory.used", "jvm.memory.max"}) {
@@ -66,7 +66,7 @@ class DevMetricsConfigTest {
         OtlpConfig config = key -> "otlp.enabled".equals(key) ? "false" : null;
         OtlpMeterRegistry registry = new OtlpMeterRegistry(config, Clock.SYSTEM);
         try {
-            new DevMetricsConfig().devMetrics().customize(registry);
+            new MetricsConfig().metrics().customize(registry);
             for (String pool : new String[]{"first", "second"}) {
                 for (String request : new String[]{"request-a", "request-b"}) {
                     Timer.builder("hikaricp.connections.acquire")
@@ -96,7 +96,7 @@ class DevMetricsConfigTest {
         OtlpConfig config = key -> "otlp.enabled".equals(key) ? "false" : null;
         OtlpMeterRegistry registry = new OtlpMeterRegistry(config, Clock.SYSTEM);
         try {
-            new DevMetricsConfig().devMetrics().customize(registry);
+            new MetricsConfig().metrics().customize(registry);
 
             Timer.builder("http.server.requests")
                     .tags("outcome", "SUCCESS", "uri", "/api/listings/{id}", "method", "GET",
