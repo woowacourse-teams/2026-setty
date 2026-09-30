@@ -148,15 +148,13 @@ class DeliveryTest {
 
     private static Delivery requestDelivery() {
         return Delivery.request(
-                new OrderId(1L),
-                new FurnitureInfo("가상 원목 의자", "CHAIR"),
-                new DeliveryRoute(
-                        new Address("서울시 가상구 출발로 1"),
-                        new Address("서울시 가상구 도착로 2"),
-                        new PhoneNumber("010-0000-0001"),
-                        new PhoneNumber("010-0000-0002")
+                OrderId.from(1L),
+                FurnitureInfo.of("가상 원목 의자", "CHAIR"),
+                DeliveryRoute.of(
+                        DeliveryPoint.pickup("서울시 가상구 출발로 1", "010-0000-0001"),
+                        DeliveryPoint.destination("서울시 가상구 도착로 2", "010-0000-0002")
                 ),
-                new EstimatedDeliveryFee(10_000),
+                EstimatedDeliveryFee.from(10_000),
                 REQUESTED_AT
         );
     }

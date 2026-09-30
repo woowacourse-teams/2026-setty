@@ -13,51 +13,39 @@ public class DeliveryRoute {
 
     @Embedded
     @AttributeOverride(
-            name = "value",
+            name = "address.value",
             column = @Column(name = "pickup_address", nullable = false, length = 255)
     )
-    private Address pickupAddress;
-
-    @Embedded
     @AttributeOverride(
-            name = "value",
-            column = @Column(name = "delivery_address", nullable = false, length = 255)
-    )
-    private Address deliveryAddress;
-
-    @Embedded
-    @AttributeOverride(
-            name = "value",
+            name = "phoneNumber.value",
             column = @Column(name = "pickup_phone_number", nullable = false, length = 30)
     )
-    private PhoneNumber pickupPhoneNumber;
+    private DeliveryPoint pickup;
 
     @Embedded
     @AttributeOverride(
-            name = "value",
+            name = "address.value",
+            column = @Column(name = "delivery_address", nullable = false, length = 255)
+    )
+    @AttributeOverride(
+            name = "phoneNumber.value",
             column = @Column(name = "delivery_phone_number", nullable = false, length = 30)
     )
-    private PhoneNumber deliveryPhoneNumber;
+    private DeliveryPoint destination;
 
     protected DeliveryRoute() {
     }
 
-    public DeliveryRoute(
-            final Address pickupAddress,
-            final Address deliveryAddress,
-            final PhoneNumber pickupPhoneNumber,
-            final PhoneNumber deliveryPhoneNumber
-    ) {
-        if (pickupAddress == null
-                || deliveryAddress == null
-                || pickupPhoneNumber == null
-                || deliveryPhoneNumber == null) {
+    private DeliveryRoute(final DeliveryPoint pickup, final DeliveryPoint destination) {
+        if (pickup == null || destination == null) {
             throw new BusinessException(ErrorCode.INVALID_REQUEST);
         }
-        this.pickupAddress = pickupAddress;
-        this.deliveryAddress = deliveryAddress;
-        this.pickupPhoneNumber = pickupPhoneNumber;
-        this.deliveryPhoneNumber = deliveryPhoneNumber;
+        this.pickup = pickup;
+        this.destination = destination;
+    }
+
+    public static DeliveryRoute of(final DeliveryPoint pickup, final DeliveryPoint destination) {
+        return new DeliveryRoute(pickup, destination);
     }
 
     @Override
@@ -68,14 +56,11 @@ public class DeliveryRoute {
         if (!(object instanceof DeliveryRoute that)) {
             return false;
         }
-        return Objects.equals(pickupAddress, that.pickupAddress)
-                && Objects.equals(deliveryAddress, that.deliveryAddress)
-                && Objects.equals(pickupPhoneNumber, that.pickupPhoneNumber)
-                && Objects.equals(deliveryPhoneNumber, that.deliveryPhoneNumber);
+        return Objects.equals(pickup, that.pickup) && Objects.equals(destination, that.destination);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(pickupAddress, deliveryAddress, pickupPhoneNumber, deliveryPhoneNumber);
+        return Objects.hash(pickup, destination);
     }
 }

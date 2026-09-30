@@ -20,4 +20,8 @@ public record FurnitureInfo(
         itemName = itemName.trim();
         category = category.trim();
     }
+
+    public static FurnitureInfo of(final String itemName, final String category) {
+        return new FurnitureInfo(itemName, category);
+    }
 }

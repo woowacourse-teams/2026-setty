@@ -35,8 +35,8 @@ class DeliveryEventListenerTest {
         ));
 
         verify(registerDeliveryService).register(
-                eq(new OrderId(101L)),
-                eq(new FurnitureInfo("가상 원목 의자", "CHAIR")),
+                eq(OrderId.from(101L)),
+                eq(FurnitureInfo.of("가상 원목 의자", "CHAIR")),
                 any(),
                 any(),
                 any(Instant.class)
@@ -48,7 +48,7 @@ class DeliveryEventListenerTest {
         listener.handle(new OrderCancellationRequested(101L, "cancel-request-1"));
 
         verify(deliveryLifecycleService).cancel(
-                eq(new OrderId(101L)),
+                eq(OrderId.from(101L)),
                 eq("cancel-request-1"),
                 any(Instant.class)
         );

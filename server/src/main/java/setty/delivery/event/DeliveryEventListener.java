@@ -9,11 +9,10 @@ import setty.common.OrderRequested;
 import setty.delivery.application.DeliveryLifecycleService;
 import setty.delivery.application.RegisterDeliveryService;
 import setty.delivery.domain.OrderId;
-import setty.delivery.domain.delivery.Address;
+import setty.delivery.domain.delivery.DeliveryPoint;
 import setty.delivery.domain.delivery.DeliveryRoute;
 import setty.delivery.domain.delivery.EstimatedDeliveryFee;
 import setty.delivery.domain.delivery.FurnitureInfo;
-import setty.delivery.domain.delivery.PhoneNumber;
 
 /**
  * 다른 컨텍스트에서 Delivery로 들어오는 이벤트의 단일 진입 경계.
@@ -29,15 +28,13 @@ public class DeliveryEventListener {
     @EventListener
     public void handle(final OrderRequested event) {
         registerDeliveryService.register(
-                new OrderId(event.orderId()),
-                new FurnitureInfo(event.itemName(), event.category()),
-                new DeliveryRoute(
-                        new Address(event.pickupAddress()),
-                        new Address(event.deliveryAddress()),
-                        new PhoneNumber(event.pickupPhoneNumber()),
-                        new PhoneNumber(event.deliveryPhoneNumber())
+                OrderId.from(event.orderId()),
+                FurnitureInfo.of(event.itemName(), event.category()),
+                DeliveryRoute.of(
+                        DeliveryPoint.pickup(event.pickupAddress(), event.pickupPhoneNumber()),
+                        DeliveryPoint.destination(event.deliveryAddress(), event.deliveryPhoneNumber())
                 ),
-                new EstimatedDeliveryFee(event.deliveryFee()),
+                EstimatedDeliveryFee.from(event.deliveryFee()),
                 Instant.now()
         );
     }
@@ -45,7 +42,7 @@ public class DeliveryEventListener {
     @EventListener
     public void handle(final OrderCancellationRequested event) {
         deliveryLifecycleService.cancel(
-                new OrderId(event.orderId()),
+                OrderId.from(event.orderId()),
                 event.cancellationRequestId(),
                 Instant.now()
         );

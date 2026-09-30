@@ -16,4 +16,8 @@ public record EstimatedDeliveryFee(
             throw new BusinessException(ErrorCode.INVALID_REQUEST);
         }
     }
+
+    public static EstimatedDeliveryFee from(final Integer value) {
+        return new EstimatedDeliveryFee(value);
+    }
 }
