@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -104,7 +105,7 @@ private fun ListingDetailContent(
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
                         Text(
-                            text = listing?.title.orEmpty(),
+                            text = listing?.title.orEmpty().keepAllWords(),
                             fontFamily = Paperlogy,
                             fontWeight = FontWeight.Black,
                             maxLines = 2,
@@ -464,10 +465,16 @@ private fun PriceSection(
                 Text(
                     text = "총 결제 예상액",
                     style = MaterialTheme.typography.titleMediumEmphasized,
+                    modifier = Modifier.padding(end = 12.dp),
                 )
+                val totalPriceStyle = MaterialTheme.typography.headlineLargeEmphasized
                 Text(
                     text = formatWon(listing.totalPrice),
-                    style = MaterialTheme.typography.headlineLargeEmphasized,
+                    style = totalPriceStyle,
+                    maxLines = 1,
+                    textAlign = TextAlign.End,
+                    autoSize = TextAutoSize.StepBased(maxFontSize = totalPriceStyle.fontSize),
+                    modifier = Modifier.weight(1f),
                 )
             }
         }
@@ -576,6 +583,12 @@ private fun ListingDetailError.toMessage(): String = when (this) {
     ListingDetailError.NETWORK_ERROR -> "네트워크 에러가 발생했습니다"
     ListingDetailError.UNKNOWN_ERROR -> "알 수 없는 에러가 발생했습니다"
 }
+
+/** 한글이 음절 단위로 줄바꿈되지 않도록 단어 안의 글자를 WORD JOINER로 묶는다. */
+private fun String.keepAllWords(): String =
+    split(' ').joinToString(" ") { word -> word.toList().joinToString(WORD_JOINER) }
+
+private const val WORD_JOINER = "\u2060"
 
 private val CarouselHeight = 320.dp
 private val CarouselHorizontalPadding = 16.dp
