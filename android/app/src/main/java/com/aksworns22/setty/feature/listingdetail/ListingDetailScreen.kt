@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -49,6 +50,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -421,6 +423,14 @@ private fun PriceSection(
         "매물 가격" to listing.price,
         "예상 배송비" to listing.deliveryFee,
     )
+    val layoutDirection = LocalLayoutDirection.current
+    val defaultPadding = ListItemDefaults.ContentPadding
+    val priceRowContentPadding = PaddingValues(
+        start = 0.dp,
+        top = defaultPadding.calculateTopPadding(),
+        end = defaultPadding.calculateEndPadding(layoutDirection),
+        bottom = defaultPadding.calculateBottomPadding(),
+    )
     Column(
         verticalArrangement = Arrangement.spacedBy(ListItemDefaults.SegmentedGap),
         modifier = modifier,
@@ -432,6 +442,7 @@ private fun PriceSection(
                     index = index,
                     count = rows.size + 1,
                 ),
+                contentPadding = priceRowContentPadding,
                 trailingContent = {
                     Text(
                         text = formatWon(amount),
