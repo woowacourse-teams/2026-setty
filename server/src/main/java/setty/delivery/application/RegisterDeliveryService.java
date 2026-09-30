@@ -4,6 +4,7 @@ import java.time.Instant;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import setty.delivery.domain.OrderId;
 import setty.delivery.domain.delivery.Delivery;
@@ -23,7 +24,8 @@ public class RegisterDeliveryService {
     private final DeliveryCancellationRepository cancellationRepository;
     private final ApplicationEventPublisher eventPublisher;
 
-    @Transactional
+    // 발행한 쪽 트랜잭션이 커밋된 뒤 호출되므로 배송만의 새 트랜잭션에서 처리한다.
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void register(
             final OrderId orderId,
             final FurnitureInfo furniture,

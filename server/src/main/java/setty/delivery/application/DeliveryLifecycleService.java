@@ -5,6 +5,7 @@ import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import setty.common.DeliveryAccepted;
 import setty.common.DeliveryCancellationRejected;
@@ -56,6 +57,7 @@ public class DeliveryLifecycleService {
      * 주문 취소 요청에 응답한다. 취소 가능 여부는 요청 접수 시점이 아니라 지금 배송 상태로 판단한다.
      * 같은 요청이 다시 와도 현재 상태에 따라 같은 결과를 다시 발행한다.
      */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void cancel(final OrderId orderId, final String cancellationRequestId, final Instant decidedAt) {
         if (orderId == null || cancellationRequestId == null || cancellationRequestId.isBlank() || decidedAt == null) {
             throw new BusinessException(ErrorCode.INVALID_REQUEST);
