@@ -5,7 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import setty.delivery.domain.DeliveryCancellation;
 import setty.delivery.domain.OrderId;
 
-interface SpringDataDeliveryCancellationRepository extends JpaRepository<DeliveryCancellation, Long> {
+public interface DeliveryCancellationRepository extends JpaRepository<DeliveryCancellation, Long> {
 
     boolean existsByOrderId(OrderId orderId);
 

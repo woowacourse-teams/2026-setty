@@ -10,6 +10,8 @@ import setty.delivery.domain.DeliveryRoute;
 import setty.delivery.domain.EstimatedDeliveryFee;
 import setty.delivery.domain.FurnitureInfo;
 import setty.delivery.domain.OrderId;
+import setty.delivery.persistence.DeliveryCancellationRepository;
+import setty.delivery.persistence.DeliveryRepository;
 import setty.global.exception.BusinessException;
 import setty.global.exception.ErrorCode;
 
@@ -18,6 +20,7 @@ import setty.global.exception.ErrorCode;
 public class RegisterDeliveryService {
 
     private final DeliveryRepository deliveryRepository;
+    private final DeliveryCancellationRepository cancellationRepository;
     private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
@@ -33,7 +36,7 @@ public class RegisterDeliveryService {
         }
 
         // 재전달된 배차 요청이거나, 배차 요청보다 취소가 먼저 확정된 주문이면 배송을 만들지 않는다.
-        if (deliveryRepository.existsByOrderId(orderId) || deliveryRepository.existsCancellationByOrderId(orderId)) {
+        if (deliveryRepository.existsByOrderId(orderId) || cancellationRepository.existsByOrderId(orderId)) {
             return;
         }
 
