@@ -92,6 +92,9 @@ public class Delivery {
     }
 
     public void accept(final DriverId driverId, final Instant acceptedAt) {
+        if (status == DeliveryStatus.CANCELLED) {
+            throw new BusinessException(ErrorCode.INVALID_DELIVERY_TRANSITION);
+        }
         if (status != DeliveryStatus.REQUESTED) {
             throw new BusinessException(ErrorCode.DELIVERY_ALREADY_ACCEPTED);
         }
@@ -118,6 +121,10 @@ public class Delivery {
     // 배차 전(REQUESTED)에만 취소할 수 있다. 기록은 지우지 않고 CANCELLED로 남긴다.
     public boolean isCancellable() {
         return status == DeliveryStatus.REQUESTED;
+    }
+
+    public boolean isCancelled() {
+        return status == DeliveryStatus.CANCELLED;
     }
 
     public void cancel() {

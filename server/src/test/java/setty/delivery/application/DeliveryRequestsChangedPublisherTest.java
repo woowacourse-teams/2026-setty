@@ -21,7 +21,6 @@ import setty.delivery.domain.delivery.DeliveryPoint;
 import setty.delivery.domain.delivery.DeliveryRoute;
 import setty.delivery.domain.delivery.EstimatedDeliveryFee;
 import setty.delivery.domain.delivery.FurnitureInfo;
-import setty.delivery.persistence.DeliveryCancellationRepository;
 import setty.delivery.persistence.DeliveryRepository;
 
 class DeliveryRequestsChangedPublisherTest {
@@ -34,7 +33,9 @@ class DeliveryRequestsChangedPublisherTest {
         final ApplicationEventPublisher eventPublisher = mock(ApplicationEventPublisher.class);
         when(deliveryRepository.existsByOrderId(any(OrderId.class))).thenReturn(false);
         final RegisterDeliveryService service = new RegisterDeliveryService(
-                deliveryRepository, mock(DeliveryCancellationRepository.class), eventPublisher);
+                deliveryRepository,
+                eventPublisher
+        );
 
         service.register(
                 OrderId.from(1L),
@@ -59,9 +60,11 @@ class DeliveryRequestsChangedPublisherTest {
         final Delivery delivery = mock(Delivery.class);
         when(delivery.getId()).thenReturn(new DeliveryId(1L));
         when(delivery.getOrderId()).thenReturn(OrderId.from(2L));
-        when(deliveryRepository.findById(anyLong())).thenReturn(Optional.of(delivery));
+        when(deliveryRepository.findByIdForUpdate(anyLong())).thenReturn(Optional.of(delivery));
         final DeliveryLifecycleService service = new DeliveryLifecycleService(
-                deliveryRepository, mock(DeliveryCancellationRepository.class), eventPublisher);
+                deliveryRepository,
+                eventPublisher
+        );
 
         service.accept(new DeliveryId(1L), new DriverId(3L), REQUESTED_AT);
 
