@@ -5,6 +5,12 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.time.Instant;
 import org.junit.jupiter.api.Test;
+import setty.delivery.domain.delivery.Address;
+import setty.delivery.domain.delivery.DeliveryAssignment;
+import setty.delivery.domain.delivery.DeliveryRoute;
+import setty.delivery.domain.delivery.EstimatedDeliveryFee;
+import setty.delivery.domain.delivery.FurnitureInfo;
+import setty.delivery.domain.delivery.PhoneNumber;
 import setty.global.exception.BusinessException;
 
 class DeliveryValueObjectTest {

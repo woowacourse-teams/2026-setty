@@ -1,4 +1,4 @@
-package setty.delivery.domain;
+package setty.delivery.domain.delivery;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;

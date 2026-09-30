@@ -1,4 +1,4 @@
-package setty.delivery.domain;
+package setty.delivery.domain.cancellation;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Embedded;
@@ -10,6 +10,9 @@ import jakarta.persistence.Table;
 import java.time.Instant;
 import lombok.AccessLevel;
 import lombok.Getter;
+import setty.delivery.domain.DeliveryId;
+import setty.delivery.domain.OrderId;
+import setty.delivery.domain.delivery.Delivery;
 import setty.global.exception.BusinessException;
 import setty.global.exception.ErrorCode;
 

@@ -11,8 +11,8 @@ import setty.common.OrderCancellationRequested;
 import setty.common.OrderRequested;
 import setty.delivery.application.DeliveryLifecycleService;
 import setty.delivery.application.RegisterDeliveryService;
-import setty.delivery.domain.FurnitureInfo;
 import setty.delivery.domain.OrderId;
+import setty.delivery.domain.delivery.FurnitureInfo;
 
 class DeliveryEventListenerTest {
 

@@ -1,10 +1,11 @@
-package setty.delivery.domain;
+package setty.delivery.domain.delivery;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
 import jakarta.persistence.Embedded;
 import java.time.Instant;
 import java.util.Objects;
+import setty.delivery.domain.DriverId;
 import setty.global.exception.BusinessException;
 import setty.global.exception.ErrorCode;
 

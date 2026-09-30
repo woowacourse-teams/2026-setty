@@ -8,12 +8,12 @@ import setty.common.OrderCancellationRequested;
 import setty.common.OrderRequested;
 import setty.delivery.application.DeliveryLifecycleService;
 import setty.delivery.application.RegisterDeliveryService;
-import setty.delivery.domain.Address;
-import setty.delivery.domain.DeliveryRoute;
-import setty.delivery.domain.EstimatedDeliveryFee;
-import setty.delivery.domain.FurnitureInfo;
 import setty.delivery.domain.OrderId;
-import setty.delivery.domain.PhoneNumber;
+import setty.delivery.domain.delivery.Address;
+import setty.delivery.domain.delivery.DeliveryRoute;
+import setty.delivery.domain.delivery.EstimatedDeliveryFee;
+import setty.delivery.domain.delivery.FurnitureInfo;
+import setty.delivery.domain.delivery.PhoneNumber;
 
 /**
  * 다른 컨텍스트에서 Delivery로 들어오는 이벤트의 단일 진입 경계.

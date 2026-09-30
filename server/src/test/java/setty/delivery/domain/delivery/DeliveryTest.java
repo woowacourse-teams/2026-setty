@@ -1,10 +1,12 @@
-package setty.delivery.domain;
+package setty.delivery.domain.delivery;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.time.Instant;
 import org.junit.jupiter.api.Test;
+import setty.delivery.domain.DriverId;
+import setty.delivery.domain.OrderId;
 import setty.global.exception.BusinessException;
 import setty.global.exception.ErrorCode;
 
