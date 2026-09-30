@@ -10,6 +10,7 @@ import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.ui.NavDisplay
 import com.aksworns22.setty.feature.home.HomeScreen
+import com.aksworns22.setty.feature.listingdetail.ListingDetailScreen
 import com.aksworns22.setty.feature.login.LoginScreen
 import com.aksworns22.setty.feature.signup.SignUpScreen
 import kotlinx.serialization.Serializable
@@ -24,6 +25,9 @@ sealed interface SettyScreen : NavKey {
 
     @Serializable
     data object Home : SettyScreen
+
+    @Serializable
+    data class ListingDetail(val listingId: Long) : SettyScreen
 }
 
 @Composable
@@ -60,7 +64,16 @@ fun SettyNavHost() {
             }
             entry<SettyScreen.Home> {
                 HomeScreen(
-                    onListingClick = {}
+                    onListingClick = { listingId ->
+                        backStack.add(SettyScreen.ListingDetail(listingId))
+                    }
+                )
+            }
+            entry<SettyScreen.ListingDetail> { key ->
+                ListingDetailScreen(
+                    listingId = key.listingId,
+                    onBack = { backStack.removeLastOrNull() },
+                    onPurchaseClick = {},
                 )
             }
         }
