@@ -21,21 +21,22 @@ import org.springframework.boot.micrometer.metrics.autoconfigure.export.simple.S
 import org.springframework.boot.test.context.ConfigDataApplicationContextInitializer;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
-class DevHttpMetricsAutoConfigurationTest {
+class HttpMetricsAutoConfigurationTest {
 
     private final ApplicationContextRunner runner = new ApplicationContextRunner()
             .withInitializer(new ConfigDataApplicationContextInitializer())
             .withConfiguration(AutoConfigurations.of(MetricsAutoConfiguration.class,
                     CompositeMeterRegistryAutoConfiguration.class, SimpleMetricsExportAutoConfiguration.class,
                     OtlpMetricsExportAutoConfiguration.class))
-            .withUserConfiguration(DevMetricsConfig.class)
+            .withUserConfiguration(MetricsConfig.class)
             .withBean(OtlpMetricsSender.class, () -> mock(OtlpMetricsSender.class));
 
-    @Test
-    void devCreatesOtlpRegistryWithApplicationConfiguration() {
-        runner.withPropertyValues("spring.profiles.active=dev").run(context -> {
+    @ParameterizedTest
+    @ValueSource(strings = {"dev", "prod"})
+    void enabledProfilesCreateOtlpRegistryWithTheirOwnEnvironment(String profile) {
+        runner.withPropertyValues("spring.profiles.active=" + profile, "SETTY_METRICS_ENABLED=true").run(context -> {
             assertThat(context).hasSingleBean(OtlpMeterRegistry.class);
-            assertThat(context).hasSingleBean(DevHttpRequestCountHandler.class);
+            assertThat(context).hasSingleBean(HttpRequestCountHandler.class);
             var registry = context.getBean(OtlpMeterRegistry.class);
             assertThat(registry.get("setty.http.requests.completed").counter().count()).isZero();
             assertThat(registry.get("setty.http.requests.server.errors").counter().count()).isZero();
@@ -48,18 +49,44 @@ class DevHttpMetricsAutoConfigurationTest {
             assertThat(config.publishMaxGaugeForHistograms()).isFalse();
             assertThat(config.resourceAttributes())
                     .containsEntry("service.name", "setty-backend")
-                    .containsEntry("deployment.environment.name", "dev");
+                    .containsEntry("deployment.environment.name", profile);
+            assertThat(context.getEnvironment().getProperty(
+                    "management.metrics.distribution.percentiles-histogram.http.server.requests"))
+                    .isEqualTo("true");
+            assertThat(context.getEnvironment().getProperty(
+                    "management.metrics.distribution.percentiles-histogram.hikaricp.connections.acquire"))
+                    .isEqualTo("true");
         });
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"default", "local", "prod"})
-    void nonDevProfilesDoNotCreateOtlpRegistry(String profile) {
+    void defaultLocalAndProdDoNotExportWithoutOptIn(String profile) {
         runner.withPropertyValues("spring.profiles.active=" + profile).run(context -> {
             assertThat(context).hasNotFailed();
             assertThat(context).doesNotHaveBean(OtlpMeterRegistry.class);
-            assertThat(context).doesNotHaveBean(DevMetricsConfig.class);
-            assertThat(context).doesNotHaveBean(DevHttpRequestCountHandler.class);
+            assertThat(context).doesNotHaveBean(MetricsConfig.class);
+            assertThat(context).doesNotHaveBean(HttpRequestCountHandler.class);
+        });
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"dev", "prod"})
+    void disablingExportAlsoDisablesCustomInstrumentation(String profile) {
+        runner.withPropertyValues("spring.profiles.active=" + profile,
+                "management.otlp.metrics.export.enabled=false").run(context -> {
+            assertThat(context).hasNotFailed();
+            assertThat(context).doesNotHaveBean(OtlpMeterRegistry.class);
+            assertThat(context).doesNotHaveBean(MetricsConfig.class);
+            assertThat(context).doesNotHaveBean(HttpRequestCountHandler.class);
+        });
+    }
+
+    @Test
+    void prodSwitchDoesNotTurnOffExistingDevExport() {
+        runner.withPropertyValues("spring.profiles.active=dev", "SETTY_METRICS_ENABLED=false").run(context -> {
+            assertThat(context).hasSingleBean(OtlpMeterRegistry.class);
+            assertThat(context).hasSingleBean(HttpRequestCountHandler.class);
         });
     }
 }

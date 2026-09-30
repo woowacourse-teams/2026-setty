@@ -10,12 +10,12 @@ import org.springframework.http.server.observation.ServerRequestObservationConte
  * URI별 Timer가 첫 요청 후 생성되는 것과 달리, 전체 요청/5xx 카운터는 시작 시 0으로 등록한다.
  * 첫 발행 이전의 요청은 여전히 rate로 복원할 수 없으므로 누적값과 수집 최신성도 함께 확인한다.
  */
-final class DevHttpRequestCountHandler implements ObservationHandler<ServerRequestObservationContext> {
+final class HttpRequestCountHandler implements ObservationHandler<ServerRequestObservationContext> {
 
     private final Counter completed;
     private final Counter serverErrors;
 
-    DevHttpRequestCountHandler(MeterRegistry registry) {
+    HttpRequestCountHandler(MeterRegistry registry) {
         completed = Counter.builder("setty.http.requests.completed")
                 .description("Completed HTTP requests excluding actuator health checks")
                 .register(registry);

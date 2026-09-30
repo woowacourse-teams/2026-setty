@@ -6,24 +6,26 @@ import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.config.MeterFilter;
 import io.micrometer.registry.otlp.OtlpMeterRegistry;
 import java.util.List;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.micrometer.metrics.autoconfigure.MeterRegistryCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 
 @Configuration
-@Profile("dev")
-public class DevMetricsConfig {
+@Profile({"dev", "prod"})
+@ConditionalOnProperty(name = "management.otlp.metrics.export.enabled", havingValue = "true")
+public class MetricsConfig {
 
     @Bean
-    DevHttpRequestCountHandler devHttpRequestCountHandler(MeterRegistry registry) {
-        return new DevHttpRequestCountHandler(registry);
+    HttpRequestCountHandler httpRequestCountHandler(MeterRegistry registry) {
+        return new HttpRequestCountHandler(registry);
     }
 
     @Bean
-    MeterRegistryCustomizer<OtlpMeterRegistry> devMetrics() {
+    MeterRegistryCustomizer<OtlpMeterRegistry> metrics() {
         return registry -> registry.config()
-                .meterFilter(MeterFilter.denyUnless(DevMetricsConfig::isAllowed))
+                .meterFilter(MeterFilter.denyUnless(MetricsConfig::isAllowed))
                 .meterFilter(new MeterFilter() {
                     @Override
                     public Meter.Id map(Meter.Id id) {
