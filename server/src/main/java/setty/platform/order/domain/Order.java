@@ -69,6 +69,17 @@ public class Order {
         return true;
     }
 
+    public boolean requestCancellation() {
+        if (this.orderStatus == OrderStatus.CANCEL_PENDING) {
+            return false;
+        }
+        if (this.orderStatus != OrderStatus.CONFIRMED) {
+            throw new BusinessException(ErrorCode.INVALID_ORDER_STATUS_TRANSITION);
+        }
+        this.orderStatus = OrderStatus.CANCEL_PENDING;
+        return true;
+    }
+
     // 결제 대기 주문 — 배송이 시작되지 않았으므로 OrderRequested를 발행하지 않는 경로에서만 쓴다.
     public static Order pending(final Long listingId, final Long buyerId) {
         return pending(listingId, buyerId, Instant.now().plus(DEFAULT_PENDING_TIMEOUT));

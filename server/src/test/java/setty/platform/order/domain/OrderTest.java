@@ -132,4 +132,36 @@ class OrderTest {
         assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.CONFIRMED);
         assertThat(order.getDeliveryStatus()).isEqualTo(DeliveryStatus.ACCEPTED);
     }
+
+    @ParameterizedTest
+    @EnumSource(value = DeliveryStatus.class, names = {"REQUESTED", "ACCEPTED", "PICKED_UP", "DELIVERED"})
+    void 확정_주문은_배송_상태와_관계없이_취소_대기로_전환된다(final DeliveryStatus deliveryStatus) {
+        final Order order = new Order(1L, 2L);
+        ReflectionTestUtils.setField(order, "deliveryStatus", deliveryStatus);
+
+        assertThat(order.requestCancellation()).isTrue();
+
+        assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.CANCEL_PENDING);
+        assertThat(order.getDeliveryStatus()).isEqualTo(deliveryStatus);
+    }
+
+    @Test
+    void 취소_대기_주문의_중복_요청은_무시된다() {
+        final Order order = new Order(1L, 2L);
+        order.requestCancellation();
+
+        assertThat(order.requestCancellation()).isFalse();
+        assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.CANCEL_PENDING);
+    }
+
+    @Test
+    void 결제_대기_주문은_구매자_취소_요청을_거부한다() {
+        final Order order = Order.pending(1L, 2L);
+
+        assertThatThrownBy(order::requestCancellation)
+                .isInstanceOf(BusinessException.class)
+                .extracting(e -> ((BusinessException) e).getErrorCode())
+                .isEqualTo(ErrorCode.INVALID_ORDER_STATUS_TRANSITION);
+        assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.PENDING);
+    }
 }

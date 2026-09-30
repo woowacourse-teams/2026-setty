@@ -43,7 +43,7 @@ flowchart LR
 | 구매자 | `CONFIRMED` 주문에서 취소 요청을 접수하고, 배송 취소 요청 처리 시 상태가 `REQUESTED`일 때 | 배송 취소 성공 후 주문과 배송 요청을 각각 `CANCELLED`로 보존 | 취소 확정 후 다시 구매 가능 |
 
 - 판매자 취소가 허용 조건에서 먼저 확정되면 뒤늦은 결제 승인 성공으로 주문 취소와 매물 판매 중단을 되돌리지 않는다. 승인된 결제의 처리는 [환불 정책](payment.md#환불)을 따른다.
-- 구매자 취소 요청을 접수하면 주문을 `CONFIRMED`에서 `CANCEL_PENDING`으로 전이하고 **취소 대기 중** 결과를 즉시 반환한다. `CANCEL_PENDING`은 결제 전 주문의 `PENDING`과 구별한다. 취소가 확정되기 전까지 매물 선점을 유지한다.
+- 구매자 취소 요청을 접수하면 주문을 `CONFIRMED`에서 `CANCEL_PENDING`으로 전이하고 **취소 대기 중** 결과를 즉시 반환한다. 이 전이는 주문 상태만 판단하며 배송 상태는 검사하지 않는다. `CANCEL_PENDING`은 결제 전 주문의 `PENDING`과 구별한다. 취소가 확정되기 전까지 매물 선점을 유지한다.
 - 주문이 `CANCEL_PENDING`인 동안 같은 주문의 취소 요청이 다시 들어오면 새 취소를 시작하지 않고 **취소 대기 중** 결과를 반환한다.
 - 배송 요청이 없으면 주문을 `CANCELLED`로 확정한다. 배송 요청이 `REQUESTED`이면 배송 취소에 성공한 뒤 `CANCELLED`로 확정한다. 배송 요청이 `ACCEPTED` 이후라 취소가 거절되면 주문을 `CONFIRMED`로 되돌리고 매물 선점을 유지한다.
 - 주문 취소가 확정되어 승인된 결제가 있다면 [환불 정책](payment.md#환불)을 따른다. 주문 취소 확정과 환불 완료는 별개의 결과다.
@@ -80,7 +80,7 @@ flowchart LR
 | `PENDING` | 만료·취소 전에 승인 성공 확인 | `CONFIRMED` | 매물 선점 유지 |
 | `PENDING` | 생성 후 6분 경과 | `EXPIRED` | 주문 보존, 매물 선점 해제 |
 | `PENDING` | 허용 조건에서 판매자 취소 확정 | `CANCELLED` | 주문 보존, 매물 판매 중단 |
-| `CONFIRMED` | 구매자 취소 요청 접수 | `CANCEL_PENDING` | 취소 대기 중을 알리고 매물 선점 유지 |
+| `CONFIRMED` | 구매자 취소 요청 접수(배송 상태와 무관) | `CANCEL_PENDING` | 취소 대기 중을 알리고 매물 선점 유지 |
 | `CANCEL_PENDING` | 같은 주문의 취소 요청 재접수 | `CANCEL_PENDING` 유지 | 새 취소 없이 취소 대기 중 결과 반환 |
 | `CANCEL_PENDING` | 배송 요청이 없거나 `REQUESTED` 배송 취소 성공 | `CANCELLED` | 주문 보존, 매물 재공개 |
 | `CANCEL_PENDING` | 배송 취소 거절 | `CONFIRMED` | 취소 실패, 매물 선점 유지 |
