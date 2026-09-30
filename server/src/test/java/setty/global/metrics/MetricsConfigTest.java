@@ -92,7 +92,7 @@ class MetricsConfigTest {
     }
 
     @Test
-    void combinesSuccessAndFailureDurationsByRouteAndMethod() {
+    void exportsOnlyHttpRequestsGroupedByRouteMethodAndOutcome() {
         OtlpConfig config = key -> "otlp.enabled".equals(key) ? "false" : null;
         OtlpMeterRegistry registry = new OtlpMeterRegistry(config, Clock.SYSTEM);
         try {
@@ -118,16 +118,18 @@ class MetricsConfigTest {
                     .record(30, TimeUnit.MILLISECONDS);
             registry.counter("jvm.gc.pause").increment();
 
-            assertThat(registry.getMeters()).hasSize(2);
-            assertThat(registry.get("http.server.requests").tag("uri", "/api/listings/{id}")
+            assertThat(registry.getMeters()).hasSize(3);
+            assertThat(registry.get("http.server.requests").tags("outcome", "SUCCESS", "uri", "/api/listings/{id}")
                     .timer().count()).isEqualTo(2);
-            Timer orders = registry.get("http.server.requests").tags("uri", "/api/orders", "method", "POST").timer();
-            assertThat(orders.count()).isEqualTo(2);
-            assertThat(orders.totalTime(TimeUnit.MILLISECONDS)).isEqualTo(50);
+            assertThat(registry.get("http.server.requests").tags("outcome", "SUCCESS", "uri", "/api/orders")
+                    .timer().count()).isEqualTo(1);
+            assertThat(registry.get("http.server.requests").tag("outcome", "SERVER_ERROR").timer().count())
+                    .isEqualTo(1);
             assertThat(registry.getMeters())
                     .allSatisfy(meter -> assertThat(meter.getId().getTags())
                             .containsExactlyInAnyOrder(Tag.of("uri", meter.getId().getTag("uri")),
-                                    Tag.of("method", meter.getId().getTag("method"))));
+                                    Tag.of("method", meter.getId().getTag("method")),
+                                    Tag.of("outcome", meter.getId().getTag("outcome"))));
         } finally {
             registry.close();
         }
