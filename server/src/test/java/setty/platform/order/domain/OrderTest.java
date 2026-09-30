@@ -157,6 +157,36 @@ class OrderTest {
     }
 
     @Test
+    void 현재_취소_요청의_성공_응답은_주문을_CANCELLED로_전이하고_중복은_무시한다() {
+        final Order order = new Order(1L, 2L);
+        order.requestCancellation("cancel-request-1");
+
+        assertThat(order.confirmCancellation("cancel-request-1")).isTrue();
+        assertThat(order.confirmCancellation("cancel-request-1")).isFalse();
+        assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.CANCELLED);
+    }
+
+    @Test
+    void 현재_요청이_아닌_취소_응답은_주문을_변경하지_않는다() {
+        final Order order = new Order(1L, 2L);
+        order.requestCancellation("cancel-request-1");
+
+        assertThat(order.confirmCancellation("stale-request")).isFalse();
+        assertThat(order.rejectCancellation("stale-request")).isFalse();
+        assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.CANCEL_PENDING);
+    }
+
+    @Test
+    void 현재_취소_요청의_거절_응답은_주문을_CONFIRMED로_되돌린다() {
+        final Order order = new Order(1L, 2L);
+        order.requestCancellation("cancel-request-1");
+
+        assertThat(order.rejectCancellation("cancel-request-1")).isTrue();
+        assertThat(order.rejectCancellation("cancel-request-1")).isFalse();
+        assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.CONFIRMED);
+    }
+
+    @Test
     void 결제_대기_주문은_구매자_취소_요청을_거부한다() {
         final Order order = Order.pending(1L, 2L);
 

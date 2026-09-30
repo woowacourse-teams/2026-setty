@@ -87,6 +87,29 @@ public class Order {
         return true;
     }
 
+    public boolean confirmCancellation(final String cancellationRequestId) {
+        if (!isCurrentCancellationRequest(cancellationRequestId)
+                || this.orderStatus != OrderStatus.CANCEL_PENDING) {
+            return false;
+        }
+        this.orderStatus = OrderStatus.CANCELLED;
+        return true;
+    }
+
+    public boolean rejectCancellation(final String cancellationRequestId) {
+        if (!isCurrentCancellationRequest(cancellationRequestId)
+                || this.orderStatus != OrderStatus.CANCEL_PENDING) {
+            return false;
+        }
+        this.orderStatus = OrderStatus.CONFIRMED;
+        return true;
+    }
+
+    private boolean isCurrentCancellationRequest(final String cancellationRequestId) {
+        return cancellationRequestId != null
+                && cancellationRequestId.equals(this.cancellationRequestId);
+    }
+
     // 결제 대기 주문 — 배송이 시작되지 않았으므로 OrderConfirmed를 발행하지 않는 경로에서만 쓴다.
     public static Order pending(final Long listingId, final Long buyerId) {
         return pending(listingId, buyerId, Instant.now().plus(DEFAULT_PENDING_TIMEOUT));

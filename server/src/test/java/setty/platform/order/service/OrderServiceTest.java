@@ -23,7 +23,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.test.util.ReflectionTestUtils;
 import setty.common.DeliveryStatus;
+import setty.common.DeliveryCancelled;
+import setty.common.DeliveryCancellationRejected;
 import setty.common.OrderCancellationRequested;
+import setty.common.OrderCancelled;
 import setty.common.OrderConfirmed;
 import setty.global.exception.BusinessException;
 import setty.global.exception.ErrorCode;
@@ -166,6 +169,69 @@ class OrderServiceTest {
         assertThat(response.orderStatus()).isEqualTo(OrderStatus.CANCEL_PENDING.name());
         assertThat(order.getCancellationRequestId()).isEqualTo("cancel-request-1");
         verify(eventPublisher, never()).publishEvent(any(Object.class));
+    }
+
+    @Test
+    void 배송_취소_성공_응답은_주문을_취소하고_OrderCancelled를_발행한다() {
+        final Instant decidedAt = Instant.parse("2026-09-30T01:00:00Z");
+        final Instant cancelledAt = decidedAt.plusSeconds(1);
+        final Order order = confirmedOrder();
+        order.requestCancellation("cancel-request-1");
+        when(orderRepository.findByIdForUpdate(ORDER_ID)).thenReturn(Optional.of(order));
+        when(clock.instant()).thenReturn(cancelledAt);
+
+        orderService.confirmCancellation(new DeliveryCancelled(null, ORDER_ID, "cancel-request-1", decidedAt));
+
+        assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.CANCELLED);
+        final ArgumentCaptor<OrderCancelled> eventCaptor = ArgumentCaptor.forClass(OrderCancelled.class);
+        verify(eventPublisher).publishEvent(eventCaptor.capture());
+        assertThat(eventCaptor.getValue()).isEqualTo(
+                new OrderCancelled(ORDER_ID, LISTING_ID, "cancel-request-1", cancelledAt));
+    }
+
+    @Test
+    void 같은_배송_취소_성공_응답을_두번_받아도_OrderCancelled를_한번만_발행한다() {
+        final Instant decidedAt = Instant.parse("2026-09-30T01:00:00Z");
+        final Order order = confirmedOrder();
+        order.requestCancellation("cancel-request-1");
+        when(orderRepository.findByIdForUpdate(ORDER_ID)).thenReturn(Optional.of(order));
+        when(clock.instant()).thenReturn(decidedAt);
+        final DeliveryCancelled event = new DeliveryCancelled(501L, ORDER_ID, "cancel-request-1", decidedAt);
+
+        orderService.confirmCancellation(event);
+        orderService.confirmCancellation(event);
+
+        verify(eventPublisher).publishEvent(any(OrderCancelled.class));
+    }
+
+    @Test
+    void 배송_취소_거절_응답은_주문을_CONFIRMED로_되돌린다() {
+        final Instant decidedAt = Instant.parse("2026-09-30T01:00:00Z");
+        final Order order = confirmedOrder();
+        order.requestCancellation("cancel-request-1");
+        when(orderRepository.findByIdForUpdate(ORDER_ID)).thenReturn(Optional.of(order));
+
+        orderService.rejectCancellation(
+                new DeliveryCancellationRejected(501L, ORDER_ID, "cancel-request-1", decidedAt));
+
+        assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.CONFIRMED);
+        verifyNoInteractions(eventPublisher);
+    }
+
+    @Test
+    void 이전_취소_요청의_응답은_새_취소_요청_상태를_변경하지_않는다() {
+        final Instant decidedAt = Instant.parse("2026-09-30T01:00:00Z");
+        final Order order = confirmedOrder();
+        order.requestCancellation("cancel-request-1");
+        order.rejectCancellation("cancel-request-1");
+        order.requestCancellation("cancel-request-2");
+        when(orderRepository.findByIdForUpdate(ORDER_ID)).thenReturn(Optional.of(order));
+
+        orderService.confirmCancellation(new DeliveryCancelled(501L, ORDER_ID, "cancel-request-1", decidedAt));
+
+        assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.CANCEL_PENDING);
+        assertThat(order.getCancellationRequestId()).isEqualTo("cancel-request-2");
+        verifyNoInteractions(eventPublisher);
     }
 
     @Test

@@ -4,6 +4,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 import setty.common.DeliveryAccepted;
+import setty.common.DeliveryCancelled;
+import setty.common.DeliveryCancellationRejected;
 import setty.common.DeliveryDelivered;
 import setty.common.DeliveryPickedUp;
 import setty.common.PaymentCompleted;
@@ -31,6 +33,16 @@ public class OrderEventListener {
     @EventListener
     public void onDeliveryAccepted(final DeliveryAccepted event) {
         syncOrderDeliveryStatusService.sync(event);
+    }
+
+    @EventListener
+    public void onDeliveryCancelled(final DeliveryCancelled event) {
+        orderService.confirmCancellation(event);
+    }
+
+    @EventListener
+    public void onDeliveryCancellationRejected(final DeliveryCancellationRejected event) {
+        orderService.rejectCancellation(event);
     }
 
     @EventListener

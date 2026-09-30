@@ -1,6 +1,7 @@
 package setty.platform.order.service;
 
 import java.time.Clock;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -10,7 +11,10 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import setty.common.DeliveryCancelled;
+import setty.common.DeliveryCancellationRejected;
 import setty.common.OrderCancellationRequested;
+import setty.common.OrderCancelled;
 import setty.common.OrderConfirmed;
 import setty.global.exception.BusinessException;
 import setty.global.exception.ErrorCode;
@@ -126,6 +130,49 @@ public class OrderService {
             ));
         }
         return response;
+    }
+
+    @Transactional
+    public void confirmCancellation(final DeliveryCancelled event) {
+        validateCancellationResult(event == null ? null : event.orderId(),
+                event == null ? null : event.cancellationRequestId(),
+                event == null ? null : event.decidedAt());
+
+        final Order order = orderRepository.findByIdForUpdate(event.orderId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
+        if (!order.confirmCancellation(event.cancellationRequestId())) {
+            return;
+        }
+
+        eventPublisher.publishEvent(new OrderCancelled(
+                order.getId(),
+                order.getListingId(),
+                event.cancellationRequestId(),
+                clock.instant()
+        ));
+    }
+
+    @Transactional
+    public void rejectCancellation(final DeliveryCancellationRejected event) {
+        validateCancellationResult(event == null ? null : event.orderId(),
+                event == null ? null : event.cancellationRequestId(),
+                event == null ? null : event.decidedAt());
+
+        final Order order = orderRepository.findByIdForUpdate(event.orderId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
+        order.rejectCancellation(event.cancellationRequestId());
+    }
+
+    private void validateCancellationResult(
+            final Long orderId,
+            final String cancellationRequestId,
+            final Instant decidedAt
+    ) {
+        if (orderId == null || orderId <= 0
+                || cancellationRequestId == null || cancellationRequestId.isBlank()
+                || decidedAt == null) {
+            throw new BusinessException(ErrorCode.INVALID_REQUEST);
+        }
     }
 
     /**

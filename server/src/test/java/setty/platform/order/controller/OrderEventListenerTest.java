@@ -7,6 +7,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import setty.common.DeliveryCancelled;
+import setty.common.DeliveryCancellationRejected;
 import setty.common.PaymentCompleted;
 import setty.common.PaymentFailed;
 import setty.platform.order.service.OrderService;
@@ -36,5 +38,24 @@ class OrderEventListenerTest {
         listener.onPaymentFailed(new PaymentFailed(101L));
 
         verify(orderService).cancelPending(101L);
+    }
+
+    @Test
+    void 배송_취소_성공_응답을_주문_취소_확정으로_위임한다() {
+        final DeliveryCancelled event = new DeliveryCancelled(null, 101L, "cancel-1", java.time.Instant.now());
+
+        listener.onDeliveryCancelled(event);
+
+        verify(orderService).confirmCancellation(event);
+    }
+
+    @Test
+    void 배송_취소_거절_응답을_주문_취소_거절로_위임한다() {
+        final DeliveryCancellationRejected event =
+                new DeliveryCancellationRejected(201L, 101L, "cancel-1", java.time.Instant.now());
+
+        listener.onDeliveryCancellationRejected(event);
+
+        verify(orderService).rejectCancellation(event);
     }
 }
