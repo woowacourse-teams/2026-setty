@@ -5,7 +5,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.time.Instant;
 import org.junit.jupiter.api.Test;
-import setty.common.DeliveryStatus;
 import setty.global.exception.BusinessException;
 import setty.global.exception.ErrorCode;
 
@@ -108,6 +107,29 @@ class DeliveryTest {
                 () -> delivery.complete(DRIVER_ID, DELIVERED_AT),
                 ErrorCode.INVALID_DELIVERY_TRANSITION
         );
+    }
+
+    @Test
+    void requestedDeliveryCanBeCancelled() {
+        final Delivery delivery = requestDelivery();
+
+        assertThat(delivery.isCancellable()).isTrue();
+        delivery.cancel();
+
+        assertThat(delivery.getStatus()).isEqualTo(DeliveryStatus.CANCELLED);
+        assertThat(delivery.isCancellable()).isFalse();
+    }
+
+    @Test
+    void deliveryAfterAcceptanceCannotBeCancelled() {
+        final Delivery accepted = acceptedDelivery();
+        final Delivery pickedUp = pickedUpDelivery();
+
+        assertThat(accepted.isCancellable()).isFalse();
+        assertThat(pickedUp.isCancellable()).isFalse();
+        assertBusinessError(accepted::cancel, ErrorCode.INVALID_DELIVERY_TRANSITION);
+        assertBusinessError(pickedUp::cancel, ErrorCode.INVALID_DELIVERY_TRANSITION);
+        assertThat(accepted.getStatus()).isEqualTo(DeliveryStatus.ACCEPTED);
     }
 
     private static Delivery pickedUpDelivery() {
