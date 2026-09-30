@@ -7,6 +7,7 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -36,7 +37,8 @@ import androidx.compose.material3.SegmentedListItem
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.carousel.HorizontalMultiBrowseCarousel
+import androidx.compose.material3.carousel.CarouselDefaults
+import androidx.compose.material3.carousel.HorizontalUncontainedCarousel
 import androidx.compose.material3.carousel.rememberCarouselState
 import androidx.compose.material3.toShape
 import androidx.compose.runtime.Composable
@@ -49,6 +51,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -96,12 +99,22 @@ private fun ListingDetailContent(
         topBar = {
             LargeFlexibleTopAppBar(
                 title = {
-                    Text(
-                        text = listing?.title.orEmpty(),
-                        fontFamily = Paperlogy,
-                        fontWeight = FontWeight.Black,
-                        maxLines = 2,
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        Text(
+                            text = listing?.title.orEmpty(),
+                            fontFamily = Paperlogy,
+                            fontWeight = FontWeight.Black,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f, fill = false),
+                        )
+                        if (listing != null) {
+                            SaleStatusBadge(saleStatus = listing.saleStatus)
+                        }
+                    }
                 },
                 subtitle = listing?.let {
                     {
@@ -187,12 +200,6 @@ private fun ListingDetailBody(
             )
         }
         item {
-            SaleStatusBadge(
-                saleStatus = listing.saleStatus,
-                modifier = Modifier.padding(horizontal = 16.dp),
-            )
-        }
-        item {
             Row(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier
@@ -244,7 +251,7 @@ private fun ListingImageCarousel(
             modifier = modifier
                 .fillMaxWidth()
                 .height(CarouselHeight)
-                .padding(horizontal = 16.dp)
+                .padding(horizontal = CarouselHorizontalPadding)
                 .clip(MaterialTheme.shapes.extraLarge)
                 .background(MaterialTheme.colorScheme.surfaceContainerHighest),
         ) {
@@ -256,24 +263,28 @@ private fun ListingImageCarousel(
         }
         return
     }
-    HorizontalMultiBrowseCarousel(
-        state = rememberCarouselState { imageUrls.size },
-        preferredItemWidth = 280.dp,
-        itemSpacing = 8.dp,
-        contentPadding = PaddingValues(horizontal = 16.dp),
-        modifier = modifier
-            .fillMaxWidth()
-            .height(CarouselHeight),
-    ) { index ->
-        AsyncImage(
-            model = imageUrls[index],
-            contentDescription = "$title 사진 ${index + 1}",
-            contentScale = ContentScale.Crop,
+    BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
+        val carouselState = rememberCarouselState { imageUrls.size }
+        HorizontalUncontainedCarousel(
+            state = carouselState,
+            itemWidth = maxWidth - CarouselHorizontalPadding * 2,
+            itemSpacing = 8.dp,
+            flingBehavior = CarouselDefaults.singleAdvanceFlingBehavior(state = carouselState),
+            contentPadding = PaddingValues(horizontal = CarouselHorizontalPadding),
             modifier = Modifier
-                .fillMaxSize()
-                .maskClip(MaterialTheme.shapes.extraLarge)
-                .background(MaterialTheme.colorScheme.surfaceContainerHighest),
-        )
+                .fillMaxWidth()
+                .height(CarouselHeight),
+        ) { index ->
+            AsyncImage(
+                model = imageUrls[index],
+                contentDescription = "$title 사진 ${index + 1}",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .maskClip(MaterialTheme.shapes.extraLarge)
+                    .background(MaterialTheme.colorScheme.surfaceContainerHighest),
+            )
+        }
     }
 }
 
@@ -567,6 +578,7 @@ private fun ListingDetailError.toMessage(): String = when (this) {
 }
 
 private val CarouselHeight = 320.dp
+private val CarouselHorizontalPadding = 16.dp
 private val IntrinsicSpecHeight = 148.dp
 
 private val PreviewListing = ListingDetail(
