@@ -13,8 +13,8 @@ import setty.delivery.application.DeliveryQueryRepository;
 import setty.delivery.application.readmodel.DeliveryRequest;
 import setty.delivery.application.readmodel.Shipment;
 import setty.delivery.domain.DeliveryId;
-import setty.delivery.domain.DeliveryStatus;
 import setty.delivery.domain.DriverId;
+import setty.delivery.domain.delivery.DeliveryStatus;
 
 @Repository
 @RequiredArgsConstructor

@@ -1,10 +1,12 @@
-package setty.delivery.domain;
+package setty.delivery.domain.delivery;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.time.Instant;
 import org.junit.jupiter.api.Test;
+import setty.delivery.domain.DriverId;
+import setty.delivery.domain.OrderId;
 import setty.global.exception.BusinessException;
 import setty.global.exception.ErrorCode;
 
@@ -146,15 +148,13 @@ class DeliveryTest {
 
     private static Delivery requestDelivery() {
         return Delivery.request(
-                new OrderId(1L),
-                new FurnitureInfo("가상 원목 의자", "CHAIR"),
-                new DeliveryRoute(
-                        new Address("서울시 가상구 출발로 1"),
-                        new Address("서울시 가상구 도착로 2"),
-                        new PhoneNumber("010-0000-0001"),
-                        new PhoneNumber("010-0000-0002")
+                OrderId.from(1L),
+                FurnitureInfo.of("가상 원목 의자", "CHAIR"),
+                DeliveryRoute.of(
+                        DeliveryPoint.pickup("서울시 가상구 출발로 1", "010-0000-0001"),
+                        DeliveryPoint.destination("서울시 가상구 도착로 2", "010-0000-0002")
                 ),
-                new EstimatedDeliveryFee(10_000),
+                EstimatedDeliveryFee.from(10_000),
                 REQUESTED_AT
         );
     }

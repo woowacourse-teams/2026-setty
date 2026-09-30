@@ -2,7 +2,7 @@ package setty.delivery.api.dto;
 
 import java.time.Instant;
 import setty.delivery.application.readmodel.DeliveryRequest;
-import setty.delivery.domain.DeliveryStatus;
+import setty.delivery.domain.delivery.DeliveryStatus;
 
 public record DeliveryRequestSummaryResponse(
         long deliveryId,

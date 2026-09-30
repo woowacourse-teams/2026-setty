@@ -1,4 +1,4 @@
-package setty.delivery.domain;
+package setty.delivery.domain.delivery;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
@@ -19,5 +19,9 @@ public record FurnitureInfo(
         }
         itemName = itemName.trim();
         category = category.trim();
+    }
+
+    public static FurnitureInfo of(final String itemName, final String category) {
+        return new FurnitureInfo(itemName, category);
     }
 }

@@ -2,10 +2,10 @@ package setty.delivery.persistence;
 
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
-import setty.delivery.domain.Delivery;
 import setty.delivery.domain.OrderId;
+import setty.delivery.domain.delivery.Delivery;
 
-interface SpringDataDeliveryRepository extends JpaRepository<Delivery, Long> {
+public interface DeliveryRepository extends JpaRepository<Delivery, Long> {
 
     boolean existsByOrderId(OrderId orderId);
 

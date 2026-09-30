@@ -18,14 +18,13 @@ import org.testcontainers.mysql.MySQLContainer;
 import setty.common.DeliveryAccepted;
 import setty.common.DeliveryDelivered;
 import setty.common.DeliveryPickedUp;
-import setty.delivery.domain.Address;
 import setty.delivery.domain.DeliveryId;
-import setty.delivery.domain.DeliveryRoute;
 import setty.delivery.domain.DriverId;
-import setty.delivery.domain.EstimatedDeliveryFee;
-import setty.delivery.domain.FurnitureInfo;
 import setty.delivery.domain.OrderId;
-import setty.delivery.domain.PhoneNumber;
+import setty.delivery.domain.delivery.DeliveryPoint;
+import setty.delivery.domain.delivery.DeliveryRoute;
+import setty.delivery.domain.delivery.EstimatedDeliveryFee;
+import setty.delivery.domain.delivery.FurnitureInfo;
 import setty.global.exception.BusinessException;
 import setty.global.exception.ErrorCode;
 
@@ -134,15 +133,13 @@ class DeliveryStatusChangeIntegrationTest {
 
     private DeliveryId prepareRequestedDelivery() {
         registerDeliveryService.register(
-                new OrderId(ORDER_ID),
-                new FurnitureInfo("가상 원목 의자", "CHAIR"),
-                new DeliveryRoute(
-                        new Address("서울시 가상구 출발로 1"),
-                        new Address("서울시 가상구 도착로 2"),
-                        new PhoneNumber("010-0000-0001"),
-                        new PhoneNumber("010-0000-0002")
+                OrderId.from(ORDER_ID),
+                FurnitureInfo.of("가상 원목 의자", "CHAIR"),
+                DeliveryRoute.of(
+                        DeliveryPoint.pickup("서울시 가상구 출발로 1", "010-0000-0001"),
+                        DeliveryPoint.destination("서울시 가상구 도착로 2", "010-0000-0002")
                 ),
-                new EstimatedDeliveryFee(10_000),
+                EstimatedDeliveryFee.from(10_000),
                 REQUESTED_AT
         );
         return new DeliveryId(jdbcTemplate.queryForObject(

@@ -11,11 +11,13 @@ import setty.common.DeliveryCancellationRejected;
 import setty.common.DeliveryCancelled;
 import setty.common.DeliveryDelivered;
 import setty.common.DeliveryPickedUp;
-import setty.delivery.domain.Delivery;
-import setty.delivery.domain.DeliveryCancellation;
 import setty.delivery.domain.DeliveryId;
 import setty.delivery.domain.DriverId;
 import setty.delivery.domain.OrderId;
+import setty.delivery.domain.cancellation.DeliveryCancellation;
+import setty.delivery.domain.delivery.Delivery;
+import setty.delivery.persistence.DeliveryCancellationRepository;
+import setty.delivery.persistence.DeliveryRepository;
 import setty.global.exception.BusinessException;
 import setty.global.exception.ErrorCode;
 
@@ -25,6 +27,7 @@ import setty.global.exception.ErrorCode;
 public class DeliveryLifecycleService {
 
     private final DeliveryRepository deliveryRepository;
+    private final DeliveryCancellationRepository cancellationRepository;
     private final ApplicationEventPublisher eventPublisher;
 
     public void accept(final DeliveryId deliveryId, final DriverId driverId, final Instant acceptedAt) {
@@ -58,7 +61,7 @@ public class DeliveryLifecycleService {
             throw new BusinessException(ErrorCode.INVALID_REQUEST);
         }
 
-        final Optional<DeliveryCancellation> cancellation = deliveryRepository.findCancellationByOrderId(orderId);
+        final Optional<DeliveryCancellation> cancellation = cancellationRepository.findByOrderId(orderId);
         if (cancellation.isPresent()) {
             publishCancelled(cancellation.get().getDeliveryId(), orderId, cancellationRequestId, decidedAt);
             return;
@@ -66,7 +69,7 @@ public class DeliveryLifecycleService {
 
         final Optional<Delivery> found = deliveryRepository.findByOrderId(orderId);
         if (found.isEmpty()) {
-            deliveryRepository.saveCancellation(
+            cancellationRepository.save(
                     DeliveryCancellation.beforeRequest(orderId, cancellationRequestId, decidedAt)
             );
             publishCancelled(null, orderId, cancellationRequestId, decidedAt);
@@ -83,7 +86,7 @@ public class DeliveryLifecycleService {
 
         delivery.cancel();
         deliveryRepository.save(delivery);
-        deliveryRepository.saveCancellation(DeliveryCancellation.of(delivery, cancellationRequestId, decidedAt));
+        cancellationRepository.save(DeliveryCancellation.of(delivery, cancellationRequestId, decidedAt));
         publishCancelled(delivery.getId(), orderId, cancellationRequestId, decidedAt);
         eventPublisher.publishEvent(new DeliveryRequestsChanged());
     }
@@ -92,7 +95,7 @@ public class DeliveryLifecycleService {
         if (deliveryId == null) {
             throw new BusinessException(ErrorCode.INVALID_REQUEST);
         }
-        return deliveryRepository.findById(deliveryId)
+        return deliveryRepository.findById(deliveryId.value())
                 .orElseThrow(() -> new BusinessException(ErrorCode.DELIVERY_NOT_FOUND));
     }
 

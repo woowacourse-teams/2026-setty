@@ -1,4 +1,4 @@
-package setty.delivery.domain;
+package setty.delivery.domain.delivery;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
@@ -15,5 +15,9 @@ public record EstimatedDeliveryFee(
         if (value == null || value < 0) {
             throw new BusinessException(ErrorCode.INVALID_REQUEST);
         }
+    }
+
+    public static EstimatedDeliveryFee from(final Integer value) {
+        return new EstimatedDeliveryFee(value);
     }
 }

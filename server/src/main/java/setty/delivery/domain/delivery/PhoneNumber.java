@@ -1,4 +1,4 @@
-package setty.delivery.domain;
+package setty.delivery.domain.delivery;
 
 import jakarta.persistence.Embeddable;
 import setty.global.exception.BusinessException;
