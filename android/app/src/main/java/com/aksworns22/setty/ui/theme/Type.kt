@@ -1,34 +1,34 @@
 package com.aksworns22.setty.ui.theme
 
 import androidx.compose.material3.Typography
-import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.sp
+import com.aksworns22.setty.R
 
-// Set of Material typography styles to start with
-val Typography = Typography(
-    bodyLarge = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Normal,
-        fontSize = 16.sp,
-        lineHeight = 24.sp,
-        letterSpacing = 0.5.sp
-    )
-    /* Other default text styles to override
-    titleLarge = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Normal,
-        fontSize = 22.sp,
-        lineHeight = 28.sp,
-        letterSpacing = 0.sp
-    ),
-    labelSmall = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Medium,
-        fontSize = 11.sp,
-        lineHeight = 16.sp,
-        letterSpacing = 0.5.sp
-    )
-    */
+val Paperlogy = FontFamily(
+    Font(R.font.paperlogy_1thin, FontWeight.Thin),
+    Font(R.font.paperlogy_2extralight, FontWeight.ExtraLight),
+    Font(R.font.paperlogy_3light, FontWeight.Light),
+    Font(R.font.paperlogy_4regular, FontWeight.Normal),
+    Font(R.font.paperlogy_5medium, FontWeight.Medium),
+    Font(R.font.paperlogy_6semibold, FontWeight.SemiBold),
+    Font(R.font.paperlogy_7bold, FontWeight.Bold),
+    Font(R.font.paperlogy_8extrabold, FontWeight.ExtraBold),
+    Font(R.font.paperlogy_9black, FontWeight.Black),
 )
+
+private val baseTypography = Typography()
+val Typography = Typography(
+    headlineLargeEmphasized = baseTypography.headlineLargeEmphasized.copy(
+        fontFamily = Paperlogy,
+        fontWeight = FontWeight.Black
+    ),
+    bodyLargeEmphasized = baseTypography.bodyLargeEmphasized.copy(
+        fontFamily = Paperlogy
+    ),
+    bodyMediumEmphasized = baseTypography.bodyMediumEmphasized.copy(
+        fontFamily = Paperlogy
+    ),
+)
+

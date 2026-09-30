@@ -158,11 +158,27 @@ class S3ListingImageStorageTest {
     @DisplayName("공개 URL은 설정값의 뒤쪽 슬래시를 제거한 뒤 유효한 object key를 결합한다")
     @Test
     void createsPublicUrlForValidObjectKey() {
-        String objectKey = "listings/123e4567-e89b-12d3-a456-426614174000.jpg";
+        String objectKey = "setty/images/listings/123e4567-e89b-12d3-a456-426614174000.jpg";
 
         String publicUrl = storage.publicUrl(objectKey);
 
-        assertThat(publicUrl).isEqualTo(PUBLIC_BASE_URL + "/" + objectKey);
+        assertThat(publicUrl).isEqualTo(
+                PUBLIC_BASE_URL + "/setty/images/listings/123e4567-e89b-12d3-a456-426614174000.jpg"
+        );
+    }
+
+    @DisplayName("이관 전 listings/ object key도 조회와 삭제에 사용할 수 있다")
+    @Test
+    void acceptsLegacyObjectKeys() {
+        String legacyObjectKey = "listings/123e4567-e89b-12d3-a456-426614174000.jpg";
+
+        assertThat(storage.publicUrl(legacyObjectKey)).isEqualTo(PUBLIC_BASE_URL + "/" + legacyObjectKey);
+        storage.delete(legacyObjectKey);
+
+        ArgumentCaptor<DeleteObjectRequest> deleteCaptor = ArgumentCaptor.forClass(DeleteObjectRequest.class);
+        verify(s3Client).deleteObject(deleteCaptor.capture());
+        assertThat(deleteCaptor.getValue().bucket()).isEqualTo(BUCKET);
+        assertThat(deleteCaptor.getValue().key()).isEqualTo(legacyObjectKey);
     }
 
     @DisplayName("Listing 영역 밖의 object key는 조회나 삭제에 사용할 수 없다")
@@ -246,7 +262,7 @@ class S3ListingImageStorageTest {
     }
 
     private static String uuidObjectKeyPattern(String extension) {
-        return "listings/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\."
+        return "setty/images/listings/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\."
                 + extension;
     }
 

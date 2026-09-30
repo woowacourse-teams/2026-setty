@@ -1,0 +1,30 @@
+setty:
+  cors:
+    allowed-origins: https://www.setty.cloud
+
+logging:
+  structured:
+    format:
+      console: logstash
+
+# prod Agent 준비 후 SETTY_METRICS_ENABLED=true로 전송을 활성화한다.
+management:
+  opentelemetry:
+    resource-attributes:
+      service.name: setty-backend
+      deployment.environment.name: prod
+  otlp:
+    metrics:
+      export:
+        enabled: ${SETTY_METRICS_ENABLED:false}
+        url: http://127.0.0.1:4318/v1/metrics
+        step: 1m
+        base-time-unit: milliseconds
+        aggregation-temporality: cumulative
+        histogram-flavor: base2-exponential-bucket-histogram
+        publish-max-gauge-for-histograms: false
+  metrics:
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+        hikaricp.connections.acquire: true

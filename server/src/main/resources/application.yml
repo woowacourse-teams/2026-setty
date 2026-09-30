@@ -25,6 +25,12 @@ logging:
   pattern:
     level: "%5p [requestId=%X{requestId:-}]"
 
+management:
+  otlp:
+    metrics:
+      export:
+        enabled: false
+
 setty:
   order:
     pending-expiration:
