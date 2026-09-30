@@ -22,7 +22,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.zip.GZIPInputStream;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration;
@@ -35,10 +36,11 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-class DevHttpMetricsHttpIntegrationTest {
+class HttpMetricsHttpIntegrationTest {
 
-    @Test
-    void exportsRealHttpRequestsAsBoundedCumulativeHistograms() throws Exception {
+    @ParameterizedTest
+    @ValueSource(strings = {"dev", "prod"})
+    void exportsRealHttpRequestsAsBoundedCumulativeHistograms(String profile) throws Exception {
         AtomicReference<ExportMetricsServiceRequest> received = new AtomicReference<>();
         HttpServer receiver = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
         receiver.createContext("/v1/metrics", exchange -> {
@@ -52,7 +54,8 @@ class DevHttpMetricsHttpIntegrationTest {
         });
         receiver.start();
 
-        try (var context = new SpringApplicationBuilder(ProbeApplication.class).profiles("dev").run(
+        try (var context = new SpringApplicationBuilder(ProbeApplication.class).profiles(profile).run(
+                "--SETTY_METRICS_ENABLED=true",
                 "--server.address=127.0.0.1", "--server.port=0",
                 "--management.otlp.metrics.export.url=http://127.0.0.1:"
                         + receiver.getAddress().getPort() + "/v1/metrics",
@@ -78,7 +81,7 @@ class DevHttpMetricsHttpIntegrationTest {
                 var resourceMetrics = request.getResourceMetrics(0);
                 assertThat(attributes(resourceMetrics.getResource().getAttributesList()))
                         .containsEntry("service.name", "setty-backend")
-                        .containsEntry("deployment.environment.name", "dev");
+                        .containsEntry("deployment.environment.name", profile);
                 List<Metric> metrics = resourceMetrics.getScopeMetricsList().stream()
                         .flatMap(scope -> scope.getMetricsList().stream()).toList();
                 assertThat(metrics).extracting(Metric::getName)
@@ -182,7 +185,7 @@ class DevHttpMetricsHttpIntegrationTest {
 
     @TestConfiguration(proxyBeanMethods = false)
     @EnableAutoConfiguration(exclude = DataSourceAutoConfiguration.class)
-    @Import({DevMetricsConfig.class, ProbeController.class})
+    @Import({MetricsConfig.class, ProbeController.class})
     static class ProbeApplication {
     }
 
