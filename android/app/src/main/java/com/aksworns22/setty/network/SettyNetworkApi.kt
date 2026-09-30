@@ -13,4 +13,7 @@ interface SettyNetworkApi {
 
     @GET("/api/auth/me")
     suspend fun aboutMe(): AboutMeResponse
+
+    @GET("/api/listings")
+    suspend fun getListings(): ListingListResponse
 }
