@@ -32,7 +32,8 @@ public class RegisterDeliveryService {
             throw new BusinessException(ErrorCode.INVALID_REQUEST);
         }
 
-        if (deliveryRepository.existsByOrderId(orderId)) {
+        // 재전달된 배차 요청이거나, 배차 요청보다 취소가 먼저 확정된 주문이면 배송을 만들지 않는다.
+        if (deliveryRepository.existsByOrderId(orderId) || deliveryRepository.existsCancellationByOrderId(orderId)) {
             return;
         }
 

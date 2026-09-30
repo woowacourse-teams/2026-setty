@@ -1,7 +1,7 @@
 package setty.delivery.application.readmodel;
 
 import java.time.Instant;
-import setty.common.DeliveryStatus;
+import setty.delivery.domain.DeliveryStatus;
 
 public final class Shipment {
 

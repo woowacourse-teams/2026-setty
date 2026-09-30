@@ -12,7 +12,6 @@ import jakarta.persistence.Table;
 import java.time.Instant;
 import lombok.AccessLevel;
 import lombok.Getter;
-import setty.common.DeliveryStatus;
 import setty.global.exception.BusinessException;
 import setty.global.exception.ErrorCode;
 
@@ -111,6 +110,16 @@ public class Delivery {
         ensureTimePresent(deliveredAt);
         this.deliveredAt = deliveredAt;
         status = DeliveryStatus.DELIVERED;
+    }
+
+    // 배차 전(REQUESTED)에만 취소할 수 있다. 기록은 지우지 않고 CANCELLED로 남긴다.
+    public boolean isCancellable() {
+        return status == DeliveryStatus.REQUESTED;
+    }
+
+    public void cancel() {
+        ensureStatus(DeliveryStatus.REQUESTED);
+        status = DeliveryStatus.CANCELLED;
     }
 
     private void ensureStatus(final DeliveryStatus expectedStatus) {

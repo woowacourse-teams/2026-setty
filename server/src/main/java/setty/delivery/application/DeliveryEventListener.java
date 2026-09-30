@@ -6,6 +6,7 @@ import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
+import setty.common.OrderCancellationRequested;
 import setty.common.OrderRequested;
 import setty.delivery.domain.Address;
 import setty.delivery.domain.DeliveryRoute;
@@ -25,6 +26,7 @@ public class DeliveryEventListener {
     private static final System.Logger LOGGER = System.getLogger(DeliveryEventListener.class.getName());
 
     private final RegisterDeliveryService registerDeliveryService;
+    private final DeliveryLifecycleService deliveryLifecycleService;
     private final DeliveryRequestNotifier deliveryRequestNotifier;
 
     @EventListener
@@ -39,6 +41,15 @@ public class DeliveryEventListener {
                         new PhoneNumber(event.deliveryPhoneNumber())
                 ),
                 new EstimatedDeliveryFee(event.deliveryFee()),
+                Instant.now()
+        );
+    }
+
+    @EventListener
+    public void handle(final OrderCancellationRequested event) {
+        deliveryLifecycleService.cancel(
+                new OrderId(event.orderId()),
+                event.cancellationRequestId(),
                 Instant.now()
         );
     }

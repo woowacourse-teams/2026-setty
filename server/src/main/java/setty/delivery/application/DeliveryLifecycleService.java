@@ -1,15 +1,21 @@
 package setty.delivery.application;
 
 import java.time.Instant;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import setty.common.DeliveryStatus;
-import setty.common.DeliveryStatusChanged;
+import setty.common.DeliveryAccepted;
+import setty.common.DeliveryCancellationRejected;
+import setty.common.DeliveryCancelled;
+import setty.common.DeliveryDelivered;
+import setty.common.DeliveryPickedUp;
 import setty.delivery.domain.Delivery;
+import setty.delivery.domain.DeliveryCancellation;
 import setty.delivery.domain.DeliveryId;
 import setty.delivery.domain.DriverId;
+import setty.delivery.domain.OrderId;
 import setty.global.exception.BusinessException;
 import setty.global.exception.ErrorCode;
 
@@ -24,20 +30,62 @@ public class DeliveryLifecycleService {
     public void accept(final DeliveryId deliveryId, final DriverId driverId, final Instant acceptedAt) {
         final Delivery delivery = findDelivery(deliveryId);
         delivery.accept(driverId, acceptedAt);
-        saveAndPublish(delivery, DeliveryStatus.ACCEPTED, acceptedAt);
+        deliveryRepository.save(delivery);
+        eventPublisher.publishEvent(new DeliveryAccepted(deliveryId.value(), orderIdOf(delivery), acceptedAt));
         eventPublisher.publishEvent(new DeliveryRequestsChanged());
     }
 
     public void pickUp(final DeliveryId deliveryId, final DriverId driverId, final Instant pickedUpAt) {
         final Delivery delivery = findDelivery(deliveryId);
         delivery.pickUp(driverId, pickedUpAt);
-        saveAndPublish(delivery, DeliveryStatus.PICKED_UP, pickedUpAt);
+        deliveryRepository.save(delivery);
+        eventPublisher.publishEvent(new DeliveryPickedUp(deliveryId.value(), orderIdOf(delivery), pickedUpAt));
     }
 
     public void complete(final DeliveryId deliveryId, final DriverId driverId, final Instant deliveredAt) {
         final Delivery delivery = findDelivery(deliveryId);
         delivery.complete(driverId, deliveredAt);
-        saveAndPublish(delivery, DeliveryStatus.DELIVERED, deliveredAt);
+        deliveryRepository.save(delivery);
+        eventPublisher.publishEvent(new DeliveryDelivered(deliveryId.value(), orderIdOf(delivery), deliveredAt));
+    }
+
+    /**
+     * 주문 취소 요청에 응답한다. 취소 가능 여부는 요청 접수 시점이 아니라 지금 배송 상태로 판단한다.
+     * 같은 요청이 다시 와도 현재 상태에 따라 같은 결과를 다시 발행한다.
+     */
+    public void cancel(final OrderId orderId, final String cancellationRequestId, final Instant decidedAt) {
+        if (orderId == null || cancellationRequestId == null || cancellationRequestId.isBlank() || decidedAt == null) {
+            throw new BusinessException(ErrorCode.INVALID_REQUEST);
+        }
+
+        final Optional<DeliveryCancellation> cancellation = deliveryRepository.findCancellationByOrderId(orderId);
+        if (cancellation.isPresent()) {
+            publishCancelled(cancellation.get().getDeliveryId(), orderId, cancellationRequestId, decidedAt);
+            return;
+        }
+
+        final Optional<Delivery> found = deliveryRepository.findByOrderId(orderId);
+        if (found.isEmpty()) {
+            deliveryRepository.saveCancellation(
+                    DeliveryCancellation.beforeRequest(orderId, cancellationRequestId, decidedAt)
+            );
+            publishCancelled(null, orderId, cancellationRequestId, decidedAt);
+            return;
+        }
+
+        final Delivery delivery = found.get();
+        if (!delivery.isCancellable()) {
+            eventPublisher.publishEvent(new DeliveryCancellationRejected(
+                    delivery.getId().value(), orderId.value(), cancellationRequestId, decidedAt
+            ));
+            return;
+        }
+
+        delivery.cancel();
+        deliveryRepository.save(delivery);
+        deliveryRepository.saveCancellation(DeliveryCancellation.of(delivery, cancellationRequestId, decidedAt));
+        publishCancelled(delivery.getId(), orderId, cancellationRequestId, decidedAt);
+        eventPublisher.publishEvent(new DeliveryRequestsChanged());
     }
 
     private Delivery findDelivery(final DeliveryId deliveryId) {
@@ -48,17 +96,21 @@ public class DeliveryLifecycleService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.DELIVERY_NOT_FOUND));
     }
 
-    private void saveAndPublish(
-            final Delivery delivery,
-            final DeliveryStatus status,
-            final Instant changedAt
+    private void publishCancelled(
+            final DeliveryId deliveryId,
+            final OrderId orderId,
+            final String cancellationRequestId,
+            final Instant decidedAt
     ) {
-        deliveryRepository.save(delivery);
-        eventPublisher.publishEvent(new DeliveryStatusChanged(
-                delivery.getId().value(),
-                delivery.getOrderId().value(),
-                status.name(),
-                changedAt
+        eventPublisher.publishEvent(new DeliveryCancelled(
+                deliveryId == null ? null : deliveryId.value(),
+                orderId.value(),
+                cancellationRequestId,
+                decidedAt
         ));
+    }
+
+    private static Long orderIdOf(final Delivery delivery) {
+        return delivery.getOrderId().value();
     }
 }

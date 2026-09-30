@@ -13,6 +13,7 @@ import java.time.Instant;
 import org.junit.jupiter.api.Test;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
+import setty.common.OrderCancellationRequested;
 import setty.common.OrderRequested;
 import setty.delivery.domain.FurnitureInfo;
 import setty.delivery.domain.OrderId;
@@ -36,7 +37,8 @@ class DeliveryEventListenerTest {
     void translatesOrderRequestedIntoDomainValuesAndDelegates() {
         final RegisterDeliveryService registerDeliveryService = mock(RegisterDeliveryService.class);
         final DeliveryRequestNotifier notifier = mock(DeliveryRequestNotifier.class);
-        final DeliveryEventListener listener = new DeliveryEventListener(registerDeliveryService, notifier);
+        final DeliveryEventListener listener = new DeliveryEventListener(
+                registerDeliveryService, mock(DeliveryLifecycleService.class), notifier);
 
         listener.handle(orderRequested());
 
@@ -50,9 +52,25 @@ class DeliveryEventListenerTest {
     }
 
     @Test
+    void translatesOrderCancellationRequestedIntoDomainValuesAndDelegates() {
+        final DeliveryLifecycleService deliveryLifecycleService = mock(DeliveryLifecycleService.class);
+        final DeliveryEventListener listener = new DeliveryEventListener(
+                mock(RegisterDeliveryService.class), deliveryLifecycleService, mock(DeliveryRequestNotifier.class));
+
+        listener.handle(new OrderCancellationRequested(101L, "cancel-request-1"));
+
+        verify(deliveryLifecycleService).cancel(
+                eq(new OrderId(101L)),
+                eq("cancel-request-1"),
+                any(Instant.class)
+        );
+    }
+
+    @Test
     void notifiesRequestSubscribersAfterCommit() {
         final DeliveryRequestNotifier notifier = mock(DeliveryRequestNotifier.class);
-        final DeliveryEventListener listener = new DeliveryEventListener(mock(RegisterDeliveryService.class), notifier);
+        final DeliveryEventListener listener = new DeliveryEventListener(
+                mock(RegisterDeliveryService.class), mock(DeliveryLifecycleService.class), notifier);
 
         listener.handle(new DeliveryRequestsChanged());
 
@@ -65,7 +83,8 @@ class DeliveryEventListenerTest {
         doThrow(new IllegalStateException("연결 종료"))
                 .when(notifier)
                 .notifyRequestsChanged();
-        final DeliveryEventListener listener = new DeliveryEventListener(mock(RegisterDeliveryService.class), notifier);
+        final DeliveryEventListener listener = new DeliveryEventListener(
+                mock(RegisterDeliveryService.class), mock(DeliveryLifecycleService.class), notifier);
 
         assertThatCode(() -> listener.handle(new DeliveryRequestsChanged()))
                 .doesNotThrowAnyException();
