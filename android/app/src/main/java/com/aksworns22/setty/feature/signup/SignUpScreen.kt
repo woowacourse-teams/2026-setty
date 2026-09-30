@@ -15,6 +15,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.InputTransformation
+import androidx.compose.foundation.text.input.OutputTransformation
+import androidx.compose.foundation.text.input.TextFieldLineLimits
+import androidx.compose.foundation.text.input.TextFieldState
+import androidx.compose.foundation.text.input.insert
+import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -29,6 +35,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
@@ -98,6 +105,10 @@ private fun SignUpContent(
     snackbarHostState: SnackbarHostState,
     modifier: Modifier = Modifier
 ) {
+    val phoneNumberState = rememberTextFieldState(uiState.phoneNumber)
+    LaunchedEffect(phoneNumberState) {
+        snapshotFlow { phoneNumberState.text.toString() }.collect(onPhoneNumberChanged)
+    }
     Scaffold(
         snackbarHost = {
             SnackbarHost(
@@ -170,9 +181,8 @@ private fun SignUpContent(
                     Spacer(modifier = Modifier.height(16.dp))
                 }
                 SignUpSection(title = "거래 정보") {
-                    SignUpTextField(
-                        value = uiState.phoneNumber,
-                        onValueChange = onPhoneNumberChanged,
+                    PhoneNumberTextField(
+                        state = phoneNumberState,
                         label = "전화번호",
                         error = uiState.phoneNumberError?.toMessage(),
                         keyboardOptions = KeyboardOptions(
@@ -275,6 +285,37 @@ private fun SignUpTextField(
     )
 }
 
+@Composable
+private fun PhoneNumberTextField(
+    state: TextFieldState,
+    label: String,
+    error: String?,
+    keyboardOptions: KeyboardOptions,
+    modifier: Modifier = Modifier,
+) {
+    OutlinedTextField(
+        state = state,
+        label = { Text(label, style = MaterialTheme.typography.bodyMediumEmphasized) },
+        isError = error != null,
+        supportingText = error?.let { { Text(it) } },
+        inputTransformation = PhoneNumberInputTransformation,
+        outputTransformation = PhoneNumberOutputTransformation,
+        keyboardOptions = keyboardOptions,
+        lineLimits = TextFieldLineLimits.SingleLine,
+        modifier = modifier.fillMaxWidth(),
+    )
+}
+
+private val PhoneNumberInputTransformation = InputTransformation {
+    val digits = asCharSequence().filter(Char::isDigit).take(SignUpViewModel.PHONE_NUMBER_MAX_DIGITS).toString()
+    if (digits != asCharSequence().toString()) replace(0, length, digits)
+}
+
+private val PhoneNumberOutputTransformation = OutputTransformation {
+    if (length > 3) insert(3, "-")
+    if (length > 8) insert(8, "-")
+}
+
 private fun SignUpFieldError.toMessage(): String = when (this) {
     SignUpFieldError.INVALID_LOGIN_ID -> "아이디는 영문 소문자,숫자로 구성되며 4~20자입니다"
     SignUpFieldError.INVALID_PASSWORD_LENGTH -> "비밀번호는 8~64자입니다"
@@ -292,7 +333,7 @@ private fun SignUpContentPreview() {
                 loginId = "setty01",
                 password = "password1",
                 passwordConfirm = "password1",
-                phoneNumber = "010-0000-0000",
+                phoneNumber = "01000000000",
                 address = "서울시 가상구 테스트로 1",
             ),
             onLoginIdChanged = {},
@@ -315,7 +356,7 @@ private fun SignUpContentErrorPreview() {
                 loginId = "SE",
                 password = "short",
                 passwordConfirm = "shorter",
-                phoneNumber = "010-00",
+                phoneNumber = "01000",
             ),
             onLoginIdChanged = {},
             onPasswordChanged = {},

@@ -72,7 +72,7 @@ data class SignUpUiState(
 
     companion object {
         private val LOGIN_ID_REGEX = Regex("^[a-z0-9]{4,20}$")
-        private val PHONE_NUMBER_REGEX = Regex("^010-\\d{4}-\\d{4}$")
+        private val PHONE_NUMBER_REGEX = Regex("^010\\d{8}$")
         private val PASSWORD_LENGTH = 8..64
         const val ADDRESS_MAX_LENGTH = 200
     }
@@ -109,7 +109,7 @@ class SignUpViewModel(
                 userRepository.signUp(
                     loginId = state.loginId,
                     password = state.password,
-                    phoneNumber = state.phoneNumber,
+                    phoneNumber = formatPhoneNumber(state.phoneNumber),
                     address = state.address.trim(),
                 )
             }.onSuccess {
@@ -135,7 +135,7 @@ class SignUpViewModel(
     }
 
     fun onPhoneNumberChanged(value: String) {
-        _uiState.update { it.copy(phoneNumber = formatPhoneNumber(value)) }
+        _uiState.update { it.copy(phoneNumber = value.filter(Char::isDigit).take(PHONE_NUMBER_MAX_DIGITS)) }
     }
 
     fun onAddressChanged(value: String) {
@@ -154,7 +154,7 @@ class SignUpViewModel(
     }
 
     companion object {
-        private const val PHONE_NUMBER_MAX_DIGITS = 11
+        const val PHONE_NUMBER_MAX_DIGITS = 11
 
         fun formatPhoneNumber(value: String): String {
             val digits = value.filter(Char::isDigit).take(PHONE_NUMBER_MAX_DIGITS)

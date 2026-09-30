@@ -12,7 +12,7 @@ class SignUpUiStateTest {
         loginId = "setty01",
         password = "password1",
         passwordConfirm = "password1",
-        phoneNumber = "010-0000-0000",
+        phoneNumber = "01000000000",
         address = "서울시 가상구 테스트로 1",
     )
 
@@ -55,9 +55,10 @@ class SignUpUiStateTest {
     }
 
     @Test
-    fun `전화번호는 010-0000-0000 형식만 허용한다`() {
-        assertEquals(SignUpFieldError.INVALID_PHONE_NUMBER, validState.copy(phoneNumber = "010-000-0000").phoneNumberError)
-        assertEquals(SignUpFieldError.INVALID_PHONE_NUMBER, validState.copy(phoneNumber = "011-0000-0000").phoneNumberError)
+    fun `전화번호는 010으로 시작하는 11자리 숫자만 허용한다`() {
+        assertEquals(SignUpFieldError.INVALID_PHONE_NUMBER, validState.copy(phoneNumber = "0100000000").phoneNumberError)
+        assertEquals(SignUpFieldError.INVALID_PHONE_NUMBER, validState.copy(phoneNumber = "01100000000").phoneNumberError)
+        assertEquals(SignUpFieldError.INVALID_PHONE_NUMBER, validState.copy(phoneNumber = "010-0000-0000").phoneNumberError)
     }
 
     @Test
