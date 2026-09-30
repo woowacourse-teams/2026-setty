@@ -11,6 +11,11 @@ interface SettyNetworkApi {
         @Body request: LoginRequest
     ): LoginResponse
 
+    @POST("/api/auth/signup")
+    suspend fun signUp(
+        @Body request: SignUpRequest
+    ): SignUpResponse
+
     @GET("/api/auth/me")
     suspend fun aboutMe(): AboutMeResponse
 }
