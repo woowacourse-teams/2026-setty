@@ -8,8 +8,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-import setty.common.DeliveryStatus;
 import setty.platform.order.domain.Order;
+import setty.platform.order.domain.OrderStatus;
 
 public interface OrderRepository extends JpaRepository<Order, Long> {
 
@@ -22,12 +22,12 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     @Query("""
             select o.id
             from Order o
-            where o.deliveryStatus = :deliveryStatus
+            where o.orderStatus = :orderStatus
               and o.pendingExpiresAt <= :referenceTime
             order by o.pendingExpiresAt asc
             """)
     List<Long> findExpiredOrderIds(
-            @Param("deliveryStatus") DeliveryStatus deliveryStatus,
+            @Param("orderStatus") OrderStatus orderStatus,
             @Param("referenceTime") Instant referenceTime
     );
 

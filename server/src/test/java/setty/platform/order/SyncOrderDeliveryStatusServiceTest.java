@@ -192,8 +192,8 @@ class SyncOrderDeliveryStatusServiceTest {
     private void insertOrder(final long orderId, final long listingId, final long buyerId, final String status) {
         jdbcTemplate.update(
                 """
-                INSERT INTO orders (id, listing_id, buyer_id, delivery_status, driver_id)
-                VALUES (?, ?, ?, ?, NULL)
+                INSERT INTO orders (id, listing_id, buyer_id, delivery_status, order_status, driver_id)
+                VALUES (?, ?, ?, ?, 'CONFIRMED', NULL)
                 """,
                 orderId,
                 listingId,

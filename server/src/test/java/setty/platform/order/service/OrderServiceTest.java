@@ -35,6 +35,7 @@ import setty.platform.order.config.PendingOrderExpirationProperties;
 import setty.platform.order.controller.dto.MyOrderResponse;
 import setty.platform.order.controller.dto.OrderCreateRequest;
 import setty.platform.order.domain.Order;
+import setty.platform.order.domain.OrderStatus;
 import setty.platform.order.repository.OrderRepository;
 
 @ExtendWith(MockitoExtension.class)
@@ -83,6 +84,7 @@ class OrderServiceTest {
         final Order order = orderService.pending(new OrderCreateRequest(LISTING_ID), buyer);
 
         assertThat(order.getDeliveryStatus()).isEqualTo(DeliveryStatus.PENDING);
+        assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.PENDING);
         assertThat(order.getPendingExpiresAt()).isEqualTo(createdAt.plus(timeout));
         verify(listingService).registerPurchaseRequest(LISTING_ID, BUYER_ID);
     }
@@ -103,6 +105,7 @@ class OrderServiceTest {
         final ArgumentCaptor<OrderRequested> eventCaptor = ArgumentCaptor.forClass(OrderRequested.class);
         verify(eventPublisher).publishEvent(eventCaptor.capture());
         assertThat(order.getDeliveryStatus()).isEqualTo(DeliveryStatus.REQUESTED);
+        assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.CONFIRMED);
         assertThat(eventCaptor.getValue()).isEqualTo(new OrderRequested(
                 ORDER_ID,
                 "가상 책상",
@@ -188,9 +191,8 @@ class OrderServiceTest {
     }
 
     private static Order order() {
-        final Order order = new Order(LISTING_ID, BUYER_ID);
+        final Order order = Order.pending(LISTING_ID, BUYER_ID);
         ReflectionTestUtils.setField(order, "id", ORDER_ID);
-        ReflectionTestUtils.setField(order, "deliveryStatus", DeliveryStatus.PENDING);
         return order;
     }
 

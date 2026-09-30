@@ -7,7 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import setty.common.DeliveryStatus;
+import setty.platform.order.domain.OrderStatus;
 import setty.platform.order.repository.OrderRepository;
 
 @Component
@@ -36,7 +36,7 @@ public class PendingOrderExpirationScheduler {
     public void expirePendingOrders() {
         final Instant referenceTime = clock.instant();
         final List<Long> expiredOrderIds = orderRepository.findExpiredOrderIds(
-                DeliveryStatus.PENDING,
+                OrderStatus.PENDING,
                 referenceTime
         );
 

@@ -20,6 +20,7 @@ class OrderTest {
 
         final Order order = Order.pending(1L, 2L, pendingExpiresAt);
 
+        assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.PENDING);
         assertThat(order.getDeliveryStatus()).isEqualTo(DeliveryStatus.PENDING);
         assertThat(order.getPendingExpiresAt()).isEqualTo(pendingExpiresAt);
     }
@@ -35,11 +36,11 @@ class OrderTest {
     }
 
     @ParameterizedTest
-    @EnumSource(value = DeliveryStatus.class, names = {"REQUESTED", "ACCEPTED", "PICKED_UP", "DELIVERED"})
-    void PENDING이_아닌_주문은_만료_시각이_지나도_만료할_수_없다(final DeliveryStatus deliveryStatus) {
+    @EnumSource(value = OrderStatus.class, names = {"CONFIRMED", "CANCEL_PENDING", "CANCELLED", "EXPIRED"})
+    void PENDING이_아닌_주문은_만료_시각이_지나도_만료할_수_없다(final OrderStatus orderStatus) {
         final Instant pendingExpiresAt = Instant.parse("2026-09-02T05:10:00Z");
         final Order order = Order.pending(1L, 2L, pendingExpiresAt);
-        ReflectionTestUtils.setField(order, "deliveryStatus", deliveryStatus);
+        ReflectionTestUtils.setField(order, "orderStatus", orderStatus);
 
         assertThat(order.canExpire(pendingExpiresAt.plusSeconds(1))).isFalse();
     }
@@ -113,11 +114,22 @@ class OrderTest {
 
     @Test
     void 결제대기_주문은_배송요청으로_전환된다() {
-        final Order order = new Order(1L, 2L);
-        ReflectionTestUtils.setField(order, "deliveryStatus", DeliveryStatus.PENDING);
+        final Order order = Order.pending(1L, 2L);
 
         assertThat(order.requestDelivery()).isTrue();
+        assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.CONFIRMED);
         assertThat(order.getDeliveryStatus()).isEqualTo(DeliveryStatus.REQUESTED);
         assertThat(order.requestDelivery()).isFalse();
+    }
+
+    @Test
+    void 배송이_진행된_결제완료_주문도_중복_배송요청을_무시한다() {
+        final Order order = Order.pending(1L, 2L);
+        order.requestDelivery();
+        order.syncDeliveryStatus(DeliveryStatus.ACCEPTED);
+
+        assertThat(order.requestDelivery()).isFalse();
+        assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.CONFIRMED);
+        assertThat(order.getDeliveryStatus()).isEqualTo(DeliveryStatus.ACCEPTED);
     }
 }

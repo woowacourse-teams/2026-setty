@@ -34,6 +34,10 @@ public class Order {
     @Column(name = "delivery_status", nullable = false, length = 20)
     private DeliveryStatus deliveryStatus;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "order_status", nullable = false, length = 20)
+    private OrderStatus orderStatus;
+
     @Column(name = "driver_id")
     private Long driverId;
 
@@ -47,16 +51,21 @@ public class Order {
         this.listingId = listingId;
         this.buyerId = buyerId;
         this.deliveryStatus = DeliveryStatus.REQUESTED;
+        this.orderStatus = OrderStatus.CONFIRMED;
     }
 
     public boolean requestDelivery() {
-        if (this.deliveryStatus == DeliveryStatus.REQUESTED) {
+        if (this.orderStatus == OrderStatus.CONFIRMED) {
             return false;
+        }
+        if (this.orderStatus != OrderStatus.PENDING) {
+            throw new BusinessException(ErrorCode.INVALID_ORDER_STATUS_TRANSITION);
         }
         if (this.deliveryStatus != DeliveryStatus.PENDING) {
             throw new BusinessException(ErrorCode.ORDER_DELIVERY_STATUS_MISMATCH);
         }
         this.deliveryStatus = DeliveryStatus.REQUESTED;
+        this.orderStatus = OrderStatus.CONFIRMED;
         return true;
     }
 
@@ -68,12 +77,13 @@ public class Order {
     public static Order pending(final Long listingId, final Long buyerId, final Instant pendingExpiresAt) {
         final Order order = new Order(listingId, buyerId);
         order.deliveryStatus = DeliveryStatus.PENDING;
+        order.orderStatus = OrderStatus.PENDING;
         order.pendingExpiresAt = pendingExpiresAt;
         return order;
     }
 
     public boolean canExpire(final Instant referenceTime) {
-        return deliveryStatus == DeliveryStatus.PENDING
+        return orderStatus == OrderStatus.PENDING
                 && pendingExpiresAt != null
                 && referenceTime != null
                 && !pendingExpiresAt.isAfter(referenceTime);
@@ -117,6 +127,10 @@ public class Order {
 
     public DeliveryStatus getDeliveryStatus() {
         return deliveryStatus;
+    }
+
+    public OrderStatus getOrderStatus() {
+        return orderStatus;
     }
 
     public Long getDriverId() {
