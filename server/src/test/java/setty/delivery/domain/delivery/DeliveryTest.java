@@ -134,6 +134,18 @@ class DeliveryTest {
         assertThat(accepted.getStatus()).isEqualTo(DeliveryStatus.ACCEPTED);
     }
 
+    @Test
+    void cancelledDeliveryCannotBeAccepted() {
+        final Delivery delivery = requestDelivery();
+        delivery.cancel();
+
+        assertBusinessError(
+                () -> delivery.accept(DRIVER_ID, ACCEPTED_AT),
+                ErrorCode.INVALID_DELIVERY_TRANSITION
+        );
+        assertThat(delivery.getStatus()).isEqualTo(DeliveryStatus.CANCELLED);
+    }
+
     private static Delivery pickedUpDelivery() {
         final Delivery delivery = acceptedDelivery();
         delivery.pickUp(DRIVER_ID, PICKED_UP_AT);

@@ -18,6 +18,7 @@ import setty.delivery.domain.OrderId;
 import setty.delivery.domain.cancellation.DeliveryCancellation;
 import setty.delivery.domain.delivery.Delivery;
 import setty.delivery.persistence.DeliveryCancellationRepository;
+import setty.delivery.persistence.DeliveryOrderLockRepository;
 import setty.delivery.persistence.DeliveryRepository;
 import setty.global.exception.BusinessException;
 import setty.global.exception.ErrorCode;
@@ -29,6 +30,7 @@ public class DeliveryLifecycleService {
 
     private final DeliveryRepository deliveryRepository;
     private final DeliveryCancellationRepository cancellationRepository;
+    private final DeliveryOrderLockRepository deliveryOrderLockRepository;
     private final ApplicationEventPublisher eventPublisher;
 
     public void accept(final DeliveryId deliveryId, final DriverId driverId, final Instant acceptedAt) {
@@ -63,13 +65,16 @@ public class DeliveryLifecycleService {
             throw new BusinessException(ErrorCode.INVALID_REQUEST);
         }
 
+        // 같은 주문의 배차 요청과 한 번에 하나씩 처리되도록 주문 단위로 잠근다(RegisterDeliveryService 참고).
+        deliveryOrderLockRepository.lock(orderId);
         final Optional<DeliveryCancellation> cancellation = cancellationRepository.findByOrderId(orderId);
         if (cancellation.isPresent()) {
             publishCancelled(cancellation.get().getDeliveryId(), orderId, cancellationRequestId, decidedAt);
             return;
         }
 
-        final Optional<Delivery> found = deliveryRepository.findByOrderId(orderId);
+        // 기사의 수락과 겹치지 않도록 배송 행도 잠근다.
+        final Optional<Delivery> found = deliveryRepository.findByOrderIdForUpdate(orderId);
         if (found.isEmpty()) {
             cancellationRepository.save(
                     DeliveryCancellation.beforeRequest(orderId, cancellationRequestId, decidedAt)
@@ -97,7 +102,8 @@ public class DeliveryLifecycleService {
         if (deliveryId == null) {
             throw new BusinessException(ErrorCode.INVALID_REQUEST);
         }
-        return deliveryRepository.findById(deliveryId.value())
+        // 수락·픽업·완료가 서로, 그리고 취소와 겹치지 않도록 배송 행을 잠가 먼저 확정된 변경만 반영한다.
+        return deliveryRepository.findByIdForUpdate(deliveryId.value())
                 .orElseThrow(() -> new BusinessException(ErrorCode.DELIVERY_NOT_FOUND));
     }
 

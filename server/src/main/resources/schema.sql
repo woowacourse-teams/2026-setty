@@ -89,6 +89,12 @@ CREATE TABLE IF NOT EXISTS delivery_cancellation (
     UNIQUE KEY uk_delivery_cancellation_order_id (order_id)
 );
 
+-- 같은 주문의 배차 요청과 취소 요청을 직렬화하기 위한 주문 단위 락 행.
+CREATE TABLE IF NOT EXISTS delivery_order_lock (
+    order_id BIGINT NOT NULL,
+    PRIMARY KEY (order_id)
+);
+
 CREATE TABLE IF NOT EXISTS delivery_member (
     id                           BIGINT       NOT NULL AUTO_INCREMENT,
     login_id                     VARCHAR(20)  NOT NULL,

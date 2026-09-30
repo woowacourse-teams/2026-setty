@@ -92,6 +92,9 @@ public class Delivery {
     }
 
     public void accept(final DriverId driverId, final Instant acceptedAt) {
+        if (status == DeliveryStatus.CANCELLED) {
+            throw new BusinessException(ErrorCode.INVALID_DELIVERY_TRANSITION);
+        }
         if (status != DeliveryStatus.REQUESTED) {
             throw new BusinessException(ErrorCode.DELIVERY_ALREADY_ACCEPTED);
         }
