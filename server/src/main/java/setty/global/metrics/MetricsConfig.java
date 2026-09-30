@@ -31,8 +31,9 @@ public class MetricsConfig {
                     public Meter.Id map(Meter.Id id) {
                         return switch (id.getName()) {
                             // uri는 원본 URL이 아니라 Spring HTTP 관측이 제공하는 매핑 패턴이다.
+                            // 첫 실패도 기존 경로의 누적 히스토그램에 기록되도록 outcome을 합친다.
                             case "http.server.requests" -> id.replaceTags(
-                                    List.of(tag(id, "uri"), tag(id, "method"), tag(id, "outcome")));
+                                    List.of(tag(id, "uri"), tag(id, "method")));
                             case "setty.http.requests.completed", "setty.http.requests.server.errors" ->
                                     id.replaceTags(List.of());
                             // pool별 게이지를 하나로 합치면 합계가 아니라 첫 번째 값만 남는다.

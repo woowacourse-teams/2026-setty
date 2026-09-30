@@ -97,7 +97,7 @@ class HttpMetricsHttpIntegrationTest {
                         .isEqualTo(AggregationTemporality.AGGREGATION_TEMPORALITY_CUMULATIVE);
                 List<ExponentialHistogramDataPoint> points = metric.getExponentialHistogram().getDataPointsList();
                 assertThat(points).hasSize(5).allSatisfy(point -> {
-                    assertThat(attributes(point.getAttributesList())).containsOnlyKeys("uri", "method", "outcome");
+                    assertThat(attributes(point.getAttributesList())).containsOnlyKeys("uri", "method");
                     assertThat(point.getSum()).isPositive();
                     assertThat(point.getPositive().getBucketCountsList().stream().mapToLong(Long::longValue).sum()
                             + point.getZeroCount()).isEqualTo(point.getCount());
@@ -106,20 +106,33 @@ class HttpMetricsHttpIntegrationTest {
                         point -> attributes(point.getAttributesList()),
                         ExponentialHistogramDataPoint::getCount)))
                         .containsExactlyInAnyOrderEntriesOf(Map.of(
-                                Map.of("uri", "/metrics-probe/{id}", "method", "GET", "outcome", "SUCCESS"), 2L,
-                                Map.of("uri", "/metrics-probe/{id}", "method", "POST", "outcome", "SUCCESS"), 1L,
-                                Map.of("uri", "/metrics-probe/other", "method", "GET", "outcome", "SUCCESS"), 1L,
-                                Map.of("uri", "/metrics-probe/server-error", "method", "GET", "outcome", "SERVER_ERROR"), 1L,
-                                Map.of("uri", "/**", "method", "GET", "outcome", "CLIENT_ERROR"), 2L));
+                                Map.of("uri", "/metrics-probe/{id}", "method", "GET"), 2L,
+                                Map.of("uri", "/metrics-probe/{id}", "method", "POST"), 1L,
+                                Map.of("uri", "/metrics-probe/other", "method", "GET"), 1L,
+                                Map.of("uri", "/metrics-probe/server-error", "method", "GET"), 1L,
+                                Map.of("uri", "/**", "method", "GET"), 2L));
             });
 
             // Once the series has a published baseline, 30 additional requests must add exactly 30.
-            long baseline = successCount(received.get());
+            long baseline = routeCount(received.get());
             for (int i = 0; i < 30; i++) {
                 assertThat(get(client, port, "/metrics-probe/burst-" + i)).isEqualTo(200);
             }
             await().atMost(Duration.ofSeconds(15)).untilAsserted(() ->
-                    assertThat(successCount(received.get()) - baseline).isEqualTo(30));
+                    assertThat(routeCount(received.get()) - baseline).isEqualTo(30));
+
+            // The first failure on an observed route must extend the same exported histogram.
+            ExponentialHistogramDataPoint beforeFailure = routeHistogram(received.get());
+            assertThat(get(client, port, "/metrics-probe/first-error")).isEqualTo(503);
+            await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> {
+                ExponentialHistogramDataPoint afterFailure = routeHistogram(received.get());
+                assertThat(afterFailure.getStartTimeUnixNano()).isEqualTo(beforeFailure.getStartTimeUnixNano());
+                assertThat(afterFailure.getTimeUnixNano()).isGreaterThan(beforeFailure.getTimeUnixNano());
+                assertThat(afterFailure.getCount() - beforeFailure.getCount()).isEqualTo(1);
+                assertThat(afterFailure.getSum() - beforeFailure.getSum()).isGreaterThanOrEqualTo(100);
+                assertThat(bucketCount(afterFailure) - bucketCount(beforeFailure)).isEqualTo(1);
+                assertCounts(received.get(), 38, 2);
+            });
 
             // A new route's first 5xx must increment the already published aggregate counter.
             assertThat(get(client, port, "/actuator/health")).isEqualTo(200);
@@ -128,13 +141,13 @@ class HttpMetricsHttpIntegrationTest {
             assertThat(get(client, port, "/metrics-probe/async-error")).isEqualTo(503);
             // A thrown exception and its error dispatch must also count exactly once.
             assertThat(get(client, port, "/metrics-probe/unhandled-error")).isEqualTo(500);
-            await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> assertCounts(received.get(), 40, 4));
+            await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> assertCounts(received.get(), 41, 5));
             long exportedAt = counter(received.get(), "setty.http.requests.server.errors")
                     .getSum().getDataPoints(0).getTimeUnixNano();
             await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> {
                 assertThat(counter(received.get(), "setty.http.requests.server.errors")
                         .getSum().getDataPoints(0).getTimeUnixNano()).isGreaterThan(exportedAt);
-                assertCounts(received.get(), 40, 4);
+                assertCounts(received.get(), 41, 5);
             });
         } finally {
             receiver.stop(0);
@@ -162,14 +175,23 @@ class HttpMetricsHttpIntegrationTest {
                 .findFirst().orElseThrow();
     }
 
-    private long successCount(ExportMetricsServiceRequest request) {
-        return request.getResourceMetricsList().stream().flatMap(resource -> resource.getScopeMetricsList().stream())
-                .flatMap(scope -> scope.getMetricsList().stream())
-                .filter(metric -> metric.getName().equals("http.server.requests"))
-                .flatMap(metric -> metric.getExponentialHistogram().getDataPointsList().stream())
+    private long routeCount(ExportMetricsServiceRequest request) {
+        return routeHistogram(request).getCount();
+    }
+
+    private ExponentialHistogramDataPoint routeHistogram(ExportMetricsServiceRequest request) {
+        List<ExponentialHistogramDataPoint> points = counter(request, "http.server.requests")
+                .getExponentialHistogram().getDataPointsList().stream()
                 .filter(point -> attributes(point.getAttributesList()).equals(
-                        Map.of("uri", "/metrics-probe/{id}", "method", "GET", "outcome", "SUCCESS")))
-                .mapToLong(ExponentialHistogramDataPoint::getCount).findFirst().orElseThrow();
+                        Map.of("uri", "/metrics-probe/{id}", "method", "GET"))).toList();
+        assertThat(points).hasSize(1);
+        return points.getFirst();
+    }
+
+    private long bucketCount(ExponentialHistogramDataPoint point) {
+        return point.getPositive().getBucketCountsList().stream().mapToLong(Long::longValue).sum()
+                + point.getNegative().getBucketCountsList().stream().mapToLong(Long::longValue).sum()
+                + point.getZeroCount();
     }
 
     private int get(HttpClient client, int port, String path) throws Exception {
@@ -193,8 +215,12 @@ class HttpMetricsHttpIntegrationTest {
     static class ProbeController {
 
         @GetMapping("/metrics-probe/{id}")
-        String success(@PathVariable String id) {
-            return "synthetic response";
+        ResponseEntity<String> success(@PathVariable String id) throws InterruptedException {
+            if (id.equals("first-error")) {
+                Thread.sleep(100);
+                return ResponseEntity.status(503).body("synthetic failure");
+            }
+            return ResponseEntity.ok("synthetic response");
         }
 
         @PostMapping("/metrics-probe/{id}")
