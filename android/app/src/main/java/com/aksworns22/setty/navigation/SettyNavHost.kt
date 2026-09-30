@@ -35,7 +35,9 @@ fun SettyNavHost() {
                 )
             }
             entry<SettyScreen.Home> {
-                HomeScreen()
+                HomeScreen(
+                    onListingClick = {}
+                )
             }
         }
     )
