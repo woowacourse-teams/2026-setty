@@ -55,8 +55,6 @@ class DeliveryConcurrencyIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        jdbcTemplate.update("DELETE FROM delivery_order_lock");
-        jdbcTemplate.update("DELETE FROM delivery_cancellation");
         jdbcTemplate.update("DELETE FROM delivery");
     }
 
@@ -84,27 +82,7 @@ class DeliveryConcurrencyIntegrationTest {
 
         final boolean accepted = results.getFirst();
         assertThat(results.getLast()).isTrue();
-        if (accepted) {
-            assertThat(deliveryStatus()).isEqualTo("ACCEPTED");
-            assertThat(cancellationCount()).isZero();
-        } else {
-            assertThat(deliveryStatus()).isEqualTo("CANCELLED");
-            assertThat(cancellationCount()).isOne();
-        }
-    }
-
-    @Test
-    void cancelledOrderNeverKeepsRequestedDelivery() throws Exception {
-        runConcurrently(
-                succeeds(this::register),
-                succeeds(() -> deliveryLifecycleService.cancel(OrderId.from(ORDER_ID), "cancel-request-1", NOW))
-        );
-
-        assertThat(cancellationCount()).isOne();
-        final List<String> statuses = jdbcTemplate.queryForList(
-                "SELECT status FROM delivery WHERE order_id = ?", String.class, ORDER_ID
-        );
-        assertThat(statuses).isIn(List.of(), List.of("CANCELLED"));
+        assertThat(deliveryStatus()).isEqualTo(accepted ? "ACCEPTED" : "CANCELLED");
     }
 
     private DeliveryId register() {
@@ -163,7 +141,4 @@ class DeliveryConcurrencyIntegrationTest {
         );
     }
 
-    private long cancellationCount() {
-        return jdbcTemplate.queryForObject("SELECT COUNT(*) FROM delivery_cancellation", Long.class);
-    }
 }

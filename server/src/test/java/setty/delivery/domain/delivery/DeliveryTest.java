@@ -120,6 +120,7 @@ class DeliveryTest {
 
         assertThat(delivery.getStatus()).isEqualTo(DeliveryStatus.CANCELLED);
         assertThat(delivery.isCancellable()).isFalse();
+        assertThat(delivery.isCancelled()).isTrue();
     }
 
     @Test

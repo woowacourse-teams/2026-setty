@@ -123,6 +123,10 @@ public class Delivery {
         return status == DeliveryStatus.REQUESTED;
     }
 
+    public boolean isCancelled() {
+        return status == DeliveryStatus.CANCELLED;
+    }
+
     public void cancel() {
         ensureStatus(DeliveryStatus.REQUESTED);
         status = DeliveryStatus.CANCELLED;
