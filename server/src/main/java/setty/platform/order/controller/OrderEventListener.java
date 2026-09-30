@@ -32,6 +32,18 @@ public class OrderEventListener {
         orderService.cancelPending(event.orderId());
     }
 
+    // 배송 취소 성공 응답으로 주문을 취소 확정하고 OrderCancelled를 발행한다.
+    @EventListener
+    public void onDeliveryCancelled(final DeliveryCancelled event) {
+        orderService.confirmCancellation(event);
+    }
+
+    // 배송 취소 거절 응답으로 주문을 CONFIRMED 상태로 되돌린다.
+    @EventListener
+    public void onDeliveryCancellationRejected(final DeliveryCancellationRejected event) {
+        orderService.rejectCancellation(event);
+    }
+
     // 기사 수락 사실을 주문의 배송 상태에 반영한다.
     @EventListener
     public void onDeliveryAccepted(final DeliveryAccepted event) {
@@ -48,17 +60,5 @@ public class OrderEventListener {
     @EventListener
     public void onDeliveryDelivered(final DeliveryDelivered event) {
         syncOrderDeliveryStatusService.sync(event);
-    }
-
-    // 배송 취소 성공 응답으로 주문을 취소 확정하고 OrderCancelled를 발행한다.
-    @EventListener
-    public void onDeliveryCancelled(final DeliveryCancelled event) {
-        orderService.confirmCancellation(event);
-    }
-
-    // 배송 취소 거절 응답으로 주문을 CONFIRMED 상태로 되돌린다.
-    @EventListener
-    public void onDeliveryCancellationRejected(final DeliveryCancellationRejected event) {
-        orderService.rejectCancellation(event);
     }
 }
