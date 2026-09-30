@@ -6,7 +6,7 @@ import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
-import setty.common.OrderRequested;
+import setty.common.OrderConfirmed;
 import setty.delivery.domain.Address;
 import setty.delivery.domain.DeliveryRoute;
 import setty.delivery.domain.EstimatedDeliveryFee;
@@ -28,7 +28,7 @@ public class DeliveryEventListener {
     private final DeliveryRequestNotifier deliveryRequestNotifier;
 
     @EventListener
-    public void handle(final OrderRequested event) {
+    public void handle(final OrderConfirmed event) {
         registerDeliveryService.register(
                 new OrderId(event.orderId()),
                 new FurnitureInfo(event.itemName(), event.category()),

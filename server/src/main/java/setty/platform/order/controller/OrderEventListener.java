@@ -20,7 +20,7 @@ public class OrderEventListener {
 
     @EventListener
     public void onPaymentCompleted(final PaymentCompleted event) {
-        orderService.publishOrderRequested(event.orderId());
+        orderService.publishOrderConfirmed(event.orderId());
     }
 
     @EventListener

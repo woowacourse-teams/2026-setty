@@ -11,7 +11,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import setty.common.OrderCancellationRequested;
-import setty.common.OrderRequested;
+import setty.common.OrderConfirmed;
 import setty.global.exception.BusinessException;
 import setty.global.exception.ErrorCode;
 import setty.platform.listing.application.ListingService;
@@ -57,7 +57,7 @@ public class OrderService {
         this.pendingOrderExpirationProperties = pendingOrderExpirationProperties;
     }
 
-    // 결제 대기 주문 생성 — 결제 전이므로 OrderRequested(배차 요청)를 발행하지 않는다.
+    // 결제 대기 주문 생성 — 결제 전이므로 OrderConfirmed(배차 요청)를 발행하지 않는다.
     @Transactional
     public Order pending(final OrderCreateRequest request, final Member buyer) {
         if (orderRepository.existsByListingId(request.listingId())) {
@@ -78,7 +78,7 @@ public class OrderService {
     }
 
     @Transactional
-    public void publishOrderRequested(final Long orderId) {
+    public void publishOrderConfirmed(final Long orderId) {
         if (orderId == null || orderId <= 0) {
             throw new BusinessException(ErrorCode.INVALID_REQUEST);
         }
@@ -96,7 +96,7 @@ public class OrderService {
         final Member buyer = memberRepository.findById(order.getBuyerId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.INTERNAL_ERROR));
 
-        eventPublisher.publishEvent(new OrderRequested(
+        eventPublisher.publishEvent(new OrderConfirmed(
                 order.getId(),
                 listing.getTitle(),
                 listing.getCategory().name(),

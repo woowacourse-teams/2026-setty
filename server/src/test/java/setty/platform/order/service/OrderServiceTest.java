@@ -24,7 +24,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.test.util.ReflectionTestUtils;
 import setty.common.DeliveryStatus;
 import setty.common.OrderCancellationRequested;
-import setty.common.OrderRequested;
+import setty.common.OrderConfirmed;
 import setty.global.exception.BusinessException;
 import setty.global.exception.ErrorCode;
 import setty.platform.listing.application.ListingService;
@@ -105,13 +105,13 @@ class OrderServiceTest {
         when(memberRepository.findById(SELLER_ID)).thenReturn(Optional.of(seller));
         when(memberRepository.findById(BUYER_ID)).thenReturn(Optional.of(buyer));
 
-        orderService.publishOrderRequested(ORDER_ID);
+        orderService.publishOrderConfirmed(ORDER_ID);
 
-        final ArgumentCaptor<OrderRequested> eventCaptor = ArgumentCaptor.forClass(OrderRequested.class);
+        final ArgumentCaptor<OrderConfirmed> eventCaptor = ArgumentCaptor.forClass(OrderConfirmed.class);
         verify(eventPublisher).publishEvent(eventCaptor.capture());
         assertThat(order.getDeliveryStatus()).isEqualTo(DeliveryStatus.REQUESTED);
         assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.CONFIRMED);
-        assertThat(eventCaptor.getValue()).isEqualTo(new OrderRequested(
+        assertThat(eventCaptor.getValue()).isEqualTo(new OrderConfirmed(
                 ORDER_ID,
                 "가상 책상",
                 ListingCategory.DESK.name(),
@@ -130,7 +130,7 @@ class OrderServiceTest {
         ReflectionTestUtils.setField(order, "id", ORDER_ID);
         when(orderRepository.findByIdForUpdate(ORDER_ID)).thenReturn(Optional.of(order));
 
-        orderService.publishOrderRequested(ORDER_ID);
+        orderService.publishOrderConfirmed(ORDER_ID);
 
         verifyNoInteractions(listingRepository, memberRepository, eventPublisher);
     }

@@ -13,14 +13,14 @@ import java.time.Instant;
 import org.junit.jupiter.api.Test;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
-import setty.common.OrderRequested;
+import setty.common.OrderConfirmed;
 import setty.delivery.domain.FurnitureInfo;
 import setty.delivery.domain.OrderId;
 
 class DeliveryEventListenerTest {
 
-    private static OrderRequested orderRequested() {
-        return new OrderRequested(
+    private static OrderConfirmed orderConfirmed() {
+        return new OrderConfirmed(
                 101L,
                 "가상 원목 의자",
                 "CHAIR",
@@ -33,12 +33,12 @@ class DeliveryEventListenerTest {
     }
 
     @Test
-    void translatesOrderRequestedIntoDomainValuesAndDelegates() {
+    void translatesOrderConfirmedIntoDomainValuesAndDelegates() {
         final RegisterDeliveryService registerDeliveryService = mock(RegisterDeliveryService.class);
         final DeliveryRequestNotifier notifier = mock(DeliveryRequestNotifier.class);
         final DeliveryEventListener listener = new DeliveryEventListener(registerDeliveryService, notifier);
 
-        listener.handle(orderRequested());
+        listener.handle(orderConfirmed());
 
         verify(registerDeliveryService).register(
                 eq(new OrderId(101L)),

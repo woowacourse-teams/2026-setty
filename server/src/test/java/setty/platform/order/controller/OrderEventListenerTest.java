@@ -28,7 +28,7 @@ class OrderEventListenerTest {
     void 결제완료_이벤트를_배송요청_이벤트_발행으로_위임한다() {
         listener.onPaymentCompleted(new PaymentCompleted(101L));
 
-        verify(orderService).publishOrderRequested(101L);
+        verify(orderService).publishOrderConfirmed(101L);
     }
 
     @Test
