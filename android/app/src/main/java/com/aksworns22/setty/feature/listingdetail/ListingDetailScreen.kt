@@ -314,8 +314,8 @@ private fun SaleStatusBadge(
     ) {
         Text(
             text = saleStatus.label,
-            style = MaterialTheme.typography.titleMediumEmphasized,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+            style = MaterialTheme.typography.labelLarge,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
         )
     }
 }
