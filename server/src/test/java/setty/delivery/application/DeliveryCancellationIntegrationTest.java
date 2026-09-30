@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -54,12 +53,11 @@ class DeliveryCancellationIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        jdbcTemplate.update("DELETE FROM delivery_cancellation");
         jdbcTemplate.update("DELETE FROM delivery");
     }
 
     @Test
-    void requestedDeliveryIsCancelledAndKeptAsRecord() {
+    void requestedDeliveryIsCancelled() {
         final DeliveryId deliveryId = prepareRequestedDelivery();
 
         eventPublisher.publishEvent(cancellationRequested(CANCELLATION_REQUEST_ID));
@@ -70,9 +68,6 @@ class DeliveryCancellationIntegrationTest {
         assertThat(event.orderId()).isEqualTo(ORDER_ID);
         assertThat(event.cancellationRequestId()).isEqualTo(CANCELLATION_REQUEST_ID);
         assertThat(event.decidedAt()).isNotNull();
-        final Map<String, Object> cancellation = jdbcTemplate.queryForMap("SELECT * FROM delivery_cancellation");
-        assertThat(cancellation.get("order_id")).isEqualTo(ORDER_ID);
-        assertThat(cancellation.get("delivery_id")).isEqualTo(deliveryId.value());
         assertThat(applicationEvents.stream(DeliveryCancellationRejected.class)).isEmpty();
     }
 
@@ -91,20 +86,15 @@ class DeliveryCancellationIntegrationTest {
         assertThat(events.getFirst().orderId()).isEqualTo(ORDER_ID);
         assertThat(events.getFirst().cancellationRequestId()).isEqualTo(CANCELLATION_REQUEST_ID);
         assertThat(applicationEvents.stream(DeliveryCancelled.class)).isEmpty();
-        assertThat(cancellationCount()).isZero();
     }
 
     @Test
-    void cancellationBeforeDeliveryRequestLeavesRecordAndBlocksLateRequest() {
+    void cancellationWithoutDeliveryRequestRespondsCancelled() {
         eventPublisher.publishEvent(cancellationRequested(CANCELLATION_REQUEST_ID));
 
         final DeliveryCancelled event = singleCancelled();
         assertThat(event.deliveryId()).isNull();
         assertThat(event.orderId()).isEqualTo(ORDER_ID);
-        assertThat(cancellationCount()).isEqualTo(1L);
-
-        eventPublisher.publishEvent(orderRequested());
-
         assertThat(deliveryCount()).isZero();
     }
 
@@ -121,19 +111,7 @@ class DeliveryCancellationIntegrationTest {
             assertThat(event.deliveryId()).isEqualTo(deliveryId.value());
             assertThat(event.cancellationRequestId()).isEqualTo(CANCELLATION_REQUEST_ID);
         });
-        assertThat(cancellationCount()).isEqualTo(1L);
         assertThat(deliveryStatus()).isEqualTo("CANCELLED");
-    }
-
-    @Test
-    void repeatedCancellationBeforeDeliveryRequestKeepsOneRecord() {
-        eventPublisher.publishEvent(cancellationRequested(CANCELLATION_REQUEST_ID));
-        eventPublisher.publishEvent(cancellationRequested(CANCELLATION_REQUEST_ID));
-
-        assertThat(applicationEvents.stream(DeliveryCancelled.class))
-                .hasSize(2)
-                .allSatisfy(event -> assertThat(event.deliveryId()).isNull());
-        assertThat(cancellationCount()).isEqualTo(1L);
     }
 
     private DeliveryId prepareRequestedDelivery() {
@@ -163,9 +141,6 @@ class DeliveryCancellationIntegrationTest {
         return jdbcTemplate.queryForObject("SELECT COUNT(*) FROM delivery", Long.class);
     }
 
-    private long cancellationCount() {
-        return jdbcTemplate.queryForObject("SELECT COUNT(*) FROM delivery_cancellation", Long.class);
-    }
 
     private static OrderCancellationRequested cancellationRequested(final String cancellationRequestId) {
         return new OrderCancellationRequested(ORDER_ID, cancellationRequestId);

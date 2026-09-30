@@ -11,7 +11,6 @@ import setty.delivery.domain.delivery.Delivery;
 import setty.delivery.domain.delivery.DeliveryRoute;
 import setty.delivery.domain.delivery.EstimatedDeliveryFee;
 import setty.delivery.domain.delivery.FurnitureInfo;
-import setty.delivery.persistence.DeliveryCancellationRepository;
 import setty.delivery.persistence.DeliveryRepository;
 import setty.global.exception.BusinessException;
 import setty.global.exception.ErrorCode;
@@ -21,7 +20,6 @@ import setty.global.exception.ErrorCode;
 public class RegisterDeliveryService {
 
     private final DeliveryRepository deliveryRepository;
-    private final DeliveryCancellationRepository cancellationRepository;
     private final ApplicationEventPublisher eventPublisher;
 
     // 발행한 쪽 트랜잭션이 커밋된 뒤 호출되므로 배송만의 새 트랜잭션에서 처리한다.
@@ -37,8 +35,8 @@ public class RegisterDeliveryService {
             throw new BusinessException(ErrorCode.INVALID_REQUEST);
         }
 
-        // 재전달된 배차 요청이거나, 배차 요청보다 취소가 먼저 확정된 주문이면 배송을 만들지 않는다.
-        if (deliveryRepository.existsByOrderId(orderId) || cancellationRepository.existsByOrderId(orderId)) {
+        // 재전달된 배송 요청이면 다시 만들지 않는다.
+        if (deliveryRepository.existsByOrderId(orderId)) {
             return;
         }
 

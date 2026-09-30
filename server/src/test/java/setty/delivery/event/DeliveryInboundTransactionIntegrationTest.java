@@ -42,7 +42,6 @@ class DeliveryInboundTransactionIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        jdbcTemplate.update("DELETE FROM delivery_cancellation");
         jdbcTemplate.update("DELETE FROM delivery");
     }
 
