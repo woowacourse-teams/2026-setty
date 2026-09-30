@@ -518,25 +518,20 @@ private fun PurchaseBar(
     onPurchaseClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Surface(
-        color = MaterialTheme.colorScheme.surfaceContainer,
-        modifier = modifier.fillMaxWidth(),
+    Button(
+        onClick = onPurchaseClick,
+        enabled = listing.isPurchasable,
+        shapes = ButtonDefaults.shapes(),
+        modifier = modifier
+            .navigationBarsPadding()
+            .padding(horizontal = 16.dp, vertical = 12.dp)
+            .fillMaxWidth()
+            .height(ButtonDefaults.MediumContainerHeight),
     ) {
-        Button(
-            onClick = onPurchaseClick,
-            enabled = listing.isPurchasable,
-            shapes = ButtonDefaults.shapes(),
-            modifier = Modifier
-                .navigationBarsPadding()
-                .padding(horizontal = 16.dp, vertical = 12.dp)
-                .fillMaxWidth()
-                .height(ButtonDefaults.MediumContainerHeight),
-        ) {
-            Text(
-                text = if (listing.isPurchasable) "결제하고 주문하기" else "구매할 수 없는 매물입니다",
-                style = MaterialTheme.typography.bodyLargeEmphasized,
-            )
-        }
+        Text(
+            text = if (listing.isPurchasable) "결제하고 주문하기" else "구매할 수 없는 매물입니다",
+            style = MaterialTheme.typography.bodyLargeEmphasized,
+        )
     }
 }
 
