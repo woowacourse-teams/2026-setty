@@ -3,7 +3,9 @@ package setty.platform.order.controller;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
-import setty.common.DeliveryStatusChanged;
+import setty.common.DeliveryAccepted;
+import setty.common.DeliveryDelivered;
+import setty.common.DeliveryPickedUp;
 import setty.common.PaymentCompleted;
 import setty.common.PaymentFailed;
 import setty.platform.order.service.OrderService;
@@ -27,7 +29,17 @@ public class OrderEventListener {
     }
 
     @EventListener
-    public void onDeliveryStatusChanged(final DeliveryStatusChanged event) {
+    public void onDeliveryAccepted(final DeliveryAccepted event) {
+        syncOrderDeliveryStatusService.sync(event);
+    }
+
+    @EventListener
+    public void onDeliveryPickedUp(final DeliveryPickedUp event) {
+        syncOrderDeliveryStatusService.sync(event);
+    }
+
+    @EventListener
+    public void onDeliveryDelivered(final DeliveryDelivered event) {
         syncOrderDeliveryStatusService.sync(event);
     }
 }
