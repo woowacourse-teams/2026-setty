@@ -42,4 +42,8 @@ class AppContainer(
         settyNetworkApi = settyNetworkApi,
         tokenLocalDataSource = tokenLocalDataSource,
     )
+
+    val listingRepository = ListingRepository(
+        settyNetworkApi = settyNetworkApi,
+    )
 }
