@@ -7,11 +7,12 @@ import java.time.Instant;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import setty.common.DeliveryAccepted;
+import setty.common.DeliveryStatus;
 import setty.global.exception.BusinessException;
 import setty.global.exception.ErrorCode;
 import setty.platform.order.repository.OrderRepository;
@@ -28,9 +29,14 @@ class SyncOrderDeliveryStatusServiceUnitTest {
     private SyncOrderDeliveryStatusService service;
 
     @ParameterizedTest
-    @MethodSource("invalidEvents")
-    void 잘못된_이벤트는_주문을_조회하기_전에_거부한다(final DeliveryAccepted event) {
-        assertThatThrownBy(() -> service.sync(event))
+    @MethodSource("invalidValues")
+    void 잘못된_배송_값은_주문을_조회하기_전에_거부한다(
+            final Long deliveryId,
+            final Long orderId,
+            final Instant changedAt,
+            final DeliveryStatus status
+    ) {
+        assertThatThrownBy(() -> service.sync(deliveryId, orderId, changedAt, status))
                 .isInstanceOf(BusinessException.class)
                 .extracting(e -> ((BusinessException) e).getErrorCode())
                 .isEqualTo(ErrorCode.INVALID_REQUEST);
@@ -38,16 +44,16 @@ class SyncOrderDeliveryStatusServiceUnitTest {
         verifyNoInteractions(orderRepository);
     }
 
-    private static Stream<DeliveryAccepted> invalidEvents() {
+    private static Stream<Arguments> invalidValues() {
         return Stream.of(
-                null,
-                new DeliveryAccepted(null, 1L, CHANGED_AT),
-                new DeliveryAccepted(0L, 1L, CHANGED_AT),
-                new DeliveryAccepted(-1L, 1L, CHANGED_AT),
-                new DeliveryAccepted(1L, null, CHANGED_AT),
-                new DeliveryAccepted(1L, 0L, CHANGED_AT),
-                new DeliveryAccepted(1L, -1L, CHANGED_AT),
-                new DeliveryAccepted(1L, 1L, null)
+                Arguments.of(null, 1L, CHANGED_AT, DeliveryStatus.ACCEPTED),
+                Arguments.of(0L, 1L, CHANGED_AT, DeliveryStatus.ACCEPTED),
+                Arguments.of(-1L, 1L, CHANGED_AT, DeliveryStatus.ACCEPTED),
+                Arguments.of(1L, null, CHANGED_AT, DeliveryStatus.ACCEPTED),
+                Arguments.of(1L, 0L, CHANGED_AT, DeliveryStatus.ACCEPTED),
+                Arguments.of(1L, -1L, CHANGED_AT, DeliveryStatus.ACCEPTED),
+                Arguments.of(1L, 1L, null, DeliveryStatus.ACCEPTED),
+                Arguments.of(1L, 1L, CHANGED_AT, null)
         );
     }
 }

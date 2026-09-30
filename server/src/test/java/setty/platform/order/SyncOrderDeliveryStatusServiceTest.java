@@ -26,6 +26,7 @@ import org.testcontainers.mysql.MySQLContainer;
 import setty.common.DeliveryAccepted;
 import setty.common.DeliveryDelivered;
 import setty.common.DeliveryPickedUp;
+import setty.common.DeliveryStatus;
 import setty.global.exception.BusinessException;
 import setty.global.exception.ErrorCode;
 import setty.platform.listing.storage.ListingImageStorage;
@@ -126,13 +127,13 @@ class SyncOrderDeliveryStatusServiceTest {
             final CompletableFuture<Void> nextChange = new TransactionTemplate(transactionManager)
                     .execute(transaction -> {
                         syncOrderDeliveryStatusService.sync(
-                                new DeliveryAccepted(1L, ORDER_ID, Instant.now()));
+                                1L, ORDER_ID, Instant.now(), DeliveryStatus.ACCEPTED);
 
                         final CompletableFuture<Void> started = new CompletableFuture<>();
                         final CompletableFuture<Void> pendingChange = CompletableFuture.runAsync(() -> {
                             started.complete(null);
                             syncOrderDeliveryStatusService.sync(
-                                    new DeliveryPickedUp(1L, ORDER_ID, Instant.now()));
+                                    1L, ORDER_ID, Instant.now(), DeliveryStatus.PICKED_UP);
                         }, executor);
 
                         started.orTimeout(5, TimeUnit.SECONDS).join();

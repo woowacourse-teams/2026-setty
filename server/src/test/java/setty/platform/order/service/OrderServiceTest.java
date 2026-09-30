@@ -23,8 +23,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.test.util.ReflectionTestUtils;
 import setty.common.DeliveryStatus;
-import setty.common.DeliveryCancelled;
-import setty.common.DeliveryCancellationRejected;
 import setty.common.OrderCancellationRequested;
 import setty.common.OrderCancelled;
 import setty.common.OrderConfirmed;
@@ -180,7 +178,7 @@ class OrderServiceTest {
         when(orderRepository.findByIdForUpdate(ORDER_ID)).thenReturn(Optional.of(order));
         when(clock.instant()).thenReturn(cancelledAt);
 
-        orderService.confirmCancellation(new DeliveryCancelled(null, ORDER_ID, "cancel-request-1", decidedAt));
+        orderService.confirmCancellation(ORDER_ID, "cancel-request-1", decidedAt);
 
         assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.CANCELLED);
         final ArgumentCaptor<OrderCancelled> eventCaptor = ArgumentCaptor.forClass(OrderCancelled.class);
@@ -196,10 +194,8 @@ class OrderServiceTest {
         order.requestCancellation("cancel-request-1");
         when(orderRepository.findByIdForUpdate(ORDER_ID)).thenReturn(Optional.of(order));
         when(clock.instant()).thenReturn(decidedAt);
-        final DeliveryCancelled event = new DeliveryCancelled(501L, ORDER_ID, "cancel-request-1", decidedAt);
-
-        orderService.confirmCancellation(event);
-        orderService.confirmCancellation(event);
+        orderService.confirmCancellation(ORDER_ID, "cancel-request-1", decidedAt);
+        orderService.confirmCancellation(ORDER_ID, "cancel-request-1", decidedAt);
 
         verify(eventPublisher).publishEvent(any(OrderCancelled.class));
     }
@@ -211,8 +207,7 @@ class OrderServiceTest {
         order.requestCancellation("cancel-request-1");
         when(orderRepository.findByIdForUpdate(ORDER_ID)).thenReturn(Optional.of(order));
 
-        orderService.rejectCancellation(
-                new DeliveryCancellationRejected(501L, ORDER_ID, "cancel-request-1", decidedAt));
+        orderService.rejectCancellation(ORDER_ID, "cancel-request-1", decidedAt);
 
         assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.CONFIRMED);
         verifyNoInteractions(eventPublisher);
@@ -227,7 +222,7 @@ class OrderServiceTest {
         order.requestCancellation("cancel-request-2");
         when(orderRepository.findByIdForUpdate(ORDER_ID)).thenReturn(Optional.of(order));
 
-        orderService.confirmCancellation(new DeliveryCancelled(501L, ORDER_ID, "cancel-request-1", decidedAt));
+        orderService.confirmCancellation(ORDER_ID, "cancel-request-1", decidedAt);
 
         assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.CANCEL_PENDING);
         assertThat(order.getCancellationRequestId()).isEqualTo("cancel-request-2");

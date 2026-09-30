@@ -11,8 +11,6 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import setty.common.DeliveryCancelled;
-import setty.common.DeliveryCancellationRejected;
 import setty.common.OrderCancellationRequested;
 import setty.common.OrderCancelled;
 import setty.common.OrderConfirmed;
@@ -133,34 +131,38 @@ public class OrderService {
     }
 
     @Transactional
-    public void confirmCancellation(final DeliveryCancelled event) {
-        validateCancellationResult(event == null ? null : event.orderId(),
-                event == null ? null : event.cancellationRequestId(),
-                event == null ? null : event.decidedAt());
+    public void confirmCancellation(
+            final Long orderId,
+            final String cancellationRequestId,
+            final Instant decidedAt
+    ) {
+        validateCancellationResult(orderId, cancellationRequestId, decidedAt);
 
-        final Order order = orderRepository.findByIdForUpdate(event.orderId())
+        final Order order = orderRepository.findByIdForUpdate(orderId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
-        if (!order.confirmCancellation(event.cancellationRequestId())) {
+        if (!order.confirmCancellation(cancellationRequestId)) {
             return;
         }
 
         eventPublisher.publishEvent(new OrderCancelled(
                 order.getId(),
                 order.getListingId(),
-                event.cancellationRequestId(),
+                cancellationRequestId,
                 clock.instant()
         ));
     }
 
     @Transactional
-    public void rejectCancellation(final DeliveryCancellationRejected event) {
-        validateCancellationResult(event == null ? null : event.orderId(),
-                event == null ? null : event.cancellationRequestId(),
-                event == null ? null : event.decidedAt());
+    public void rejectCancellation(
+            final Long orderId,
+            final String cancellationRequestId,
+            final Instant decidedAt
+    ) {
+        validateCancellationResult(orderId, cancellationRequestId, decidedAt);
 
-        final Order order = orderRepository.findByIdForUpdate(event.orderId())
+        final Order order = orderRepository.findByIdForUpdate(orderId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
-        order.rejectCancellation(event.cancellationRequestId());
+        order.rejectCancellation(cancellationRequestId);
     }
 
     private void validateCancellationResult(
