@@ -102,6 +102,7 @@ CREATE TABLE IF NOT EXISTS orders (
     buyer_id        BIGINT       NOT NULL,
     delivery_status VARCHAR(20)  NOT NULL,              -- 플랫폼이 DeliveryStatusChanged 이벤트를 수신해 UPDATE
     order_status    VARCHAR(20)  NOT NULL,              -- 주문의 결제 및 취소 상태
+    cancellation_request_id VARCHAR(36) NULL,           -- 현재 취소 SAGA 요청 식별자
     driver_id       BIGINT       NULL,                  -- 현재 미사용, 실제 배정 기사는 delivery.driver_id에 저장
     pending_expires_at TIMESTAMP(6) NULL,                -- PENDING 주문 자동 만료 시각
     PRIMARY KEY (id),
@@ -189,6 +190,22 @@ SET @require_orders_order_status = IF(
 PREPARE require_orders_order_status_statement FROM @require_orders_order_status;
 EXECUTE require_orders_order_status_statement;
 DEALLOCATE PREPARE require_orders_order_status_statement;
+
+SET @orders_cancellation_request_id_exists = (
+    SELECT COUNT(*)
+    FROM information_schema.columns
+    WHERE table_schema = DATABASE()
+      AND table_name = 'orders'
+      AND column_name = 'cancellation_request_id'
+);
+SET @add_orders_cancellation_request_id = IF(
+    @orders_cancellation_request_id_exists = 0,
+    'ALTER TABLE orders ADD COLUMN cancellation_request_id VARCHAR(36) NULL AFTER order_status',
+    'SELECT 1'
+);
+PREPARE add_orders_cancellation_request_id_statement FROM @add_orders_cancellation_request_id;
+EXECUTE add_orders_cancellation_request_id_statement;
+DEALLOCATE PREPARE add_orders_cancellation_request_id_statement;
 
 SET @orders_order_expiration_index_exists = (
     SELECT COUNT(*)

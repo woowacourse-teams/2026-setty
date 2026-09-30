@@ -3,12 +3,14 @@ package setty.platform.order.service;
 import java.time.Clock;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import setty.common.OrderCancellationRequested;
 import setty.common.OrderRequested;
 import setty.global.exception.BusinessException;
 import setty.global.exception.ErrorCode;
@@ -20,6 +22,7 @@ import setty.platform.member.domain.Member;
 import setty.platform.member.repository.MemberRepository;
 import setty.platform.order.config.PendingOrderExpirationProperties;
 import setty.platform.order.controller.dto.MyOrderResponse;
+import setty.platform.order.controller.dto.OrderCancellationResponse;
 import setty.platform.order.controller.dto.OrderCreateRequest;
 import setty.platform.order.domain.Order;
 import setty.platform.order.domain.OrderStatus;
@@ -103,6 +106,26 @@ public class OrderService {
                 seller.getPhoneNumber(),
                 buyer.getPhoneNumber()
         ));
+    }
+
+    @Transactional
+    public OrderCancellationResponse requestCancellation(final Long orderId, final Long buyerId) {
+        if (orderId == null || orderId <= 0 || buyerId == null || buyerId <= 0) {
+            throw new BusinessException(ErrorCode.INVALID_REQUEST);
+        }
+
+        final Order order = orderRepository.findByIdAndBuyerIdForUpdate(orderId, buyerId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
+        final String cancellationRequestId = UUID.randomUUID().toString();
+        final boolean cancelStarted = order.requestCancellation(cancellationRequestId);
+        final OrderCancellationResponse response = OrderCancellationResponse.from(order);
+        if (cancelStarted) {
+            eventPublisher.publishEvent(new OrderCancellationRequested(
+                    order.getId(),
+                    order.getCancellationRequestId()
+            ));
+        }
+        return response;
     }
 
     /**

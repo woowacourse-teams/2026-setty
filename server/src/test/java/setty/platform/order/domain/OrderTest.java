@@ -139,26 +139,28 @@ class OrderTest {
         final Order order = new Order(1L, 2L);
         ReflectionTestUtils.setField(order, "deliveryStatus", deliveryStatus);
 
-        assertThat(order.requestCancellation()).isTrue();
+        assertThat(order.requestCancellation("cancel-request-1")).isTrue();
 
         assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.CANCEL_PENDING);
         assertThat(order.getDeliveryStatus()).isEqualTo(deliveryStatus);
+        assertThat(order.getCancellationRequestId()).isEqualTo("cancel-request-1");
     }
 
     @Test
     void 취소_대기_주문의_중복_요청은_무시된다() {
         final Order order = new Order(1L, 2L);
-        order.requestCancellation();
+        order.requestCancellation("cancel-request-1");
 
-        assertThat(order.requestCancellation()).isFalse();
+        assertThat(order.requestCancellation("cancel-request-2")).isFalse();
         assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.CANCEL_PENDING);
+        assertThat(order.getCancellationRequestId()).isEqualTo("cancel-request-1");
     }
 
     @Test
     void 결제_대기_주문은_구매자_취소_요청을_거부한다() {
         final Order order = Order.pending(1L, 2L);
 
-        assertThatThrownBy(order::requestCancellation)
+        assertThatThrownBy(() -> order.requestCancellation("cancel-request-1"))
                 .isInstanceOf(BusinessException.class)
                 .extracting(e -> ((BusinessException) e).getErrorCode())
                 .isEqualTo(ErrorCode.INVALID_ORDER_STATUS_TRANSITION);

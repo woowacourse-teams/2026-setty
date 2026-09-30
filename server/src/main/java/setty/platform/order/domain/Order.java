@@ -38,6 +38,9 @@ public class Order {
     @Column(name = "order_status", nullable = false, length = 20)
     private OrderStatus orderStatus;
 
+    @Column(name = "cancellation_request_id", length = 36)
+    private String cancellationRequestId;
+
     @Column(name = "driver_id")
     private Long driverId;
 
@@ -69,14 +72,18 @@ public class Order {
         return true;
     }
 
-    public boolean requestCancellation() {
+    public boolean requestCancellation(final String cancellationRequestId) {
         if (this.orderStatus == OrderStatus.CANCEL_PENDING) {
             return false;
         }
         if (this.orderStatus != OrderStatus.CONFIRMED) {
             throw new BusinessException(ErrorCode.INVALID_ORDER_STATUS_TRANSITION);
         }
+        if (cancellationRequestId == null || cancellationRequestId.isBlank()) {
+            throw new BusinessException(ErrorCode.INVALID_REQUEST);
+        }
         this.orderStatus = OrderStatus.CANCEL_PENDING;
+        this.cancellationRequestId = cancellationRequestId;
         return true;
     }
 
@@ -142,6 +149,10 @@ public class Order {
 
     public OrderStatus getOrderStatus() {
         return orderStatus;
+    }
+
+    public String getCancellationRequestId() {
+        return cancellationRequestId;
     }
 
     public Long getDriverId() {

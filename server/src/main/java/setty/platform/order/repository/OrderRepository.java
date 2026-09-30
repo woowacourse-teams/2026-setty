@@ -19,6 +19,13 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     @Query("select o from Order o where o.id = :orderId")
     Optional<Order> findByIdForUpdate(@Param("orderId") Long orderId);
 
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select o from Order o where o.id = :orderId and o.buyerId = :buyerId")
+    Optional<Order> findByIdAndBuyerIdForUpdate(
+            @Param("orderId") Long orderId,
+            @Param("buyerId") Long buyerId
+    );
+
     @Query("""
             select o.id
             from Order o

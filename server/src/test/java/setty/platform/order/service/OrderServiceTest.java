@@ -1,6 +1,7 @@
 package setty.platform.order.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -22,7 +23,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.test.util.ReflectionTestUtils;
 import setty.common.DeliveryStatus;
+import setty.common.OrderCancellationRequested;
 import setty.common.OrderRequested;
+import setty.global.exception.BusinessException;
+import setty.global.exception.ErrorCode;
 import setty.platform.listing.application.ListingService;
 import setty.platform.listing.application.ListingView;
 import setty.platform.listing.domain.ConditionGrade;
@@ -33,6 +37,7 @@ import setty.platform.member.domain.Member;
 import setty.platform.member.repository.MemberRepository;
 import setty.platform.order.config.PendingOrderExpirationProperties;
 import setty.platform.order.controller.dto.MyOrderResponse;
+import setty.platform.order.controller.dto.OrderCancellationResponse;
 import setty.platform.order.controller.dto.OrderCreateRequest;
 import setty.platform.order.domain.Order;
 import setty.platform.order.domain.OrderStatus;
@@ -131,6 +136,62 @@ class OrderServiceTest {
     }
 
     @Test
+    void 구매자_취소_요청은_취소_대기로_전이하고_배송_취소_이벤트를_발행한다() {
+        final Order order = confirmedOrder();
+        when(orderRepository.findByIdAndBuyerIdForUpdate(ORDER_ID, BUYER_ID)).thenReturn(Optional.of(order));
+
+        final OrderCancellationResponse response = orderService.requestCancellation(ORDER_ID, BUYER_ID);
+
+        assertThat(response.orderId()).isEqualTo(ORDER_ID);
+        assertThat(response.orderStatus()).isEqualTo(OrderStatus.CANCEL_PENDING.name());
+        assertThat(response.message()).isEqualTo("취소 대기 중");
+        assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.CANCEL_PENDING);
+        assertThat(order.getCancellationRequestId()).isNotBlank();
+
+        final ArgumentCaptor<OrderCancellationRequested> eventCaptor =
+                ArgumentCaptor.forClass(OrderCancellationRequested.class);
+        verify(eventPublisher).publishEvent(eventCaptor.capture());
+        assertThat(eventCaptor.getValue().orderId()).isEqualTo(ORDER_ID);
+        assertThat(eventCaptor.getValue().cancellationRequestId()).isEqualTo(order.getCancellationRequestId());
+    }
+
+    @Test
+    void 취소_대기_중_중복_API_요청은_이벤트를_재발행하지_않는다() {
+        final Order order = confirmedOrder();
+        order.requestCancellation("cancel-request-1");
+        when(orderRepository.findByIdAndBuyerIdForUpdate(ORDER_ID, BUYER_ID)).thenReturn(Optional.of(order));
+
+        final OrderCancellationResponse response = orderService.requestCancellation(ORDER_ID, BUYER_ID);
+
+        assertThat(response.orderStatus()).isEqualTo(OrderStatus.CANCEL_PENDING.name());
+        assertThat(order.getCancellationRequestId()).isEqualTo("cancel-request-1");
+        verify(eventPublisher, never()).publishEvent(any(Object.class));
+    }
+
+    @Test
+    void 다른_구매자의_주문은_취소할_수_없다() {
+        when(orderRepository.findByIdAndBuyerIdForUpdate(ORDER_ID, BUYER_ID)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> orderService.requestCancellation(ORDER_ID, BUYER_ID))
+                .isInstanceOf(BusinessException.class)
+                .extracting(e -> ((BusinessException) e).getErrorCode())
+                .isEqualTo(ErrorCode.ORDER_NOT_FOUND);
+        verifyNoInteractions(eventPublisher);
+    }
+
+    @Test
+    void 결제_대기_주문은_구매자_취소_API로_취소할_수_없다() {
+        when(orderRepository.findByIdAndBuyerIdForUpdate(ORDER_ID, BUYER_ID))
+                .thenReturn(Optional.of(order()));
+
+        assertThatThrownBy(() -> orderService.requestCancellation(ORDER_ID, BUYER_ID))
+                .isInstanceOf(BusinessException.class)
+                .extracting(e -> ((BusinessException) e).getErrorCode())
+                .isEqualTo(ErrorCode.INVALID_ORDER_STATUS_TRANSITION);
+        verifyNoInteractions(eventPublisher);
+    }
+
+    @Test
     void 결제대기_주문을_취소하면_주문이_삭제되고_선점이_해제된다() {
         final Order order = order();
         when(orderRepository.findByIdForUpdate(ORDER_ID)).thenReturn(Optional.of(order));
@@ -184,6 +245,7 @@ class OrderServiceTest {
         final List<MyOrderResponse> responses = orderService.findMyOrders(BUYER_ID);
 
         assertThat(responses).singleElement().satisfies(response -> {
+            assertThat(response.orderStatus()).isEqualTo(OrderStatus.CONFIRMED.name());
             assertThat(response.listing().id()).isEqualTo(LISTING_ID);
             assertThat(response.listing().name()).isEqualTo("가상 책상");
             assertThat(response.listing().thumbnailUrl()).isEqualTo("https://example.com/listings/desk.jpg");
@@ -192,6 +254,12 @@ class OrderServiceTest {
 
     private static Order order() {
         final Order order = Order.pending(LISTING_ID, BUYER_ID);
+        ReflectionTestUtils.setField(order, "id", ORDER_ID);
+        return order;
+    }
+
+    private static Order confirmedOrder() {
+        final Order order = new Order(LISTING_ID, BUYER_ID);
         ReflectionTestUtils.setField(order, "id", ORDER_ID);
         return order;
     }
