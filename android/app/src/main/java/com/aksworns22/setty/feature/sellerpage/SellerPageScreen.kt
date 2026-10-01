@@ -544,6 +544,8 @@ private fun LogoutDialog(
             Text(
                 text = "다시 이용하려면 로그인해야 해요.",
                 style = MaterialTheme.typography.bodyMediumEmphasized,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth(),
             )
         },
         confirmButton = {
