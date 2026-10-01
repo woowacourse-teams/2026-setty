@@ -1,3 +1,9 @@
+spring:
+  datasource:
+    hikari:
+      connection-timeout: 5000
+      validation-timeout: 1000
+
 setty:
   cors:
     allowed-origins: http://localhost:3000,https://www.setty.cloud
