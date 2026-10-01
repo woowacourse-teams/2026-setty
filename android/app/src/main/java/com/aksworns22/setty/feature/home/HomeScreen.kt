@@ -140,7 +140,7 @@ private fun HomeContent(
                 ) {
                     Image(
                         painter = painterResource(R.drawable.profile),
-                        contentDescription = "판매자 페이지",
+                        contentDescription = "내 매물",
                     )
                 } },
             )

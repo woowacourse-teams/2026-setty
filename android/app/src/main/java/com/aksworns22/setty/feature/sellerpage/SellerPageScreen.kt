@@ -116,7 +116,7 @@ private fun SellerPageContent(
             LargeFlexibleTopAppBar(
                 title = {
                     Text(
-                        text = "판매자 페이지",
+                        text = "내 매물",
                         fontFamily = Paperlogy,
                         fontWeight = FontWeight.Black,
                     )
