@@ -11,3 +11,7 @@
 | 수신자 | 처리 |
 | --- | --- |
 | [`OrderEventListener#onDeliveryPickedUp`](../../src/main/java/setty/platform/order/controller/OrderEventListener.java) | 주문의 배송 상태를 `PICKED_UP`으로 동기화한다. |
+
+## 다음 확인할 이벤트 문서
+
+- 현재 코드에서 확인한 후속 이벤트 문서 없음.

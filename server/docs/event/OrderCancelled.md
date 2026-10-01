@@ -12,6 +12,10 @@
 | --- | --- |
 | [`ListingDeliveryEventListener#onOrderCancelled`](../../src/main/java/setty/platform/listing/application/ListingDeliveryEventListener.java) | 해당 매물의 구매 선점을 해제한다. |
 
+## 다음 확인할 이벤트 문서
+
+- 현재 코드에서 확인한 후속 이벤트 문서 없음.
+
 ## 확인 필요
 
 - [결제 정책](../../../docs/policy/payment.md#환불)은 주문 취소 확정 이벤트를 받은 결제 영역이 승인 결제를 환불 대상으로 기록하도록 정의한다. 현재 `OrderCancelled`의 직접 수신자는 매물 영역뿐이다.

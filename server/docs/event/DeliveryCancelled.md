@@ -11,3 +11,8 @@
 | 수신자 | 처리 |
 | --- | --- |
 | [`OrderEventListener#onDeliveryCancelled`](../../src/main/java/setty/platform/order/controller/OrderEventListener.java) | 취소 요청 ID가 일치하는 `CANCEL_PENDING` 주문을 `CANCELLED`로 확정하고 `OrderCancelled`를 발행한다. 중복되거나 오래된 결과는 건너뛴다. |
+
+## 다음 확인할 이벤트 문서
+
+- [OrderCancelled.md](OrderCancelled.md): 취소 요청 ID가 일치하는 `CANCEL_PENDING` 주문을 취소 확정할 때 발행한다.
+- [DeliveryRequestsChanged.md](DeliveryRequestsChanged.md): `REQUESTED` 배송을 취소하는 처리에서 함께 발행한다.

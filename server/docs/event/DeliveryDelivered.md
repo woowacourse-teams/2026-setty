@@ -13,6 +13,10 @@
 | [`OrderEventListener#onDeliveryDelivered`](../../src/main/java/setty/platform/order/controller/OrderEventListener.java) | 주문의 배송 상태를 `DELIVERED`로 동기화한다. |
 | [`ListingDeliveryEventListener#onDeliveryDelivered`](../../src/main/java/setty/platform/listing/application/ListingDeliveryEventListener.java) | 주문에 연결된 매물을 즉시 판매 완료(`SOLD`)로 전이한다. |
 
+## 다음 확인할 이벤트 문서
+
+- 현재 코드에서 확인한 후속 이벤트 문서 없음.
+
 ## 확인 필요
 
 - [판매 완료·정산 정책](../../../docs/policy/completion-settlement.md#완료-및-정산-확정)은 배송 완료만으로 판매 완료를 확정하지 않고 구매자 확인 또는 3일 경과를 기다린다. 현재 매물 수신자는 `DeliveryDelivered`를 받으면 즉시 판매 완료한다.

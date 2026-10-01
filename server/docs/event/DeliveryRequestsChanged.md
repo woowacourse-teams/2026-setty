@@ -11,3 +11,7 @@
 | 수신자 | 처리 |
 | --- | --- |
 | [`DeliveryRequestEventStream#on`](../../src/main/java/setty/delivery/api/DeliveryRequestEventStream.java) | 발행 트랜잭션 커밋 후 연결된 기사 SSE 구독자에게 `delivery-requests-changed` 이벤트를 보낸다. 데이터는 `{}`이며 구독자가 목록을 다시 조회한다. 연결 전송 오류는 해당 구독자를 제거하고, 그 밖의 처리 오류는 로그에 기록한다. |
+
+## 다음 확인할 이벤트 문서
+
+- 현재 코드에서 확인한 후속 이벤트 문서 없음.
