@@ -5,7 +5,6 @@ import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import setty.common.DeliveryAccepted;
 import setty.common.DeliveryCancellationRejected;
@@ -16,6 +15,7 @@ import setty.delivery.domain.DeliveryId;
 import setty.delivery.domain.DriverId;
 import setty.delivery.domain.OrderId;
 import setty.delivery.domain.delivery.Delivery;
+import setty.delivery.persistence.DeliveryOrderDecisionRepository;
 import setty.delivery.persistence.DeliveryRepository;
 import setty.global.exception.BusinessException;
 import setty.global.exception.ErrorCode;
@@ -26,6 +26,7 @@ import setty.global.exception.ErrorCode;
 public class DeliveryLifecycleService {
 
     private final DeliveryRepository deliveryRepository;
+    private final DeliveryOrderDecisionRepository decisionRepository;
     private final ApplicationEventPublisher eventPublisher;
 
     public void accept(final DeliveryId deliveryId, final DriverId driverId, final Instant acceptedAt) {
@@ -54,13 +55,18 @@ public class DeliveryLifecycleService {
      * 주문 취소 요청에 응답한다. 취소 가능 여부는 요청 접수 시점이 아니라 지금 배송 상태로 판단한다.
      * 같은 요청이 다시 와도 현재 상태에 따라 같은 결과를 다시 발행한다.
      */
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void cancel(final OrderId orderId, final String cancellationRequestId, final Instant decidedAt) {
         if (orderId == null || cancellationRequestId == null || cancellationRequestId.isBlank() || decidedAt == null) {
             throw new BusinessException(ErrorCode.INVALID_REQUEST);
         }
 
-        // 기사의 수락과 겹치지 않도록 배송 행을 잠근다.
+        // 배송 요청보다 취소가 먼저 판정되면 이후 재발행된 배송 요청도 만들어지지 않는다.
+        if (decisionRepository.decideCancelled(orderId, decidedAt)) {
+            publishCancelled(null, orderId, cancellationRequestId, decidedAt);
+            return;
+        }
+
+        // 이미 판정된 주문이다. 등록으로 판정됐다면 같은 트랜잭션에서 만든 배송 행이 있으므로 잠가서 기사의 수락과 겹치지 않게 한다.
         final Optional<Delivery> found = deliveryRepository.findByOrderIdForUpdate(orderId);
         if (found.isEmpty()) {
             publishCancelled(null, orderId, cancellationRequestId, decidedAt);

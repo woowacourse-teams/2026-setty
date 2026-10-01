@@ -56,6 +56,7 @@ class DeliveryConcurrencyIntegrationTest {
     @BeforeEach
     void setUp() {
         jdbcTemplate.update("DELETE FROM delivery");
+        jdbcTemplate.update("DELETE FROM delivery_order_decision");
     }
 
     @Test

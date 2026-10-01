@@ -2,6 +2,7 @@ package setty.delivery.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static setty.global.event.EventPublicationTestSupport.awaitEventsHandled;
 
 import java.sql.Timestamp;
 import java.util.Map;
@@ -13,6 +14,8 @@ import org.springframework.boot.testcontainers.service.connection.ServiceConnect
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.mysql.MySQLContainer;
@@ -35,14 +38,19 @@ class RegisterDeliveryServiceTest {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
+    @Autowired
+    private PlatformTransactionManager transactionManager;
+
     @BeforeEach
     void setUp() {
+        jdbcTemplate.update("DELETE FROM EVENT_PUBLICATION");
         jdbcTemplate.update("DELETE FROM delivery");
+        jdbcTemplate.update("DELETE FROM delivery_order_decision");
     }
 
     @Test
     void orderConfirmedEventCreatesRequestedDeliveryWithMatchingData() {
-        eventPublisher.publishEvent(orderConfirmed(101L));
+        publishCommitted(orderConfirmed(101L));
 
         final Map<String, Object> row = jdbcTemplate.queryForMap("SELECT * FROM delivery");
         assertThat(row.get("order_id")).isEqualTo(101L);
@@ -62,8 +70,8 @@ class RegisterDeliveryServiceTest {
     void duplicatedOrderConfirmedEventCreatesOneDelivery() {
         final OrderConfirmed event = orderConfirmed(202L);
 
-        eventPublisher.publishEvent(event);
-        eventPublisher.publishEvent(event);
+        publishCommitted(event);
+        publishCommitted(event);
 
         assertThat(deliveryCount()).isEqualTo(1L);
     }
@@ -98,6 +106,12 @@ class RegisterDeliveryServiceTest {
                 "REQUESTED",
                 Timestamp.valueOf("2026-08-26 10:00:00")
         );
+    }
+
+    // 모듈 간 이벤트는 발행한 쪽이 커밋된 뒤 비동기로 전달되므로 처리가 끝날 때까지 기다린다.
+    private void publishCommitted(final Object event) {
+        new TransactionTemplate(transactionManager).executeWithoutResult(status -> eventPublisher.publishEvent(event));
+        awaitEventsHandled(jdbcTemplate);
     }
 
     private long deliveryCount() {

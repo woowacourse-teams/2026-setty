@@ -4,13 +4,13 @@ import java.time.Instant;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import setty.delivery.domain.OrderId;
 import setty.delivery.domain.delivery.Delivery;
 import setty.delivery.domain.delivery.DeliveryRoute;
 import setty.delivery.domain.delivery.EstimatedDeliveryFee;
 import setty.delivery.domain.delivery.FurnitureInfo;
+import setty.delivery.persistence.DeliveryOrderDecisionRepository;
 import setty.delivery.persistence.DeliveryRepository;
 import setty.global.exception.BusinessException;
 import setty.global.exception.ErrorCode;
@@ -20,10 +20,10 @@ import setty.global.exception.ErrorCode;
 public class RegisterDeliveryService {
 
     private final DeliveryRepository deliveryRepository;
+    private final DeliveryOrderDecisionRepository decisionRepository;
     private final ApplicationEventPublisher eventPublisher;
 
-    // 발행한 쪽 트랜잭션이 커밋된 뒤 호출되므로 배송만의 새 트랜잭션에서 처리한다.
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Transactional
     public void register(
             final OrderId orderId,
             final FurnitureInfo furniture,
@@ -35,8 +35,8 @@ public class RegisterDeliveryService {
             throw new BusinessException(ErrorCode.INVALID_REQUEST);
         }
 
-        // 재전달된 배송 요청이면 다시 만들지 않는다.
-        if (deliveryRepository.existsByOrderId(orderId)) {
+        // 이미 등록됐거나 취소가 먼저 판정된 주문이면 재발행된 배송 요청이라도 만들지 않는다.
+        if (!decisionRepository.decideRequested(orderId, requestedAt)) {
             return;
         }
 

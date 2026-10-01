@@ -227,7 +227,14 @@ class HttpMetricsHttpIntegrationTest {
     }
 
     @TestConfiguration(proxyBeanMethods = false)
-    @EnableAutoConfiguration(exclude = DataSourceAutoConfiguration.class)
+    // DB 없이 HTTP 지표만 확인하므로 DataSource가 필요한 이벤트 발행 기록 구성도 제외한다.
+    @EnableAutoConfiguration(
+            exclude = DataSourceAutoConfiguration.class,
+            excludeName = {
+                    "org.springframework.modulith.events.config.EventPublicationAutoConfiguration",
+                    "org.springframework.modulith.events.jdbc.JdbcEventPublicationAutoConfiguration"
+            }
+    )
     @Import({MetricsConfig.class, ProbeController.class})
     static class ProbeApplication {
     }

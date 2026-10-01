@@ -21,6 +21,7 @@ import setty.delivery.domain.delivery.DeliveryPoint;
 import setty.delivery.domain.delivery.DeliveryRoute;
 import setty.delivery.domain.delivery.EstimatedDeliveryFee;
 import setty.delivery.domain.delivery.FurnitureInfo;
+import setty.delivery.persistence.DeliveryOrderDecisionRepository;
 import setty.delivery.persistence.DeliveryRepository;
 
 class DeliveryRequestsChangedPublisherTest {
@@ -30,10 +31,12 @@ class DeliveryRequestsChangedPublisherTest {
     @Test
     void registrationPublishesRequestListChangedEvent() {
         final DeliveryRepository deliveryRepository = mock(DeliveryRepository.class);
+        final DeliveryOrderDecisionRepository decisionRepository = mock(DeliveryOrderDecisionRepository.class);
         final ApplicationEventPublisher eventPublisher = mock(ApplicationEventPublisher.class);
-        when(deliveryRepository.existsByOrderId(any(OrderId.class))).thenReturn(false);
+        when(decisionRepository.decideRequested(any(OrderId.class), any(Instant.class))).thenReturn(true);
         final RegisterDeliveryService service = new RegisterDeliveryService(
                 deliveryRepository,
+                decisionRepository,
                 eventPublisher
         );
 
@@ -63,6 +66,7 @@ class DeliveryRequestsChangedPublisherTest {
         when(deliveryRepository.findByIdForUpdate(anyLong())).thenReturn(Optional.of(delivery));
         final DeliveryLifecycleService service = new DeliveryLifecycleService(
                 deliveryRepository,
+                mock(DeliveryOrderDecisionRepository.class),
                 eventPublisher
         );
 

@@ -78,7 +78,18 @@ CREATE TABLE IF NOT EXISTS delivery (
     CONSTRAINT chk_delivery_estimated_fee CHECK (estimated_fee >= 0)
 );
 
+-- 주문별 배송 판정. 배송 요청 등록과 구매자 취소 중 먼저 INSERT한 쪽이 결론을 정한다.
+-- 취소가 먼저 판정된 주문은 재발행된 OrderConfirmed가 와도 배송 요청을 만들지 않는다.
+CREATE TABLE IF NOT EXISTS delivery_order_decision (
+    order_id   BIGINT       NOT NULL,
+    outcome    VARCHAR(20)  NOT NULL,   -- REQUESTED / CANCELLED
+    decided_at TIMESTAMP(6) NOT NULL,
+    PRIMARY KEY (order_id)
+);
 
+-- 판정 테이블 도입 전에 만들어진 배송 요청을 REQUESTED 판정으로 채운다. 이미 있는 판정은 건너뛴다.
+INSERT IGNORE INTO delivery_order_decision (order_id, outcome, decided_at)
+SELECT order_id, 'REQUESTED', requested_at FROM delivery;
 
 CREATE TABLE IF NOT EXISTS delivery_member (
     id                           BIGINT       NOT NULL AUTO_INCREMENT,
@@ -251,4 +262,21 @@ CREATE TABLE IF NOT EXISTS favorites (
     CONSTRAINT uk_favorites_member_listing UNIQUE (member_id, listing_id),
     CONSTRAINT fk_favorites_member  FOREIGN KEY (member_id)  REFERENCES members (id),
     CONSTRAINT fk_favorites_listing FOREIGN KEY (listing_id) REFERENCES listings (id)
+);
+
+-- Spring Modulith 이벤트 발행 기록(spring-modulith-events-jdbc v2 MySQL 스키마).
+-- 모듈 간 이벤트를 리스너별로 기록하고, 처리에 실패하거나 남은 건을 재발행한다.
+-- Modulith가 대문자 테이블명으로 조회하므로 이름을 바꾸지 않는다.
+CREATE TABLE IF NOT EXISTS EVENT_PUBLICATION (
+    ID                     VARCHAR(36)   NOT NULL,
+    LISTENER_ID            VARCHAR(512)  NOT NULL,
+    EVENT_TYPE             VARCHAR(512)  NOT NULL,
+    SERIALIZED_EVENT       VARCHAR(4000) NOT NULL,
+    PUBLICATION_DATE       TIMESTAMP(6)  NOT NULL,
+    COMPLETION_DATE        TIMESTAMP(6)  DEFAULT NULL NULL,
+    STATUS                 VARCHAR(20),
+    COMPLETION_ATTEMPTS    INT,
+    LAST_RESUBMISSION_DATE TIMESTAMP(6)  DEFAULT NULL NULL,
+    PRIMARY KEY (ID),
+    INDEX EVENT_PUBLICATION_BY_COMPLETION_DATE_IDX (COMPLETION_DATE)
 );

@@ -3,6 +3,7 @@ package setty.payment.application;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import setty.common.PaymentFailed;
 import setty.global.exception.BusinessException;
 import setty.global.exception.ErrorCode;
@@ -64,7 +65,9 @@ public class PaymentService {
      * 결제 실패·취소 복귀 처리. 실패는 기록하지 않고 {@code PaymentFailed}만 발행한다 —
      * 수신하는 플랫폼(주문) 팀이 PENDING 주문 삭제·선점 해제를 담당한다.
      * 이미 승인 완료(DONE)된 주문이면 뒤늦게 도착한 실패 복귀이므로 무시한다(주문 보호).
+     * 모듈 간 이벤트는 커밋 이후에 전달되므로 트랜잭션 안에서 발행한다.
      */
+    @Transactional
     public void fail(final String tossOrderId) {
         final Long orderId = extractOrderId(tossOrderId);
         final Payment existing = paymentRepository.findByOrderId(orderId).orElse(null);
