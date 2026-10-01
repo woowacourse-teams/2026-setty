@@ -3,6 +3,7 @@ package com.aksworns22.setty.network
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
+import retrofit2.http.Path
 
 
 interface SettyNetworkApi {
@@ -21,4 +22,9 @@ interface SettyNetworkApi {
 
     @GET("/api/listings")
     suspend fun getListings(): ListingListResponse
+
+    @GET("/api/listings/{listingId}")
+    suspend fun getListingDetail(
+        @Path("listingId") listingId: Long
+    ): ListingDetailResponse
 }
