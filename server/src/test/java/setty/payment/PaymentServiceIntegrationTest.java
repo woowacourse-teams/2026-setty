@@ -101,14 +101,13 @@ class PaymentServiceIntegrationTest extends MySqlIntegrationTestSupport {
         // payment는 주문·배차를 만들지 않는다 — 결과만 이벤트로 알린다.
         assertThat(events.stream(PaymentCompleted.class).map(PaymentCompleted::orderId))
                 .containsExactly(ORDER_ID);
-        assertThat(orderStaysUntouched()).isTrue();
     }
 
     @Test
     void 결제_뒤_주문_처리가_실패해도_결제는_유지된다() {
-        stubTossSuccess();
         // 토스 승인을 기다리는 사이 주문이 먼저 취소되어 주문 확정이 실패하는 상황
-        jdbcTemplate.update("UPDATE orders SET order_status = 'CANCELLED' WHERE id = ?", ORDER_ID);
+        stubTossSuccessAfter(() ->
+                jdbcTemplate.update("UPDATE orders SET order_status = 'CANCELLED' WHERE id = ?", ORDER_ID));
 
         final Payment payment = paymentService.confirm(TOSS_ORDER_ID, PAYMENT_KEY, TOTAL_PRICE);
         awaitEventsHandled(jdbcTemplate);
@@ -143,19 +142,29 @@ class PaymentServiceIntegrationTest extends MySqlIntegrationTestSupport {
     }
 
     @Test
+    void 만료된_주문은_토스를_호출하지_않는다() {
+        expireOrder();
+
+        assertThatThrownBy(() -> paymentService.confirm(TOSS_ORDER_ID, PAYMENT_KEY, TOTAL_PRICE))
+                .isInstanceOf(BusinessException.class)
+                .extracting(e -> ((BusinessException) e).getErrorCode())
+                .isEqualTo(ErrorCode.ORDER_NOT_PAYABLE);
+
+        verify(tossPaymentClient, never()).confirm(anyString(), anyString(), anyInt());
+        assertThat(paymentCount()).isZero();
+    }
+
+    @Test
     void 결제_실패로_복귀하면_결제를_저장하지_않고_PaymentFailed만_발행된다() {
         paymentService.fail(TOSS_ORDER_ID);
 
         assertThat(paymentCount()).isZero();
         assertThat(events.stream(PaymentFailed.class).map(PaymentFailed::orderId))
                 .containsExactly(ORDER_ID);
-        // 기본 픽스처 주문은 CONFIRMED이며 실패 복귀에도 변경되지 않는다.
-        assertThat(orderStaysUntouched()).isTrue();
     }
 
     @Test
     void 결제_실패_후에도_원래_만료_시각까지_PENDING과_매물_선점을_유지한다() {
-        markOrderPending(ORDER_ID);
         markListingPurchaseRequested(LISTING_ID);
 
         paymentService.fail(TOSS_ORDER_ID);
@@ -168,18 +177,14 @@ class PaymentServiceIntegrationTest extends MySqlIntegrationTestSupport {
         assertThat(events.stream(PaymentFailed.class).map(PaymentFailed::orderId))
                 .containsExactly(ORDER_ID);
 
-        jdbcTemplate.update("UPDATE orders SET pending_expires_at = DATE_SUB(NOW(6), INTERVAL 1 MINUTE) WHERE id = ?", ORDER_ID);
-        assertThat(expirationService.expire(ORDER_ID, Instant.now())).isTrue();
+        expireOrder();
         assertThat(orderStatus()).isEqualTo("EXPIRED");
         assertThat(listingPurchaseRequested(LISTING_ID)).isFalse();
     }
 
     @Test
-    void 만료된_주문에_결제가_늦게_완료되면_결제와_EXPIRED_주문을_보존한다() {
-        markOrderPending(ORDER_ID);
-        jdbcTemplate.update("UPDATE orders SET pending_expires_at = DATE_SUB(NOW(6), INTERVAL 1 MINUTE) WHERE id = ?", ORDER_ID);
-        assertThat(expirationService.expire(ORDER_ID, Instant.now())).isTrue();
-        stubTossSuccess();
+    void 승인_응답을_기다리는_중에_만료되면_결제와_EXPIRED_주문을_보존한다() {
+        stubTossSuccessAfter(this::expireOrder);
 
         final Payment payment = paymentService.confirm(TOSS_ORDER_ID, PAYMENT_KEY, TOTAL_PRICE);
         awaitEventsHandled(jdbcTemplate);
@@ -201,10 +206,11 @@ class PaymentServiceIntegrationTest extends MySqlIntegrationTestSupport {
         paymentService.confirm(TOSS_ORDER_ID, PAYMENT_KEY, TOTAL_PRICE);
 
         paymentService.fail(TOSS_ORDER_ID);
+        awaitEventsHandled(jdbcTemplate);
 
         assertThat(paymentCount()).isEqualTo(1);
         assertThat(events.stream(PaymentFailed.class).count()).isZero();
-        assertThat(orderStaysUntouched()).isTrue();
+        assertThat(orderStatus()).isEqualTo("CONFIRMED");
     }
 
     @Test
@@ -244,8 +250,6 @@ class PaymentServiceIntegrationTest extends MySqlIntegrationTestSupport {
 
     @Test
     void 다른_회원의_주문은_실패_처리하지_않는다() {
-        markOrderPending(ORDER_ID);
-
         assertThatThrownBy(() -> paymentService.fail(SELLER_ID, TOSS_ORDER_ID))
                 .isInstanceOf(BusinessException.class)
                 .extracting(e -> ((BusinessException) e).getErrorCode())
@@ -275,19 +279,23 @@ class PaymentServiceIntegrationTest extends MySqlIntegrationTestSupport {
                         PAYMENT_KEY, TOSS_ORDER_ID, "DONE", TOTAL_PRICE, "2026-08-31T12:00:00+09:00"));
     }
 
-    private boolean orderStaysUntouched() {
-        final Integer count = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM orders WHERE id = ? AND delivery_status = 'REQUESTED'",
-                Integer.class, ORDER_ID);
-        return count != null && count == 1;
+    private void stubTossSuccessAfter(final Runnable duringApproval) {
+        when(tossPaymentClient.confirm(eq(PAYMENT_KEY), eq(TOSS_ORDER_ID), eq(TOTAL_PRICE)))
+                .thenAnswer(invocation -> {
+                    duringApproval.run();
+                    return new TossConfirmResult(
+                            PAYMENT_KEY, TOSS_ORDER_ID, "DONE", TOTAL_PRICE, "2026-08-31T12:00:00+09:00");
+                });
+    }
+
+    private void expireOrder() {
+        jdbcTemplate.update(
+                "UPDATE orders SET pending_expires_at = DATE_SUB(NOW(6), INTERVAL 1 MINUTE) WHERE id = ?", ORDER_ID);
+        assertThat(expirationService.expire(ORDER_ID, Instant.now())).isTrue();
     }
 
     private int paymentCount() {
         return jdbcTemplate.queryForObject("SELECT COUNT(*) FROM payments", Integer.class);
-    }
-
-    private void markOrderPending(final long orderId) {
-        jdbcTemplate.update("UPDATE orders SET delivery_status = 'PENDING', order_status = 'PENDING' WHERE id = ?", orderId);
     }
 
     private void markListingPurchaseRequested(final long listingId) {
@@ -335,7 +343,10 @@ class PaymentServiceIntegrationTest extends MySqlIntegrationTestSupport {
 
     private void insertPendingOrder(final long orderId, final long listingId, final long buyerId) {
         jdbcTemplate.update(
-                "INSERT INTO orders (id, listing_id, buyer_id, delivery_status, order_status) VALUES (?, ?, ?, 'REQUESTED', 'CONFIRMED')",
+                """
+                INSERT INTO orders (id, listing_id, buyer_id, delivery_status, order_status, pending_expires_at)
+                VALUES (?, ?, ?, 'PENDING', 'PENDING', DATE_ADD(NOW(6), INTERVAL 5 MINUTE))
+                """,
                 orderId, listingId, buyerId);
     }
 }

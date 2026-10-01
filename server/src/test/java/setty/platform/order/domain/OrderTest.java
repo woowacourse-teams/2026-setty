@@ -56,6 +56,25 @@ class OrderTest {
     }
 
     @Test
+    void 만료_시각_전의_PENDING_주문만_결제할_수_있다() {
+        final Instant pendingExpiresAt = Instant.parse("2026-09-02T05:10:00Z");
+        final Order order = Order.pending(1L, 2L, pendingExpiresAt);
+
+        assertThat(order.isPayable(pendingExpiresAt.minusSeconds(1))).isTrue();
+        assertThat(order.isPayable(pendingExpiresAt)).isFalse();
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = OrderStatus.class, names = {"CONFIRMED", "CANCEL_PENDING", "CANCELLED", "EXPIRED"})
+    void PENDING이_아닌_주문은_만료_시각_전이어도_결제할_수_없다(final OrderStatus orderStatus) {
+        final Instant pendingExpiresAt = Instant.parse("2026-09-02T05:10:00Z");
+        final Order order = Order.pending(1L, 2L, pendingExpiresAt);
+        ReflectionTestUtils.setField(order, "orderStatus", orderStatus);
+
+        assertThat(order.isPayable(pendingExpiresAt.minusSeconds(1))).isFalse();
+    }
+
+    @Test
     void 결제_대기_주문에_배송_이벤트가_오면_거부된다() {
         final Order order = Order.pending(1L, 2L);
 

@@ -5,5 +5,5 @@ public interface PaymentOrderReader {
 
     void verifyBuyer(Long orderId, Long buyerId);
 
-    int expectedAmount(Long orderId);
+    int payableAmount(Long orderId);
 }

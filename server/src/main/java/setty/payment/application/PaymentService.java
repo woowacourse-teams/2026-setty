@@ -36,19 +36,20 @@ public class PaymentService {
     private final ApplicationEventPublisher eventPublisher;
 
     /**
-     * 결제 성공 복귀 처리. 매물 가격으로 금액을 재검증한 뒤 토스 승인을 호출하고 결제를 저장한다.
+     * 결제 성공 복귀 처리. 만료 전 PENDING 주문인지와 금액을 검증한 뒤 토스 승인을 호출하고 결제를 저장한다.
      * 같은 주문이 이미 승인 완료면 재승인 없이 기존 결제를 그대로 돌려준다(멱등).
      */
     public Payment confirm(final String tossOrderId, final String paymentKey, final int amount) {
         final Long orderId = extractOrderId(tossOrderId);
-        final int expectedAmount = paymentOrderReader.expectedAmount(orderId);
-        if (expectedAmount != amount) {
-            throw new BusinessException(ErrorCode.PAYMENT_AMOUNT_MISMATCH);
-        }
-
+        // 승인 완료 후 주문은 PENDING이 아니므로, 결제 가능 여부 검사보다 멱등 반환을 먼저 한다.
         final Payment alreadyPaid = paymentRepository.findByOrderId(orderId).orElse(null);
         if (alreadyPaid != null && alreadyPaid.isDone()) {
             return alreadyPaid;
+        }
+
+        final int payableAmount = paymentOrderReader.payableAmount(orderId);
+        if (payableAmount != amount) {
+            throw new BusinessException(ErrorCode.PAYMENT_AMOUNT_MISMATCH);
         }
 
         // 클라가 토스에 넘긴 orderId 문자열을 그대로 승인에 사용한다(재구성하면 값이 어긋난다).

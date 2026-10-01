@@ -130,6 +130,10 @@ public class Order {
                 && !pendingExpiresAt.isAfter(referenceTime);
     }
 
+    public boolean isPayable(final Instant referenceTime) {
+        return orderStatus == OrderStatus.PENDING && !canExpire(referenceTime);
+    }
+
     public boolean expire(final Instant referenceTime) {
         if (!canExpire(referenceTime)) {
             return false;
