@@ -1,6 +1,8 @@
-export const deliveryStatuses = ['REQUESTED', 'ACCEPTED', 'PICKED_UP', 'DELIVERED'] as const;
+export const deliveryStatuses = ['PENDING', 'REQUESTED', 'ACCEPTED', 'PICKED_UP', 'DELIVERED'] as const;
 
 export type DeliveryStatus = (typeof deliveryStatuses)[number];
+
+export type OrderStatus = 'PENDING' | 'CONFIRMED' | 'CANCEL_PENDING' | 'CANCELLED' | 'EXPIRED';
 
 export type Order = {
     id: number;
@@ -17,11 +19,18 @@ export type MyOrder = {
         thumbnailUrl: string | null;
         price: number;
         deliveryFee: number;
-    };
-    deliveryStatus: DeliveryStatus;
+    } | null;
+    orderStatus?: OrderStatus;
+    deliveryStatus?: DeliveryStatus;
 };
 
-export type OrderErrorCode = 'ALREADY_ORDERED' | 'INVALID_TOKEN' | 'LISTING_NOT_FOUND' | 'CANNOT_ORDER_OWN_LISTING' | 'INVALID_REQUEST';
+export type OrderCancellationResponse = {
+    orderId: number;
+    orderStatus: 'CANCEL_PENDING';
+    message: string;
+};
+
+export type OrderErrorCode = 'ALREADY_ORDERED' | 'INVALID_TOKEN' | 'LISTING_NOT_FOUND' | 'CANNOT_ORDER_OWN_LISTING' | 'INVALID_REQUEST' | 'ORDER_NOT_FOUND' | 'INVALID_ORDER_STATUS_TRANSITION';
 
 type ErrorResponse = {
     code: OrderErrorCode;
@@ -82,4 +91,13 @@ export async function fetchMyOrders(): Promise<MyOrder[]> {
     const response = await fetch('/api/me/orders', { headers: authorizationHeaders() });
     await ensureSuccess(response, '내 주문 목록을 불러오지 못했습니다. 로그인 상태를 확인해 주세요.');
     return response.json() as Promise<MyOrder[]>;
+}
+
+export async function requestOrderCancellation(orderId: number): Promise<OrderCancellationResponse> {
+    const response = await fetch(`/api/orders/${orderId}/cancellations`, {
+        method: 'POST',
+        headers: authorizationHeaders()
+    });
+    await ensureSuccess(response, '주문 취소 요청을 접수하지 못했습니다.');
+    return response.json() as Promise<OrderCancellationResponse>;
 }

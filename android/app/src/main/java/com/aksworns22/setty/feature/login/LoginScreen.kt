@@ -2,11 +2,14 @@ package com.aksworns22.setty.feature.login
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
@@ -44,10 +47,19 @@ import com.aksworns22.setty.ui.theme.SettyTheme
 @Composable
 fun LoginScreen(
     onLoginSuccess: () -> Unit,
+    onSignUpClick: () -> Unit,
+    isSignUpCompleted: Boolean,
+    onSignUpCompletedShown: () -> Unit,
     viewModel: LoginViewModel = viewModel(factory = LoginViewModel.Factory)
 ) {
     val uiState = viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState: SnackbarHostState = remember { SnackbarHostState() }
+    LaunchedEffect(isSignUpCompleted) {
+        if (isSignUpCompleted) {
+            snackbarHostState.showSnackbar("회원가입이 완료되었습니다.")
+            onSignUpCompletedShown()
+        }
+    }
     LaunchedEffect(Unit) {
         viewModel.event.collect { event ->
             when (event) {
@@ -76,6 +88,7 @@ fun LoginScreen(
         onUsernameChanged = viewModel::onUsernameChanged,
         onPasswordChanged = viewModel::onPasswordChanged,
         onLogin = viewModel::login,
+        onSignUpClick = onSignUpClick,
         snackbarHostState = snackbarHostState
     )
 }
@@ -89,20 +102,33 @@ private fun LoginContent(
     onUsernameChanged: (String) -> Unit,
     onPasswordChanged: (String) -> Unit,
     onLogin: () -> Unit,
+    onSignUpClick: () -> Unit,
     snackbarHostState: SnackbarHostState,
     modifier: Modifier = Modifier
 ) {
     Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
+        snackbarHost = {
+            SnackbarHost(
+                hostState = snackbarHostState,
+                modifier = Modifier
+                    .offset(y = 16.dp)
+                    .padding(horizontal = 20.dp),
+            )
+        },
+        bottomBar = {
+            LoginButton(
+                isLoading = isLoading,
+                onLogin = onLogin,
+            )
+        },
         modifier = modifier
             .imePadding()
     ) { paddingValues ->
         Column(
-            verticalArrangement = Arrangement.SpaceBetween,
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(top = 32.dp, bottom = 16.dp, start = 32.dp, end = 32.dp)
+                .padding(top = 32.dp, start = 32.dp, end = 32.dp)
                 .verticalScroll(rememberScrollState())
         ) {
             Column(
@@ -192,22 +218,38 @@ private fun LoginContent(
                         }
                     },
                     style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.clickable { },
+                    modifier = Modifier.clickable(onClick = onSignUpClick),
                 )
             }
-            if (!isLoading) {
-                Button(
-                    onClick = onLogin,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 16.dp)
-                        .height(ButtonDefaults.MediumContainerHeight),
-                ) {
-                    Text("로그인", style = MaterialTheme.typography.bodyLargeEmphasized)
-                }
-            } else {
-                LoadingIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun LoginButton(
+    isLoading: Boolean,
+    onLogin: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = modifier
+            .fillMaxWidth()
+            .navigationBarsPadding()
+            .padding(top = 16.dp, bottom = 16.dp, start = 32.dp, end = 32.dp),
+    ) {
+        if (!isLoading) {
+            Button(
+                onClick = onLogin,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(ButtonDefaults.MediumContainerHeight),
+            ) {
+                Text("로그인", style = MaterialTheme.typography.bodyLargeEmphasized)
             }
+        } else {
+            LoadingIndicator()
         }
     }
 }
@@ -223,6 +265,7 @@ private fun LoginContentPreview() {
             onUsernameChanged = {},
             onPasswordChanged = {},
             onLogin = {},
+            onSignUpClick = {},
             snackbarHostState = SnackbarHostState()
         )
     }
@@ -239,6 +282,7 @@ private fun LoginContentLoadingPreview() {
             onUsernameChanged = {},
             onPasswordChanged = {},
             onLogin = {},
+            onSignUpClick = {},
             snackbarHostState = SnackbarHostState()
         )
     }

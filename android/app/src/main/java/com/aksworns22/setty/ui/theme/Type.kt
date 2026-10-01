@@ -24,10 +24,27 @@ val Typography = Typography(
         fontFamily = Paperlogy,
         fontWeight = FontWeight.Black
     ),
+    titleMediumEmphasized = baseTypography.titleMediumEmphasized.copy(
+        fontFamily = Paperlogy
+    ),
     bodyLargeEmphasized = baseTypography.bodyLargeEmphasized.copy(
         fontFamily = Paperlogy
     ),
     bodyMediumEmphasized = baseTypography.bodyMediumEmphasized.copy(
+        fontFamily = Paperlogy
+    ),
+    headlineSmallEmphasized = baseTypography.headlineSmallEmphasized.copy(
+        fontFamily = Paperlogy,
+        fontWeight = FontWeight.Black
+    ),
+    titleMedium = baseTypography.titleMedium.copy(
+        fontFamily = Paperlogy,
+        fontWeight = FontWeight.SemiBold
+    ),
+    labelLarge = baseTypography.labelLarge.copy(
+        fontFamily = Paperlogy
+    ),
+    labelMedium = baseTypography.labelMedium.copy(
         fontFamily = Paperlogy
     ),
 )

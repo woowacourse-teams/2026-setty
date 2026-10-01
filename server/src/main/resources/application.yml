@@ -16,6 +16,17 @@ spring:
     init:
       mode: always
 
+  modulith:
+    events:
+      jdbc:
+        # EVENT_PUBLICATION도 schema.sql로만 관리한다.
+        schema-initialization:
+          enabled: false
+      # 처리 완료된 발행 기록은 지워 테이블이 계속 쌓이지 않게 한다. 미완료·실패 건만 남는다.
+      completion-mode: delete
+      # 처리 도중 서버가 내려가 남은 발행 기록은 재시작 시 다시 발행한다.
+      republish-outstanding-events-on-restart: true
+
   servlet:
     multipart:
       max-file-size: 25MB
@@ -34,7 +45,7 @@ management:
 setty:
   order:
     pending-expiration:
-      timeout: ${PENDING_ORDER_EXPIRATION_TIMEOUT:PT3M}
+      timeout: ${PENDING_ORDER_EXPIRATION_TIMEOUT:PT6M}
       scan-interval: ${PENDING_ORDER_EXPIRATION_SCAN_INTERVAL:PT1M}
   storage:
     listing-images:

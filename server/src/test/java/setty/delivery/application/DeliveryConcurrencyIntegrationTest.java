@@ -1,0 +1,134 @@
+package setty.delivery.application;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.jdbc.core.JdbcTemplate;
+import setty.delivery.domain.DeliveryId;
+import setty.delivery.domain.DriverId;
+import setty.delivery.domain.OrderId;
+import setty.delivery.domain.delivery.DeliveryPoint;
+import setty.delivery.domain.delivery.DeliveryRoute;
+import setty.delivery.domain.delivery.EstimatedDeliveryFee;
+import setty.delivery.domain.delivery.FurnitureInfo;
+import setty.global.exception.BusinessException;
+import setty.support.MySqlIntegrationTestSupport;
+
+@SpringBootTest
+class DeliveryConcurrencyIntegrationTest extends MySqlIntegrationTestSupport {
+
+    private static final long ORDER_ID = 101L;
+    private static final Instant NOW = Instant.parse("2026-08-26T01:00:00Z");
+
+    @Autowired
+    private RegisterDeliveryService registerDeliveryService;
+
+    @Autowired
+    private DeliveryLifecycleService deliveryLifecycleService;
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
+    @BeforeEach
+    void setUp() {
+        jdbcTemplate.update("DELETE FROM delivery");
+        jdbcTemplate.update("DELETE FROM delivery_order_decision");
+    }
+
+    @Test
+    void onlyOneOfConcurrentAcceptancesSucceeds() throws Exception {
+        final DeliveryId deliveryId = register();
+
+        final List<Boolean> results = runConcurrently(
+                succeeds(() -> deliveryLifecycleService.accept(deliveryId, new DriverId(201L), NOW)),
+                succeeds(() -> deliveryLifecycleService.accept(deliveryId, new DriverId(202L), NOW))
+        );
+
+        assertThat(results).containsExactlyInAnyOrder(true, false);
+        assertThat(deliveryStatus()).isEqualTo("ACCEPTED");
+    }
+
+    @Test
+    void acceptanceAndCancellationDoNotBothTakeEffect() throws Exception {
+        final DeliveryId deliveryId = register();
+
+        final List<Boolean> results = runConcurrently(
+                succeeds(() -> deliveryLifecycleService.accept(deliveryId, new DriverId(201L), NOW)),
+                succeeds(() -> deliveryLifecycleService.cancel(OrderId.from(ORDER_ID), "cancel-request-1", NOW))
+        );
+
+        final boolean accepted = results.getFirst();
+        assertThat(results.getLast()).isTrue();
+        assertThat(deliveryStatus()).isEqualTo(accepted ? "ACCEPTED" : "CANCELLED");
+    }
+
+    private DeliveryId register() {
+        registerDeliveryService.register(
+                OrderId.from(ORDER_ID),
+                FurnitureInfo.of("가상 원목 의자", "CHAIR"),
+                DeliveryRoute.of(
+                        DeliveryPoint.pickup("서울시 가상구 출발로 1", "010-0000-0001"),
+                        DeliveryPoint.destination("서울시 가상구 도착로 2", "010-0000-0002")
+                ),
+                EstimatedDeliveryFee.from(10_000),
+                NOW
+        );
+        final List<Long> ids = jdbcTemplate.queryForList(
+                "SELECT id FROM delivery WHERE order_id = ?", Long.class, ORDER_ID
+        );
+        return ids.isEmpty() ? null : new DeliveryId(ids.getFirst());
+    }
+
+    @SafeVarargs
+    private static List<Boolean> runConcurrently(final Callable<Boolean>... tasks) throws Exception {
+        final ExecutorService executor = Executors.newFixedThreadPool(tasks.length);
+        final CountDownLatch start = new CountDownLatch(1);
+        try {
+            final List<Future<Boolean>> futures = Arrays.stream(tasks)
+                    .map(task -> executor.submit(() -> {
+                        start.await();
+                        return task.call();
+                    }))
+                    .toList();
+            start.countDown();
+            final List<Boolean> results = new ArrayList<>();
+            for (final Future<Boolean> future : futures) {
+                results.add(future.get(10, TimeUnit.SECONDS));
+            }
+            return results;
+        } finally {
+            executor.shutdownNow();
+        }
+    }
+
+    private static Callable<Boolean> succeeds(final Runnable action) {
+        return () -> {
+            try {
+                action.run();
+                return true;
+            } catch (final BusinessException exception) {
+                return false;
+            }
+        };
+    }
+
+    private String deliveryStatus() {
+        return jdbcTemplate.queryForObject(
+                "SELECT status FROM delivery WHERE order_id = ?", String.class, ORDER_ID
+        );
+    }
+
+}

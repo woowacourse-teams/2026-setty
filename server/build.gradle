@@ -39,6 +39,10 @@ dependencies {
 
     implementation platform('software.amazon.awssdk:bom:2.46.8')
     implementation 'software.amazon.awssdk:s3'
+
+    // 모듈 간 이벤트를 커밋 이후 별도 트랜잭션에서 처리하고, 발행 기록(EVENT_PUBLICATION)으로 실패 건을 재발행한다.
+    implementation platform('org.springframework.modulith:spring-modulith-bom:2.1.1')
+    implementation 'org.springframework.modulith:spring-modulith-starter-jdbc'
 }
 
 tasks.named('test') {

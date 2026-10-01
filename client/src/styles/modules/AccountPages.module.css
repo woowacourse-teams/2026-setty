@@ -271,6 +271,18 @@
     text-align: right;
 }
 
+.my-orders__unavailable {
+    color: #77716d;
+    font-size: 15px;
+    font-weight: 700;
+}
+
+.my-orders__actions {
+    display: grid;
+    gap: 6px;
+    justify-items: center;
+}
+
 .my-orders__status {
     color: #292929;
     font-size: 14px;
@@ -288,6 +300,32 @@
 
 .my-orders__status--delivered {
     color: #41733c;
+}
+
+.my-orders__status--cancel-pending {
+    color: #ef7b32;
+}
+
+.my-orders__status--cancelled,
+.my-orders__status--expired {
+    color: #77716d;
+}
+
+.my-orders__cancel {
+    min-height: 36px;
+    padding: 7px 10px;
+    border: 1px solid #e3ded8;
+    border-radius: 10px;
+    color: #5b5753;
+    background: #ffffff;
+    font-size: 12px;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.my-orders__cancel:disabled {
+    cursor: wait;
+    opacity: 0.58;
 }
 
 .my-favorites__select {
@@ -540,8 +578,8 @@
     .my-orders__item {
             grid-template-columns: minmax(0, 1fr) auto;
             grid-template-areas:
-                'select status'
-                'total total';
+                'select select'
+                'total actions';
             gap: 13px 16px;
         }
 
@@ -558,12 +596,20 @@
 
     .my-orders__total {
             grid-area: total;
-            text-align: right;
+            text-align: left;
+        }
+
+    .my-orders__actions {
+            grid-area: actions;
+            justify-items: end;
         }
 
     .my-orders__status {
-            grid-area: status;
             white-space: nowrap;
+        }
+
+    .my-orders__cancel {
+            min-height: 44px;
         }
 }
 

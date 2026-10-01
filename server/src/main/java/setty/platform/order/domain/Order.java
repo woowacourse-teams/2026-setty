@@ -18,7 +18,7 @@ import setty.global.exception.ErrorCode;
 @Table(name = "orders")
 public class Order {
 
-    private static final Duration DEFAULT_PENDING_TIMEOUT = Duration.ofMinutes(3);
+    private static final Duration DEFAULT_PENDING_TIMEOUT = Duration.ofMinutes(6);
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -34,6 +34,13 @@ public class Order {
     @Column(name = "delivery_status", nullable = false, length = 20)
     private DeliveryStatus deliveryStatus;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "order_status", nullable = false, length = 20)
+    private OrderStatus orderStatus;
+
+    @Column(name = "cancellation_request_id", length = 36)
+    private String cancellationRequestId;
+
     @Column(name = "driver_id")
     private Long driverId;
 
@@ -47,20 +54,63 @@ public class Order {
         this.listingId = listingId;
         this.buyerId = buyerId;
         this.deliveryStatus = DeliveryStatus.REQUESTED;
+        this.orderStatus = OrderStatus.CONFIRMED;
     }
 
     public boolean requestDelivery() {
-        if (this.deliveryStatus == DeliveryStatus.REQUESTED) {
+        if (this.orderStatus == OrderStatus.CONFIRMED) {
             return false;
+        }
+        if (this.orderStatus != OrderStatus.PENDING) {
+            throw new BusinessException(ErrorCode.INVALID_ORDER_STATUS_TRANSITION);
         }
         if (this.deliveryStatus != DeliveryStatus.PENDING) {
             throw new BusinessException(ErrorCode.ORDER_DELIVERY_STATUS_MISMATCH);
         }
         this.deliveryStatus = DeliveryStatus.REQUESTED;
+        this.orderStatus = OrderStatus.CONFIRMED;
         return true;
     }
 
-    // 결제 대기 주문 — 배송이 시작되지 않았으므로 OrderRequested를 발행하지 않는 경로에서만 쓴다.
+    public boolean requestCancellation(final String cancellationRequestId) {
+        if (this.orderStatus == OrderStatus.CANCEL_PENDING) {
+            return false;
+        }
+        if (this.orderStatus != OrderStatus.CONFIRMED) {
+            throw new BusinessException(ErrorCode.INVALID_ORDER_STATUS_TRANSITION);
+        }
+        if (cancellationRequestId == null || cancellationRequestId.isBlank()) {
+            throw new BusinessException(ErrorCode.INVALID_REQUEST);
+        }
+        this.orderStatus = OrderStatus.CANCEL_PENDING;
+        this.cancellationRequestId = cancellationRequestId;
+        return true;
+    }
+
+    public boolean confirmCancellation(final String cancellationRequestId) {
+        if (!isCurrentCancellationRequest(cancellationRequestId)
+                || this.orderStatus != OrderStatus.CANCEL_PENDING) {
+            return false;
+        }
+        this.orderStatus = OrderStatus.CANCELLED;
+        return true;
+    }
+
+    public boolean rejectCancellation(final String cancellationRequestId) {
+        if (!isCurrentCancellationRequest(cancellationRequestId)
+                || this.orderStatus != OrderStatus.CANCEL_PENDING) {
+            return false;
+        }
+        this.orderStatus = OrderStatus.CONFIRMED;
+        return true;
+    }
+
+    private boolean isCurrentCancellationRequest(final String cancellationRequestId) {
+        return cancellationRequestId != null
+                && cancellationRequestId.equals(this.cancellationRequestId);
+    }
+
+    // 결제 대기 주문 — 배송이 시작되지 않았으므로 OrderConfirmed를 발행하지 않는 경로에서만 쓴다.
     public static Order pending(final Long listingId, final Long buyerId) {
         return pending(listingId, buyerId, Instant.now().plus(DEFAULT_PENDING_TIMEOUT));
     }
@@ -68,15 +118,28 @@ public class Order {
     public static Order pending(final Long listingId, final Long buyerId, final Instant pendingExpiresAt) {
         final Order order = new Order(listingId, buyerId);
         order.deliveryStatus = DeliveryStatus.PENDING;
+        order.orderStatus = OrderStatus.PENDING;
         order.pendingExpiresAt = pendingExpiresAt;
         return order;
     }
 
     public boolean canExpire(final Instant referenceTime) {
-        return deliveryStatus == DeliveryStatus.PENDING
+        return orderStatus == OrderStatus.PENDING
                 && pendingExpiresAt != null
                 && referenceTime != null
                 && !pendingExpiresAt.isAfter(referenceTime);
+    }
+
+    public boolean isPayable(final Instant referenceTime) {
+        return orderStatus == OrderStatus.PENDING && !canExpire(referenceTime);
+    }
+
+    public boolean expire(final Instant referenceTime) {
+        if (!canExpire(referenceTime)) {
+            return false;
+        }
+        orderStatus = OrderStatus.EXPIRED;
+        return true;
     }
 
     // 직전 상태에서 한 단계 전진만 허용,
@@ -117,6 +180,14 @@ public class Order {
 
     public DeliveryStatus getDeliveryStatus() {
         return deliveryStatus;
+    }
+
+    public OrderStatus getOrderStatus() {
+        return orderStatus;
+    }
+
+    public String getCancellationRequestId() {
+        return cancellationRequestId;
     }
 
     public Long getDriverId() {

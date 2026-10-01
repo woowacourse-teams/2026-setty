@@ -6,11 +6,13 @@ import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.config.MeterFilter;
 import io.micrometer.registry.otlp.OtlpMeterRegistry;
 import java.util.List;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.micrometer.metrics.autoconfigure.MeterRegistryCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
+import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 
 @Configuration
 @Profile({"dev", "prod"})
@@ -20,6 +22,12 @@ public class MetricsConfig {
     @Bean
     HttpRequestCountHandler httpRequestCountHandler(MeterRegistry registry) {
         return new HttpRequestCountHandler(registry);
+    }
+
+    @Bean
+    HttpRequestHistogramInitializer httpRequestHistogramInitializer(
+            OtlpMeterRegistry registry, ObjectProvider<RequestMappingHandlerMapping> mappings) {
+        return new HttpRequestHistogramInitializer(registry, mappings);
     }
 
     @Bean

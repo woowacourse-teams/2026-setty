@@ -1,7 +1,9 @@
 package setty.platform.order;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static setty.global.event.EventPublicationTestSupport.awaitEventsHandled;
 
 import java.time.Instant;
 import java.util.concurrent.CompletableFuture;
@@ -14,36 +16,26 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.mysql.MySQLContainer;
-import setty.common.DeliveryStatusChanged;
-import setty.global.exception.BusinessException;
-import setty.global.exception.ErrorCode;
+import setty.common.DeliveryAccepted;
+import setty.common.DeliveryDelivered;
+import setty.common.DeliveryPickedUp;
+import setty.common.DeliveryStatus;
 import setty.platform.listing.storage.ListingImageStorage;
 import setty.platform.order.service.SyncOrderDeliveryStatusService;
+import setty.support.MySqlIntegrationTestSupport;
 
 @SpringBootTest
-@Testcontainers
-class SyncOrderDeliveryStatusServiceTest {
+class SyncOrderDeliveryStatusServiceTest extends MySqlIntegrationTestSupport {
 
     private static final long SELLER_ID = 101L;
     private static final long BUYER_ID = 202L;
     private static final long LISTING_ID = 11L;
     private static final long ORDER_ID = 1L;
-
-    @Container
-    @ServiceConnection
-    static final MySQLContainer MYSQL = new MySQLContainer("mysql:8.4.11")
-            .withDatabaseName("setty_test")
-            .withUsername("setty_test")
-            .withPassword("setty_test");
 
     @Autowired
     private ApplicationEventPublisher eventPublisher;
@@ -71,6 +63,8 @@ class SyncOrderDeliveryStatusServiceTest {
 
     @AfterEach
     void cleanUp() {
+        awaitEventsHandled(jdbcTemplate);
+        jdbcTemplate.update("DELETE FROM EVENT_PUBLICATION");
         jdbcTemplate.update("DELETE FROM delivery");
         jdbcTemplate.update("DELETE FROM orders");
         jdbcTemplate.update("DELETE FROM listing_images");
@@ -79,42 +73,42 @@ class SyncOrderDeliveryStatusServiceTest {
     }
 
     @Test
-    void 배송_상태_변경_이벤트를_수신하면_주문_상태가_갱신된다() {
-        eventPublisher.publishEvent(
-                new DeliveryStatusChanged(1L, ORDER_ID, "ACCEPTED", Instant.now()));
+    void 배송_수락_이벤트를_수신하면_주문_상태가_갱신된다() {
+        publishCommitted(new DeliveryAccepted(1L, ORDER_ID, Instant.now()));
 
         assertThat(deliveryStatusOf(ORDER_ID)).isEqualTo("ACCEPTED");
     }
 
     @Test
     void 상태는_순서대로_끝까지_전이된다() {
-        eventPublisher.publishEvent(new DeliveryStatusChanged(1L, ORDER_ID, "ACCEPTED", Instant.now()));
-        eventPublisher.publishEvent(new DeliveryStatusChanged(1L, ORDER_ID, "PICKED_UP", Instant.now()));
-        eventPublisher.publishEvent(new DeliveryStatusChanged(1L, ORDER_ID, "DELIVERED", Instant.now()));
+        publishCommitted(new DeliveryAccepted(1L, ORDER_ID, Instant.now()));
+        publishCommitted(new DeliveryPickedUp(1L, ORDER_ID, Instant.now()));
+        publishCommitted(new DeliveryDelivered(1L, ORDER_ID, Instant.now()));
 
         assertThat(deliveryStatusOf(ORDER_ID)).isEqualTo("DELIVERED");
     }
 
     @Test
     void 역행_이벤트는_거부되고_상태가_유지된다() {
-        eventPublisher.publishEvent(new DeliveryStatusChanged(1L, ORDER_ID, "ACCEPTED", Instant.now()));
-        eventPublisher.publishEvent(new DeliveryStatusChanged(1L, ORDER_ID, "PICKED_UP", Instant.now()));
+        publishCommitted(new DeliveryAccepted(1L, ORDER_ID, Instant.now()));
+        publishCommitted(new DeliveryPickedUp(1L, ORDER_ID, Instant.now()));
 
-        assertThatThrownBy(() -> eventPublisher.publishEvent(
-                new DeliveryStatusChanged(1L, ORDER_ID, "ACCEPTED", Instant.now())))
-                .isInstanceOf(BusinessException.class)
-                .extracting(e -> ((BusinessException) e).getErrorCode())
-                .isEqualTo(ErrorCode.ORDER_DELIVERY_STATUS_MISMATCH);
+        // 주문 쪽 거부는 발행한 배송에 전파되지 않고 발행 기록에 미완료로 남는다.
+        assertThatCode(() -> publishCommitted(new DeliveryAccepted(1L, ORDER_ID, Instant.now())))
+                .doesNotThrowAnyException();
+
         assertThat(deliveryStatusOf(ORDER_ID)).isEqualTo("PICKED_UP");
+        assertThat(incompleteOrderListenerPublicationCount()).isOne();
     }
 
     @Test
     void 같은_상태_중복_이벤트는_무시된다() {
-        eventPublisher.publishEvent(new DeliveryStatusChanged(1L, ORDER_ID, "ACCEPTED", Instant.now()));
+        publishCommitted(new DeliveryAccepted(1L, ORDER_ID, Instant.now()));
 
-        eventPublisher.publishEvent(new DeliveryStatusChanged(1L, ORDER_ID, "ACCEPTED", Instant.now()));
+        publishCommitted(new DeliveryAccepted(1L, ORDER_ID, Instant.now()));
 
         assertThat(deliveryStatusOf(ORDER_ID)).isEqualTo("ACCEPTED");
+        assertThat(incompleteOrderListenerPublicationCount()).isZero();
     }
 
     @Test
@@ -124,13 +118,13 @@ class SyncOrderDeliveryStatusServiceTest {
             final CompletableFuture<Void> nextChange = new TransactionTemplate(transactionManager)
                     .execute(transaction -> {
                         syncOrderDeliveryStatusService.sync(
-                                new DeliveryStatusChanged(1L, ORDER_ID, "ACCEPTED", Instant.now()));
+                                1L, ORDER_ID, Instant.now(), DeliveryStatus.ACCEPTED);
 
                         final CompletableFuture<Void> started = new CompletableFuture<>();
                         final CompletableFuture<Void> pendingChange = CompletableFuture.runAsync(() -> {
                             started.complete(null);
                             syncOrderDeliveryStatusService.sync(
-                                    new DeliveryStatusChanged(1L, ORDER_ID, "PICKED_UP", Instant.now()));
+                                    1L, ORDER_ID, Instant.now(), DeliveryStatus.PICKED_UP);
                         }, executor);
 
                         started.orTimeout(5, TimeUnit.SECONDS).join();
@@ -148,21 +142,27 @@ class SyncOrderDeliveryStatusServiceTest {
     }
 
     @Test
-    void 알_수_없는_상태는_거부된다() {
-        assertThatThrownBy(() -> eventPublisher.publishEvent(
-                new DeliveryStatusChanged(1L, ORDER_ID, "FLYING", Instant.now())))
-                .isInstanceOf(BusinessException.class)
-                .extracting(e -> ((BusinessException) e).getErrorCode())
-                .isEqualTo(ErrorCode.INVALID_REQUEST);
+    void 존재하지_않는_주문이면_거부된다() {
+        assertThatCode(() -> publishCommitted(new DeliveryAccepted(1L, 999L, Instant.now())))
+                .doesNotThrowAnyException();
+
+        assertThat(incompleteOrderListenerPublicationCount()).isOne();
     }
 
-    @Test
-    void 존재하지_않는_주문이면_거부된다() {
-        assertThatThrownBy(() -> eventPublisher.publishEvent(
-                new DeliveryStatusChanged(1L, 999L, "ACCEPTED", Instant.now())))
-                .isInstanceOf(BusinessException.class)
-                .extracting(e -> ((BusinessException) e).getErrorCode())
-                .isEqualTo(ErrorCode.ORDER_NOT_FOUND);
+    // 모듈 간 이벤트는 발행한 쪽이 커밋된 뒤 비동기로 전달되므로 처리가 끝날 때까지 기다린다.
+    private void publishCommitted(final Object event) {
+        new TransactionTemplate(transactionManager).executeWithoutResult(status -> eventPublisher.publishEvent(event));
+        awaitEventsHandled(jdbcTemplate);
+    }
+
+    private long incompleteOrderListenerPublicationCount() {
+        return jdbcTemplate.queryForObject(
+                """
+                SELECT COUNT(*) FROM EVENT_PUBLICATION
+                WHERE LISTENER_ID LIKE 'setty.platform.order.%' AND COMPLETION_DATE IS NULL
+                """,
+                Long.class
+        );
     }
 
     private String deliveryStatusOf(final long orderId) {
@@ -199,8 +199,8 @@ class SyncOrderDeliveryStatusServiceTest {
     private void insertOrder(final long orderId, final long listingId, final long buyerId, final String status) {
         jdbcTemplate.update(
                 """
-                INSERT INTO orders (id, listing_id, buyer_id, delivery_status, driver_id)
-                VALUES (?, ?, ?, ?, NULL)
+                INSERT INTO orders (id, listing_id, buyer_id, delivery_status, order_status, driver_id)
+                VALUES (?, ?, ?, ?, 'CONFIRMED', NULL)
                 """,
                 orderId,
                 listingId,

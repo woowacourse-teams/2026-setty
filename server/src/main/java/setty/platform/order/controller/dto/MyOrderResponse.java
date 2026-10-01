@@ -6,6 +6,7 @@ import setty.platform.order.domain.Order;
 public record MyOrderResponse(
         Long id,
         ListingInfo listing,
+        String orderStatus,
         String deliveryStatus
 ) {
 
@@ -28,6 +29,7 @@ public record MyOrderResponse(
                         listing.price(),
                         listing.deliveryFee()
                 ),
+                order.getOrderStatus().name(),
                 order.getDeliveryStatus().name()
         );
     }

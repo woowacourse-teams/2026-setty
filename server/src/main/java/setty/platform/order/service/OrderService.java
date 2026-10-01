@@ -1,16 +1,21 @@
 package setty.platform.order.service;
 
 import java.time.Clock;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import setty.common.DeliveryStatus;
-import setty.common.OrderRequested;
+import setty.common.OrderCancellationRequested;
+import setty.common.OrderCancelled;
+import setty.common.OrderConfirmed;
 import setty.global.exception.BusinessException;
 import setty.global.exception.ErrorCode;
 import setty.platform.listing.application.ListingService;
@@ -21,12 +26,16 @@ import setty.platform.member.domain.Member;
 import setty.platform.member.repository.MemberRepository;
 import setty.platform.order.config.PendingOrderExpirationProperties;
 import setty.platform.order.controller.dto.MyOrderResponse;
+import setty.platform.order.controller.dto.OrderCancellationResponse;
 import setty.platform.order.controller.dto.OrderCreateRequest;
 import setty.platform.order.domain.Order;
+import setty.platform.order.domain.OrderStatus;
 import setty.platform.order.repository.OrderRepository;
 
 @Service
 public class OrderService {
+
+    private static final Logger log = LoggerFactory.getLogger(OrderService.class);
 
     private final OrderRepository orderRepository;
     private final ListingService listingService;
@@ -54,10 +63,11 @@ public class OrderService {
         this.pendingOrderExpirationProperties = pendingOrderExpirationProperties;
     }
 
-    // 결제 대기 주문 생성 — 결제 전이므로 OrderRequested(배차 요청)를 발행하지 않는다.
+    // 결제 대기 주문 생성 — 결제 전이므로 OrderConfirmed(배차 요청)를 발행하지 않는다.
     @Transactional
     public Order pending(final OrderCreateRequest request, final Member buyer) {
-        if (orderRepository.existsByListingId(request.listingId())) {
+        if (orderRepository.existsByListingIdAndOrderStatusNotIn(
+                request.listingId(), List.of(OrderStatus.EXPIRED, OrderStatus.CANCELLED))) {
             throw new BusinessException(ErrorCode.ALREADY_ORDERED);
         }
 
@@ -75,13 +85,17 @@ public class OrderService {
     }
 
     @Transactional
-    public void publishOrderRequested(final Long orderId) {
+    public void publishOrderConfirmed(final Long orderId) {
         if (orderId == null || orderId <= 0) {
             throw new BusinessException(ErrorCode.INVALID_REQUEST);
         }
 
         final Order order = orderRepository.findByIdForUpdate(orderId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
+        if (order.getOrderStatus() == OrderStatus.EXPIRED) {
+            log.error("만료된 주문에 결제 완료가 도착했습니다. 수동 환불 확인이 필요합니다. orderId={}", orderId);
+            return;
+        }
         if (!order.requestDelivery()) {
             return;
         }
@@ -93,7 +107,7 @@ public class OrderService {
         final Member buyer = memberRepository.findById(order.getBuyerId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.INTERNAL_ERROR));
 
-        eventPublisher.publishEvent(new OrderRequested(
+        eventPublisher.publishEvent(new OrderConfirmed(
                 order.getId(),
                 listing.getTitle(),
                 listing.getCategory().name(),
@@ -105,23 +119,71 @@ public class OrderService {
         ));
     }
 
-    /**
-     * 결제 실패(PaymentFailed) 보상 — PENDING 주문을 삭제하고 매물 선점을 해제해 다시 구매 가능하게 한다.
-     * 주문이 없거나(중복 실패 복귀) 이미 REQUESTED 이상이면(결제 완료된 주문 보호) 조용히 무시한다.
-     */
     @Transactional
-    public void cancelPending(final Long orderId) {
-        if (orderId == null || orderId <= 0) {
+    public OrderCancellationResponse requestCancellation(final Long orderId, final Long buyerId) {
+        if (orderId == null || orderId <= 0 || buyerId == null || buyerId <= 0) {
+            throw new BusinessException(ErrorCode.INVALID_REQUEST);
+        }
+
+        final Order order = orderRepository.findByIdAndBuyerIdForUpdate(orderId, buyerId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
+        final String cancellationRequestId = UUID.randomUUID().toString();
+        final boolean cancelStarted = order.requestCancellation(cancellationRequestId);
+        final OrderCancellationResponse response = OrderCancellationResponse.from(order);
+        if (cancelStarted) {
+            eventPublisher.publishEvent(new OrderCancellationRequested(
+                    order.getId(),
+                    order.getCancellationRequestId()
+            ));
+        }
+        return response;
+    }
+
+    @Transactional
+    public void confirmCancellation(
+            final Long orderId,
+            final String cancellationRequestId,
+            final Instant decidedAt
+    ) {
+        validateCancellationResult(orderId, cancellationRequestId, decidedAt);
+
+        final Order order = orderRepository.findByIdForUpdate(orderId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
+        if (!order.confirmCancellation(cancellationRequestId)) {
             return;
         }
 
-        final Order order = orderRepository.findByIdForUpdate(orderId).orElse(null);
-        if (order == null || order.getDeliveryStatus() != DeliveryStatus.PENDING) {
-            return;
-        }
+        eventPublisher.publishEvent(new OrderCancelled(
+                order.getId(),
+                order.getListingId(),
+                cancellationRequestId,
+                clock.instant()
+        ));
+    }
 
-        listingService.releasePurchaseRequest(order.getListingId());
-        orderRepository.delete(order);
+    @Transactional
+    public void rejectCancellation(
+            final Long orderId,
+            final String cancellationRequestId,
+            final Instant decidedAt
+    ) {
+        validateCancellationResult(orderId, cancellationRequestId, decidedAt);
+
+        final Order order = orderRepository.findByIdForUpdate(orderId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
+        order.rejectCancellation(cancellationRequestId);
+    }
+
+    private void validateCancellationResult(
+            final Long orderId,
+            final String cancellationRequestId,
+            final Instant decidedAt
+    ) {
+        if (orderId == null || orderId <= 0
+                || cancellationRequestId == null || cancellationRequestId.isBlank()
+                || decidedAt == null) {
+            throw new BusinessException(ErrorCode.INVALID_REQUEST);
+        }
     }
 
     @Transactional(readOnly = true)
