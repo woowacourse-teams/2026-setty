@@ -16,7 +16,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.mysql.MySQLContainer;
-import setty.common.OrderRequested;
+import setty.common.OrderConfirmed;
 
 @SpringBootTest
 @Testcontainers
@@ -41,8 +41,8 @@ class RegisterDeliveryServiceTest {
     }
 
     @Test
-    void orderRequestedEventCreatesRequestedDeliveryWithMatchingData() {
-        eventPublisher.publishEvent(orderRequested(101L));
+    void orderConfirmedEventCreatesRequestedDeliveryWithMatchingData() {
+        eventPublisher.publishEvent(orderConfirmed(101L));
 
         final Map<String, Object> row = jdbcTemplate.queryForMap("SELECT * FROM delivery");
         assertThat(row.get("order_id")).isEqualTo(101L);
@@ -59,8 +59,8 @@ class RegisterDeliveryServiceTest {
     }
 
     @Test
-    void duplicatedOrderRequestedEventCreatesOneDelivery() {
-        final OrderRequested event = orderRequested(202L);
+    void duplicatedOrderConfirmedEventCreatesOneDelivery() {
+        final OrderConfirmed event = orderConfirmed(202L);
 
         eventPublisher.publishEvent(event);
         eventPublisher.publishEvent(event);
@@ -104,8 +104,8 @@ class RegisterDeliveryServiceTest {
         return jdbcTemplate.queryForObject("SELECT COUNT(*) FROM delivery", Long.class);
     }
 
-    private static OrderRequested orderRequested(final long orderId) {
-        return new OrderRequested(
+    private static OrderConfirmed orderConfirmed(final long orderId) {
+        return new OrderConfirmed(
                 orderId,
                 "가상 원목 의자",
                 "CHAIR",

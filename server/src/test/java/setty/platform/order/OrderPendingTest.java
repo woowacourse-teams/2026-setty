@@ -78,6 +78,9 @@ class OrderPendingTest {
         final String status = jdbcTemplate.queryForObject(
                 "SELECT delivery_status FROM orders WHERE id = ?", String.class, order.getId());
         assertThat(status).isEqualTo("PENDING");
+        final String orderStatus = jdbcTemplate.queryForObject(
+                "SELECT order_status FROM orders WHERE id = ?", String.class, order.getId());
+        assertThat(orderStatus).isEqualTo("PENDING");
 
         final Integer deliveryCount = jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM delivery", Integer.class);

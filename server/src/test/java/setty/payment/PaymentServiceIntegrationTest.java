@@ -210,7 +210,7 @@ class PaymentServiceIntegrationTest {
     }
 
     private void markOrderPending(final long orderId) {
-        jdbcTemplate.update("UPDATE orders SET delivery_status = 'PENDING' WHERE id = ?", orderId);
+        jdbcTemplate.update("UPDATE orders SET delivery_status = 'PENDING', order_status = 'PENDING' WHERE id = ?", orderId);
     }
 
     private void markListingPurchaseRequested(final long listingId) {
@@ -258,7 +258,7 @@ class PaymentServiceIntegrationTest {
 
     private void insertPendingOrder(final long orderId, final long listingId, final long buyerId) {
         jdbcTemplate.update(
-                "INSERT INTO orders (id, listing_id, buyer_id, delivery_status) VALUES (?, ?, ?, 'REQUESTED')",
+                "INSERT INTO orders (id, listing_id, buyer_id, delivery_status, order_status) VALUES (?, ?, ?, 'REQUESTED', 'CONFIRMED')",
                 orderId, listingId, buyerId);
     }
 }

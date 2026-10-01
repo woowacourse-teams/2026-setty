@@ -16,7 +16,7 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.mysql.MySQLContainer;
 import setty.common.OrderCancellationRequested;
-import setty.common.OrderRequested;
+import setty.common.OrderConfirmed;
 
 @SpringBootTest
 @Testcontainers
@@ -46,9 +46,9 @@ class DeliveryInboundTransactionIntegrationTest {
     }
 
     @Test
-    void orderRequestedIsHandledAfterPublisherCommits() {
+    void orderConfirmedIsHandledAfterPublisherCommits() {
         new TransactionTemplate(transactionManager).executeWithoutResult(transaction -> {
-            eventPublisher.publishEvent(orderRequested());
+            eventPublisher.publishEvent(orderConfirmed());
 
             assertThat(deliveryCount()).isZero();
         });
@@ -57,9 +57,9 @@ class DeliveryInboundTransactionIntegrationTest {
     }
 
     @Test
-    void orderRequestedIsIgnoredWhenPublisherRollsBack() {
+    void orderConfirmedIsIgnoredWhenPublisherRollsBack() {
         new TransactionTemplate(transactionManager).executeWithoutResult(transaction -> {
-            eventPublisher.publishEvent(orderRequested());
+            eventPublisher.publishEvent(orderConfirmed());
             transaction.setRollbackOnly();
         });
 
@@ -68,7 +68,7 @@ class DeliveryInboundTransactionIntegrationTest {
 
     @Test
     void deliveryFailureDoesNotEscapeOrRollBackPublisher() {
-        eventPublisher.publishEvent(orderRequested());
+        eventPublisher.publishEvent(orderConfirmed());
 
         assertThatCode(() -> new TransactionTemplate(transactionManager).executeWithoutResult(transaction -> {
             jdbcTemplate.update("UPDATE delivery SET category = 'TABLE' WHERE order_id = ?", ORDER_ID);
@@ -93,8 +93,8 @@ class DeliveryInboundTransactionIntegrationTest {
         );
     }
 
-    private static OrderRequested orderRequested() {
-        return new OrderRequested(
+    private static OrderConfirmed orderConfirmed() {
+        return new OrderConfirmed(
                 ORDER_ID,
                 "가상 원목 의자",
                 "CHAIR",

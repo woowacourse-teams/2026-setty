@@ -6,7 +6,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 import setty.common.OrderCancellationRequested;
-import setty.common.OrderRequested;
+import setty.common.OrderConfirmed;
 import setty.delivery.application.DeliveryLifecycleService;
 import setty.delivery.application.RegisterDeliveryService;
 import setty.delivery.domain.OrderId;
@@ -32,7 +32,7 @@ public class DeliveryEventListener {
     private final DeliveryLifecycleService deliveryLifecycleService;
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
-    public void handle(final OrderRequested event) {
+    public void handle(final OrderConfirmed event) {
         try {
             register(event);
         } catch (final RuntimeException exception) {
@@ -53,7 +53,7 @@ public class DeliveryEventListener {
         }
     }
 
-    private void register(final OrderRequested event) {
+    private void register(final OrderConfirmed event) {
         registerDeliveryService.register(
                 OrderId.from(event.orderId()),
                 FurnitureInfo.of(event.itemName(), event.category()),

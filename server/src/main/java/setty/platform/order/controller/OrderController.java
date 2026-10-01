@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 import setty.global.auth.LoginMember;
 import setty.platform.member.domain.Member;
 import setty.platform.order.controller.dto.MyOrderResponse;
+import setty.platform.order.controller.dto.OrderCancellationResponse;
 import setty.platform.order.controller.dto.OrderCreateRequest;
 import setty.platform.order.controller.dto.OrderCreateResponse;
 import setty.platform.order.service.OrderService;
@@ -45,5 +46,14 @@ public class OrderController {
             @PathVariable final Long id
     ) {
         return ResponseEntity.ok(orderService.findMyOrder(id, member.getId()));
+    }
+
+    @PostMapping("/api/orders/{id}/cancellations")
+    public ResponseEntity<OrderCancellationResponse> requestCancellation(
+            @LoginMember final Member member,
+            @PathVariable final Long id
+    ) {
+        return ResponseEntity.accepted()
+                .body(orderService.requestCancellation(id, member.getId()));
     }
 }

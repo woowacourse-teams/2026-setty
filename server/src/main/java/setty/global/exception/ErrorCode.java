@@ -26,6 +26,7 @@ public enum ErrorCode {
     ORDER_NOT_FOUND(404, "존재하지 않는 주문입니다"),
     ALREADY_ORDERED(400, "이미 주문된 매물입니다"),
     CANNOT_ORDER_OWN_LISTING(400, "본인 매물은 주문할 수 없습니다"),
+    INVALID_ORDER_STATUS_TRANSITION(409, "잘못된 주문 상태 변경입니다"),
 
     // ===== 찜 (플랫폼 팀) =====
     CANNOT_FAVORITE_OWN_LISTING(400, "본인 매물은 찜할 수 없습니다"),

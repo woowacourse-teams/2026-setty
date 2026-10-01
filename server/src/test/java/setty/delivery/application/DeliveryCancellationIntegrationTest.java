@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,7 +20,7 @@ import org.testcontainers.mysql.MySQLContainer;
 import setty.common.DeliveryCancellationRejected;
 import setty.common.DeliveryCancelled;
 import setty.common.OrderCancellationRequested;
-import setty.common.OrderRequested;
+import setty.common.OrderConfirmed;
 import setty.delivery.domain.DeliveryId;
 import setty.delivery.domain.DriverId;
 
@@ -53,11 +54,12 @@ class DeliveryCancellationIntegrationTest {
 
     @BeforeEach
     void setUp() {
+        jdbcTemplate.update("DELETE FROM delivery_cancellation");
         jdbcTemplate.update("DELETE FROM delivery");
     }
 
     @Test
-    void requestedDeliveryIsCancelled() {
+    void requestedDeliveryIsCancelledAndKeptAsRecord() {
         final DeliveryId deliveryId = prepareRequestedDelivery();
 
         eventPublisher.publishEvent(cancellationRequested(CANCELLATION_REQUEST_ID));
@@ -68,6 +70,9 @@ class DeliveryCancellationIntegrationTest {
         assertThat(event.orderId()).isEqualTo(ORDER_ID);
         assertThat(event.cancellationRequestId()).isEqualTo(CANCELLATION_REQUEST_ID);
         assertThat(event.decidedAt()).isNotNull();
+        final Map<String, Object> cancellation = jdbcTemplate.queryForMap("SELECT * FROM delivery_cancellation");
+        assertThat(cancellation.get("order_id")).isEqualTo(ORDER_ID);
+        assertThat(cancellation.get("delivery_id")).isEqualTo(deliveryId.value());
         assertThat(applicationEvents.stream(DeliveryCancellationRejected.class)).isEmpty();
     }
 
@@ -86,15 +91,20 @@ class DeliveryCancellationIntegrationTest {
         assertThat(events.getFirst().orderId()).isEqualTo(ORDER_ID);
         assertThat(events.getFirst().cancellationRequestId()).isEqualTo(CANCELLATION_REQUEST_ID);
         assertThat(applicationEvents.stream(DeliveryCancelled.class)).isEmpty();
+        assertThat(cancellationCount()).isZero();
     }
 
     @Test
-    void cancellationWithoutDeliveryRequestRespondsCancelled() {
+    void cancellationBeforeDeliveryRequestLeavesRecordAndBlocksLateRequest() {
         eventPublisher.publishEvent(cancellationRequested(CANCELLATION_REQUEST_ID));
 
         final DeliveryCancelled event = singleCancelled();
         assertThat(event.deliveryId()).isNull();
         assertThat(event.orderId()).isEqualTo(ORDER_ID);
+        assertThat(cancellationCount()).isEqualTo(1L);
+
+        eventPublisher.publishEvent(orderConfirmed());
+
         assertThat(deliveryCount()).isZero();
     }
 
@@ -111,11 +121,23 @@ class DeliveryCancellationIntegrationTest {
             assertThat(event.deliveryId()).isEqualTo(deliveryId.value());
             assertThat(event.cancellationRequestId()).isEqualTo(CANCELLATION_REQUEST_ID);
         });
+        assertThat(cancellationCount()).isEqualTo(1L);
         assertThat(deliveryStatus()).isEqualTo("CANCELLED");
     }
 
+    @Test
+    void repeatedCancellationBeforeDeliveryRequestKeepsOneRecord() {
+        eventPublisher.publishEvent(cancellationRequested(CANCELLATION_REQUEST_ID));
+        eventPublisher.publishEvent(cancellationRequested(CANCELLATION_REQUEST_ID));
+
+        assertThat(applicationEvents.stream(DeliveryCancelled.class))
+                .hasSize(2)
+                .allSatisfy(event -> assertThat(event.deliveryId()).isNull());
+        assertThat(cancellationCount()).isEqualTo(1L);
+    }
+
     private DeliveryId prepareRequestedDelivery() {
-        eventPublisher.publishEvent(orderRequested());
+        eventPublisher.publishEvent(orderConfirmed());
         return new DeliveryId(jdbcTemplate.queryForObject(
                 "SELECT id FROM delivery WHERE order_id = ?",
                 Long.class,
@@ -141,13 +163,16 @@ class DeliveryCancellationIntegrationTest {
         return jdbcTemplate.queryForObject("SELECT COUNT(*) FROM delivery", Long.class);
     }
 
+    private long cancellationCount() {
+        return jdbcTemplate.queryForObject("SELECT COUNT(*) FROM delivery_cancellation", Long.class);
+    }
 
     private static OrderCancellationRequested cancellationRequested(final String cancellationRequestId) {
         return new OrderCancellationRequested(ORDER_ID, cancellationRequestId);
     }
 
-    private static OrderRequested orderRequested() {
-        return new OrderRequested(
+    private static OrderConfirmed orderConfirmed() {
+        return new OrderConfirmed(
                 ORDER_ID,
                 "가상 원목 의자",
                 "CHAIR",

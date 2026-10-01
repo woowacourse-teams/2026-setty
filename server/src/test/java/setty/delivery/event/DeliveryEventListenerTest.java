@@ -16,7 +16,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 import setty.common.OrderCancellationRequested;
-import setty.common.OrderRequested;
+import setty.common.OrderConfirmed;
 import setty.delivery.application.DeliveryLifecycleService;
 import setty.delivery.application.RegisterDeliveryService;
 import setty.delivery.domain.OrderId;
@@ -30,8 +30,8 @@ class DeliveryEventListenerTest {
             new DeliveryEventListener(registerDeliveryService, deliveryLifecycleService);
 
     @Test
-    void translatesOrderRequestedIntoDomainValuesAndDelegates() {
-        listener.handle(new OrderRequested(
+    void translatesOrderConfirmedIntoDomainValuesAndDelegates() {
+        listener.handle(new OrderConfirmed(
                 101L,
                 "가상 원목 의자",
                 "CHAIR",
@@ -73,15 +73,15 @@ class DeliveryEventListenerTest {
     }
 
     @Test
-    void invalidOrderRequestedDoesNotEscapeListener() {
-        assertThatCode(() -> listener.handle(new OrderRequested(
+    void invalidOrderConfirmedDoesNotEscapeListener() {
+        assertThatCode(() -> listener.handle(new OrderConfirmed(
                 0L, "가상 원목 의자", "CHAIR", "서울시 가상구 출발로 1", "서울시 가상구 도착로 2",
                 10_000, "010-0000-0001", "010-0000-0002"
         ))).doesNotThrowAnyException();
     }
 
     @ParameterizedTest
-    @ValueSource(classes = {OrderRequested.class, OrderCancellationRequested.class})
+    @ValueSource(classes = {OrderConfirmed.class, OrderCancellationRequested.class})
     void inboundEventsRunAfterPublisherCommits(final Class<?> eventType) throws NoSuchMethodException {
         final Method handle = DeliveryEventListener.class.getMethod("handle", eventType);
 

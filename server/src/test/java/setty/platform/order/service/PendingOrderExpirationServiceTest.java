@@ -23,9 +23,9 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
-import setty.common.DeliveryStatus;
 import setty.platform.listing.application.ListingService;
 import setty.platform.order.domain.Order;
+import setty.platform.order.domain.OrderStatus;
 import setty.platform.order.repository.OrderRepository;
 
 @ExtendWith(MockitoExtension.class)
@@ -74,10 +74,10 @@ class PendingOrderExpirationServiceTest {
     }
 
     @ParameterizedTest
-    @EnumSource(value = DeliveryStatus.class, names = {"REQUESTED", "ACCEPTED", "PICKED_UP", "DELIVERED"})
-    void REQUESTED_이상_주문은_유지한다(final DeliveryStatus deliveryStatus) {
+    @EnumSource(value = OrderStatus.class, names = {"CONFIRMED", "CANCEL_PENDING", "CANCELLED", "EXPIRED"})
+    void PENDING이_아닌_주문은_유지한다(final OrderStatus status) {
         final Order order = pendingOrder();
-        ReflectionTestUtils.setField(order, "deliveryStatus", deliveryStatus);
+        ReflectionTestUtils.setField(order, "orderStatus", status);
         when(orderRepository.findByIdForUpdate(ORDER_ID)).thenReturn(Optional.of(order));
 
         final boolean expired = expirationService.expire(ORDER_ID, EXPIRES_AT.plusSeconds(1));
@@ -102,7 +102,7 @@ class PendingOrderExpirationServiceTest {
     }
 
     @Test
-    void 잠금_대기_중_REQUESTED로_전이된_주문은_삭제하지_않는다() throws Exception {
+    void 잠금_대기_중_CONFIRMED로_전이된_주문은_삭제하지_않는다() throws Exception {
         final Order order = pendingOrder();
         final CountDownLatch expirationLookupStarted = new CountDownLatch(1);
         final CountDownLatch paymentCompleted = new CountDownLatch(1);
@@ -126,7 +126,7 @@ class PendingOrderExpirationServiceTest {
             assertThat(expiration.get(5, TimeUnit.SECONDS)).isFalse();
         }
 
-        assertThat(order.getDeliveryStatus()).isEqualTo(DeliveryStatus.REQUESTED);
+        assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.CONFIRMED);
         verify(orderRepository, never()).delete(order);
         verifyNoInteractions(listingService);
     }

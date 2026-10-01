@@ -7,5 +7,6 @@ public record DeliveryCancellationRejected(
         Long deliveryId,
         Long orderId,
         String cancellationRequestId,
-        Instant decidedAt) {
+        Instant decidedAt
+) {
 }
