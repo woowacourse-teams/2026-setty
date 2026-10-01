@@ -20,8 +20,8 @@ export type MyOrder = {
         price: number;
         deliveryFee: number;
     } | null;
-    orderStatus: OrderStatus;
-    deliveryStatus: DeliveryStatus;
+    orderStatus?: OrderStatus;
+    deliveryStatus?: DeliveryStatus;
 };
 
 export type OrderCancellationResponse = {

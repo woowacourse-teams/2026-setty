@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { fetchMyOrders, requestOrderCancellation, type DeliveryStatus, type MyOrder, type OrderStatus } from '../api/orders';
+import { fetchMyOrders, requestOrderCancellation, type DeliveryStatus, type MyOrder } from '../api/orders';
 import accountPagesStyles from '../styles/modules/AccountPages.module.css';
 import productGridStyles from '../styles/modules/ProductGrid.module.css';
 
@@ -17,12 +17,13 @@ function statusLabel(order: MyOrder) {
         case 'CANCEL_PENDING': return '취소 대기 중';
         case 'CANCELLED': return '취소 확정';
         case 'EXPIRED': return '주문 만료';
-        case 'CONFIRMED': return deliveryStatusLabels[order.deliveryStatus];
     }
+    return order.deliveryStatus ? deliveryStatusLabels[order.deliveryStatus] ?? '주문 상태 확인 중' : '주문 상태 확인 중';
 }
 
 function statusClassName(order: MyOrder) {
-    const status = order.orderStatus === 'CONFIRMED' ? order.deliveryStatus : order.orderStatus;
+    const status = order.orderStatus === 'CONFIRMED' ? order.deliveryStatus : (order.orderStatus ?? order.deliveryStatus);
+    if (!status) return undefined;
     return accountPagesStyles[`my-orders__status--${status.toLowerCase().replace('_', '-')}`];
 }
 
@@ -37,7 +38,7 @@ export function MyOrders({ onSelect }: MyOrdersProps) {
     const [notice, setNotice] = useState<string | null>(null);
     const [pollError, setPollError] = useState<string | null>(null);
     const [cancellingId, setCancellingId] = useState<number | null>(null);
-    const previousStatuses = useRef(new Map<number, OrderStatus>());
+    const previousStatuses = useRef(new Map<number, MyOrder['orderStatus']>());
     const hasPendingCancellation = items.some((item) => item.orderStatus === 'CANCEL_PENDING');
 
     const load = async () => {
