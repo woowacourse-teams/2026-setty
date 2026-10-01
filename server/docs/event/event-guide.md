@@ -35,6 +35,6 @@
 
 1. 이벤트 클래스명을 `server/src/main/java`와 `server/src/test/java`에서 검색한다. 발행 코드와 관련 테스트를 찾는다. 예: `rg -n 'OrderConfirmed' server/src/main/java server/src/test/java`.
 2. 발행 메서드의 호출 경로와 상태 검사까지 확인해 **언제 발행하고 언제 발행하지 않는지** 적는다. 클래스명만으로 발생 조건을 추정하지 않는다.
-3. 해당 클래스를 받는 `@EventListener`, `@TransactionalEventListener`를 모두 찾는다. 수신 메서드마다 실제 작업과 실행 시점을 Fanout 한 행에 적는다. 중복 무시·실패 처리·후속 이벤트 발행이 작업 결과에 영향을 주면 함께 적는다.
+3. 해당 클래스를 인자로 받는 모든 수신 메서드를 찾는다. `@EventListener`, `@TransactionalEventListener`뿐 아니라 Spring Modulith의 `@ApplicationModuleListener`와 프로젝트에서 정의한 합성 애노테이션도 확인한다. 이벤트 클래스명과 리스너 애노테이션을 함께 검색하고, 합성 애노테이션은 정의까지 추적한다. 수신 메서드마다 실제 작업과 애노테이션이 정하는 실행 시점을 Fanout 한 행에 적는다. 중복 무시·실패 처리·후속 이벤트 발행이 작업 결과에 영향을 주면 함께 적는다.
 4. 관련 [정책 문서](../../../docs/policy/README.md)와 대조한다. 불일치는 확정된 동작처럼 쓰지 않고 `확인 필요`에 근거와 함께 기록한다.
 5. 발행 조건, 이벤트 필드 또는 수신 작업이 바뀌면 해당 이벤트 문서를 함께 갱신한다.
