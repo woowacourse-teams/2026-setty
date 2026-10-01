@@ -8,6 +8,8 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static setty.global.event.EventPublicationTestSupport.awaitEventsHandled;
+import static setty.global.event.EventPublicationTestSupport.incompletePublicationCount;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -81,8 +83,11 @@ class PaymentServiceIntegrationTest {
 
     @AfterEach
     void cleanUp() {
+        awaitEventsHandled(jdbcTemplate);
+        jdbcTemplate.update("DELETE FROM EVENT_PUBLICATION");
         jdbcTemplate.update("DELETE FROM payments");
         jdbcTemplate.update("DELETE FROM delivery");
+        jdbcTemplate.update("DELETE FROM delivery_order_decision");
         jdbcTemplate.update("DELETE FROM orders");
         jdbcTemplate.update("DELETE FROM listing_images");
         jdbcTemplate.update("DELETE FROM listings");
@@ -103,6 +108,21 @@ class PaymentServiceIntegrationTest {
         assertThat(events.stream(PaymentCompleted.class).map(PaymentCompleted::orderId))
                 .containsExactly(ORDER_ID);
         assertThat(orderStaysUntouched()).isTrue();
+    }
+
+    @Test
+    void 결제_뒤_주문_처리가_실패해도_결제는_유지된다() {
+        stubTossSuccess();
+        // 토스 승인을 기다리는 사이 주문이 먼저 취소되어 주문 확정이 실패하는 상황
+        jdbcTemplate.update("UPDATE orders SET order_status = 'CANCELLED' WHERE id = ?", ORDER_ID);
+
+        final Payment payment = paymentService.confirm(TOSS_ORDER_ID, PAYMENT_KEY, TOTAL_PRICE);
+        awaitEventsHandled(jdbcTemplate);
+
+        assertThat(payment.getStatus().name()).isEqualTo("DONE");
+        assertThat(paymentCount()).isEqualTo(1);
+        // 주문 처리 실패는 발행 기록에 미완료로 남아 재발행 대상이 된다.
+        assertThat(incompletePublicationCount(jdbcTemplate, PaymentCompleted.class)).isEqualTo(1);
     }
 
     @Test
@@ -145,6 +165,7 @@ class PaymentServiceIntegrationTest {
         markListingPurchaseRequested(LISTING_ID);
 
         paymentService.fail(TOSS_ORDER_ID);
+        awaitEventsHandled(jdbcTemplate);
 
         assertThat(paymentCount()).isZero();
         assertThat(orderExists(ORDER_ID)).isFalse();

@@ -1,9 +1,8 @@
 package setty.platform.listing.application;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.event.EventListener;
+import org.springframework.modulith.events.ApplicationModuleListener;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 import setty.common.DeliveryAccepted;
 import setty.common.DeliveryDelivered;
 import setty.common.OrderCancelled;
@@ -19,22 +18,19 @@ public class ListingDeliveryEventListener {
     private final OrderRepository orderRepository;
     private final ListingService listingService;
 
-    @EventListener
-    @Transactional
+    @ApplicationModuleListener
     public void onDeliveryAccepted(final DeliveryAccepted event) {
         validateDeliveryEvent(event == null ? null : event.deliveryId(), event == null ? null : event.orderId());
         listingService.reserveForDelivery(findListingId(event.orderId()));
     }
 
-    @EventListener
-    @Transactional
+    @ApplicationModuleListener
     public void onDeliveryDelivered(final DeliveryDelivered event) {
         validateDeliveryEvent(event == null ? null : event.deliveryId(), event == null ? null : event.orderId());
         listingService.completeSale(findListingId(event.orderId()));
     }
 
-    @EventListener
-    @Transactional
+    @ApplicationModuleListener
     public void onOrderCancelled(final OrderCancelled event) {
         if (event == null || event.listingId() == null || event.listingId() <= 0
                 || event.orderId() == null || event.orderId() <= 0

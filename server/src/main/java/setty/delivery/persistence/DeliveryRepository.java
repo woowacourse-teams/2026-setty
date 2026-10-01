@@ -11,8 +11,6 @@ import setty.delivery.domain.delivery.Delivery;
 
 public interface DeliveryRepository extends JpaRepository<Delivery, Long> {
 
-    boolean existsByOrderId(OrderId orderId);
-
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select d from Delivery d where d.id = :id")
     Optional<Delivery> findByIdForUpdate(@Param("id") Long id);

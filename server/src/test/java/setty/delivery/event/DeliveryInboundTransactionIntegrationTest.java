@@ -2,6 +2,8 @@ package setty.delivery.event;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
+import static setty.global.event.EventPublicationTestSupport.awaitEventsHandled;
+import static setty.global.event.EventPublicationTestSupport.incompletePublicationCount;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -43,6 +45,8 @@ class DeliveryInboundTransactionIntegrationTest {
     @BeforeEach
     void setUp() {
         jdbcTemplate.update("DELETE FROM delivery");
+        jdbcTemplate.update("DELETE FROM delivery_order_decision");
+        jdbcTemplate.update("DELETE FROM EVENT_PUBLICATION");
     }
 
     @Test
@@ -53,6 +57,7 @@ class DeliveryInboundTransactionIntegrationTest {
             assertThat(deliveryCount()).isZero();
         });
 
+        awaitEventsHandled(jdbcTemplate);
         assertThat(deliveryCount()).isOne();
     }
 
@@ -63,22 +68,28 @@ class DeliveryInboundTransactionIntegrationTest {
             transaction.setRollbackOnly();
         });
 
+        awaitEventsHandled(jdbcTemplate);
         assertThat(deliveryCount()).isZero();
     }
 
     @Test
     void deliveryFailureDoesNotEscapeOrRollBackPublisher() {
-        eventPublisher.publishEvent(orderConfirmed());
+        new TransactionTemplate(transactionManager).executeWithoutResult(transaction ->
+                eventPublisher.publishEvent(orderConfirmed()));
+        awaitEventsHandled(jdbcTemplate);
 
         assertThatCode(() -> new TransactionTemplate(transactionManager).executeWithoutResult(transaction -> {
             jdbcTemplate.update("UPDATE delivery SET category = 'TABLE' WHERE order_id = ?", ORDER_ID);
             eventPublisher.publishEvent(new OrderCancellationRequested(ORDER_ID, " "));
         })).doesNotThrowAnyException();
+        awaitEventsHandled(jdbcTemplate);
 
         assertThat(jdbcTemplate.queryForObject(
                 "SELECT category FROM delivery WHERE order_id = ?", String.class, ORDER_ID
         )).isEqualTo("TABLE");
         assertThat(deliveryStatus()).isEqualTo("REQUESTED");
+        // 실패한 이벤트는 발행 기록에 남아 재발행 대상이 된다.
+        assertThat(incompletePublicationCount(jdbcTemplate, OrderCancellationRequested.class)).isOne();
     }
 
     private long deliveryCount() {

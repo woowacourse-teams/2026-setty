@@ -1,7 +1,9 @@
 package setty.platform.order;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static setty.global.event.EventPublicationTestSupport.awaitEventsHandled;
 
 import java.time.Instant;
 import java.util.concurrent.CompletableFuture;
@@ -27,8 +29,6 @@ import setty.common.DeliveryAccepted;
 import setty.common.DeliveryDelivered;
 import setty.common.DeliveryPickedUp;
 import setty.common.DeliveryStatus;
-import setty.global.exception.BusinessException;
-import setty.global.exception.ErrorCode;
 import setty.platform.listing.storage.ListingImageStorage;
 import setty.platform.order.service.SyncOrderDeliveryStatusService;
 
@@ -74,6 +74,8 @@ class SyncOrderDeliveryStatusServiceTest {
 
     @AfterEach
     void cleanUp() {
+        awaitEventsHandled(jdbcTemplate);
+        jdbcTemplate.update("DELETE FROM EVENT_PUBLICATION");
         jdbcTemplate.update("DELETE FROM delivery");
         jdbcTemplate.update("DELETE FROM orders");
         jdbcTemplate.update("DELETE FROM listing_images");
@@ -83,41 +85,41 @@ class SyncOrderDeliveryStatusServiceTest {
 
     @Test
     void 배송_수락_이벤트를_수신하면_주문_상태가_갱신된다() {
-        eventPublisher.publishEvent(
-                new DeliveryAccepted(1L, ORDER_ID, Instant.now()));
+        publishCommitted(new DeliveryAccepted(1L, ORDER_ID, Instant.now()));
 
         assertThat(deliveryStatusOf(ORDER_ID)).isEqualTo("ACCEPTED");
     }
 
     @Test
     void 상태는_순서대로_끝까지_전이된다() {
-        eventPublisher.publishEvent(new DeliveryAccepted(1L, ORDER_ID, Instant.now()));
-        eventPublisher.publishEvent(new DeliveryPickedUp(1L, ORDER_ID, Instant.now()));
-        eventPublisher.publishEvent(new DeliveryDelivered(1L, ORDER_ID, Instant.now()));
+        publishCommitted(new DeliveryAccepted(1L, ORDER_ID, Instant.now()));
+        publishCommitted(new DeliveryPickedUp(1L, ORDER_ID, Instant.now()));
+        publishCommitted(new DeliveryDelivered(1L, ORDER_ID, Instant.now()));
 
         assertThat(deliveryStatusOf(ORDER_ID)).isEqualTo("DELIVERED");
     }
 
     @Test
     void 역행_이벤트는_거부되고_상태가_유지된다() {
-        eventPublisher.publishEvent(new DeliveryAccepted(1L, ORDER_ID, Instant.now()));
-        eventPublisher.publishEvent(new DeliveryPickedUp(1L, ORDER_ID, Instant.now()));
+        publishCommitted(new DeliveryAccepted(1L, ORDER_ID, Instant.now()));
+        publishCommitted(new DeliveryPickedUp(1L, ORDER_ID, Instant.now()));
 
-        assertThatThrownBy(() -> eventPublisher.publishEvent(
-                new DeliveryAccepted(1L, ORDER_ID, Instant.now())))
-                .isInstanceOf(BusinessException.class)
-                .extracting(e -> ((BusinessException) e).getErrorCode())
-                .isEqualTo(ErrorCode.ORDER_DELIVERY_STATUS_MISMATCH);
+        // 주문 쪽 거부는 발행한 배송에 전파되지 않고 발행 기록에 미완료로 남는다.
+        assertThatCode(() -> publishCommitted(new DeliveryAccepted(1L, ORDER_ID, Instant.now())))
+                .doesNotThrowAnyException();
+
         assertThat(deliveryStatusOf(ORDER_ID)).isEqualTo("PICKED_UP");
+        assertThat(incompleteOrderListenerPublicationCount()).isOne();
     }
 
     @Test
     void 같은_상태_중복_이벤트는_무시된다() {
-        eventPublisher.publishEvent(new DeliveryAccepted(1L, ORDER_ID, Instant.now()));
+        publishCommitted(new DeliveryAccepted(1L, ORDER_ID, Instant.now()));
 
-        eventPublisher.publishEvent(new DeliveryAccepted(1L, ORDER_ID, Instant.now()));
+        publishCommitted(new DeliveryAccepted(1L, ORDER_ID, Instant.now()));
 
         assertThat(deliveryStatusOf(ORDER_ID)).isEqualTo("ACCEPTED");
+        assertThat(incompleteOrderListenerPublicationCount()).isZero();
     }
 
     @Test
@@ -152,11 +154,26 @@ class SyncOrderDeliveryStatusServiceTest {
 
     @Test
     void 존재하지_않는_주문이면_거부된다() {
-        assertThatThrownBy(() -> eventPublisher.publishEvent(
-                new DeliveryAccepted(1L, 999L, Instant.now())))
-                .isInstanceOf(BusinessException.class)
-                .extracting(e -> ((BusinessException) e).getErrorCode())
-                .isEqualTo(ErrorCode.ORDER_NOT_FOUND);
+        assertThatCode(() -> publishCommitted(new DeliveryAccepted(1L, 999L, Instant.now())))
+                .doesNotThrowAnyException();
+
+        assertThat(incompleteOrderListenerPublicationCount()).isOne();
+    }
+
+    // 모듈 간 이벤트는 발행한 쪽이 커밋된 뒤 비동기로 전달되므로 처리가 끝날 때까지 기다린다.
+    private void publishCommitted(final Object event) {
+        new TransactionTemplate(transactionManager).executeWithoutResult(status -> eventPublisher.publishEvent(event));
+        awaitEventsHandled(jdbcTemplate);
+    }
+
+    private long incompleteOrderListenerPublicationCount() {
+        return jdbcTemplate.queryForObject(
+                """
+                SELECT COUNT(*) FROM EVENT_PUBLICATION
+                WHERE LISTENER_ID LIKE 'setty.platform.order.%' AND COMPLETION_DATE IS NULL
+                """,
+                Long.class
+        );
     }
 
     private String deliveryStatusOf(final long orderId) {
