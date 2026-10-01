@@ -7,8 +7,10 @@ import type { MyOrder, Order, OrderStatus } from '../api/orders';
 
 let nextListingId = 3;
 let nextImageId = 30;
-let nextOrderId = 1;
-const orderStore: (Order & { orderStatus: OrderStatus })[] = [];
+type MockOrder = Order & { orderStatus: OrderStatus };
+const orderStorageKey = 'setty:mock-orders';
+const orderStore = JSON.parse(window.sessionStorage.getItem(orderStorageKey) ?? '[]') as MockOrder[];
+let nextOrderId = Math.max(0, ...orderStore.map((order) => order.id)) + 1;
 const favoriteStore = new Set<number>();
 let listingStore: ListingDetail[] = mockListings.map((listing, index) => ({
     ...listing,
@@ -17,6 +19,10 @@ let listingStore: ListingDetail[] = mockListings.map((listing, index) => ({
     images: [{ id: index + 10, url: listing.thumbnailUrl ?? '', displayOrder: 1 }],
     updatedAt: listing.createdAt
 }));
+
+function saveOrders() {
+    window.sessionStorage.setItem(orderStorageKey, JSON.stringify(orderStore));
+}
 
 function isAuthenticated(request: Request) {
     return request.headers.get('Authorization')?.startsWith('Bearer ') ?? false;
@@ -141,8 +147,9 @@ export const handlers = [
                 return HttpResponse.json({ code: 'ALREADY_ORDERED', message: '이미 주문한 매물입니다.' }, { status: 400 });
             }
 
-            const order: Order & { orderStatus: OrderStatus } = { id: nextOrderId++, listingId, buyerId: 1, orderStatus: 'CONFIRMED', deliveryStatus: 'REQUESTED' };
+            const order: MockOrder = { id: nextOrderId++, listingId, buyerId: 1, orderStatus: 'CONFIRMED', deliveryStatus: 'REQUESTED' };
             orderStore.unshift(order);
+            saveOrders();
             return HttpResponse.json(order, { status: 201 });
         } catch {
             return invalidRequest('잘못된 주문 요청입니다.');
@@ -159,7 +166,11 @@ export const handlers = [
 
         if (order.orderStatus === 'CONFIRMED') {
             order.orderStatus = 'CANCEL_PENDING';
-            setTimeout(() => { order.orderStatus = 'CANCELLED'; }, 1500);
+            saveOrders();
+            setTimeout(() => {
+                order.orderStatus = 'CANCELLED';
+                saveOrders();
+            }, 1500);
         }
         return HttpResponse.json({ orderId: order.id, orderStatus: 'CANCEL_PENDING', message: '취소 대기 중' }, { status: 202 });
     }),
