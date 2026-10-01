@@ -66,7 +66,6 @@ import com.aksworns22.setty.ui.theme.SettyTheme
 @Composable
 fun HomeScreen(
     onListingClick: (Long) -> Unit,
-    onProfileClick: () -> Unit,
     viewModel: HomeViewModel = viewModel(factory = HomeViewModel.Factory)
 ) {
     val uiState = viewModel.uiState.collectAsStateWithLifecycle()
@@ -86,7 +85,6 @@ fun HomeScreen(
         onRetry = viewModel::loadListings,
         onCategorySelected = viewModel::onCategorySelected,
         onListingClick = onListingClick,
-        onProfileClick = onProfileClick,
         snackbarHostState = snackbarHostState,
     )
 }
@@ -99,7 +97,6 @@ private fun HomeContent(
     onRetry: () -> Unit,
     onCategorySelected: (ListingCategory?) -> Unit,
     onListingClick: (Long) -> Unit,
-    onProfileClick: () -> Unit,
     snackbarHostState: SnackbarHostState,
 ) {
     val textFieldState = rememberTextFieldState()
@@ -136,11 +133,11 @@ private fun HomeContent(
                     }
                 },
                 actions = { IconButton(
-                    onClick = onProfileClick,
+                    onClick = {},
                 ) {
                     Image(
                         painter = painterResource(R.drawable.profile),
-                        contentDescription = "내 매물",
+                        contentDescription = null,
                     )
                 } },
             )
@@ -479,7 +476,6 @@ private fun HomeContentPreview() {
             onRetry = {},
             onCategorySelected = {},
             onListingClick = {},
-            onProfileClick = {},
             snackbarHostState = SnackbarHostState(),
         )
     }
@@ -495,7 +491,6 @@ private fun HomeContentErrorPreview() {
             onRetry = {},
             onCategorySelected = {},
             onListingClick = {},
-            onProfileClick = {},
             snackbarHostState = SnackbarHostState(),
         )
     }

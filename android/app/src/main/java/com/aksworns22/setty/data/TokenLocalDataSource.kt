@@ -27,14 +27,6 @@ class TokenLocalDataSource(
         }
     }
 
-    suspend fun clearCredentialToken() {
-        context.dataStore.updateData {
-            it.toMutablePreferences().also { preferences ->
-                preferences.remove(CREDENTIAL_TOKEN)
-            }
-        }
-    }
-
     companion object {
         private val CREDENTIAL_TOKEN = stringPreferencesKey("credential_token")
     }

@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -64,7 +65,6 @@ import com.aksworns22.setty.model.ListingCategory
 import com.aksworns22.setty.model.ListingDetail
 import com.aksworns22.setty.model.SaleStatus
 import com.aksworns22.setty.model.formatWon
-import com.aksworns22.setty.ui.component.SaleStatusBadge
 import com.aksworns22.setty.ui.theme.Paperlogy
 import com.aksworns22.setty.ui.theme.SettyTheme
 
@@ -288,6 +288,35 @@ private fun ListingImageCarousel(
                     .background(MaterialTheme.colorScheme.surfaceContainerHighest),
             )
         }
+    }
+}
+
+@Composable
+private fun SaleStatusBadge(
+    saleStatus: SaleStatus,
+    modifier: Modifier = Modifier,
+) {
+    val (containerColor, contentColor) = when (saleStatus) {
+        SaleStatus.AVAILABLE -> MaterialTheme.colorScheme.primaryContainer to
+                MaterialTheme.colorScheme.onPrimaryContainer
+
+        SaleStatus.RESERVED -> MaterialTheme.colorScheme.tertiaryContainer to
+                MaterialTheme.colorScheme.onTertiaryContainer
+
+        SaleStatus.SOLD -> MaterialTheme.colorScheme.surfaceContainerHighest to
+                MaterialTheme.colorScheme.onSurfaceVariant
+    }
+    Surface(
+        shape = CircleShape,
+        color = containerColor,
+        contentColor = contentColor,
+        modifier = modifier,
+    ) {
+        Text(
+            text = saleStatus.label,
+            style = MaterialTheme.typography.labelLarge,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+        )
     }
 }
 
