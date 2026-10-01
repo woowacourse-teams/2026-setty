@@ -115,11 +115,21 @@ private fun SellerPageContent(
         topBar = {
             LargeFlexibleTopAppBar(
                 title = {
-                    Text(
-                        text = "내 매물",
-                        fontFamily = Paperlogy,
-                        fontWeight = FontWeight.Black,
-                    )
+                    Row(verticalAlignment = Alignment.Bottom) {
+                        Text(
+                            text = "내 매물",
+                            fontFamily = Paperlogy,
+                            fontWeight = FontWeight.Black,
+                        )
+                        if (!uiState.isLoading && uiState.error == null) {
+                            Text(
+                                text = " ${uiState.listings.size}개",
+                                fontFamily = Paperlogy,
+                                fontWeight = FontWeight.Black,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                        }
+                    }
                 },
                 subtitle = {
                     Text(
@@ -232,23 +242,6 @@ private fun SellerPageBody(
                 uiState = uiState,
                 modifier = Modifier.padding(bottom = 24.dp),
             )
-        }
-        item(key = "title") {
-            Row(
-                verticalAlignment = Alignment.Bottom,
-                modifier = Modifier.padding(bottom = 12.dp),
-            ) {
-                Text(
-                    text = "내 매물",
-                    style = MaterialTheme.typography.headlineSmallEmphasized,
-                    modifier = Modifier.weight(1f),
-                )
-                Text(
-                    text = "${listings.size}개",
-                    style = MaterialTheme.typography.bodyLargeEmphasized,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-            }
         }
         if (listings.isEmpty()) {
             item(key = "empty") {
