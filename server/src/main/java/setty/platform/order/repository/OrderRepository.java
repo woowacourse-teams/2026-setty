@@ -13,7 +13,7 @@ import setty.platform.order.domain.OrderStatus;
 
 public interface OrderRepository extends JpaRepository<Order, Long> {
 
-    boolean existsByListingIdAndOrderStatusNot(Long listingId, OrderStatus terminalStatus);
+    boolean existsByListingIdAndOrderStatusNotIn(Long listingId, List<OrderStatus> closedStatuses);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select o from Order o where o.id = :orderId")

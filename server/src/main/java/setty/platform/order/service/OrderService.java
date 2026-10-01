@@ -66,7 +66,8 @@ public class OrderService {
     // 결제 대기 주문 생성 — 결제 전이므로 OrderConfirmed(배차 요청)를 발행하지 않는다.
     @Transactional
     public Order pending(final OrderCreateRequest request, final Member buyer) {
-        if (orderRepository.existsByListingIdAndOrderStatusNot(request.listingId(), OrderStatus.EXPIRED)) {
+        if (orderRepository.existsByListingIdAndOrderStatusNotIn(
+                request.listingId(), List.of(OrderStatus.EXPIRED, OrderStatus.CANCELLED))) {
             throw new BusinessException(ErrorCode.ALREADY_ORDERED);
         }
 

@@ -111,6 +111,22 @@ class OrderPendingTest extends MySqlIntegrationTestSupport {
                 .isEqualTo(2);
     }
 
+    @Test
+    void 구매자_취소가_확정된_매물을_다시_주문한다() {
+        final Member buyer = memberRepository.findById(BUYER_ID).orElseThrow();
+        final Order cancelledOrder = orderService.pending(new OrderCreateRequest(LISTING_ID), buyer);
+        // 구매자 취소 확정과 OrderCancelled 수신에 따른 매물 재공개를 끝낸 상태
+        jdbcTemplate.update("UPDATE orders SET order_status = 'CANCELLED' WHERE id = ?", cancelledOrder.getId());
+        jdbcTemplate.update("UPDATE listings SET has_purchase_request = false WHERE id = ?", LISTING_ID);
+
+        final Order nextOrder = orderService.pending(new OrderCreateRequest(LISTING_ID), buyer);
+
+        assertThat(nextOrder.getId()).isNotEqualTo(cancelledOrder.getId());
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM orders WHERE listing_id = ?", Integer.class, LISTING_ID))
+                .isEqualTo(2);
+    }
+
     private void insertMember(final long memberId) {
         jdbcTemplate.update(
                 """

@@ -119,7 +119,7 @@ CREATE TABLE IF NOT EXISTS orders (
     driver_id       BIGINT       NULL,                  -- 현재 미사용, 실제 배정 기사는 delivery.driver_id에 저장
     pending_expires_at TIMESTAMP(6) NULL,                -- PENDING 주문 자동 만료 시각
     active_listing_id BIGINT GENERATED ALWAYS AS (
-        CASE WHEN order_status = 'EXPIRED' THEN NULL ELSE listing_id END
+        CASE WHEN order_status IN ('EXPIRED', 'CANCELLED') THEN NULL ELSE listing_id END
     ) STORED,
     PRIMARY KEY (id),
     INDEX idx_orders_listing_id (listing_id),
@@ -248,7 +248,7 @@ SET @orders_active_listing_column_exists = (
 );
 SET @add_orders_active_listing_column = IF(
     @orders_active_listing_column_exists = 0,
-    'ALTER TABLE orders ADD COLUMN active_listing_id BIGINT GENERATED ALWAYS AS (CASE WHEN order_status = ''EXPIRED'' THEN NULL ELSE listing_id END) STORED',
+    'ALTER TABLE orders ADD COLUMN active_listing_id BIGINT GENERATED ALWAYS AS (CASE WHEN order_status IN (''EXPIRED'', ''CANCELLED'') THEN NULL ELSE listing_id END) STORED',
     'SELECT 1'
 );
 PREPARE add_orders_active_listing_column_statement FROM @add_orders_active_listing_column;
