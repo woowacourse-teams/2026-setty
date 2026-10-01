@@ -11,10 +11,7 @@ import setty.payment.domain.Payment;
 import setty.payment.infrastructure.TossConfirmResult;
 import setty.payment.infrastructure.TossPaymentClient;
 import setty.payment.repository.PaymentRepository;
-import setty.platform.listing.domain.Listing;
-import setty.platform.listing.repository.ListingRepository;
-import setty.platform.order.domain.Order;
-import setty.platform.order.repository.OrderRepository;
+import setty.platform.PaymentOrderReader;
 
 /**
  * 결제 승인·실패 흐름을 조율한다.
@@ -32,8 +29,7 @@ import setty.platform.order.repository.OrderRepository;
 @RequiredArgsConstructor
 public class PaymentService {
 
-    private final OrderRepository orderRepository;
-    private final ListingRepository listingRepository;
+    private final PaymentOrderReader paymentOrderReader;
     private final PaymentRepository paymentRepository;
     private final TossPaymentClient tossPaymentClient;
     private final PaymentRecorder paymentRecorder;
@@ -45,7 +41,7 @@ public class PaymentService {
      */
     public Payment confirm(final String tossOrderId, final String paymentKey, final int amount) {
         final Long orderId = extractOrderId(tossOrderId);
-        final int expectedAmount = resolveExpectedAmount(orderId);
+        final int expectedAmount = paymentOrderReader.expectedAmount(orderId);
         if (expectedAmount != amount) {
             throw new BusinessException(ErrorCode.PAYMENT_AMOUNT_MISMATCH);
         }
@@ -78,21 +74,14 @@ public class PaymentService {
     }
 
     public Payment confirm(final Long buyerId, final String tossOrderId, final String paymentKey, final int amount) {
-        verifyBuyer(buyerId, extractOrderId(tossOrderId));
+        paymentOrderReader.verifyBuyer(extractOrderId(tossOrderId), buyerId);
         return confirm(tossOrderId, paymentKey, amount);
     }
 
     @Transactional
     public void fail(final Long buyerId, final String tossOrderId) {
-        verifyBuyer(buyerId, extractOrderId(tossOrderId));
+        paymentOrderReader.verifyBuyer(extractOrderId(tossOrderId), buyerId);
         fail(tossOrderId);
-    }
-
-    // 다른 구매자의 주문은 존재 여부를 드러내지 않도록 찾을 수 없는 주문으로 응답한다.
-    private void verifyBuyer(final Long buyerId, final Long orderId) {
-        if (orderRepository.findByIdAndBuyerId(orderId, buyerId).isEmpty()) {
-            throw new BusinessException(ErrorCode.ORDER_NOT_FOUND);
-        }
     }
 
     /** 토스 orderId(`<주문id>_<랜덤>` 복합키)에서 내부 주문 id를 추출한다. */
@@ -104,13 +93,5 @@ public class PaymentService {
         } catch (final NumberFormatException e) {
             throw new BusinessException(ErrorCode.ORDER_NOT_FOUND);
         }
-    }
-
-    private int resolveExpectedAmount(final Long orderId) {
-        final Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
-        final Listing listing = listingRepository.findByIdAndDeletedAtIsNull(order.getListingId())
-                .orElseThrow(() -> new BusinessException(ErrorCode.LISTING_NOT_FOUND));
-        return listing.getTotalPrice();
     }
 }

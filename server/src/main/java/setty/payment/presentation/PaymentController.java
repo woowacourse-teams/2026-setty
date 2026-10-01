@@ -11,7 +11,6 @@ import setty.payment.application.PaymentService;
 import setty.payment.presentation.dto.PaymentConfirmRequest;
 import setty.payment.presentation.dto.PaymentConfirmResponse;
 import setty.payment.presentation.dto.PaymentFailRequest;
-import setty.platform.member.domain.Member;
 
 @RestController
 @RequiredArgsConstructor
@@ -21,11 +20,11 @@ public class PaymentController {
 
     @PostMapping("/api/payments/confirm")
     public ResponseEntity<PaymentConfirmResponse> confirm(
-            @LoginMember final Member member,
+            @LoginMember final Long buyerId,
             @Valid @RequestBody final PaymentConfirmRequest request
     ) {
         return ResponseEntity.ok(PaymentConfirmResponse.from(paymentService.confirm(
-                member.getId(),
+                buyerId,
                 request.orderId(),
                 request.paymentKey(),
                 request.amount()
@@ -34,10 +33,10 @@ public class PaymentController {
 
     @PostMapping("/api/payments/fail")
     public ResponseEntity<Void> fail(
-            @LoginMember final Member member,
+            @LoginMember final Long buyerId,
             @Valid @RequestBody final PaymentFailRequest request
     ) {
-        paymentService.fail(member.getId(), request.orderId());
+        paymentService.fail(buyerId, request.orderId());
         return ResponseEntity.noContent().build();
     }
 }
