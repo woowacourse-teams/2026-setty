@@ -1,4 +1,4 @@
-export const deliveryStatuses = ['REQUESTED', 'ACCEPTED', 'PICKED_UP', 'DELIVERED'] as const;
+export const deliveryStatuses = ['PENDING', 'REQUESTED', 'ACCEPTED', 'PICKED_UP', 'DELIVERED'] as const;
 
 export type DeliveryStatus = (typeof deliveryStatuses)[number];
 
@@ -19,7 +19,7 @@ export type MyOrder = {
         thumbnailUrl: string | null;
         price: number;
         deliveryFee: number;
-    };
+    } | null;
     orderStatus: OrderStatus;
     deliveryStatus: DeliveryStatus;
 };
