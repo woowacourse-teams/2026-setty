@@ -20,6 +20,9 @@ interface SettyNetworkApi {
     @GET("/api/auth/me")
     suspend fun aboutMe(): AboutMeResponse
 
+    @POST("/api/auth/logout")
+    suspend fun logout()
+
     @GET("/api/listings")
     suspend fun getListings(): ListingListResponse
 
@@ -27,4 +30,7 @@ interface SettyNetworkApi {
     suspend fun getListingDetail(
         @Path("listingId") listingId: Long
     ): ListingDetailResponse
+
+    @GET("/api/me/listings")
+    suspend fun getMyListings(): MyListingListResponse
 }
