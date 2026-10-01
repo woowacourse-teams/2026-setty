@@ -149,12 +149,12 @@ class PaymentServiceIntegrationTest extends MySqlIntegrationTestSupport {
         assertThat(paymentCount()).isZero();
         assertThat(events.stream(PaymentFailed.class).map(PaymentFailed::orderId))
                 .containsExactly(ORDER_ID);
-        // 기본 픽스처 주문은 REQUESTED — PENDING이 아닌 주문은 실패 복귀에도 삭제되지 않는다.
+        // 기본 픽스처 주문은 CONFIRMED이며 실패 복귀에도 변경되지 않는다.
         assertThat(orderStaysUntouched()).isTrue();
     }
 
     @Test
-    void PENDING_주문의_결제가_실패하면_주문이_삭제되고_매물_선점이_해제된다() {
+    void 결제_실패_후에도_원래_만료_시각까지_PENDING과_매물_선점을_유지한다() {
         markOrderPending(ORDER_ID);
         markListingPurchaseRequested(LISTING_ID);
 
@@ -162,10 +162,16 @@ class PaymentServiceIntegrationTest extends MySqlIntegrationTestSupport {
         awaitEventsHandled(jdbcTemplate);
 
         assertThat(paymentCount()).isZero();
-        assertThat(orderExists(ORDER_ID)).isFalse();
-        assertThat(listingPurchaseRequested(LISTING_ID)).isFalse();
+        assertThat(orderExists(ORDER_ID)).isTrue();
+        assertThat(orderStatus()).isEqualTo("PENDING");
+        assertThat(listingPurchaseRequested(LISTING_ID)).isTrue();
         assertThat(events.stream(PaymentFailed.class).map(PaymentFailed::orderId))
                 .containsExactly(ORDER_ID);
+
+        jdbcTemplate.update("UPDATE orders SET pending_expires_at = DATE_SUB(NOW(6), INTERVAL 1 MINUTE) WHERE id = ?", ORDER_ID);
+        assertThat(expirationService.expire(ORDER_ID, Instant.now())).isTrue();
+        assertThat(orderStatus()).isEqualTo("EXPIRED");
+        assertThat(listingPurchaseRequested(LISTING_ID)).isFalse();
     }
 
     @Test

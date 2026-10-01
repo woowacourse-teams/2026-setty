@@ -267,38 +267,6 @@ class OrderServiceTest {
     }
 
     @Test
-    void 결제대기_주문을_취소하면_주문이_삭제되고_선점이_해제된다() {
-        final Order order = order();
-        when(orderRepository.findByIdForUpdate(ORDER_ID)).thenReturn(Optional.of(order));
-
-        orderService.cancelPending(ORDER_ID);
-
-        verify(listingService).releasePurchaseRequest(LISTING_ID);
-        verify(orderRepository).delete(order);
-    }
-
-    @Test
-    void 결제대기가_아닌_주문은_취소_요청을_무시한다() {
-        final Order order = new Order(LISTING_ID, BUYER_ID);
-        ReflectionTestUtils.setField(order, "id", ORDER_ID);
-        when(orderRepository.findByIdForUpdate(ORDER_ID)).thenReturn(Optional.of(order));
-
-        orderService.cancelPending(ORDER_ID);
-
-        verifyNoInteractions(listingService);
-        verify(orderRepository, never()).delete(order);
-    }
-
-    @Test
-    void 존재하지_않는_주문의_취소_요청은_무시한다() {
-        when(orderRepository.findByIdForUpdate(ORDER_ID)).thenReturn(Optional.empty());
-
-        orderService.cancelPending(ORDER_ID);
-
-        verifyNoInteractions(listingService);
-    }
-
-    @Test
     void 내_주문_목록에_매물_썸네일을_포함한다() {
         final Order order = new Order(LISTING_ID, BUYER_ID);
         ReflectionTestUtils.setField(order, "id", ORDER_ID);

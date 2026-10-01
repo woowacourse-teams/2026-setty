@@ -22,8 +22,8 @@ import setty.platform.PaymentOrderReader;
  * <p>순서가 중요하다. 토스 승인(외부 HTTP)은 트랜잭션 밖에서 호출하고,
  * 승인이 확정된 뒤에야 {@link PaymentRecorder}가 결제 저장 + 이벤트 발행을 한 트랜잭션으로 처리한다.
  *
- * <p>매물 상태·주문 만료/선점 판정은 읽지 않는다 — 그 판정과 보상(만료 주문 취소 등)은
- * {@code PaymentCompleted}/{@code PaymentFailed}를 수신하는 플랫폼(주문) 팀이 담당한다.
+ * <p>매물 상태·주문 만료/선점 판정은 읽지 않는다. 실패 복귀 후 주문은 원래 만료 시각까지
+ * PENDING으로 유지하며, 만료 전이는 플랫폼(주문) 팀이 담당한다.
  */
 @Service
 @RequiredArgsConstructor
@@ -58,8 +58,8 @@ public class PaymentService {
     }
 
     /**
-     * 결제 실패·취소 복귀 처리. 실패는 기록하지 않고 {@code PaymentFailed}만 발행한다 —
-     * 수신하는 플랫폼(주문) 팀이 PENDING 주문 삭제·선점 해제를 담당한다.
+     * 결제 실패·취소 복귀 처리. 실패는 기록하지 않고 {@code PaymentFailed}만 발행한다.
+     * PENDING 주문과 매물 선점은 원래 만료 시각까지 유지한다.
      * 이미 승인 완료(DONE)된 주문이면 뒤늦게 도착한 실패 복귀이므로 무시한다(주문 보호).
      * 모듈 간 이벤트는 커밋 이후에 전달되므로 트랜잭션 안에서 발행한다.
      */

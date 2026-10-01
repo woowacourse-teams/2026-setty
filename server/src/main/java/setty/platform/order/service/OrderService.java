@@ -185,25 +185,6 @@ public class OrderService {
         }
     }
 
-    /**
-     * 결제 실패(PaymentFailed) 보상 — PENDING 주문을 삭제하고 매물 선점을 해제해 다시 구매 가능하게 한다.
-     * 주문이 없거나(중복 실패 복귀) PENDING이 아니면 조용히 무시한다.
-     */
-    @Transactional
-    public void cancelPending(final Long orderId) {
-        if (orderId == null || orderId <= 0) {
-            return;
-        }
-
-        final Order order = orderRepository.findByIdForUpdate(orderId).orElse(null);
-        if (order == null || order.getOrderStatus() != OrderStatus.PENDING) {
-            return;
-        }
-
-        listingService.releasePurchaseRequest(order.getListingId());
-        orderRepository.delete(order);
-    }
-
     @Transactional(readOnly = true)
     public List<MyOrderResponse> findMyOrders(final Long buyerId) {
         final List<Order> orders = orderRepository.findAllByBuyerIdOrderByIdDesc(buyerId);

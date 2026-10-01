@@ -10,12 +10,8 @@
 
 | 수신자 | 처리 |
 | --- | --- |
-| [`OrderEventListener#onPaymentFailed`](../../src/main/java/setty/platform/order/controller/OrderEventListener.java) | `PENDING` 주문을 삭제하고 매물 선점을 해제한다. 주문이 없거나 `PENDING`이 아니면 건너뛴다. |
+| 현재 직접 수신자 없음 | 주문은 원래 만료 시각까지 `PENDING`을 유지한다. 만료 스케줄러가 이후 `EXPIRED`로 전이하고 매물 선점을 해제한다. |
 
 ## 다음 확인할 이벤트 문서
 
 - 현재 코드에서 확인한 후속 이벤트 문서 없음.
-
-## 확인 필요
-
-- [결제 정책](../../../docs/policy/payment.md#승인재시도)은 결제창 취소·명확한 승인 실패 후에도 주문을 원래 만료 시각까지 `PENDING`으로 유지한다. 현재 수신 코드는 `PENDING` 주문을 삭제한다.

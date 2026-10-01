@@ -11,7 +11,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import setty.common.DeliveryCancelled;
 import setty.common.DeliveryCancellationRejected;
 import setty.common.PaymentCompleted;
-import setty.common.PaymentFailed;
 import setty.platform.order.service.OrderService;
 import setty.platform.order.service.SyncOrderDeliveryStatusService;
 
@@ -32,13 +31,6 @@ class OrderEventListenerTest {
         listener.onPaymentCompleted(new PaymentCompleted(101L));
 
         verify(orderService).publishOrderConfirmed(101L);
-    }
-
-    @Test
-    void 결제실패_이벤트를_결제대기_주문_취소로_위임한다() {
-        listener.onPaymentFailed(new PaymentFailed(101L));
-
-        verify(orderService).cancelPending(101L);
     }
 
     @Test
