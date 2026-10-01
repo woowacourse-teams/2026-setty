@@ -1,67 +1,77 @@
-# SETTY
+<div align="center">
+  <img src="client/public/setty-favicon.svg" alt="SETTY 로고" width="76" />
+  <h1>SETTY</h1>
+  <p><strong>중고 가구를 고르는 순간, 배송까지 생각합니다.</strong></p>
+  <p>매물 탐색 · 배송비 확인 · 결제를 하나의 거래 흐름으로</p>
+</div>
 
-SETTY는 중고 가구·가전 거래 전에 예상 운송 가능 여부와 비용을 요청하고, 실제 거래에서는 구매자·판매자의 정보를 분리해 받아 운영자가 수동 배차를 조율하는 MVP입니다.
+---
 
-가격 조회, 문자 발송, 차량 판단, 운송사 접수와 예외 대응은 첫 MVP에서 운영자가 직접 수행합니다. 자동 가격 계산, 자동 문자, 운송사 API와 자동 배차를 구현하지 않습니다.
+## 🪑 가구 거래가 멈추는 지점
 
-## Repository
+당근의 [2025 연말결산](https://about.daangn.com/company/pr/archive/%EB%8B%B9%EA%B7%BC-2025-%EC%97%B0%EB%A7%90%EA%B2%B0%EC%82%B0-%EB%8D%B0%EC%9D%B4%ED%84%B0-%EA%B3%B5%EA%B0%9C/)에서 **가구·인테리어는 나눔이 가장 많았던 물품 카테고리**였습니다. 이 자료만으로 나눔의 원인을 단정할 수는 없습니다. SETTY는 가구 거래에서 가격만큼이나 운송을 결정하기 어렵다는 문제에 주목합니다.
 
-```text
-.
-├─ client/     React·TypeScript·Webpack
-├─ apps/       배송원 앱 및 전용 문서
-├─ server/     Java·Spring Boot·Gradle
-├─ docs/       도메인·서비스 흐름 정책
-└─ .github/    CI와 Issue·PR 양식
-```
+가구는 부피와 무게 때문에 구매 후 운송 계획이 필요합니다. 차량이 없는 구매자는 마음에 드는 매물을 발견해도 판매자와 일정을 맞추고, 운송 견적을 받고, 운송을 별도로 신청해야 합니다. 저렴한 매물을 찾은 뒤에도 **최종 비용과 배송 가능 여부를 바로 알기 어렵습니다.**
 
-## Documentation
+| 일반적인 중고 가구 거래 | SETTY가 지향하는 거래 |
+| :-- | :-- |
+| 매물 탐색 → 판매자 연락 → 운송 견적 → 일정 조율 → 물품 송금 → 운송 신청·결제 → 배송 | **매물 탐색 → 배송비를 포함한 가격 확인 → 결제 → 배송** |
 
-- [도메인·서비스 흐름 정책](docs/policy/README.md)
+SETTY가 줄이려는 것은 구매자가 판매자와 운송 서비스 사이를 오가며 직접 조율해야 하는 단계입니다.
 
-## Client
+## 🛒 한 흐름에서 끝내는 구매
 
-요구 사항: Node.js 20 이상, npm
+1. **발견** — 중고 가구 매물을 둘러보고 상세 정보를 확인합니다.
+2. **확인** — 상세 화면에서 매물 가격, 예상 배송비, 총 결제 금액을 함께 봅니다.
+3. **결제** — 가구 비용과 배송비를 한 번에 결제합니다.
+4. **배송** — 결제 확정 후 배송 요청이 생성되고, 기사가 요청을 수락해 배송을 진행합니다.
+
+결제 단계의 길이는 이 흐름을 설계한 배경 중 하나입니다. Stripe의 **2022년 일반 전자상거래 결제 조사**에서는 아시아·태평양 응답자의 49%가 결제에 3분 이상 걸리면 구매를 포기한다고 답했습니다. 북미는 2분에 52%, 유럽은 2분에 62%였습니다. 이 수치는 중고 가구 거래를 직접 조사한 결과가 아닙니다. [아시아·태평양](https://stripe.com/guides/state-of-asia-pacific-checkouts-2022) · [북미](https://stripe.com/guides/state-of-north-american-checkouts-2022) · [유럽](https://stripe.com/guides/state-of-european-checkouts-2022)
+
+> [!NOTE]
+> **현재 구현 범위**: 예상 배송비는 주소 기반 용달 견적이 아니라 **가구의 크기(부피)에 따른 정액 정책**으로 계산합니다. 결제 후 배송 요청과 기사 수락 흐름은 구현되어 있습니다. 주소 기반 견적과 자동 차량 매칭은 아직 구현되지 않았습니다.
+
+## 🗂️ 저장소 둘러보기
+
+| 경로 | 역할 | 기술 |
+| :-- | :-- | :-- |
+| [`client/`](client/) | 구매자·판매자 웹, 매물 탐색과 결제 | React · TypeScript · Webpack |
+| [`android/`](android/) | Android 앱, 매물 탐색과 판매자 화면 | Kotlin · Jetpack Compose |
+| [`apps/driver/`](apps/driver/) | 기사 앱, 요청 수락부터 배송 완료까지 | Expo · React Native · TypeScript |
+| [`server/`](server/) | 회원·매물·주문·결제·배송 API | Java 21 · Spring Boot · MySQL |
+| [`docs/policy/`](docs/policy/README.md) | 주문·결제·배송의 상태와 서비스 정책 | Markdown |
+
+### 코드에서 확인하는 핵심 흐름
+
+- [배송비 정책](server/src/main/java/setty/platform/listing/domain/DeliveryFeePolicy.java): 가구 부피에 따라 예상 배송비를 계산합니다.
+- [매물 상세](client/src/components/ProductDetail.tsx): 매물 가격, 배송비, 총액을 함께 표시합니다.
+- [결제 화면](client/src/components/PaymentCheckout.tsx): 주문을 생성하고 결제 위젯을 엽니다. 목 모드에서는 결제 성공을 모의합니다.
+- [배송 정책](docs/policy/delivery.md): 결제 확정 이후 배송 요청과 상태 전이를 정의합니다.
+
+## 🛠️ 로컬에서 살펴보기
+
+웹 화면만 빠르게 보려면 Node.js와 npm을 준비한 뒤 목 모드로 실행합니다. 목 모드는 실제 결제를 진행하지 않습니다.
 
 ```bash
 cd client
 npm ci
-npm run dev
+npm run dev:msw
 ```
 
-검증:
+서버는 JDK 21과 Docker가 필요합니다. MySQL을 띄운 뒤 별도 터미널에서 실행합니다.
 
 ```bash
-npm run lint
-npm run typecheck
-npm test
-npm run build
-```
-
-## Server
-
-요구 사항: JDK 21
-
-```bash
+docker compose up -d db
 cd server
 ./gradlew bootRun
 ```
 
-검증:
+웹의 일반 개발 모드(`npm run dev`)는 `/api`와 `/payments` 요청을 서버로 전달할 리버스 프록시 구성이 필요합니다. 기사 앱 실행과 서버 연결 방법은 [기사 앱 README](apps/driver/README.md)를 참고합니다.
 
-```bash
-./gradlew test
-./gradlew build
-```
+## 📚 문서와 협업
 
-개발 환경은 MySQL을 사용합니다. 스키마는 [schema.sql](server/src/main/resources/schema.sql)로 관리하고, JPA는 실행 시 스키마 일치 여부를 검증합니다.
+- [서비스 정책](docs/policy/README.md): 주문·결제·배송의 확정 규칙과 미정 항목
+- [기사 앱 문서](apps/docs/README.md): 앱 구조, API 매핑, 확인할 사항
+- [CI](.github/workflows/ci.yml): 서버 테스트와 웹 타입 검사
 
-## Git workflow
-
-- `main`, `develop` 직접 푸시 금지
-- 작업 브랜치는 `develop`에서 생성
-- `feature/<issue>-<slug>`, `fix/<issue>-<slug>`, `refactor/<issue>-<slug>`, `chore/<slug>` 사용
-- 작성자가 아닌 팀원 1명 리뷰
-- Merge commit으로 병합
-
-실제 작업 범위와 완료 조건은 GitHub Issue를 기준으로 합니다.
+작업은 `develop`에서 분기하고 Pull Request로 리뷰합니다. 실제 작업 범위와 완료 조건은 GitHub Issue를 기준으로 합니다.
