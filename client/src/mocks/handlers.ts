@@ -3,12 +3,14 @@ import { authHandlers } from './auth';
 import { mockListings } from './listings';
 import { getListingMockScenario } from './scenario';
 import type { ListingDetail, ListingItem, ListingPayload, MyListing } from '../api/listings';
-import type { MyOrder, Order } from '../api/orders';
+import type { MyOrder, Order, OrderStatus } from '../api/orders';
 
 let nextListingId = 3;
 let nextImageId = 30;
-let nextOrderId = 1;
-const orderStore: Order[] = [];
+type MockOrder = Order & { orderStatus: OrderStatus };
+const orderStorageKey = 'setty:mock-orders';
+const orderStore = JSON.parse(window.sessionStorage.getItem(orderStorageKey) ?? '[]') as MockOrder[];
+let nextOrderId = Math.max(0, ...orderStore.map((order) => order.id)) + 1;
 const favoriteStore = new Set<number>();
 let listingStore: ListingDetail[] = mockListings.map((listing, index) => ({
     ...listing,
@@ -17,6 +19,10 @@ let listingStore: ListingDetail[] = mockListings.map((listing, index) => ({
     images: [{ id: index + 10, url: listing.thumbnailUrl ?? '', displayOrder: 1 }],
     updatedAt: listing.createdAt
 }));
+
+function saveOrders() {
+    window.sessionStorage.setItem(orderStorageKey, JSON.stringify(orderStore));
+}
 
 function isAuthenticated(request: Request) {
     return request.headers.get('Authorization')?.startsWith('Bearer ') ?? false;
@@ -137,16 +143,36 @@ export const handlers = [
             const body = await request.json() as { listingId?: unknown };
             const listingId = body.listingId;
             if (typeof listingId !== 'number') return invalidRequest('매물 정보를 확인해 주세요.');
-            if (orderStore.some((order) => order.listingId === listingId)) {
+            if (orderStore.some((order) => order.listingId === listingId && order.orderStatus !== 'CANCELLED')) {
                 return HttpResponse.json({ code: 'ALREADY_ORDERED', message: '이미 주문한 매물입니다.' }, { status: 400 });
             }
 
-            const order: Order = { id: nextOrderId++, listingId, buyerId: 1, deliveryStatus: 'REQUESTED' };
+            const order: MockOrder = { id: nextOrderId++, listingId, buyerId: 1, orderStatus: 'CONFIRMED', deliveryStatus: 'REQUESTED' };
             orderStore.unshift(order);
+            saveOrders();
             return HttpResponse.json(order, { status: 201 });
         } catch {
             return invalidRequest('잘못된 주문 요청입니다.');
         }
+    }),
+
+    http.post('/api/orders/:orderId/cancellations', ({ params, request }) => {
+        if (!isAuthenticated(request)) return unauthorized();
+        const order = orderStore.find((item) => item.id === Number(params.orderId));
+        if (!order) return HttpResponse.json({ code: 'ORDER_NOT_FOUND', message: '존재하지 않는 주문입니다.' }, { status: 404 });
+        if (order.orderStatus !== 'CONFIRMED' && order.orderStatus !== 'CANCEL_PENDING') {
+            return HttpResponse.json({ code: 'INVALID_ORDER_STATUS_TRANSITION', message: '잘못된 주문 상태 변경입니다.' }, { status: 409 });
+        }
+
+        if (order.orderStatus === 'CONFIRMED') {
+            order.orderStatus = 'CANCEL_PENDING';
+            saveOrders();
+            setTimeout(() => {
+                order.orderStatus = 'CANCELLED';
+                saveOrders();
+            }, 1500);
+        }
+        return HttpResponse.json({ orderId: order.id, orderStatus: 'CANCEL_PENDING', message: '취소 대기 중' }, { status: 202 });
     }),
 
     http.get('/api/me/favorites', ({ request }) => {
@@ -193,6 +219,7 @@ export const handlers = [
                     price: listing?.price ?? 0,
                     deliveryFee: listing?.deliveryFee ?? 0
                 },
+                orderStatus: order.orderStatus,
                 deliveryStatus: order.deliveryStatus
             };
         });
