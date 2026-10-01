@@ -16,14 +16,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.event.ApplicationEvents;
 import org.springframework.test.context.event.RecordApplicationEvents;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.mysql.MySQLContainer;
 import setty.common.PaymentCompleted;
 import setty.common.PaymentFailed;
 import setty.global.exception.BusinessException;
@@ -33,11 +29,11 @@ import setty.payment.domain.Payment;
 import setty.payment.infrastructure.TossConfirmResult;
 import setty.payment.infrastructure.TossPaymentClient;
 import setty.platform.listing.storage.ListingImageStorage;
+import setty.support.MySqlIntegrationTestSupport;
 
 @SpringBootTest
-@Testcontainers
 @RecordApplicationEvents
-class PaymentServiceIntegrationTest {
+class PaymentServiceIntegrationTest extends MySqlIntegrationTestSupport {
 
     private static final long SELLER_ID = 101L;
     private static final long BUYER_ID = 202L;
@@ -49,13 +45,6 @@ class PaymentServiceIntegrationTest {
     // 토스 orderId는 `<주문id>_<랜덤>` 복합키. 서버는 앞부분에서 ORDER_ID를 추출한다.
     private static final String TOSS_ORDER_ID = ORDER_ID + "_test-token";
     private static final String PAYMENT_KEY = "test_payment_key_1";
-
-    @Container
-    @ServiceConnection
-    static final MySQLContainer MYSQL = new MySQLContainer("mysql:8.4.6")
-            .withDatabaseName("setty_test")
-            .withUsername("setty_test")
-            .withPassword("setty_test");
 
     @Autowired
     private PaymentService paymentService;

@@ -10,32 +10,21 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.mysql.MySQLContainer;
 import setty.global.exception.BusinessException;
 import setty.global.exception.ErrorCode;
 import setty.platform.listing.application.ListingView;
 import setty.platform.listing.storage.ListingImageStorage;
+import setty.support.MySqlIntegrationTestSupport;
 
 @SpringBootTest
-@Testcontainers
-class FavoriteServiceTest {
+class FavoriteServiceTest extends MySqlIntegrationTestSupport {
 
     private static final long SELLER_ID = 101L;
     private static final long MEMBER_ID = 202L;
     private static final long FIRST_LISTING_ID = 11L;
     private static final long SECOND_LISTING_ID = 12L;
-
-    @Container
-    @ServiceConnection
-    static final MySQLContainer MYSQL = new MySQLContainer("mysql:8.4.6")
-            .withDatabaseName("setty_test")
-            .withUsername("setty_test")
-            .withPassword("setty_test");
 
     @Autowired
     private FavoriteService favoriteService;

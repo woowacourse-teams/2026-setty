@@ -8,12 +8,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.mysql.MySQLContainer;
 import setty.global.exception.BusinessException;
 import setty.global.exception.ErrorCode;
 import setty.platform.listing.storage.ListingImageStorage;
@@ -22,21 +18,14 @@ import setty.platform.member.repository.MemberRepository;
 import setty.platform.order.controller.dto.OrderCreateRequest;
 import setty.platform.order.domain.Order;
 import setty.platform.order.service.OrderService;
+import setty.support.MySqlIntegrationTestSupport;
 
 @SpringBootTest
-@Testcontainers
-class OrderPendingTest {
+class OrderPendingTest extends MySqlIntegrationTestSupport {
 
     private static final long SELLER_ID = 101L;
     private static final long BUYER_ID = 202L;
     private static final long LISTING_ID = 11L;
-
-    @Container
-    @ServiceConnection
-    static final MySQLContainer MYSQL = new MySQLContainer("mysql:8.4.6")
-            .withDatabaseName("setty_test")
-            .withUsername("setty_test")
-            .withPassword("setty_test");
 
     @Autowired
     private OrderService orderService;

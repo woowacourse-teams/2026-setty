@@ -8,11 +8,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.mysql.MySQLContainer;
 import setty.global.exception.BusinessException;
 import setty.global.exception.ErrorCode;
 import setty.platform.member.controller.dto.MemberMeResponse;
@@ -20,20 +16,13 @@ import setty.platform.member.controller.dto.UpdateProfileRequest;
 import setty.platform.member.domain.Member;
 import setty.platform.member.repository.MemberRepository;
 import setty.platform.member.service.AuthService;
+import setty.support.MySqlIntegrationTestSupport;
 
 @SpringBootTest
-@Testcontainers
-class AuthServiceTest {
+class AuthServiceTest extends MySqlIntegrationTestSupport {
 
     private static final long MEMBER_ID = 101L;
     private static final String TOKEN = "token-101";
-
-    @Container
-    @ServiceConnection
-    static final MySQLContainer MYSQL = new MySQLContainer("mysql:8.4.11")
-            .withDatabaseName("setty_test")
-            .withUsername("setty_test")
-            .withPassword("setty_test");
 
     @Autowired
     private AuthService authService;
