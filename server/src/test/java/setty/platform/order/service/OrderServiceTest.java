@@ -137,6 +137,20 @@ class OrderServiceTest {
     }
 
     @Test
+    void 만료된_주문에_늦게_온_결제_완료는_배송을_요청하지_않는다() {
+        final Order order = Order.pending(LISTING_ID, BUYER_ID, Instant.parse("2026-09-02T05:00:00Z"));
+        ReflectionTestUtils.setField(order, "id", ORDER_ID);
+        order.expire(Instant.parse("2026-09-02T05:00:00Z"));
+        when(orderRepository.findByIdForUpdate(ORDER_ID)).thenReturn(Optional.of(order));
+
+        orderService.publishOrderConfirmed(ORDER_ID);
+
+        assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.EXPIRED);
+        assertThat(order.getDeliveryStatus()).isEqualTo(DeliveryStatus.PENDING);
+        verifyNoInteractions(listingRepository, memberRepository, eventPublisher);
+    }
+
+    @Test
     void 구매자_취소_요청은_취소_대기로_전이하고_배송_취소_이벤트를_발행한다() {
         final Order order = confirmedOrder();
         when(orderRepository.findByIdAndBuyerIdForUpdate(ORDER_ID, BUYER_ID)).thenReturn(Optional.of(order));
@@ -250,38 +264,6 @@ class OrderServiceTest {
                 .extracting(e -> ((BusinessException) e).getErrorCode())
                 .isEqualTo(ErrorCode.INVALID_ORDER_STATUS_TRANSITION);
         verifyNoInteractions(eventPublisher);
-    }
-
-    @Test
-    void 결제대기_주문을_취소하면_주문이_삭제되고_선점이_해제된다() {
-        final Order order = order();
-        when(orderRepository.findByIdForUpdate(ORDER_ID)).thenReturn(Optional.of(order));
-
-        orderService.cancelPending(ORDER_ID);
-
-        verify(listingService).releasePurchaseRequest(LISTING_ID);
-        verify(orderRepository).delete(order);
-    }
-
-    @Test
-    void 결제대기가_아닌_주문은_취소_요청을_무시한다() {
-        final Order order = new Order(LISTING_ID, BUYER_ID);
-        ReflectionTestUtils.setField(order, "id", ORDER_ID);
-        when(orderRepository.findByIdForUpdate(ORDER_ID)).thenReturn(Optional.of(order));
-
-        orderService.cancelPending(ORDER_ID);
-
-        verifyNoInteractions(listingService);
-        verify(orderRepository, never()).delete(order);
-    }
-
-    @Test
-    void 존재하지_않는_주문의_취소_요청은_무시한다() {
-        when(orderRepository.findByIdForUpdate(ORDER_ID)).thenReturn(Optional.empty());
-
-        orderService.cancelPending(ORDER_ID);
-
-        verifyNoInteractions(listingService);
     }
 
     @Test

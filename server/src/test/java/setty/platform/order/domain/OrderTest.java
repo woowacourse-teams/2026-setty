@@ -35,6 +35,16 @@ class OrderTest {
         assertThat(order.canExpire(pendingExpiresAt.plusSeconds(1))).isTrue();
     }
 
+    @Test
+    void 만료된_주문은_EXPIRED로_보존한다() {
+        final Instant expiresAt = Instant.parse("2026-09-02T05:10:00Z");
+        final Order order = Order.pending(1L, 2L, expiresAt);
+
+        assertThat(order.expire(expiresAt)).isTrue();
+        assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.EXPIRED);
+        assertThat(order.expire(expiresAt.plusSeconds(1))).isFalse();
+    }
+
     @ParameterizedTest
     @EnumSource(value = OrderStatus.class, names = {"CONFIRMED", "CANCEL_PENDING", "CANCELLED", "EXPIRED"})
     void PENDING이_아닌_주문은_만료_시각이_지나도_만료할_수_없다(final OrderStatus orderStatus) {
@@ -43,6 +53,25 @@ class OrderTest {
         ReflectionTestUtils.setField(order, "orderStatus", orderStatus);
 
         assertThat(order.canExpire(pendingExpiresAt.plusSeconds(1))).isFalse();
+    }
+
+    @Test
+    void 만료_시각_전의_PENDING_주문만_결제할_수_있다() {
+        final Instant pendingExpiresAt = Instant.parse("2026-09-02T05:10:00Z");
+        final Order order = Order.pending(1L, 2L, pendingExpiresAt);
+
+        assertThat(order.isPayable(pendingExpiresAt.minusSeconds(1))).isTrue();
+        assertThat(order.isPayable(pendingExpiresAt)).isFalse();
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = OrderStatus.class, names = {"CONFIRMED", "CANCEL_PENDING", "CANCELLED", "EXPIRED"})
+    void PENDING이_아닌_주문은_만료_시각_전이어도_결제할_수_없다(final OrderStatus orderStatus) {
+        final Instant pendingExpiresAt = Instant.parse("2026-09-02T05:10:00Z");
+        final Order order = Order.pending(1L, 2L, pendingExpiresAt);
+        ReflectionTestUtils.setField(order, "orderStatus", orderStatus);
+
+        assertThat(order.isPayable(pendingExpiresAt.minusSeconds(1))).isFalse();
     }
 
     @Test

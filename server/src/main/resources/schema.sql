@@ -118,8 +118,12 @@ CREATE TABLE IF NOT EXISTS orders (
     cancellation_request_id VARCHAR(36) NULL,           -- 현재 취소 SAGA 요청 식별자
     driver_id       BIGINT       NULL,                  -- 현재 미사용, 실제 배정 기사는 delivery.driver_id에 저장
     pending_expires_at TIMESTAMP(6) NULL,                -- PENDING 주문 자동 만료 시각
+    active_listing_id BIGINT GENERATED ALWAYS AS (
+        CASE WHEN order_status IN ('EXPIRED', 'CANCELLED') THEN NULL ELSE listing_id END
+    ) STORED,
     PRIMARY KEY (id),
-    UNIQUE KEY uk_orders_listing_id (listing_id),
+    INDEX idx_orders_listing_id (listing_id),
+    UNIQUE KEY uk_orders_active_listing_id (active_listing_id),
     CONSTRAINT fk_orders_listing FOREIGN KEY (listing_id) REFERENCES listings (id),
     CONSTRAINT fk_orders_buyer   FOREIGN KEY (buyer_id)   REFERENCES members (id),
     INDEX idx_orders_pending_expiration (delivery_status, pending_expires_at),
@@ -236,9 +240,64 @@ PREPARE add_orders_order_expiration_index_statement FROM @add_orders_order_expir
 EXECUTE add_orders_order_expiration_index_statement;
 DEALLOCATE PREPARE add_orders_order_expiration_index_statement;
 
+-- 종료된 주문은 보존하면서 같은 매물의 새 주문을 허용한다.
+-- MySQL UNIQUE는 NULL 중복을 허용하므로 활성 주문의 listing_id만 유일하게 제한한다.
+SET @orders_active_listing_column_exists = (
+    SELECT COUNT(*) FROM information_schema.columns
+    WHERE table_schema = DATABASE() AND table_name = 'orders' AND column_name = 'active_listing_id'
+);
+SET @add_orders_active_listing_column = IF(
+    @orders_active_listing_column_exists = 0,
+    'ALTER TABLE orders ADD COLUMN active_listing_id BIGINT GENERATED ALWAYS AS (CASE WHEN order_status IN (''EXPIRED'', ''CANCELLED'') THEN NULL ELSE listing_id END) STORED',
+    'SELECT 1'
+);
+PREPARE add_orders_active_listing_column_statement FROM @add_orders_active_listing_column;
+EXECUTE add_orders_active_listing_column_statement;
+DEALLOCATE PREPARE add_orders_active_listing_column_statement;
+
+SET @orders_active_listing_unique_exists = (
+    SELECT COUNT(*) FROM information_schema.statistics
+    WHERE table_schema = DATABASE() AND table_name = 'orders' AND index_name = 'uk_orders_active_listing_id'
+);
+SET @add_orders_active_listing_unique = IF(
+    @orders_active_listing_unique_exists = 0,
+    'ALTER TABLE orders ADD UNIQUE KEY uk_orders_active_listing_id (active_listing_id)',
+    'SELECT 1'
+);
+PREPARE add_orders_active_listing_unique_statement FROM @add_orders_active_listing_unique;
+EXECUTE add_orders_active_listing_unique_statement;
+DEALLOCATE PREPARE add_orders_active_listing_unique_statement;
+
+SET @orders_listing_index_exists = (
+    SELECT COUNT(*) FROM information_schema.statistics
+    WHERE table_schema = DATABASE() AND table_name = 'orders' AND index_name = 'idx_orders_listing_id'
+);
+SET @add_orders_listing_index = IF(
+    @orders_listing_index_exists = 0,
+    'ALTER TABLE orders ADD INDEX idx_orders_listing_id (listing_id)',
+    'SELECT 1'
+);
+PREPARE add_orders_listing_index_statement FROM @add_orders_listing_index;
+EXECUTE add_orders_listing_index_statement;
+DEALLOCATE PREPARE add_orders_listing_index_statement;
+
+SET @orders_listing_unique_exists = (
+    SELECT COUNT(*) FROM information_schema.statistics
+    WHERE table_schema = DATABASE() AND table_name = 'orders' AND index_name = 'uk_orders_listing_id'
+);
+SET @drop_orders_listing_unique = IF(
+    @orders_listing_unique_exists > 0,
+    'ALTER TABLE orders DROP INDEX uk_orders_listing_id',
+    'SELECT 1'
+);
+PREPARE drop_orders_listing_unique_statement FROM @drop_orders_listing_unique;
+EXECUTE drop_orders_listing_unique_statement;
+DEALLOCATE PREPARE drop_orders_listing_unique_statement;
+
 -- 결제 (payment 계층). 토스페이먼츠 결제 결과(성공 DONE / 실패 ABORTED)를 1주문 1행으로 저장한다.
 -- 주문은 결제 이전에 PENDING으로 먼저 생성되므로 payments.order_id는 항상 존재하는 주문을 가리킨다.
 -- 실패 저장을 위해 payment_key·approved_at은 NULL 허용. 실패 후 재승인 시 같은 행을 DONE으로 전이한다.
+-- 주문은 만료 후에도 보존한다. 기존 DB의 fk_payments_order는 아래에서 제거한다.
 CREATE TABLE IF NOT EXISTS payments (
     id            BIGINT       NOT NULL AUTO_INCREMENT,
     order_id      BIGINT       NOT NULL,                  -- 결제 이전에 PENDING으로 존재하는 주문 (1주문 1행)
@@ -249,9 +308,22 @@ CREATE TABLE IF NOT EXISTS payments (
     approved_at   DATETIME     NULL,                      -- 토스 승인 시각 (실패/ABORTED 시 NULL)
     PRIMARY KEY (id),
     UNIQUE KEY uk_payments_order_id (order_id),
-    UNIQUE KEY uk_payments_toss_order_id (toss_order_id),
-    CONSTRAINT fk_payments_order FOREIGN KEY (order_id) REFERENCES orders (id)
+    UNIQUE KEY uk_payments_toss_order_id (toss_order_id)
 );
+
+SET @payments_order_fk_exists = (
+    SELECT COUNT(*) FROM information_schema.table_constraints
+    WHERE table_schema = DATABASE() AND table_name = 'payments'
+      AND constraint_name = 'fk_payments_order' AND constraint_type = 'FOREIGN KEY'
+);
+SET @drop_payments_order_fk = IF(
+    @payments_order_fk_exists > 0,
+    'ALTER TABLE payments DROP FOREIGN KEY fk_payments_order',
+    'SELECT 1'
+);
+PREPARE drop_payments_order_fk_statement FROM @drop_payments_order_fk;
+EXECUTE drop_payments_order_fk_statement;
+DEALLOCATE PREPARE drop_payments_order_fk_statement;
 
 CREATE TABLE IF NOT EXISTS favorites (
     id         BIGINT       NOT NULL AUTO_INCREMENT,

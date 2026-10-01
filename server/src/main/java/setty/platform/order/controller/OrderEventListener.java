@@ -10,7 +10,6 @@ import setty.common.DeliveryDelivered;
 import setty.common.DeliveryPickedUp;
 import setty.common.DeliveryStatus;
 import setty.common.PaymentCompleted;
-import setty.common.PaymentFailed;
 import setty.global.exception.BusinessException;
 import setty.global.exception.ErrorCode;
 import setty.platform.order.service.OrderService;
@@ -33,13 +32,6 @@ public class OrderEventListener {
     public void onPaymentCompleted(final PaymentCompleted event) {
         requireEvent(event);
         orderService.publishOrderConfirmed(event.orderId());
-    }
-
-    // 결제 실패 주문을 제거하고 매물 선점을 해제한다.
-    @ApplicationModuleListener
-    public void onPaymentFailed(final PaymentFailed event) {
-        requireEvent(event);
-        orderService.cancelPending(event.orderId());
     }
 
     // 배송 취소 성공 응답으로 주문을 취소 확정하고 OrderCancelled를 발행한다.

@@ -7,6 +7,8 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
@@ -32,6 +34,8 @@ import setty.platform.order.repository.OrderRepository;
 
 @Service
 public class OrderService {
+
+    private static final Logger log = LoggerFactory.getLogger(OrderService.class);
 
     private final OrderRepository orderRepository;
     private final ListingService listingService;
@@ -62,7 +66,8 @@ public class OrderService {
     // 결제 대기 주문 생성 — 결제 전이므로 OrderConfirmed(배차 요청)를 발행하지 않는다.
     @Transactional
     public Order pending(final OrderCreateRequest request, final Member buyer) {
-        if (orderRepository.existsByListingId(request.listingId())) {
+        if (orderRepository.existsByListingIdAndOrderStatusNotIn(
+                request.listingId(), List.of(OrderStatus.EXPIRED, OrderStatus.CANCELLED))) {
             throw new BusinessException(ErrorCode.ALREADY_ORDERED);
         }
 
@@ -87,6 +92,10 @@ public class OrderService {
 
         final Order order = orderRepository.findByIdForUpdate(orderId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
+        if (order.getOrderStatus() == OrderStatus.EXPIRED) {
+            log.error("만료된 주문에 결제 완료가 도착했습니다. 수동 환불 확인이 필요합니다. orderId={}", orderId);
+            return;
+        }
         if (!order.requestDelivery()) {
             return;
         }
@@ -175,25 +184,6 @@ public class OrderService {
                 || decidedAt == null) {
             throw new BusinessException(ErrorCode.INVALID_REQUEST);
         }
-    }
-
-    /**
-     * 결제 실패(PaymentFailed) 보상 — PENDING 주문을 삭제하고 매물 선점을 해제해 다시 구매 가능하게 한다.
-     * 주문이 없거나(중복 실패 복귀) PENDING이 아니면 조용히 무시한다.
-     */
-    @Transactional
-    public void cancelPending(final Long orderId) {
-        if (orderId == null || orderId <= 0) {
-            return;
-        }
-
-        final Order order = orderRepository.findByIdForUpdate(orderId).orElse(null);
-        if (order == null || order.getOrderStatus() != OrderStatus.PENDING) {
-            return;
-        }
-
-        listingService.releasePurchaseRequest(order.getListingId());
-        orderRepository.delete(order);
     }
 
     @Transactional(readOnly = true)

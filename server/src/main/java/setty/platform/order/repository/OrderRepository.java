@@ -13,7 +13,7 @@ import setty.platform.order.domain.OrderStatus;
 
 public interface OrderRepository extends JpaRepository<Order, Long> {
 
-    boolean existsByListingId(Long listingId);
+    boolean existsByListingIdAndOrderStatusNotIn(Long listingId, List<OrderStatus> closedStatuses);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select o from Order o where o.id = :orderId")
@@ -37,9 +37,6 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             @Param("orderStatus") OrderStatus orderStatus,
             @Param("referenceTime") Instant referenceTime
     );
-
-    @Query(value = "SELECT COUNT(*) FROM payments WHERE order_id = :orderId", nativeQuery = true)
-    long countPaymentReferences(@Param("orderId") Long orderId);
 
     List<Order> findAllByBuyerIdOrderByIdDesc(Long buyerId);
 

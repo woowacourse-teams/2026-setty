@@ -3,6 +3,7 @@ package setty.platform.order;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.time.Instant;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -18,6 +19,7 @@ import setty.platform.member.repository.MemberRepository;
 import setty.platform.order.controller.dto.OrderCreateRequest;
 import setty.platform.order.domain.Order;
 import setty.platform.order.service.OrderService;
+import setty.platform.order.service.PendingOrderExpirationService;
 import setty.support.MySqlIntegrationTestSupport;
 
 @SpringBootTest
@@ -29,6 +31,9 @@ class OrderPendingTest extends MySqlIntegrationTestSupport {
 
     @Autowired
     private OrderService orderService;
+
+    @Autowired
+    private PendingOrderExpirationService expirationService;
 
     @Autowired
     private MemberRepository memberRepository;
@@ -85,6 +90,41 @@ class OrderPendingTest extends MySqlIntegrationTestSupport {
                 .isInstanceOf(BusinessException.class)
                 .extracting(e -> ((BusinessException) e).getErrorCode())
                 .isEqualTo(ErrorCode.ALREADY_ORDERED);
+    }
+
+    @Test
+    void 만료된_주문을_보존한_채_같은_매물을_다시_주문한다() {
+        final Member buyer = memberRepository.findById(BUYER_ID).orElseThrow();
+        final Order expiredOrder = orderService.pending(new OrderCreateRequest(LISTING_ID), buyer);
+        jdbcTemplate.update("UPDATE orders SET pending_expires_at = DATE_SUB(NOW(6), INTERVAL 1 MINUTE) WHERE id = ?",
+                expiredOrder.getId());
+
+        assertThat(expirationService.expire(expiredOrder.getId(), Instant.now())).isTrue();
+        final Order nextOrder = orderService.pending(new OrderCreateRequest(LISTING_ID), buyer);
+
+        assertThat(nextOrder.getId()).isNotEqualTo(expiredOrder.getId());
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT order_status FROM orders WHERE id = ?", String.class, expiredOrder.getId()))
+                .isEqualTo("EXPIRED");
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM orders WHERE listing_id = ?", Integer.class, LISTING_ID))
+                .isEqualTo(2);
+    }
+
+    @Test
+    void 구매자_취소가_확정된_매물을_다시_주문한다() {
+        final Member buyer = memberRepository.findById(BUYER_ID).orElseThrow();
+        final Order cancelledOrder = orderService.pending(new OrderCreateRequest(LISTING_ID), buyer);
+        // 구매자 취소 확정과 OrderCancelled 수신에 따른 매물 재공개를 끝낸 상태
+        jdbcTemplate.update("UPDATE orders SET order_status = 'CANCELLED' WHERE id = ?", cancelledOrder.getId());
+        jdbcTemplate.update("UPDATE listings SET has_purchase_request = false WHERE id = ?", LISTING_ID);
+
+        final Order nextOrder = orderService.pending(new OrderCreateRequest(LISTING_ID), buyer);
+
+        assertThat(nextOrder.getId()).isNotEqualTo(cancelledOrder.getId());
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM orders WHERE listing_id = ?", Integer.class, LISTING_ID))
+                .isEqualTo(2);
     }
 
     private void insertMember(final long memberId) {
