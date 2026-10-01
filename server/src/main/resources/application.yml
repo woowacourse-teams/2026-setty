@@ -45,7 +45,7 @@ management:
 setty:
   order:
     pending-expiration:
-      timeout: ${PENDING_ORDER_EXPIRATION_TIMEOUT:PT3M}
+      timeout: ${PENDING_ORDER_EXPIRATION_TIMEOUT:PT6M}
       scan-interval: ${PENDING_ORDER_EXPIRATION_SCAN_INTERVAL:PT1M}
   storage:
     listing-images:

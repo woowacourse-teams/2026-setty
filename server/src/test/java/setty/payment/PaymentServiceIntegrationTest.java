@@ -201,6 +201,41 @@ class PaymentServiceIntegrationTest {
     }
 
     @Test
+    void 구매자는_자신의_주문을_승인한다() {
+        stubTossSuccess();
+
+        final Payment payment = paymentService.confirm(BUYER_ID, TOSS_ORDER_ID, PAYMENT_KEY, TOTAL_PRICE);
+
+        assertThat(payment.getStatus().name()).isEqualTo("DONE");
+        assertThat(paymentCount()).isEqualTo(1);
+    }
+
+    @Test
+    void 다른_회원의_주문은_승인하지_않는다() {
+        assertThatThrownBy(() -> paymentService.confirm(SELLER_ID, TOSS_ORDER_ID, PAYMENT_KEY, TOTAL_PRICE))
+                .isInstanceOf(BusinessException.class)
+                .extracting(e -> ((BusinessException) e).getErrorCode())
+                .isEqualTo(ErrorCode.ORDER_NOT_FOUND);
+
+        verify(tossPaymentClient, never()).confirm(anyString(), anyString(), anyInt());
+        assertThat(paymentCount()).isZero();
+    }
+
+    @Test
+    void 다른_회원의_주문은_실패_처리하지_않는다() {
+        markOrderPending(ORDER_ID);
+
+        assertThatThrownBy(() -> paymentService.fail(SELLER_ID, TOSS_ORDER_ID))
+                .isInstanceOf(BusinessException.class)
+                .extracting(e -> ((BusinessException) e).getErrorCode())
+                .isEqualTo(ErrorCode.ORDER_NOT_FOUND);
+        awaitEventsHandled(jdbcTemplate);
+
+        assertThat(orderExists(ORDER_ID)).isTrue();
+        assertThat(events.stream(PaymentFailed.class).count()).isZero();
+    }
+
+    @Test
     void 이미_승인된_결제를_다시_승인하면_재승인_없이_멱등_처리된다() {
         stubTossSuccess();
         paymentService.confirm(TOSS_ORDER_ID,PAYMENT_KEY, TOTAL_PRICE);

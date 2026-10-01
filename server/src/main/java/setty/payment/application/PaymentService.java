@@ -77,6 +77,24 @@ public class PaymentService {
         eventPublisher.publishEvent(new PaymentFailed(orderId));
     }
 
+    public Payment confirm(final Long buyerId, final String tossOrderId, final String paymentKey, final int amount) {
+        verifyBuyer(buyerId, extractOrderId(tossOrderId));
+        return confirm(tossOrderId, paymentKey, amount);
+    }
+
+    @Transactional
+    public void fail(final Long buyerId, final String tossOrderId) {
+        verifyBuyer(buyerId, extractOrderId(tossOrderId));
+        fail(tossOrderId);
+    }
+
+    // 다른 구매자의 주문은 존재 여부를 드러내지 않도록 찾을 수 없는 주문으로 응답한다.
+    private void verifyBuyer(final Long buyerId, final Long orderId) {
+        if (orderRepository.findByIdAndBuyerId(orderId, buyerId).isEmpty()) {
+            throw new BusinessException(ErrorCode.ORDER_NOT_FOUND);
+        }
+    }
+
     /** 토스 orderId(`<주문id>_<랜덤>` 복합키)에서 내부 주문 id를 추출한다. */
     private Long extractOrderId(final String tossOrderId) {
         final int separator = tossOrderId.indexOf('_');
