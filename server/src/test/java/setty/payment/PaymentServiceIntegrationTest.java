@@ -11,6 +11,7 @@ import static org.mockito.Mockito.when;
 import static setty.global.event.EventPublicationTestSupport.awaitEventsHandled;
 import static setty.global.event.EventPublicationTestSupport.incompletePublicationCount;
 
+import java.time.Instant;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -29,6 +30,7 @@ import setty.payment.domain.Payment;
 import setty.payment.infrastructure.TossConfirmResult;
 import setty.payment.infrastructure.TossPaymentClient;
 import setty.platform.listing.storage.ListingImageStorage;
+import setty.platform.order.service.PendingOrderExpirationService;
 import setty.support.MySqlIntegrationTestSupport;
 
 @SpringBootTest
@@ -48,6 +50,9 @@ class PaymentServiceIntegrationTest extends MySqlIntegrationTestSupport {
 
     @Autowired
     private PaymentService paymentService;
+
+    @Autowired
+    private PendingOrderExpirationService expirationService;
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
@@ -161,6 +166,27 @@ class PaymentServiceIntegrationTest extends MySqlIntegrationTestSupport {
         assertThat(listingPurchaseRequested(LISTING_ID)).isFalse();
         assertThat(events.stream(PaymentFailed.class).map(PaymentFailed::orderId))
                 .containsExactly(ORDER_ID);
+    }
+
+    @Test
+    void 만료된_주문에_결제가_늦게_완료되면_결제와_EXPIRED_주문을_보존한다() {
+        markOrderPending(ORDER_ID);
+        jdbcTemplate.update("UPDATE orders SET pending_expires_at = DATE_SUB(NOW(6), INTERVAL 1 MINUTE) WHERE id = ?", ORDER_ID);
+        assertThat(expirationService.expire(ORDER_ID, Instant.now())).isTrue();
+        stubTossSuccess();
+
+        final Payment payment = paymentService.confirm(TOSS_ORDER_ID, PAYMENT_KEY, TOTAL_PRICE);
+        awaitEventsHandled(jdbcTemplate);
+
+        assertThat(payment.getStatus().name()).isEqualTo("DONE");
+        assertThat(orderStatus()).isEqualTo("EXPIRED");
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT delivery_status FROM orders WHERE id = ?", String.class, ORDER_ID)).isEqualTo("PENDING");
+        assertThat(incompletePublicationCount(jdbcTemplate, PaymentCompleted.class)).isZero();
+    }
+
+    private String orderStatus() {
+        return jdbcTemplate.queryForObject("SELECT order_status FROM orders WHERE id = ?", String.class, ORDER_ID);
     }
 
     @Test

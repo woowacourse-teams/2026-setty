@@ -137,6 +137,20 @@ class OrderServiceTest {
     }
 
     @Test
+    void 만료된_주문에_늦게_온_결제_완료는_배송을_요청하지_않는다() {
+        final Order order = Order.pending(LISTING_ID, BUYER_ID, Instant.parse("2026-09-02T05:00:00Z"));
+        ReflectionTestUtils.setField(order, "id", ORDER_ID);
+        order.expire(Instant.parse("2026-09-02T05:00:00Z"));
+        when(orderRepository.findByIdForUpdate(ORDER_ID)).thenReturn(Optional.of(order));
+
+        orderService.publishOrderConfirmed(ORDER_ID);
+
+        assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.EXPIRED);
+        assertThat(order.getDeliveryStatus()).isEqualTo(DeliveryStatus.PENDING);
+        verifyNoInteractions(listingRepository, memberRepository, eventPublisher);
+    }
+
+    @Test
     void 구매자_취소_요청은_취소_대기로_전이하고_배송_취소_이벤트를_발행한다() {
         final Order order = confirmedOrder();
         when(orderRepository.findByIdAndBuyerIdForUpdate(ORDER_ID, BUYER_ID)).thenReturn(Optional.of(order));

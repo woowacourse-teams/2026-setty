@@ -7,6 +7,8 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
@@ -32,6 +34,8 @@ import setty.platform.order.repository.OrderRepository;
 
 @Service
 public class OrderService {
+
+    private static final Logger log = LoggerFactory.getLogger(OrderService.class);
 
     private final OrderRepository orderRepository;
     private final ListingService listingService;
@@ -62,7 +66,7 @@ public class OrderService {
     // 결제 대기 주문 생성 — 결제 전이므로 OrderConfirmed(배차 요청)를 발행하지 않는다.
     @Transactional
     public Order pending(final OrderCreateRequest request, final Member buyer) {
-        if (orderRepository.existsByListingId(request.listingId())) {
+        if (orderRepository.existsByListingIdAndOrderStatusNot(request.listingId(), OrderStatus.EXPIRED)) {
             throw new BusinessException(ErrorCode.ALREADY_ORDERED);
         }
 
@@ -87,6 +91,10 @@ public class OrderService {
 
         final Order order = orderRepository.findByIdForUpdate(orderId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
+        if (order.getOrderStatus() == OrderStatus.EXPIRED) {
+            log.error("만료된 주문에 결제 완료가 도착했습니다. 수동 환불 확인이 필요합니다. orderId={}", orderId);
+            return;
+        }
         if (!order.requestDelivery()) {
             return;
         }
