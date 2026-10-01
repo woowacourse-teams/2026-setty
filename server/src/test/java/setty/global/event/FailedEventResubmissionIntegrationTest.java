@@ -10,36 +10,25 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.mysql.MySQLContainer;
 import setty.common.DeliveryAccepted;
 import setty.common.OrderConfirmed;
 import setty.delivery.application.DeliveryLifecycleService;
 import setty.delivery.domain.DeliveryId;
 import setty.delivery.domain.DriverId;
+import setty.support.MySqlIntegrationTestSupport;
 
 @SpringBootTest
-@Testcontainers
-class FailedEventResubmissionIntegrationTest {
+class FailedEventResubmissionIntegrationTest extends MySqlIntegrationTestSupport {
 
     private static final long SELLER_ID = 1L;
     private static final long BUYER_ID = 2L;
     private static final long LISTING_ID = 10L;
     private static final long ORDER_ID = 100L;
     private static final DriverId DRIVER_ID = new DriverId(201L);
-
-    @Container
-    @ServiceConnection
-    static final MySQLContainer MYSQL = new MySQLContainer("mysql:8.4.11")
-            .withDatabaseName("setty_test")
-            .withUsername("setty_test")
-            .withPassword("setty_test");
 
     @Autowired
     private ApplicationEventPublisher eventPublisher;
