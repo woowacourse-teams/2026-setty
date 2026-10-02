@@ -26,7 +26,7 @@ SETTY가 줄이려는 것은 구매자가 판매자와 운송 서비스 사이�
 3. **결제** — 가구 비용과 배송비를 한 번에 결제합니다.
 4. **배송** — 결제 확정 후 배송 요청이 생성되고, 기사가 요청을 수락해 배송을 진행합니다.
 
-결제 단계의 길이는 이 흐름을 설계한 배경 중 하나입니다. Stripe의 **2022년 일반 전자상거래 결제 조사**에서는 아시아·태평양 응답자의 49%가 결제에 3분 이상 걸리면 구매를 포기한다고 답했습니다. 북미는 2분에 52%, 유럽은 2분에 62%였습니다. 이 수치는 중고 가구 거래를 직접 조사한 결과가 아닙니다. [아시아·태평양](https://stripe.com/guides/state-of-asia-pacific-checkouts-2022) · [북미](https://stripe.com/guides/state-of-north-american-checkouts-2022) · [유럽](https://stripe.com/guides/state-of-european-checkouts-2022)
+결제 단계의 길이는 이 흐름을 설계한 배경 중 하나입니다. Stripe의 **2022년 일반 전자상거래 결제 조사**에서는 아시아·태평양 응답자의 49%가 결제에 3분 이상 걸리면 구매를 포기한다고 답했습니다. 북미는 2분에 52%, 유럽은 2분에 62%였습니다. [아시아·태평양](https://stripe.com/guides/state-of-asia-pacific-checkouts-2022) · [북미](https://stripe.com/guides/state-of-north-american-checkouts-2022) · [유럽](https://stripe.com/guides/state-of-european-checkouts-2022)
 
 > [!NOTE]
 > **현재 구현 범위**: 예상 배송비는 주소 기반 용달 견적이 아니라 **가구의 크기(부피)에 따른 정액 정책**으로 계산합니다. 결제 후 배송 요청과 기사 수락 흐름은 구현되어 있습니다. 주소 기반 견적과 자동 차량 매칭은 아직 구현되지 않았습니다.
@@ -53,5 +53,3 @@ SETTY가 줄이려는 것은 구매자가 판매자와 운송 서비스 사이�
 - [서비스 정책](docs/policy/README.md): 주문·결제·배송의 확정 규칙과 미정 항목
 - [기사 앱 문서](apps/docs/README.md): 앱 구조, API 매핑, 확인할 사항
 - [CI](.github/workflows/ci.yml): 서버 테스트와 웹 타입 검사
-
-작업은 `develop`에서 분기하고 Pull Request로 리뷰합니다. 실제 작업 범위와 완료 조건은 GitHub Issue를 기준으로 합니다.
