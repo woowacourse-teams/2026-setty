@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { trackEvent } from '../analytics/posthog';
 
 export type PaymentNotice = {
     tone: 'success' | 'error';
@@ -22,13 +23,16 @@ export function usePaymentReturn(onConfirmed: () => void) {
         const payment = params.get('payment');
         if (payment !== 'success' && payment !== 'fail') return;
 
+        const failureCode = params.get('code') ?? '';
         cleanPaymentQuery();
 
         if (payment === 'fail') {
+            trackEvent('payment_failed', { code: failureCode });
             setNotice({ tone: 'error', message: '결제가 취소되었거나 실패했습니다. 다시 시도해 주세요.' });
             return;
         }
 
+        trackEvent('payment_succeeded');
         setNotice({ tone: 'success', message: '결제가 완료되었습니다. 내 주문에서 배송 상태를 확인할 수 있습니다.' });
         onConfirmed();
         // 복귀 시 최초 1회만 처리한다. onConfirmed는 처리 시점 값을 사용한다.

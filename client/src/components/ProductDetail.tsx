@@ -1,6 +1,7 @@
 import { ArrowLeft } from '@phosphor-icons/react/dist/icons/ArrowLeft';
 import { Heart } from '@phosphor-icons/react/dist/icons/Heart';
 import { useEffect, useState } from 'react';
+import { trackEvent } from '../analytics/posthog';
 import { addFavorite, fetchFavoriteStatus, removeFavorite } from '../api/favorites';
 import { fetchListing, type ListingDetail } from '../api/listings';
 import { PaymentCheckout } from './PaymentCheckout';
@@ -94,6 +95,12 @@ export function ProductDetail({ listingId, isLoggedIn, isReadOnly = false, onBac
         }
         setPurchaseMessage(null);
         setIsCheckoutOpen(true);
+        trackEvent('checkout_opened', { listing_id: listing.id, amount: listing.totalPrice });
+    };
+
+    const closeCheckout = () => {
+        setIsCheckoutOpen(false);
+        trackEvent('checkout_closed', { listing_id: listing.id });
     };
 
     return (
@@ -175,7 +182,7 @@ export function ProductDetail({ listingId, isLoggedIn, isReadOnly = false, onBac
                     listingId={listing.id}
                     amount={listing.totalPrice}
                     orderName={listing.title}
-                    onClose={() => setIsCheckoutOpen(false)}
+                    onClose={closeCheckout}
                 />
             )}
         </section>

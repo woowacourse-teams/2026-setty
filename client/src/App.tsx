@@ -11,6 +11,7 @@ import {
     useParams,
     type BlockerFunction
 } from 'react-router';
+import { resetUser } from './analytics/posthog';
 import { logout } from './api/auth';
 import { fetchListing, type ListingDetail } from './api/listings';
 import { AuthModal } from './components/AuthModal';
@@ -257,6 +258,7 @@ function App() {
         void logout();
         window.sessionStorage.removeItem('setty:auth-token');
         window.sessionStorage.removeItem('setty:auth-role');
+        resetUser();
         setIsLoggedIn(false);
         navigate('/', { replace: true, state: null });
     }, [locationState.logout, navigate]);
