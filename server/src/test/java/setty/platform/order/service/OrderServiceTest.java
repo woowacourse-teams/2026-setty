@@ -295,6 +295,35 @@ class OrderServiceTest {
         });
     }
 
+    @Test
+    void 취소_후_같은_매물을_재구매해도_두_주문을_조회한다() {
+        final Order cancelledOrder = confirmedOrder();
+        cancelledOrder.requestCancellation("cancellation-1");
+        cancelledOrder.confirmCancellation("cancellation-1");
+        final Order nextOrder = Order.pending(LISTING_ID, BUYER_ID);
+        ReflectionTestUtils.setField(nextOrder, "id", ORDER_ID + 1);
+        final ListingView.Summary listing = new ListingView.Summary(
+                LISTING_ID, "가상 책상", null, 100_000, 10_000, 110_000,
+                ListingCategory.DESK, ConditionGrade.A,
+                new ListingView.Dimensions(120, 60, 75), Instant.parse("2026-09-03T00:00:00Z")
+        );
+        when(orderRepository.findAllByBuyerIdOrderByIdDesc(BUYER_ID))
+                .thenReturn(List.of(nextOrder, cancelledOrder));
+        when(listingService.findSummaries(any())).thenAnswer(invocation -> {
+            final List<Long> ids = invocation.getArgument(0);
+            return ids.stream().map(id -> listing).toList();
+        });
+
+        final List<MyOrderResponse> responses = orderService.findMyOrders(BUYER_ID);
+
+        assertThat(responses).extracting(MyOrderResponse::id)
+                .containsExactly(ORDER_ID + 1, ORDER_ID);
+        assertThat(responses).extracting(MyOrderResponse::orderStatus)
+                .containsExactly("PENDING", "CANCELLED");
+        assertThat(responses).allSatisfy(response ->
+                assertThat(response.listing().id()).isEqualTo(LISTING_ID));
+    }
+
     private static Order order() {
         final Order order = Order.pending(LISTING_ID, BUYER_ID);
         ReflectionTestUtils.setField(order, "id", ORDER_ID);

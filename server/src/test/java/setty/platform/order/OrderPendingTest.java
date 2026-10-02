@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.time.Instant;
+import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -17,6 +18,7 @@ import setty.platform.listing.storage.ListingImageStorage;
 import setty.platform.member.domain.Member;
 import setty.platform.member.repository.MemberRepository;
 import setty.platform.order.controller.dto.OrderCreateRequest;
+import setty.platform.order.controller.dto.MyOrderResponse;
 import setty.platform.order.domain.Order;
 import setty.platform.order.service.OrderService;
 import setty.platform.order.service.PendingOrderExpirationService;
@@ -125,6 +127,14 @@ class OrderPendingTest extends MySqlIntegrationTestSupport {
         assertThat(jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM orders WHERE listing_id = ?", Integer.class, LISTING_ID))
                 .isEqualTo(2);
+
+        final List<MyOrderResponse> myOrders = orderService.findMyOrders(BUYER_ID);
+        assertThat(myOrders).extracting(MyOrderResponse::id)
+                .containsExactly(nextOrder.getId(), cancelledOrder.getId());
+        assertThat(myOrders).extracting(MyOrderResponse::orderStatus)
+                .containsExactly("PENDING", "CANCELLED");
+        assertThat(myOrders).allSatisfy(myOrder ->
+                assertThat(myOrder.listing().id()).isEqualTo(LISTING_ID));
     }
 
     private void insertMember(final long memberId) {
