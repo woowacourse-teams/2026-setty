@@ -13,9 +13,30 @@
 
 가구는 부피와 무게 때문에 구매 후 운송 계획이 필요합니다. 차량이 없는 구매자는 마음에 드는 매물을 발견해도 판매자와 일정을 맞추고, 운송 견적을 받고, 운송을 별도로 신청해야 합니다. 저렴한 매물을 찾은 뒤에도 **최종 비용과 배송 가능 여부를 바로 알기 어렵습니다.**
 
-| 일반적인 중고 가구 거래 | SETTY가 지향하는 거래 |
-| :-- | :-- |
-| 매물 탐색 → 판매자 연락 → 운송 견적 → 일정 조율 → 물품 송금 → 운송 신청·결제 → 배송 | **매물 탐색 → 배송비를 포함한 가격 확인 → 결제 → 배송** |
+```mermaid
+flowchart LR
+    subgraph before["기존 · 플랫폼을 오가는 거래"]
+        direction TB
+        B1["중고거래 플랫폼<br/>매물 탐색"] --> B2["판매자와 거래 조율"]
+        B2 --> B3["용달 서비스<br/>운송 견적"]
+        B3 --> B4["판매자와 일정 재조율"]
+        B4 --> B5["중고거래 플랫폼<br/>물품 대금 송금"]
+        B5 --> B6["용달 서비스<br/>운송 신청·결제"]
+        B6 --> B7["배송"]
+    end
+
+    subgraph after["SETTY · 한 흐름에서 진행"]
+        direction TB
+        A1["매물 탐색"] --> A2["예상 배송비·총액 확인"]
+        A2 --> A3["가구·배송비 함께 결제"]
+        A3 --> A4["배송 요청"] --> A5["배송"]
+    end
+
+    classDef beforeStep fill:#f7f4f0,stroke:#c9bcb0,color:#33312e
+    classDef afterStep fill:#191815,stroke:#191815,color:#ffffff
+    class B1,B2,B3,B4,B5,B6,B7 beforeStep
+    class A1,A2,A3,A4,A5 afterStep
+```
 
 SETTY가 줄이려는 것은 구매자가 판매자와 운송 서비스 사이를 오가며 직접 조율해야 하는 단계입니다.
 
@@ -47,26 +68,6 @@ SETTY가 줄이려는 것은 구매자가 판매자와 운송 서비스 사이�
 - [매물 상세](client/src/components/ProductDetail.tsx): 매물 가격, 배송비, 총액을 함께 표시합니다.
 - [결제 화면](client/src/components/PaymentCheckout.tsx): 주문을 생성하고 결제 위젯을 엽니다. 목 모드에서는 결제 성공을 모의합니다.
 - [배송 정책](docs/policy/delivery.md): 결제 확정 이후 배송 요청과 상태 전이를 정의합니다.
-
-## 🛠️ 로컬에서 살펴보기
-
-웹 화면만 빠르게 보려면 Node.js와 npm을 준비한 뒤 목 모드로 실행합니다. 목 모드는 실제 결제를 진행하지 않습니다.
-
-```bash
-cd client
-npm ci
-npm run dev:msw
-```
-
-서버는 JDK 21과 Docker가 필요합니다. MySQL을 띄운 뒤 별도 터미널에서 실행합니다.
-
-```bash
-docker compose up -d db
-cd server
-./gradlew bootRun
-```
-
-웹의 일반 개발 모드(`npm run dev`)는 `/api`와 `/payments` 요청을 서버로 전달할 리버스 프록시 구성이 필요합니다. 기사 앱 실행과 서버 연결 방법은 [기사 앱 README](apps/driver/README.md)를 참고합니다.
 
 ## 📚 문서와 협업
 
