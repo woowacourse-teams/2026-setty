@@ -17,7 +17,10 @@
 | :---: | :---: |
 | **중고거래 플랫폼** · 매물 탐색<br>↓<br>**판매자** · 거래 조율<br>↓<br>**용달 서비스** · 운송 견적<br>↓<br>**판매자** · 일정 재조율<br>↓<br>**중고거래 플랫폼** · 물품 대금 송금<br>↓<br>**용달 서비스** · 운송 신청·결제<br>↓<br>배송 | 매물 탐색<br>↓<br>예상 배송비·총액 확인<br>↓<br>가구·배송비 함께 결제<br>↓<br>배송 요청<br>↓<br>배송 |
 
-SETTY가 줄이려는 것은 구매자가 판매자와 운송 서비스 사이를 오가며 직접 조율해야 하는 단계입니다.
+결제까지 걸리는 시간도 이 흐름을 설계할 때 고려했습니다.
+Stripe의 2022년 일반 전자상거래 결제 조사에서 아시아·태평양 응답자의 49%는 3분, 북미의 52%와 유럽의 62%는 2분이 지나면 구매를 포기한다고 답했습니다. ([아시아·태평양](https://stripe.com/guides/state-of-asia-pacific-checkouts-2022) · [북미](https://stripe.com/guides/state-of-north-american-checkouts-2022) · [유럽](https://stripe.com/guides/state-of-european-checkouts-2022))
+
+SETTY는 구매자가 판매자와 운송 서비스를 오가며 직접 조율해야 하는 단계를 줄입니다.
 
 ## 🛒 한 흐름에서 끝내는 구매
 
@@ -25,8 +28,6 @@ SETTY가 줄이려는 것은 구매자가 판매자와 운송 서비스 사이�
 2. **확인** — 상세 화면에서 매물 가격, 예상 배송비, 총 결제 금액을 함께 봅니다.
 3. **결제** — 가구 비용과 배송비를 한 번에 결제합니다.
 4. **배송** — 결제 확정 후 배송 요청이 생성되고, 기사가 요청을 수락해 배송을 진행합니다.
-
-결제 단계의 길이는 이 흐름을 설계한 배경 중 하나입니다. Stripe의 **2022년 일반 전자상거래 결제 조사**에서는 아시아·태평양 응답자의 49%가 결제에 3분 이상 걸리면 구매를 포기한다고 답했습니다. 북미는 2분에 52%, 유럽은 2분에 62%였습니다. [아시아·태평양](https://stripe.com/guides/state-of-asia-pacific-checkouts-2022) · [북미](https://stripe.com/guides/state-of-north-american-checkouts-2022) · [유럽](https://stripe.com/guides/state-of-european-checkouts-2022)
 
 > [!NOTE]
 > **현재 구현 범위**: 예상 배송비는 주소 기반 용달 견적이 아니라 **가구의 크기(부피)에 따른 정액 정책**으로 계산합니다. 결제 후 배송 요청과 기사 수락 흐름은 구현되어 있습니다. 주소 기반 견적과 자동 차량 매칭은 아직 구현되지 않았습니다.
@@ -53,3 +54,14 @@ SETTY가 줄이려는 것은 구매자가 판매자와 운송 서비스 사이�
 - [서비스 정책](docs/policy/README.md): 주문·결제·배송의 확정 규칙과 미정 항목
 - [기사 앱 문서](apps/docs/README.md): 앱 구조, API 매핑, 확인할 사항
 - [CI](.github/workflows/ci.yml): 서버 테스트와 웹 타입 검사
+
+## 이벤트 지도와 토폴로지
+
+세티에서 구현된 [이벤트 지도와 토폴로지](https://claude.ai/artifact/KJcVmc6GSjzTW591XBcJuX)를 상세하게 확인할 수 있습니다.
+
+| 이벤트 지도 | 토폴로지 |
+| --- | --- |
+| <img width="670" height="392" alt="image" src="https://github.com/user-attachments/assets/704b5a54-5a89-402b-938f-9c99bf8351ef" /> | <img width="876" height="547" alt="image" src="https://github.com/user-attachments/assets/5f72bb87-5bae-4bdd-9d34-856a185f59a0" /> |
+
+
+
