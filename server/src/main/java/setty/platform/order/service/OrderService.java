@@ -189,7 +189,7 @@ public class OrderService {
     @Transactional(readOnly = true)
     public List<MyOrderResponse> findMyOrders(final Long buyerId) {
         final List<Order> orders = orderRepository.findAllByBuyerIdOrderByIdDesc(buyerId);
-        final List<Long> listingIds = orders.stream().map(Order::getListingId).toList();
+        final List<Long> listingIds = orders.stream().map(Order::getListingId).distinct().toList();
         final Map<Long, ListingView.Summary> listings = listingService.findSummaries(listingIds).stream()
                 .collect(Collectors.toMap(ListingView.Summary::id, Function.identity()));
 
