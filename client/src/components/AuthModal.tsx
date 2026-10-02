@@ -1,5 +1,6 @@
 import { X } from '@phosphor-icons/react/dist/icons/X';
 import { FormEvent, useEffect, useRef, useState } from 'react';
+import { identifyUser } from '../analytics/posthog';
 import { AuthApiError, login, signup } from '../api/auth';
 import authModalStyles from '../styles/modules/AuthModal.module.css';
 
@@ -118,6 +119,7 @@ export function AuthModal({ onClose, onLoggedIn }: AuthModalProps) {
                 const response = await login({ loginId, password });
                 window.sessionStorage.setItem('setty:auth-token', response.token);
                 window.sessionStorage.setItem('setty:auth-role', response.role);
+                identifyUser(loginId);
                 onLoggedIn();
                 return;
             }
