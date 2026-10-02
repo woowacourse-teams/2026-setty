@@ -57,4 +57,11 @@ SETTY는 구매자가 판매자와 운송 서비스를 오가며 직접 조율�
 
 ## 이벤트 지도와 토폴로지
 
-[이벤트 지도와 토폴로지](https://claude.ai/artifact/KJcVmc6GSjzTW591XBcJuX)
+세티에서 구현된 [이벤트 지도와 토폴로지](https://claude.ai/artifact/KJcVmc6GSjzTW591XBcJuX)를 상세하게 확인할 수 있습니다.
+
+| 이벤트 지도 | 토폴로지 |
+| --- | --- |
+| <img width="670" height="392" alt="image" src="https://github.com/user-attachments/assets/704b5a54-5a89-402b-938f-9c99bf8351ef" /> | <img width="876" height="547" alt="image" src="https://github.com/user-attachments/assets/5f72bb87-5bae-4bdd-9d34-856a185f59a0" /> |
+
+
+
