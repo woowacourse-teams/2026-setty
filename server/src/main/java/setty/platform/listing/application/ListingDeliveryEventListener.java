@@ -4,8 +4,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.modulith.events.ApplicationModuleListener;
 import org.springframework.stereotype.Component;
 import setty.common.DeliveryAccepted;
-import setty.common.DeliveryDelivered;
 import setty.common.OrderCancelled;
+import setty.common.OrderCompleted;
 import setty.global.exception.BusinessException;
 import setty.global.exception.ErrorCode;
 import setty.platform.order.domain.Order;
@@ -25,8 +25,10 @@ public class ListingDeliveryEventListener {
     }
 
     @ApplicationModuleListener
-    public void onDeliveryDelivered(final DeliveryDelivered event) {
-        validateDeliveryEvent(event == null ? null : event.deliveryId(), event == null ? null : event.orderId());
+    public void onOrderCompleted(final OrderCompleted event) {
+        if (event == null || event.orderId() == null || event.orderId() <= 0 || event.completedAt() == null) {
+            throw new BusinessException(ErrorCode.INVALID_REQUEST);
+        }
         listingService.completeSale(findListingId(event.orderId()));
     }
 

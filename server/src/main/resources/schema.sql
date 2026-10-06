@@ -118,6 +118,7 @@ CREATE TABLE IF NOT EXISTS orders (
     cancellation_request_id VARCHAR(36) NULL,           -- 현재 취소 SAGA 요청 식별자
     driver_id       BIGINT       NULL,                  -- 현재 미사용, 실제 배정 기사는 delivery.driver_id에 저장
     pending_expires_at TIMESTAMP(6) NULL,                -- PENDING 주문 자동 만료 시각
+    delivery_status_changed_at TIMESTAMP(6) NULL,        -- 배송 이벤트로 동기화된 배송 상태 변경 시각
     active_listing_id BIGINT GENERATED ALWAYS AS (
         CASE WHEN order_status IN ('EXPIRED', 'CANCELLED') THEN NULL ELSE listing_id END
     ) STORED,
@@ -127,7 +128,8 @@ CREATE TABLE IF NOT EXISTS orders (
     CONSTRAINT fk_orders_listing FOREIGN KEY (listing_id) REFERENCES listings (id),
     CONSTRAINT fk_orders_buyer   FOREIGN KEY (buyer_id)   REFERENCES members (id),
     INDEX idx_orders_pending_expiration (delivery_status, pending_expires_at),
-    INDEX idx_orders_order_expiration (order_status, pending_expires_at)
+    INDEX idx_orders_order_expiration (order_status, pending_expires_at),
+    INDEX idx_orders_completion_due (order_status, delivery_status, delivery_status_changed_at)
 );
 
 -- 기존 orders 테이블 마이그레이션. MySQL은 ADD COLUMN/INDEX IF NOT EXISTS를 지원하지 않으므로
@@ -239,6 +241,29 @@ SET @add_orders_order_expiration_index = IF(
 PREPARE add_orders_order_expiration_index_statement FROM @add_orders_order_expiration_index;
 EXECUTE add_orders_order_expiration_index_statement;
 DEALLOCATE PREPARE add_orders_order_expiration_index_statement;
+
+SET @orders_delivery_status_changed_at_exists = (
+    SELECT COUNT(*)
+    FROM information_schema.columns
+    WHERE table_schema = DATABASE()
+      AND table_name = 'orders'
+      AND column_name = 'delivery_status_changed_at'
+);
+SET @add_orders_delivery_status_changed_at = IF(
+    @orders_delivery_status_changed_at_exists = 0,
+    'ALTER TABLE orders ADD COLUMN delivery_status_changed_at TIMESTAMP(6) NULL AFTER pending_expires_at, ADD INDEX idx_orders_completion_due (order_status, delivery_status, delivery_status_changed_at)',
+    'SELECT 1'
+);
+PREPARE add_orders_delivery_status_changed_at_statement FROM @add_orders_delivery_status_changed_at;
+EXECUTE add_orders_delivery_status_changed_at_statement;
+DEALLOCATE PREPARE add_orders_delivery_status_changed_at_statement;
+
+-- 판매 완료 확정 도입 전에 배송 완료된 주문은 변경 시각을 알 수 없어 배포 시점으로 채운다. 3일 뒤 자동 판매 완료된다.
+UPDATE orders
+SET delivery_status_changed_at = CURRENT_TIMESTAMP(6)
+WHERE order_status = 'CONFIRMED'
+  AND delivery_status = 'DELIVERED'
+  AND delivery_status_changed_at IS NULL;
 
 -- 종료된 주문은 보존하면서 같은 매물의 새 주문을 허용한다.
 -- MySQL UNIQUE는 NULL 중복을 허용하므로 활성 주문의 listing_id만 유일하게 제한한다.

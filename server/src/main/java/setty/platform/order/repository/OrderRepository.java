@@ -38,6 +38,16 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             @Param("referenceTime") Instant referenceTime
     );
 
+    @Query("""
+            select o.id
+            from Order o
+            where o.orderStatus = setty.platform.order.domain.OrderStatus.CONFIRMED
+              and o.deliveryStatus = setty.common.DeliveryStatus.DELIVERED
+              and o.deliveryStatusChangedAt <= :deliveredBefore
+            order by o.deliveryStatusChangedAt asc
+            """)
+    List<Long> findCompletionDueOrderIds(@Param("deliveredBefore") Instant deliveredBefore);
+
     List<Order> findAllByBuyerIdOrderByIdDesc(Long buyerId);
 
     Optional<Order> findByIdAndBuyerId(Long id, Long buyerId);
