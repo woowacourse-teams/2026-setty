@@ -102,7 +102,10 @@ class DeliveryInboundTransactionIntegrationTest extends MySqlIntegrationTestSupp
                 "서울시 가상구 도착로 2",
                 10_000,
                 "010-0000-0001",
-                "010-0000-0002"
+                "010-0000-0002",
+                10L,
+                1L,
+                150_000
         );
     }
 }

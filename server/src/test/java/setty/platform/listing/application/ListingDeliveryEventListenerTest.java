@@ -50,7 +50,7 @@ class ListingDeliveryEventListenerTest {
     void 배송_완료_사실을_받으면_매물_판매를_완료한다() {
         when(orderRepository.findById(ORDER_ID)).thenReturn(Optional.of(order()));
 
-        listener.onDeliveryDelivered(new DeliveryDelivered(201L, ORDER_ID, CHANGED_AT));
+        listener.onDeliveryDelivered(new DeliveryDelivered(201L, ORDER_ID, CHANGED_AT, 301L, 10_000));
 
         verify(listingService).completeSale(LISTING_ID);
     }
