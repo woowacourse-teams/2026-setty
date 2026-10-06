@@ -9,17 +9,24 @@ spring:
 
   jpa:
     hibernate:
-      # 스키마는 schema.sql로만 변경한다 (server/AGENTS.md). 엔티티와 스키마가 어긋나면 부팅이 실패한다.
+      # 스키마는 schema/*.sql로만 변경한다. 엔티티와 스키마가 어긋나면 부팅이 실패한다.
       ddl-auto: validate
 
   sql:
     init:
       mode: always
+      # 모듈별 스키마. FK가 있는 플랫폼을 먼저 실행한다.
+      schema-locations:
+        - classpath:schema/platform.sql
+        - classpath:schema/delivery.sql
+        - classpath:schema/payment.sql
+        - classpath:schema/settlement.sql
+        - classpath:schema/event.sql
 
   modulith:
     events:
       jdbc:
-        # EVENT_PUBLICATION도 schema.sql로만 관리한다.
+        # EVENT_PUBLICATION도 schema/event.sql로만 관리한다.
         schema-initialization:
           enabled: false
       # 처리 완료된 발행 기록은 지워 테이블이 계속 쌓이지 않게 한다. 미완료·실패 건만 남는다.

@@ -1,5 +1,5 @@
--- SETTY 스키마. ddl-auto는 validate 고정이므로 스키마 변경은 이 파일에 SQL 추가로만 한다.
--- 매 부팅 시 실행되므로 모든 문장은 멱등이어야 한다 (CREATE TABLE IF NOT EXISTS, 컬럼 추가는 새 문장 대신 팀 합의 후 정리).
+-- 플랫폼 모듈(회원·매물·주문·찜) 스키마. 다른 모듈 파일보다 먼저 실행한다(테이블 간 FK가 이 파일 안에 있음).
+-- 매 부팅 시 실행되므로 모든 문장은 멱등이어야 한다. 실행 순서는 application.yml의 spring.sql.init.schema-locations를 따른다.
 
 CREATE TABLE IF NOT EXISTS members (
     id           BIGINT       NOT NULL AUTO_INCREMENT,
@@ -55,54 +55,6 @@ CREATE TABLE IF NOT EXISTS listing_images (
     CONSTRAINT fk_listing_images_listing FOREIGN KEY (listing_id) REFERENCES listings (id),
     CONSTRAINT uk_listing_images_order UNIQUE (listing_id, display_order),
     INDEX idx_listing_images_listing (listing_id, display_order)
-);
-
-CREATE TABLE IF NOT EXISTS delivery (
-    id                    BIGINT       NOT NULL AUTO_INCREMENT,
-    order_id              BIGINT       NOT NULL,
-    driver_id             BIGINT       NULL,
-    item_name             VARCHAR(100) NOT NULL,
-    category              VARCHAR(50)  NOT NULL,
-    pickup_address        VARCHAR(255) NOT NULL,
-    delivery_address      VARCHAR(255) NOT NULL,
-    pickup_phone_number   VARCHAR(30)  NOT NULL,
-    delivery_phone_number VARCHAR(30)  NOT NULL,
-    estimated_fee         INT          NOT NULL,
-    status                VARCHAR(20)  NOT NULL,
-    requested_at          TIMESTAMP(6) NOT NULL,
-    accepted_at           TIMESTAMP(6) NULL,
-    picked_up_at          TIMESTAMP(6) NULL,
-    delivered_at          TIMESTAMP(6) NULL,
-    PRIMARY KEY (id),
-    UNIQUE KEY uk_delivery_order_id (order_id),
-    CONSTRAINT chk_delivery_estimated_fee CHECK (estimated_fee >= 0)
-);
-
--- 주문별 배송 판정. 배송 요청 등록과 구매자 취소 중 먼저 INSERT한 쪽이 결론을 정한다.
--- 취소가 먼저 판정된 주문은 재발행된 OrderConfirmed가 와도 배송 요청을 만들지 않는다.
-CREATE TABLE IF NOT EXISTS delivery_order_decision (
-    order_id   BIGINT       NOT NULL,
-    outcome    VARCHAR(20)  NOT NULL,   -- REQUESTED / CANCELLED
-    decided_at TIMESTAMP(6) NOT NULL,
-    PRIMARY KEY (order_id)
-);
-
--- 판정 테이블 도입 전에 만들어진 배송 요청을 REQUESTED 판정으로 채운다. 이미 있는 판정은 건너뛴다.
-INSERT IGNORE INTO delivery_order_decision (order_id, outcome, decided_at)
-SELECT order_id, 'REQUESTED', requested_at FROM delivery;
-
-CREATE TABLE IF NOT EXISTS delivery_member (
-    id                           BIGINT       NOT NULL AUTO_INCREMENT,
-    login_id                     VARCHAR(20)  NOT NULL,
-    password                     VARCHAR(60)  NOT NULL,   -- BCrypt 해시 고정 60자
-    phone_number                 VARCHAR(13)  NOT NULL,   -- 010-0000-0000
-    license_plate_number         VARCHAR(20)  NOT NULL,   -- 00가0000
-    car_type                     VARCHAR(30)  NOT NULL,   -- 다마스 등
-    business_registration_number VARCHAR(12)  NOT NULL,   -- 000-00-00000
-    token                        VARCHAR(36)  NULL,       -- 로그인 시 회전하는 UUID. 로그인 전 NULL
-    PRIMARY KEY (id),
-    UNIQUE KEY uk_delivery_member_login_id (login_id),
-    UNIQUE KEY uk_delivery_member_token (token)
 );
 
 -- 기존 DB에 orders가 이미 있다면 FK는 수동으로 1회 적용:
@@ -319,37 +271,6 @@ PREPARE drop_orders_listing_unique_statement FROM @drop_orders_listing_unique;
 EXECUTE drop_orders_listing_unique_statement;
 DEALLOCATE PREPARE drop_orders_listing_unique_statement;
 
--- 결제 (payment 계층). 토스페이먼츠 결제 결과(성공 DONE / 실패 ABORTED)를 1주문 1행으로 저장한다.
--- 주문은 결제 이전에 PENDING으로 먼저 생성되므로 payments.order_id는 항상 존재하는 주문을 가리킨다.
--- 실패 저장을 위해 payment_key·approved_at은 NULL 허용. 실패 후 재승인 시 같은 행을 DONE으로 전이한다.
--- 주문은 만료 후에도 보존한다. 기존 DB의 fk_payments_order는 아래에서 제거한다.
-CREATE TABLE IF NOT EXISTS payments (
-    id            BIGINT       NOT NULL AUTO_INCREMENT,
-    order_id      BIGINT       NOT NULL,                  -- 결제 이전에 PENDING으로 존재하는 주문 (1주문 1행)
-    payment_key   VARCHAR(200) NULL,                      -- 토스가 발급한 결제 키 (실패/ABORTED 시 NULL)
-    toss_order_id VARCHAR(64)  NOT NULL,                  -- 토스 결제창 orderId (= 내부 주문 id)
-    amount        INT          NOT NULL,                  -- 결제 금액 (매물 totalPrice와 일치)
-    status        VARCHAR(20)  NOT NULL,                  -- 결제 상태 (DONE / ABORTED)
-    approved_at   DATETIME     NULL,                      -- 토스 승인 시각 (실패/ABORTED 시 NULL)
-    PRIMARY KEY (id),
-    UNIQUE KEY uk_payments_order_id (order_id),
-    UNIQUE KEY uk_payments_toss_order_id (toss_order_id)
-);
-
-SET @payments_order_fk_exists = (
-    SELECT COUNT(*) FROM information_schema.table_constraints
-    WHERE table_schema = DATABASE() AND table_name = 'payments'
-      AND constraint_name = 'fk_payments_order' AND constraint_type = 'FOREIGN KEY'
-);
-SET @drop_payments_order_fk = IF(
-    @payments_order_fk_exists > 0,
-    'ALTER TABLE payments DROP FOREIGN KEY fk_payments_order',
-    'SELECT 1'
-);
-PREPARE drop_payments_order_fk_statement FROM @drop_payments_order_fk;
-EXECUTE drop_payments_order_fk_statement;
-DEALLOCATE PREPARE drop_payments_order_fk_statement;
-
 CREATE TABLE IF NOT EXISTS favorites (
     id         BIGINT       NOT NULL AUTO_INCREMENT,
     member_id  BIGINT       NOT NULL,
@@ -359,49 +280,4 @@ CREATE TABLE IF NOT EXISTS favorites (
     CONSTRAINT uk_favorites_member_listing UNIQUE (member_id, listing_id),
     CONSTRAINT fk_favorites_member  FOREIGN KEY (member_id)  REFERENCES members (id),
     CONSTRAINT fk_favorites_listing FOREIGN KEY (listing_id) REFERENCES listings (id)
-);
-
--- 정산 (settlement 계층). 주문별 판매자(물품대금)·기사(배송비) 정산을 받는 사람마다 1행으로 기록한다.
--- 다른 모듈의 ID는 이벤트로 받은 값만 저장하고 FK를 두지 않는다. 실제 지급은 하지 않으며 출금 가능 금액은 CONFIRMED 합계다.
-CREATE TABLE IF NOT EXISTS settlements (
-    id           BIGINT       NOT NULL AUTO_INCREMENT,
-    order_id     BIGINT       NOT NULL,
-    payee_type   VARCHAR(20)  NOT NULL,   -- SELLER(members.id) / DRIVER(delivery_member.id)
-    payee_id     BIGINT       NOT NULL,
-    listing_id   BIGINT       NULL,       -- 판매자 정산만
-    amount       INT          NOT NULL,
-    status       VARCHAR(20)  NOT NULL,   -- PENDING / CONFIRMED / CANCELLED
-    created_at   TIMESTAMP(6) NOT NULL,
-    confirmed_at TIMESTAMP(6) NULL,
-    cancelled_at TIMESTAMP(6) NULL,
-    PRIMARY KEY (id),
-    UNIQUE KEY uk_settlements_order_payee (order_id, payee_type),
-    INDEX idx_settlements_payee (payee_type, payee_id, status),
-    CONSTRAINT chk_settlements_amount CHECK (amount >= 0)
-);
-
--- 주문별 정산 결론. 결론 이벤트가 정산 행보다 먼저 와도 잃지 않도록 따로 기록한다.
--- 같은 주문의 정산 처리를 이 행의 잠금으로 직렬화하므로 결론 전에도 행을 만든다.
-CREATE TABLE IF NOT EXISTS settlement_order (
-    order_id   BIGINT       NOT NULL,
-    outcome    VARCHAR(20)  NULL,         -- CONFIRMED(판매 완료) / CANCELLED. 결론 전 NULL
-    decided_at TIMESTAMP(6) NULL,
-    PRIMARY KEY (order_id)
-);
-
--- Spring Modulith 이벤트 발행 기록(spring-modulith-events-jdbc v2 MySQL 스키마).
--- 모듈 간 이벤트를 리스너별로 기록하고, 처리에 실패하거나 남은 건을 재발행한다.
--- Modulith가 대문자 테이블명으로 조회하므로 이름을 바꾸지 않는다.
-CREATE TABLE IF NOT EXISTS EVENT_PUBLICATION (
-    ID                     VARCHAR(36)   NOT NULL,
-    LISTENER_ID            VARCHAR(512)  NOT NULL,
-    EVENT_TYPE             VARCHAR(512)  NOT NULL,
-    SERIALIZED_EVENT       VARCHAR(4000) NOT NULL,
-    PUBLICATION_DATE       TIMESTAMP(6)  NOT NULL,
-    COMPLETION_DATE        TIMESTAMP(6)  DEFAULT NULL NULL,
-    STATUS                 VARCHAR(20),
-    COMPLETION_ATTEMPTS    INT,
-    LAST_RESUBMISSION_DATE TIMESTAMP(6)  DEFAULT NULL NULL,
-    PRIMARY KEY (ID),
-    INDEX EVENT_PUBLICATION_BY_COMPLETION_DATE_IDX (COMPLETION_DATE)
 );
