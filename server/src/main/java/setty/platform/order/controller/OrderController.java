@@ -15,15 +15,18 @@ import setty.platform.order.controller.dto.MyOrderResponse;
 import setty.platform.order.controller.dto.OrderCancellationResponse;
 import setty.platform.order.controller.dto.OrderCreateRequest;
 import setty.platform.order.controller.dto.OrderCreateResponse;
+import setty.platform.order.service.OrderCompletionService;
 import setty.platform.order.service.OrderService;
 
 @RestController
 public class OrderController {
 
     private final OrderService orderService;
+    private final OrderCompletionService orderCompletionService;
 
-    public OrderController(final OrderService orderService) {
+    public OrderController(final OrderService orderService, final OrderCompletionService orderCompletionService) {
         this.orderService = orderService;
+        this.orderCompletionService = orderCompletionService;
     }
 
     @PostMapping("/api/orders")
@@ -55,5 +58,14 @@ public class OrderController {
     ) {
         return ResponseEntity.accepted()
                 .body(orderService.requestCancellation(id, member.getId()));
+    }
+
+    @PostMapping("/api/orders/{id}/completion")
+    public ResponseEntity<Void> confirmCompletion(
+            @LoginMember final Member member,
+            @PathVariable final Long id
+    ) {
+        orderCompletionService.confirmByBuyer(id, member.getId());
+        return ResponseEntity.noContent().build();
     }
 }

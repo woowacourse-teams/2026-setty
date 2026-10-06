@@ -47,6 +47,8 @@ setty:
     pending-expiration:
       timeout: ${PENDING_ORDER_EXPIRATION_TIMEOUT:PT6M}
       scan-interval: ${PENDING_ORDER_EXPIRATION_SCAN_INTERVAL:PT1M}
+    completion:
+      scan-interval: ${ORDER_COMPLETION_SCAN_INTERVAL:PT1M}
   storage:
     listing-images:
       region: ${AWS_REGION:ap-northeast-2}

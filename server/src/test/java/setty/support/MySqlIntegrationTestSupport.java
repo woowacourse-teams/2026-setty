@@ -25,9 +25,10 @@ public abstract class MySqlIntegrationTestSupport {
         MYSQL.start();
     }
 
-    // 컨텍스트가 캐시에 남아 공유 DB를 계속 보므로, 남은 컨텍스트의 만료 스케줄러가 다른 테스트의 주문을 건드리지 않게 막는다.
+    // 컨텍스트가 캐시에 남아 공유 DB를 계속 보므로, 남은 컨텍스트의 만료·판매 완료 스케줄러가 다른 테스트의 주문을 건드리지 않게 막는다.
     @DynamicPropertySource
-    static void disablePendingOrderExpirationScan(final DynamicPropertyRegistry registry) {
+    static void disableOrderScans(final DynamicPropertyRegistry registry) {
         registry.add("setty.order.pending-expiration.scan-interval", () -> "PT24H");
+        registry.add("setty.order.completion.scan-interval", () -> "PT24H");
     }
 }
