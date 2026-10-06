@@ -120,7 +120,10 @@ class OrderServiceTest {
                 "구매자 주소",
                 10_000,
                 "010-0000-0001",
-                "010-0000-0002"
+                "010-0000-0002",
+                LISTING_ID,
+                SELLER_ID,
+                150_000
         ));
         verify(orderRepository).findByIdForUpdate(ORDER_ID);
     }
@@ -338,8 +341,10 @@ class OrderServiceTest {
 
     private static Listing listing() {
         final Listing listing = mock(Listing.class);
+        when(listing.getId()).thenReturn(LISTING_ID);
         when(listing.getSellerId()).thenReturn(SELLER_ID);
         when(listing.getTitle()).thenReturn("가상 책상");
+        when(listing.getPrice()).thenReturn(150_000);
         when(listing.getCategory()).thenReturn(ListingCategory.DESK);
         when(listing.getDeliveryFee()).thenReturn(10_000);
         return listing;

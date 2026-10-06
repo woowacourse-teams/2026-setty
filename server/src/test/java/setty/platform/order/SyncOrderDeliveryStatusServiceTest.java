@@ -83,7 +83,7 @@ class SyncOrderDeliveryStatusServiceTest extends MySqlIntegrationTestSupport {
     void 상태는_순서대로_끝까지_전이된다() {
         publishCommitted(new DeliveryAccepted(1L, ORDER_ID, Instant.now()));
         publishCommitted(new DeliveryPickedUp(1L, ORDER_ID, Instant.now()));
-        publishCommitted(new DeliveryDelivered(1L, ORDER_ID, Instant.now()));
+        publishCommitted(new DeliveryDelivered(1L, ORDER_ID, Instant.now(), 201L, 10_000));
 
         assertThat(deliveryStatusOf(ORDER_ID)).isEqualTo("DELIVERED");
     }

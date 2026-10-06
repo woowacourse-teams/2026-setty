@@ -115,7 +115,10 @@ public class OrderService {
                 buyer.getAddress(),
                 listing.getDeliveryFee(),
                 seller.getPhoneNumber(),
-                buyer.getPhoneNumber()
+                buyer.getPhoneNumber(),
+                listing.getId(),
+                listing.getSellerId(),
+                listing.getPrice()
         ));
     }
 

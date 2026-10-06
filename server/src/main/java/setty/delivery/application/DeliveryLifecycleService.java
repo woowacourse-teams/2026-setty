@@ -48,7 +48,13 @@ public class DeliveryLifecycleService {
         final Delivery delivery = findDelivery(deliveryId);
         delivery.complete(driverId, deliveredAt);
         deliveryRepository.save(delivery);
-        eventPublisher.publishEvent(new DeliveryDelivered(deliveryId.value(), orderIdOf(delivery), deliveredAt));
+        eventPublisher.publishEvent(new DeliveryDelivered(
+                deliveryId.value(),
+                orderIdOf(delivery),
+                deliveredAt,
+                driverId.value(),
+                delivery.getEstimatedDeliveryFee().value()
+        ));
     }
 
     /**
