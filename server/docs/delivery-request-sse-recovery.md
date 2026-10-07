@@ -59,8 +59,9 @@ SSE 발행과 전달 방식의 구현 근거는 [DeliveryRequestsChanged 구현 
   - 임시 소스 복사본 `/private/tmp/setty-driver-typecheck`에서 `npm ci --legacy-peer-deps --ignore-scripts --cache=/private/tmp/setty-driver-npm-cache` 후 `npm run typecheck` 실행 결과 종료 코드 0.
   - 워크스페이스의 `node_modules`는 lockfile과 다르다. 직접 실행한 `npm run typecheck`는 설치된 TypeScript 6.0.3의 `baseUrl` 진단으로 실패했고, deprecation을 무시한 재실행에서는 `@react-navigation/bottom-tabs` 누락과 그에 따른 암시적 `any`가 나왔다. lockfile은 TypeScript 5.9.3과 해당 패키지를 지정한다.
   - 임시 clean install에는 React peer 의존성 충돌을 우회하는 `--legacy-peer-deps`가 필요했다. 저장소의 package 파일과 `node_modules`는 수정하지 않았다.
-- 실제 단절·서버 재시작·기기 화면 검증: 확인 필요. 현재 실행 환경에 서버 응답(로컬 health 요청 결과 `000`)이 없고, Docker daemon·`xcrun simctl`·`adb`도 사용할 수 없어 실제 시나리오를 실행하지 못했다.
-- 실측: 복원 시간 P95와 부적합 요청 잔존 건수는 확인 필요. 직접 측정 표본 0건, 반복 0회, 완료·실패·시간 초과 시나리오 0건이다. synthetic 입력 3행으로 집계기를 확인했으며, 그 결과는 실측값에 포함하지 않는다.
+- 실제 단절·서버 재시작·기사 앱 화면: 사용자가 기사 앱에서 1회 관찰했다고 보고했다. Spring 중단 중 기존 목록이 화면에 남았고, 중단 상태에서 새로고침하자 오류 화면이 표시됐다. 서버를 다시 시작한 뒤 오류 화면을 조작 없이 둔 상태에서 약 1초 후 요청 목록으로 복구됐다. 이는 SSE 재연결 성공 후 목록을 다시 조회하는 현재 구현과 일치하며, 자동 화면 복구의 정성 관찰로 기록한다.
+- 관찰 한계: 약 1초는 사용자 추정값이며 `serverReadyAt`과 `screenMatchedAt`을 각각 기록하지 않았다. DB가 재시작 동안 계속 실행됐는지, 복구된 화면 ID가 당시 목록 API 응답 및 로컬 거절 필터 적용 결과와 일치했는지, 기기·앱 상태와 로그도 남기지 않았다. 따라서 프로토콜 수준의 SSE 연결·목록 응답, 직접 대조한 화면 일치, 서버 재시작 시간은 확인 필요다. 이 관찰만으로 정확한 복원 시간이나 잔존 건수를 확정하지 않는다.
+- 실측: P95 산출을 위한 반복 표본과 부적합 요청 잔존 건수는 확인 필요하다. 현재 사용자 보고는 정성 관찰 1회이며, 정확한 타임스탬프와 ID 배열이 없어 집계 JSONL에 넣지 않는다. synthetic 입력 3행으로 집계기를 확인한 결과는 실측값에 포함하지 않는다.
 
 ### 재현·측정 입력
 
