@@ -11,7 +11,7 @@
 - 유지: 단일 서버, Spring MVC, 메모리 기반 활성 연결 관리, DB 커밋 이후 목록 변경 신호 전송.
 - 유지: 기존 인증, 목록·수락 API, 서버 정렬, 앱의 세션 내 로컬 거절 필터.
 - 비범위: 차종별 전송, 재연결 jitter, 느린 연결 전송 격리, SSE 이벤트 저장·재생, 다중 서버 전달.
-- 조회 실패 처리: SSE 연결 성공과 목록 복원 성공을 별개로 본다. 목록 조회 실패는 현재 앱의 오류 상태와 수동 재시도 버튼으로 드러내고, 사용자가 기존 목록 조회를 다시 요청한다. 이번 범위에서는 자동 조회 재시도 타이머를 추가하지 않는다. 별도 재시도 주기와 화면·앱 생명주기 정리 규칙을 새로 만들 근거가 없고, 기존 오류 복구 경로를 사용할 수 있기 때문이다. 따라서 재연결 직후 일시 오류가 나면 사용자의 재시도가 필요하다.
+- 조회 실패 처리: SSE 연결 성공과 목록 복원 성공을 별개로 본다. 현재 구현은 목록 조회 실패를 화면 오류와 수동 재시도 버튼으로 표시한다. 재연결 후 조회가 실패해도 SSE 연결 자체는 유지되므로, 다음 변경 신호가 오지 않으면 자동 재조회는 보장되지 않는다. 이번 범위에서는 새 자동 재시도 주기와 화면·앱 생명주기 규칙을 추가하지 않고 기존 수동 재시도 경로를 유지한다. 이 선택은 공유 정책 변경이 아니라 구현 범위 결정이며, 재연결 직후 목록 실패 시나리오의 실제 앱 검증은 확인 필요다.
 
 SSE 발행과 전달 방식의 구현 근거는 [DeliveryRequestsChanged 구현 문서](event/DeliveryRequestsChanged.md)에 둔다. 위 결정은 새 공유 정책을 추가하지 않는 구현 범위 결정이다.
 
@@ -59,19 +59,42 @@ SSE 발행과 전달 방식의 구현 근거는 [DeliveryRequestsChanged 구현 
   - 임시 소스 복사본 `/private/tmp/setty-driver-typecheck`에서 `npm ci --legacy-peer-deps --ignore-scripts --cache=/private/tmp/setty-driver-npm-cache` 후 `npm run typecheck` 실행 결과 종료 코드 0.
   - 워크스페이스의 `node_modules`는 lockfile과 다르다. 직접 실행한 `npm run typecheck`는 설치된 TypeScript 6.0.3의 `baseUrl` 진단으로 실패했고, deprecation을 무시한 재실행에서는 `@react-navigation/bottom-tabs` 누락과 그에 따른 암시적 `any`가 나왔다. lockfile은 TypeScript 5.9.3과 해당 패키지를 지정한다.
   - 임시 clean install에는 React peer 의존성 충돌을 우회하는 `--legacy-peer-deps`가 필요했다. 저장소의 package 파일과 `node_modules`는 수정하지 않았다.
+- 추가 도구 검증: `python3 server/scripts/measure_sse_api_recovery.py ... --cycles 1` 스모크 실행은 2,878ms, API 잔존·누락 0건으로 종료했다. Python 구문 컴파일, 집계기 `node --check`, 30회 JSONL 집계, `git diff --check`를 통과했다.
 - 실제 단절·서버 재시작·기사 앱 화면: 사용자는 DB를 유지하고 Spring만 재시작했다고 보고했다. 중단 중 기존 목록은 화면에 남았고, 중단 중 새로고침은 오류를 표시했다. 서버 재시작 뒤에는 참여한 모든 기사 기기에서 별도 조작 없이 약 1초 내 요청 목록으로 자동 복구됐으며, 복구 후 실패·시간 초과는 없었다고 보고했다. 같은 앱 세션에서 로컬 거절한 요청은 재연결 후에도 숨겨지고 나머지 요청 목록은 복구됐다고 추가 확인했다. 기기 수와 거절 ID 수는 기록되지 않았다. API 요청 ID와 화면 요청 ID 집합은 같았다고 보고했다. 이는 재연결 후 서버 목록 재조회와 세션 내 로컬 거절 필터가 동작했다는 정성 관찰이다.
 - 관찰 한계: 약 1초는 사용자 추정값이며 서버의 첫 API `200` 시각과 기기별 화면 반영 시각을 각각 기록하지 않았다. API·화면의 원시 ID 배열과 참여 기기 수를 보존하지 않았다. 로컬 거절 요청이 재연결 뒤 숨겨진 것은 정성 확인됐지만, 원시 ID가 없어 기대 목록과 잔존 건수를 독립적으로 계산하지 못했다. 앱을 완전히 종료한 뒤 로컬 거절 상태가 초기화되는 동작은 이번에 검증하지 않았다. 중단 중 새로고침에서 발생한 오류 횟수도 기록되지 않았다. 사용자가 말한 실패·시간 초과 없음은 서버 복구 후를 가리키며, 전체 회차에는 중단 중 실패가 포함된다.
 - 재연결 간격 참고: 앱의 1초는 연결 실패 후 첫 재연결 대기 시간이다. 재시도는 1·2·4초 순으로 증가해 최대 30초가 되며, SSE 변경 이벤트를 매초 전송한다는 뜻은 아니다. 근거: [`deliveryRequestEvents.ts`](../../apps/driver/src/api/deliveryRequestEvents.ts).
-- 실측: 사용자 보고상 참여 기기 전체에서 자동 복구됐고, 같은 앱 세션의 로컬 거절 요청은 숨겨진 채 나머지 목록이 복구됐다. 기기 수와 정확한 `serverReadyAt`·기기별 `screenMatchedAt`, 원시 ID가 없어 이 기록은 집계 JSONL에 넣지 않는다. 따라서 P95와 잔존 건수는 확인 필요다. synthetic 입력 3행으로 집계기를 확인한 결과는 실측값에 포함하지 않는다.
+- API 대체 실측: 격리 DB를 유지하고 Spring 프로세스만 강제 종료(SIGKILL)·재기동하는 시나리오를 30회 실행했다. 환경은 macOS 로컬, Java 21.0.4, MySQL 8.4.11, `127.0.0.1:18080`이며 8080 사용자 서버에는 쓰기 요청을 보내지 않았다. 측정 중 8080의 health는 200, 인증 없는 목록 API는 401이었다. 사용자 앱 토큰을 가져오거나 실제 서버 데이터에 쓰지 않고 격리 환경을 사용했다. 테스트 데이터는 미배정 `REQUESTED` 1건, 배정된 `ACCEPTED` 1건, 미배정 `CANCELLED` 1건이었다. 재기동 뒤 인증된 목록 GET 첫 200부터, SSE 재연결 성공 후 같은 목록 API 응답이 그 ID 집합과 일치할 때까지를 API 대체 복원 시간으로 계산했다.
+  - 결과: 완료 표본 30/30, Nearest-rank P95 **3,074ms**, 최소 2,216ms, 최대 3,142ms, 시간 초과 0회. SSE 재연결 실패 60회(회차당 2회), 재연결 후 목록 GET 실패 0회. readiness 확인용 GET 실패 2,212회는 서버 시작을 기다린 별도 polling 횟수로, 클라이언트 실패 시도에 합산하지 않았다.
+  - 시간 분해: 프로세스 재시작부터 첫 목록 API `200`까지 P95 4,847ms(중앙값 4,201ms), API 준비부터 SSE 재연결까지 P95 3,064ms, SSE 연결 성공부터 목록 API 응답까지 P95 22ms(최대 24ms)였다. 복원 P95의 대부분은 서버 시작이 아니라 1·2초 재시도 실패 뒤 다음 재연결 대기에서 발생했다.
+  - 각 회차의 API 목록은 `[1]`로 서버 목록과 일치했다. 부적합 API 잔존 최대 0건, 기대 요청 누락 최대 0건. 테스트 데이터의 수락 완료·취소 2건은 목록에서 제외됐다. 이 수치는 화면 목록이 아니라 재연결 클라이언트의 API 응답을 비교한 결과다.
+  - 원시 기록: [30회 JSONL](evidence/delivery-request-sse-api-recovery-2026-10-07.jsonl). 집계: `node apps/driver/scripts/summarize-sse-recovery.mjs server/docs/evidence/delivery-request-sse-api-recovery-2026-10-07.jsonl`. 재현 도구: [`measure_sse_api_recovery.py`](../scripts/measure_sse_api_recovery.py). Spring별 로그는 측정 호스트의 `/private/tmp/setty-sse-api-measure-20261007/` 아래에 저장했다.
+- 측정 한계: API 대체 복원 P95는 로컬 호스트의 SSE 클라이언트와 목록 API 응답까지다. Expo Go의 실제 렌더 완료 시각, 기기 네트워크, 로컬 거절 필터 적용 후 화면 집합은 이 측정에 포함되지 않는다. 따라서 **화면 복원 P95와 화면 잔존 건수는 확인 필요**다. 앞서 사용자 보고상 참여 기기 전체가 약 1초 내 자동 복구했고, 같은 앱 세션의 로컬 거절 요청은 숨겨진 채 나머지 목록이 복구됐다. 이 정성 관찰은 이번 API P95와 합치지 않는다.
+- 사용자 기기 관찰의 한계: 기기 수, 정확한 `serverReadyAt`·기기별 `screenMatchedAt`, 원시 ID 배열은 기록되지 않았다. 중단 중 새로고침 오류 횟수도 미기록이다. 사용자가 말한 실패·시간 초과 없음은 서버 복구 후를 가리키며, 전체 회차에는 중단 중 실패가 포함된다.
+- 시간 비교 한계: 사용자 관찰의 약 1초는 시작·종료 시각을 따로 기록하지 않은 추정이다. API 대체 측정의 P95 3.074초는 서버 재가동 뒤 첫 인증 목록 API `200`부터 클라이언트 재연결 후 목록 API 응답까지다. 시작점과 관측 대상이 달라 두 값을 같은 측정치로 비교하지 않는다.
+- 미검증 시나리오: 기사 앱 연결만 끊은 동안 생성·다른 기사 수락·구매자 취소 후 재연결(A), 백그라운드 복귀와 중복 연결·타이머 정리(C), 재연결 직후 목록 GET 실패와 조회 응답 역전(D)의 실제 앱 화면 결과. 코드에는 포커스/AppState 정리와 조회 호출 순번 보호가 있으나, 이 기록만으로 기기 동작을 확인했다고 보지 않는다.
 
 ### 재현·측정 입력
 
 실제 서버 재시작 검증은 DB와 테스트 데이터를 유지하고 기사 앱을 foreground로 둔 상태에서 수행한다. 각 회차에서 서버 API가 다시 200을 반환한 시각과 화면 목록 일치 시각을 기록한다. 요청 카드에는 `deliveryId`가 표시되지 않으므로 테스트 데이터의 `itemName`을 고유하게 준비하고, 화면의 항목을 현재 서버 응답 ID와 대조해 `screenRequestIds`를 기록한다. 화면 기대 ID는 서버 응답에서 `locallyRejectedIds`를 뺀 집합이다.
 
-JSONL의 각 줄은 한 회차다. 필수 필드는 `run`, `scenario`, `serverReadyAt`, `screenMatchedAt`, `serverRequestIds`, `screenRequestIds`, `locallyRejectedIds`, `failedAttempts`, `timedOut`이다. 완료하지 못한 회차는 `screenMatchedAt: null`, 시간 초과 회차는 `timedOut: true`로 남긴다. 측정 입력을 저장한 후 다음 명령으로 완료 표본의 P95(Nearest-rank), 최대 부적합 잔존 수, 누락 수와 재시도 정보를 집계한다.
+JSONL의 각 줄은 한 회차다. 화면 직접 측정은 `screenMatchedAt`·`screenRequestIds`, API 대체 측정은 `scope: "isolated-api-client-proxy; screen-render-not-measured"`, `apiListMatchedAt`·`clientRequestIds`를 사용한다. `serverRequestIds`에서 `locallyRejectedIds`를 뺀 집합과 해당 측정 집합을 비교한다. API 대체 측정에는 로컬 거절 저장소나 화면 렌더가 포함되지 않으므로 화면 측정 JSONL과 혼합하지 않는다. 완료하지 못한 회차는 해당 matched 시각을 `null`, 시간 초과 회차는 `timedOut: true`로 남긴다. 다음 명령은 화면 직접 측정과 API 대체 측정의 범위를 구분해 완료 표본 P95(Nearest-rank), 최대 잔존·누락 수와 실패 시도를 집계한다.
 
 ```sh
 node apps/driver/scripts/summarize-sse-recovery.mjs <측정 JSONL 경로>
 ```
 
 집계기는 측정 기록의 계산 도구이며 화면이나 서버를 직접 제어하지 않는다. 앱 화면 직접 확인과 API-only 대체 측정은 별도 결과로 기록한다.
+
+API 대체 재현 도구는 Spring jar와 `probe` 또는 `test` 이름이 포함된 로컬 MySQL DB만 허용한다. DB에는 전용 기사 계정·토큰과 고정 요청 데이터를 미리 준비한다. DB 환경 변수와 실행 예시는 도구의 도움말을 참고한다.
+
+```sh
+SETTY_SSE_PROBE_DB_URL=jdbc:mysql://127.0.0.1:3306/setty_probe \
+SETTY_SSE_PROBE_DB_USERNAME=setty_probe \
+SETTY_SSE_PROBE_DB_PASSWORD='<격리 DB 비밀번호>' \
+python3 server/scripts/measure_sse_api_recovery.py \
+  --jar server/build/libs/server-0.0.1-SNAPSHOT.jar \
+  --token-file /path/to/disposable-driver-token \
+  --output /path/to/api-recovery.jsonl \
+  --logs-dir /path/to/spring-logs \
+  --cycles 30
+```
