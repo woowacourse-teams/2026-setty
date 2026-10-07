@@ -9,4 +9,7 @@
 | 앱 복귀 | 미실시. |
 | API 목록 복원 P95 | **3.074초**(30회). 시작은 재시작 후 인증 목록 API 첫 200, 종료는 재연결 후 최신 목록 일치 응답. |
 | API 부적합 잔존 / 누락 / 시간 초과 | **0건 / 0건 / 0회**. 화면 렌더링은 측정 대상에서 제외. |
+| API 반복 측정 환경 | macOS, Java 21.0.4, MySQL 8.4.11. 격리 Spring `127.0.0.1:18080`, DB 유지, 30회 재시작. |
+| SSE 단절 통합 테스트 환경 | Spring 통합 테스트, MySQL 8.4.11 Testcontainers. |
+| 기사 기기 관찰 환경 | Expo Go, DB 유지 후 Spring만 재시작. |
 | 원시 증거 | [30회 JSONL](delivery-request-sse-api-recovery-2026-10-07.jsonl) |
