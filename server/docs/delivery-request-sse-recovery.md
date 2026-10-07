@@ -51,5 +51,25 @@ SSE 발행과 전달 방식의 구현 근거는 [DeliveryRequestsChanged 구현 
 ### 결과
 
 - 정책·코드 문서 대조: 완료. 확인된 구현은 위 `확인된 구현`에 기록했다.
-- 테스트와 실제 시나리오 검증: 진행 중.
-- 복원 시간 P95, 부적합 요청 잔존 건수, 표본 수, 환경, 반복 횟수, 실패·시간 초과 건수: 확인 필요.
+- 통과: `DeliveryRequestEventStreamTest`, `DeliveryRequestsChangedPublisherTest`.
+  - 명령: `GRADLE_OPTS='-Dorg.gradle.native=false' /Users/kangrae/.gradle/wrapper/dists/gradle-8.14-bin/38aieal9i53h9rfe7vjup95b9/gradle-8.14/bin/gradle --no-daemon test --tests setty.delivery.api.DeliveryRequestEventStreamTest --tests setty.delivery.application.DeliveryRequestsChangedPublisherTest`
+  - 결과: `BUILD SUCCESSFUL`, 4개 Gradle task 실행, 테스트 task 통과.
+  - 로그: `server/build/reports/tests/test/index.html`, `server/build/test-results/test/TEST-setty.delivery.api.DeliveryRequestEventStreamTest.xml`, `server/build/test-results/test/TEST-setty.delivery.application.DeliveryRequestsChangedPublisherTest.xml`.
+- 앱 typecheck: 잠금 파일 기준 임시 복사본에서 통과.
+  - 임시 소스 복사본 `/private/tmp/setty-driver-typecheck`에서 `npm ci --legacy-peer-deps --ignore-scripts --cache=/private/tmp/setty-driver-npm-cache` 후 `npm run typecheck` 실행 결과 종료 코드 0.
+  - 워크스페이스의 `node_modules`는 lockfile과 다르다. 직접 실행한 `npm run typecheck`는 설치된 TypeScript 6.0.3의 `baseUrl` 진단으로 실패했고, deprecation을 무시한 재실행에서는 `@react-navigation/bottom-tabs` 누락과 그에 따른 암시적 `any`가 나왔다. lockfile은 TypeScript 5.9.3과 해당 패키지를 지정한다.
+  - 임시 clean install에는 React peer 의존성 충돌을 우회하는 `--legacy-peer-deps`가 필요했다. 저장소의 package 파일과 `node_modules`는 수정하지 않았다.
+- 실제 단절·서버 재시작·기기 화면 검증: 확인 필요. 현재 실행 환경에 서버 응답(로컬 health 요청 결과 `000`)이 없고, Docker daemon·`xcrun simctl`·`adb`도 사용할 수 없어 실제 시나리오를 실행하지 못했다.
+- 실측: 복원 시간 P95와 부적합 요청 잔존 건수는 확인 필요. 직접 측정 표본 0건, 반복 0회, 완료·실패·시간 초과 시나리오 0건이다. synthetic 입력 3행으로 집계기를 확인했으며, 그 결과는 실측값에 포함하지 않는다.
+
+### 재현·측정 입력
+
+실제 서버 재시작 검증은 DB와 테스트 데이터를 유지하고 기사 앱을 foreground로 둔 상태에서 수행한다. 각 회차에서 서버 API가 다시 200을 반환한 시각과 화면 목록 일치 시각을 기록한다. 요청 카드에는 `deliveryId`가 표시되지 않으므로 테스트 데이터의 `itemName`을 고유하게 준비하고, 화면의 항목을 현재 서버 응답 ID와 대조해 `screenRequestIds`를 기록한다. 화면 기대 ID는 서버 응답에서 `locallyRejectedIds`를 뺀 집합이다.
+
+JSONL의 각 줄은 한 회차다. 필수 필드는 `run`, `scenario`, `serverReadyAt`, `screenMatchedAt`, `serverRequestIds`, `screenRequestIds`, `locallyRejectedIds`, `failedAttempts`, `timedOut`이다. 완료하지 못한 회차는 `screenMatchedAt: null`, 시간 초과 회차는 `timedOut: true`로 남긴다. 측정 입력을 저장한 후 다음 명령으로 완료 표본의 P95(Nearest-rank), 최대 부적합 잔존 수, 누락 수와 재시도 정보를 집계한다.
+
+```sh
+node apps/driver/scripts/summarize-sse-recovery.mjs <측정 JSONL 경로>
+```
+
+집계기는 측정 기록의 계산 도구이며 화면이나 서버를 직접 제어하지 않는다. 앱 화면 직접 확인과 API-only 대체 측정은 별도 결과로 기록한다.
