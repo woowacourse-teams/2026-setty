@@ -27,33 +27,54 @@ if (records.length === 0) {
   process.exit(1);
 }
 
+const apiProxyScope = 'isolated-api-client-proxy; screen-render-not-measured';
+const hasApiProxyRecords = records.some((record) => record.scope === apiProxyScope);
+const hasScreenRecords = records.some((record) => record.scope !== apiProxyScope);
+if (hasApiProxyRecords && hasScreenRecords) {
+  throw new Error('화면 직접 측정과 API 대체 측정은 서로 다른 JSONL로 집계해야 합니다.');
+}
+const apiProxyOnly = hasApiProxyRecords;
+
 const samples = [];
 let failedAttempts = 0;
 let timeoutRuns = 0;
 let incompleteRuns = 0;
+let readinessProbeFailures = 0;
 
 for (const record of records) {
   failedAttempts += nonNegativeInteger(record.failedAttempts ?? 0, record, 'failedAttempts');
+  readinessProbeFailures += nonNegativeInteger(
+    record.failedReadinessAttempts ?? 0,
+    record,
+    'failedReadinessAttempts',
+  );
   if (record.timedOut === true) timeoutRuns += 1;
 
-  if (record.screenMatchedAt === null || record.screenMatchedAt === undefined) {
+  const matchedAt = apiProxyOnly ? record.apiListMatchedAt : record.screenMatchedAt;
+  if (matchedAt === null || matchedAt === undefined) {
     incompleteRuns += 1;
     continue;
   }
 
   const readyTime = timestamp(record.serverReadyAt, record, 'serverReadyAt');
-  const matchedTime = timestamp(record.screenMatchedAt, record, 'screenMatchedAt');
+  const matchedTime = timestamp(
+    matchedAt,
+    record,
+    apiProxyOnly ? 'apiListMatchedAt' : 'screenMatchedAt',
+  );
   const recoveryMs = matchedTime - readyTime;
   if (recoveryMs < 0) {
-    throw new Error(`${record.lineNumber}행 screenMatchedAt이 serverReadyAt보다 빠릅니다.`);
+    throw new Error(`${record.lineNumber}행 복원 시각이 serverReadyAt보다 빠릅니다.`);
   }
 
   const serverIds = idSet(record.serverRequestIds, record, 'serverRequestIds');
   const rejectedIds = idSet(record.locallyRejectedIds ?? [], record, 'locallyRejectedIds');
-  const screenIds = idSet(record.screenRequestIds, record, 'screenRequestIds');
+  const clientIds = apiProxyOnly
+    ? idSet(record.clientRequestIds, record, 'clientRequestIds')
+    : idSet(record.screenRequestIds, record, 'screenRequestIds');
   const expectedIds = new Set([...serverIds].filter((id) => !rejectedIds.has(id)));
-  const staleIds = [...screenIds].filter((id) => !expectedIds.has(id));
-  const missingIds = [...expectedIds].filter((id) => !screenIds.has(id));
+  const staleIds = [...clientIds].filter((id) => !expectedIds.has(id));
+  const missingIds = [...expectedIds].filter((id) => !clientIds.has(id));
 
   samples.push({
     run: record.run ?? samples.length + 1,
@@ -66,14 +87,26 @@ for (const record of records) {
 const durations = samples.map(({ recoveryMs }) => recoveryMs).sort((left, right) => left - right);
 const p95 = durations.length === 0 ? null : durations[Math.ceil(durations.length * 0.95) - 1];
 const maxStaleCount = samples.reduce((maximum, sample) => Math.max(maximum, sample.staleIds.length), 0);
+const maxMissingCount = samples.reduce((maximum, sample) => Math.max(maximum, sample.missingIds.length), 0);
 
 console.log(`기록 행: ${records.length}`);
 console.log(`완료 표본: ${samples.length}`);
 console.log(`미완료 기록: ${incompleteRuns}`);
 console.log(`시간 초과 회차: ${timeoutRuns}`);
-console.log(`실패 시도: ${failedAttempts}`);
-console.log(`복원 시간 P95: ${p95 === null ? '산출 불가' : `${p95}ms`}`);
-console.log(`부적합 요청 잔존 최댓값: ${samples.length === 0 ? '산출 불가' : `${maxStaleCount}건`}`);
+console.log(`실패 시도${apiProxyOnly ? ' (SSE·목록 클라이언트)' : ''}: ${failedAttempts}`);
+if (apiProxyOnly) console.log(`준비 확인 GET 실패 (클라이언트 실패와 별도): ${readinessProbeFailures}`);
+console.log(
+  `${apiProxyOnly ? 'API 목록 응답 복원' : '화면 목록 복원'} 시간 P95: ` +
+    `${p95 === null ? '산출 불가' : `${p95}ms`}`,
+);
+console.log(
+  `${apiProxyOnly ? 'API' : '화면'} 부적합 요청 잔존 최댓값: ` +
+    `${samples.length === 0 ? '산출 불가' : `${maxStaleCount}건`}`,
+);
+console.log(
+  `${apiProxyOnly ? 'API' : '화면'} 기대 요청 누락 최댓값: ` +
+    `${samples.length === 0 ? '산출 불가' : `${maxMissingCount}건`}`,
+);
 console.log('회차별:');
 
 for (const sample of samples) {
