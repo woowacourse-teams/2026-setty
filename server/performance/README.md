@@ -29,6 +29,7 @@ LISTING_COUNT=100 ./gradlew gatlingRun \
 - HTTP 200과 `items` 개수를 매번 검사한다. 실패하면 중단하며, 총 120건·실패 0건이어야 유효한 실행이다.
 - HTML 보고서의 **`listings-measurement` 행**에서 중앙값·p95·실패 건수를 본다. 전체 합계에는 워밍업이 포함된다.
 - 요청별 시각·응답 시간·본문 크기는 `build/reports/listing-count/`의 CSV에 저장한다. `phase=listings-measurement`만 비교하며, 크기는 Gatling이 읽은 본문 바이트 수로 헤더·전송 압축 크기와 구분한다.
+- CSV의 `request_id`로 서버의 전체·내부 구간 시간을 연결한다. [계측 범위·로컬 검증·dev 로그 조회](request-timing.md)를 참고한다. ID가 비어 있으면 해당 요청의 로그 연결은 확인할 수 없다.
 - 첫 실행을 확인한 뒤 같은 조건으로 총 3회 실행하고 `run-1`을 `run-2`, `run-3`으로 바꾼다. HTML·CSV와 같은 시간대의 서버·DB 지표를 함께 보존한다.
 
 기본 대상은 dev다. 시나리오 자체를 로컬에서 검증할 때만 `LISTING_BASE_URL=http://127.0.0.1:포트`로 바꿀 수 있다. 이 로컬 결과는 dev 성능 결과로 사용하지 않는다. 워밍업과 본 측정의 구분은 [요청별 통계 범위](https://docs.gatling.io/concepts/assertions/)를 사용한다.

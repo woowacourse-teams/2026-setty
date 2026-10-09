@@ -9,6 +9,7 @@ import static io.gatling.javaapi.core.CoreDsl.jsonPath;
 import static io.gatling.javaapi.core.CoreDsl.responseTimeInMillis;
 import static io.gatling.javaapi.core.CoreDsl.scenario;
 import static io.gatling.javaapi.http.HttpDsl.http;
+import static io.gatling.javaapi.http.HttpDsl.header;
 import static io.gatling.javaapi.http.HttpDsl.status;
 
 import io.gatling.javaapi.core.ChainBuilder;
@@ -34,7 +35,7 @@ public class ListingCountSimulation extends Simulation {
     private final String baseUrl = System.getenv().getOrDefault("LISTING_BASE_URL", DEV_BASE_URL);
     // 가상 사용자 1명이 순차적으로 기록하고, 파일 쓰기는 측정 종료 후 한 번만 한다.
     private final StringBuilder samples = new StringBuilder(
-            "expected_items,target,phase,request_number,completed_at,response_time_ms,response_body_bytes,failed\n");
+            "expected_items,target,phase,request_number,completed_at,response_time_ms,response_body_bytes,failed,request_id\n");
     private int requestNumber;
 
     public ListingCountSimulation() {
@@ -65,14 +66,15 @@ public class ListingCountSimulation extends Simulation {
     }
 
     private ChainBuilder listingRequest(String phase) {
-        return exec(session -> session.removeAll("responseTimeMs", "responseBodyBytes"))
+        return exec(session -> session.removeAll("responseTimeMs", "responseBodyBytes", "requestId"))
                 .exec(http(phase)
                         .get("/dev/api/listings")
                         .check(
                                 status().is(200),
                                 jsonPath("$.items").ofList().transform(List::size).is(expectedItems),
                                 responseTimeInMillis().saveAs("responseTimeMs"),
-                                bodyLength().saveAs("responseBodyBytes")))
+                                bodyLength().saveAs("responseBodyBytes"),
+                                header("X-Request-Id").optional().saveAs("requestId")))
                 .exec(session -> {
                     samples.append(expectedItems).append(',').append(baseUrl).append(',')
                             .append(phase).append(',').append(++requestNumber).append(',')
@@ -80,7 +82,9 @@ public class ListingCountSimulation extends Simulation {
                             .append(session.contains("responseTimeMs") ? session.getInt("responseTimeMs") : "")
                             .append(',')
                             .append(session.contains("responseBodyBytes") ? session.getInt("responseBodyBytes") : "")
-                            .append(',').append(session.isFailed()).append('\n');
+                            .append(',').append(session.isFailed()).append(',')
+                            .append(csvCell(session.contains("requestId") ? session.getString("requestId") : ""))
+                            .append('\n');
                     return session;
                 })
                 .exitHereIfFailed()
@@ -92,6 +96,10 @@ public class ListingCountSimulation extends Simulation {
         System.out.printf(
                 "Listing count experiment: target=%s, items=%d, users=1, warmup=%d, measurement=%d, pause=1s%n",
                 baseUrl, expectedItems, WARMUP_REQUESTS, MEASUREMENT_REQUESTS);
+    }
+
+    private static String csvCell(String value) {
+        return "\"" + value.replace("\"", "\"\"") + "\"";
     }
 
     @Override
