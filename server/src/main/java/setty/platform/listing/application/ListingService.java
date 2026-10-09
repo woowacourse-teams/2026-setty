@@ -23,6 +23,7 @@ import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.multipart.MultipartFile;
 import setty.global.exception.BusinessException;
+import setty.global.logging.ListingRequestTiming;
 import setty.platform.listing.domain.Dimensions;
 import setty.platform.listing.domain.Listing;
 import setty.platform.listing.domain.ListingImage;
@@ -76,13 +77,16 @@ public class ListingService {
 
     @Transactional(readOnly = true)
     public List<ListingView.Summary> findAvailableListings() {
-        List<Listing> listings = listingRepository
-                .findAllBySaleStatusAndDeletedAtIsNullOrderByCreatedAtDescIdDesc(SaleStatus.AVAILABLE);
-        Map<Long, ListingImage> thumbnails = findThumbnails(listings);
+        List<Listing> listings = ListingRequestTiming.measure("listings", () -> listingRepository
+                .findAllBySaleStatusAndDeletedAtIsNullOrderByCreatedAtDescIdDesc(SaleStatus.AVAILABLE));
+        ListingRequestTiming.count("listing_count", listings.size());
+        Map<Long, ListingImage> thumbnails = ListingRequestTiming.measure("images", () -> findThumbnails(listings));
 
-        return listings.stream()
+        List<ListingView.Summary> summaries = ListingRequestTiming.measure("mapping", () -> listings.stream()
                 .map(listing -> toSummary(listing, thumbnails.get(listing.getId())))
-                .toList();
+                .toList());
+        ListingRequestTiming.count("summary_count", summaries.size());
+        return summaries;
     }
 
     @Transactional(readOnly = true)
@@ -284,14 +288,16 @@ public class ListingService {
 
     private Map<Long, ListingImage> findThumbnails(List<Listing> listings) {
         if (listings.isEmpty()) {
+            ListingRequestTiming.count("image_count", 0);
             return Map.of();
         }
 
         List<Long> listingIds = listings.stream().map(Listing::getId).toList();
         Map<Long, ListingImage> thumbnails = new LinkedHashMap<>();
-        listingImageRepository
-                .findAllByListingIdInOrderByListingIdAscDisplayOrderAsc(listingIds)
-                .forEach(image -> thumbnails.putIfAbsent(image.getListingId(), image));
+        List<ListingImage> images = listingImageRepository
+                .findAllByListingIdInOrderByListingIdAscDisplayOrderAsc(listingIds);
+        ListingRequestTiming.count("image_count", images.size());
+        images.forEach(image -> thumbnails.putIfAbsent(image.getListingId(), image));
         return thumbnails;
     }
 
