@@ -5,7 +5,11 @@ import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.when;
 import static setty.global.event.EventPublicationTestSupport.awaitEventsHandled;
 
+import java.time.Duration;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
+import org.awaitility.Awaitility;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -15,6 +19,9 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import setty.notification.keyword.application.KeywordSubscriptionService;
+import setty.notification.listing.application.ListingNotificationDispatcher;
+import setty.notification.send.NotificationSender;
+import setty.notification.send.SendResult;
 import setty.platform.listing.application.ListingCreateCommand;
 import setty.platform.listing.application.ListingService;
 import setty.platform.listing.application.ListingUpdateCommand;
@@ -41,8 +48,14 @@ class ListingNotificationIntegrationTest extends MySqlIntegrationTestSupport {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
+    @Autowired
+    private ListingNotificationDispatcher listingNotificationDispatcher;
+
     @MockitoBean
     private ListingImageStorage listingImageStorage;
+
+    @MockitoBean
+    private NotificationSender notificationSender;
 
     @BeforeEach
     void setUp() {
@@ -51,6 +64,7 @@ class ListingNotificationIntegrationTest extends MySqlIntegrationTestSupport {
             insertMember(memberId);
         }
         when(listingImageStorage.upload(anyList())).thenReturn(List.of("listings/test.jpg"));
+        when(notificationSender.send(anyList())).thenReturn(SendResult.allSucceeded());
     }
 
     @AfterEach
@@ -65,15 +79,77 @@ class ListingNotificationIntegrationTest extends MySqlIntegrationTestSupport {
     }
 
     @Test
-    void 제목에_키워드가_있으면_구독자_전원에게_알림이_생성된다() {
+    void 제목에_키워드가_있으면_구독자_전원에게_알림이_생성되고_정확히_1회_발송된다() {
         subscribe(FIRST_SUBSCRIBER_ID, "아이폰");
         subscribe(SECOND_SUBSCRIBER_ID, "아이폰");
         subscribe(THIRD_SUBSCRIBER_ID, "아이폰");
 
         final long listingId = createListing("아이폰 15 팝니다");
+        awaitEventsHandled(jdbcTemplate);
 
         assertThat(notificationCount(listingId)).isEqualTo(3);
-        assertThat(countByStatus(listingId, "PENDING")).isEqualTo(3);
+        assertThat(countByStatus(listingId, "SENT")).isEqualTo(3);
+        assertThat(unsentCount(listingId)).isZero();
+        assertThat(maxAttempts(listingId)).isEqualTo(1);
+    }
+
+    @Test
+    void 등록_응답은_발송_지연을_기다리지_않는다() {
+        for (long memberId = 1_000L; memberId < 1_010L; memberId++) {
+            insertMember(memberId);
+            subscribe(memberId, "아이폰");
+        }
+        when(notificationSender.send(anyList())).thenAnswer(invocation -> {
+            Thread.sleep(500);
+            return SendResult.allSucceeded();
+        });
+
+        final long started = System.nanoTime();
+        final long listingId = createListing("아이폰 15 팝니다");
+        final long elapsedMs = (System.nanoTime() - started) / 1_000_000;
+
+        assertThat(elapsedMs).isLessThan(500);
+        Awaitility.await().atMost(Duration.ofSeconds(5))
+                .untilAsserted(() -> assertThat(countByStatus(listingId, "SENT")).isEqualTo(10));
+    }
+
+    @Test
+    void 발송이_한_번_실패하면_PENDING으로_남고_시도_횟수가_기록된다() {
+        subscribe(FIRST_SUBSCRIBER_ID, "아이폰");
+        final AtomicInteger calls = new AtomicInteger();
+        when(notificationSender.send(anyList())).thenAnswer(invocation -> calls.incrementAndGet() == 1
+                ? SendResult.allFailed(invocation.getArgument(0))
+                : SendResult.allSucceeded());
+
+        final long listingId = createListing("아이폰 15 팝니다");
+        awaitEventsHandled(jdbcTemplate);
+
+        final Map<String, Object> afterFirst = notification(listingId);
+        assertThat(afterFirst.get("status")).isEqualTo("PENDING");
+        assertThat(afterFirst.get("attempts")).isEqualTo(1);
+
+        dispatchQuietly(listingId);
+
+        final Map<String, Object> afterSecond = notification(listingId);
+        assertThat(afterSecond.get("status")).isEqualTo("SENT");
+        assertThat(afterSecond.get("attempts")).isEqualTo(2);
+    }
+
+    @Test
+    void 세_번_연속_실패하면_FAILED로_굳고_더_시도하지_않는다() {
+        subscribe(FIRST_SUBSCRIBER_ID, "아이폰");
+        when(notificationSender.send(anyList()))
+                .thenAnswer(invocation -> SendResult.allFailed(invocation.getArgument(0)));
+
+        final long listingId = createListing("아이폰 15 팝니다");
+        awaitEventsHandled(jdbcTemplate);
+        dispatchQuietly(listingId);
+        dispatchQuietly(listingId);
+        dispatchQuietly(listingId);
+
+        final Map<String, Object> result = notification(listingId);
+        assertThat(result.get("status")).isEqualTo("FAILED");
+        assertThat(result.get("attempts")).isEqualTo(3);
     }
 
     @Test
@@ -127,6 +203,13 @@ class ListingNotificationIntegrationTest extends MySqlIntegrationTestSupport {
         assertThat(notificationCount(listingId)).isEqualTo(1);
     }
 
+    private void dispatchQuietly(final long listingId) {
+        try {
+            listingNotificationDispatcher.dispatch(listingId, "아이폰 15 팝니다");
+        } catch (final IllegalStateException leftToRetry) {
+        }
+    }
+
     private void subscribe(final long memberId, final String keyword) {
         keywordSubscriptionService.subscribe(memberId, keyword);
     }
@@ -151,6 +234,22 @@ class ListingNotificationIntegrationTest extends MySqlIntegrationTestSupport {
         return jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM listing_notifications WHERE listing_id = ? AND status = ?",
                 Long.class, listingId, status);
+    }
+
+    private long unsentCount(final long listingId) {
+        return jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM listing_notifications WHERE listing_id = ? AND sent_at IS NULL",
+                Long.class, listingId);
+    }
+
+    private int maxAttempts(final long listingId) {
+        return jdbcTemplate.queryForObject(
+                "SELECT MAX(attempts) FROM listing_notifications WHERE listing_id = ?", Integer.class, listingId);
+    }
+
+    private Map<String, Object> notification(final long listingId) {
+        return jdbcTemplate.queryForMap(
+                "SELECT status, attempts FROM listing_notifications WHERE listing_id = ?", listingId);
     }
 
     private long countByMember(final long listingId, final long memberId) {
