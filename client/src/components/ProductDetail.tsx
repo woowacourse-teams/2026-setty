@@ -58,6 +58,11 @@ export function ProductDetail({ listingId, isLoggedIn, isReadOnly = false, onBac
         return () => { isCurrent = false; };
     }, [listingId]);
 
+    useEffect(() => {
+        if (!listing || listing.id !== listingId) return;
+        trackEvent('product_viewed', { listing_id: listing.id });
+    }, [listing, listingId]);
+
     if (error) {
         return <section className={productGridStyles['product-grid-message']}><p>{error}</p><button onClick={onBack} type="button">목록으로</button></section>;
     }
