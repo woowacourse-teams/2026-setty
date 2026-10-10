@@ -98,3 +98,76 @@ run_fixture_sql "$fixture_commit_sql"
 2026-10-08 dev MySQL 8.4.11에서 최초 SQL의 생성·롤백·저장과 API 200·매물/고유 ID/대표 사진 URL 각 100개를 확인했다. **확인값을 실행 시 전달하도록 변경한 SQL과 실제 정리 작업은 실행 검증 전**이다.
 
 시나리오는 컴파일과 임시 로컬 서버 검증을 통과했다: 워밍업 20건·본 측정 100건, 동시 요청 1건, 응답 후 1초 대기, CSV 기록 및 워밍업·본 측정에서 개수 불일치 시 중단을 확인했다. 2026-10-09 dev 1,000개 확장 SQL의 롤백·저장 출력을 확인했고, 5,000개 확장은 롤백 출력과 사용자 저장 완료 보고 이후 API 개수 검사로 확인했다. 100개·1,000개·5,000개 조건 각각 3회 측정에서 실행당 120건·실패 0건을 확인했다. 확장 데이터 정리는 후속 작업이다. 요청 ID·구간 계측 보완 후 dev 재측정은 아직 진행 전이다.
+
+## 키워드 알림 발송 측정
+
+매물 등록 1건이 구독자 전원에게 알림을 보내는 구조(설계: [server/docs/notification/keyword-notification.md](../docs/notification/keyword-notification.md))를 분리 전·후로 측정한다. 등록은 Gatling이 PC에서 dev로 보내고, 외부 푸시는 dev EC2 안에서 띄운 모의 서버가 받는다.
+
+### 1 모의 푸시 서버 (dev EC2 SSM 셸)
+
+`performance/mock-push/mock-push.mjs`를 서버에 복사하고 Node 20+로 실행한다. `DELAY_MS`는 FCM 왕복 실측값을 넣는다.
+
+```bash
+PORT=9000 DELAY_MS=50 OUT=/var/tmp/mock-push-received.csv node mock-push.mjs
+```
+
+- `POST /send`: 지연 뒤 200과 `failedNotificationIds`를 돌려준다. `FAIL_RATE=0.1`이면 10%를 실패로 돌려준다.
+- `GET /stats`: 요청 수·메시지 수·첫/마지막 수신 시각·차이(ms). `POST /reset`으로 비운다.
+- CSV에 요청마다 수신 시각(서버 시계)·건수를 남긴다.
+
+앱은 `setty.env`에 아래를 넣고 재시작해야 모의 서버로 보낸다. 측정이 끝나면 되돌린다.
+
+```
+SETTY_NOTIFICATION_SENDER=mock
+SETTY_NOTIFICATION_MOCK_PUSH_URL=http://127.0.0.1:9000
+SETTY_NOTIFICATION_SEND_CONCURRENCY=8
+SETTY_NOTIFICATION_SYNC_SEND=false
+```
+
+`SYNC_SEND=true`가 분리 전 구조(등록 트랜잭션 안에서 한 명씩 동기 발송)다.
+
+### 2 구독자 데이터 (dev EC2 SSM 셸)
+
+매물 목록 실험과 같은 규칙이다. 판매자 토큰은 저장소에 두지 않고 실행 시 전달한다. `uuidgen`으로 만든 36자 값을 Gatling의 `SELLER_TOKEN`에도 같은 값으로 쓴다.
+
+```bash
+fixture_init="SET @fixture_expected_database='DEV_DB_NAME', @fixture_expected_hostname='DEV_MYSQL_HOSTNAME', @fixture_seller_token='SELLER_TOKEN_UUID';"
+run_fixture_sql fixtures/seed-subscribers-1000.sql
+```
+
+| SQL (`fixtures/`) | 결과 |
+| --- | --- |
+| `seed-subscribers-1000.sql` | 판매자 `s3-seller-001` 1명, 구독자 `s3-sub-000001`~`001000`, 키워드 `s3-notify` 구독 1,000건 |
+| `expand-subscribers-1000-to-10000.sql` | 구독자·구독 10,000 |
+| `expand-subscribers-10000-to-100000.sql` | 구독자·구독 100,000 |
+| `cleanup-subscribers.sql` | 측정 중 등록된 매물·사진 행·알림, 구독, 전용 회원 삭제. S3 객체는 남는다 |
+
+기본은 ROLLBACK 시험이고, 저장은 임시 COMMIT 실행본으로 한다(위 "실제 저장" 참고). 구독자가 `s3-notify`를 구독하므로 Gatling이 등록하는 제목 `[S3-N001] s3-notify desk NNNNNN`에 전원이 매칭된다.
+
+### 3 등록 부하 (PC, `server/`)
+
+```bash
+export SELLER_TOKEN='SELLER_TOKEN_UUID'
+STRUCTURE=async SUBSCRIBERS=1000 REGISTER_MODE=single REGISTER_REPEATS=30 \
+  ./gradlew gatlingRun --simulation setty.performance.ListingRegisterSimulation
+STRUCTURE=async SUBSCRIBERS=1000 REGISTER_MODE=burst BURST_USERS=10 \
+  ./gradlew gatlingRun --simulation setty.performance.ListingRegisterSimulation
+```
+
+- `single`: 사용자 1명이 워밍업 5회 → 측정 30회 등록. 요청 사이 `REGISTER_PAUSE_SECONDS`(기본 3초)를 쉬어 앞 등록의 발송이 겹치지 않게 한다. 구독자가 많으면 늘린다.
+- `burst`: `BURST_USERS`명이 동시에 1건씩 등록.
+- `STRUCTURE`·`SUBSCRIBERS`는 CSV 라벨이다. 분리 전은 `sync`, 분리 후는 `async`로 적는다.
+- 사진은 `src/gatling/resources/notification-tiny.png`(1×1, 69바이트)로 고정해 업로드 시간을 최소화한다. dev S3에 실제 올라간다.
+- 보고서 `build/reports/gatling/`의 `register-measurement` 행에서 등록 P95를 본다. 요청별 응답 시간·매물 ID·`request_id`는 `build/reports/listing-register/`의 CSV에 남는다.
+
+### 4 발송 시간 집계 (dev EC2 SSM 셸)
+
+```bash
+mysql --batch -u DEV_DB_USER -p DEV_DB_NAME < notification-metrics.sql
+```
+
+매물마다 알림 수, 상태별 건수, 커밋부터 마지막 발송까지(`commit_to_last_sent_s`), 첫 발송부터 마지막 발송까지(`first_to_last_sent_s`)를 초 단위로 낸다. 모의 서버의 `GET /stats`와 CSV로 교차 확인한다. DB 커넥션 대기·타임아웃은 CloudWatch의 HikariCP 지표(#331)를 같은 시간대로 본다.
+
+### 순서
+
+구독자 1,000 → `sync` single/burst → `async` single/burst → 10,000으로 확장 → 반복 → 100,000(시간 보고 `sync`는 생략 가능) → `async`에서 `SEND_CONCURRENCY` 4/8/16으로 재측정 → cleanup.
