@@ -75,3 +75,12 @@ scripts/create_k6_test_users.sh
 계정 수와 접두사는 `COUNT`, `ACCOUNT_PREFIX`로, CSV 저장 위치는 `CSV_PATH`로 바꿀 수 있다. 기본 파일은 저장소의 `.local/k6-test-users.csv`이며 Git에서 제외된다. CSV에는 평문 비밀번호가 들어가므로 파일 권한은 소유자만 읽고 쓸 수 있게 설정되며, 저장소에 추가하지 않는다. 계정은 서버 DB에 남고 앱에 회원 삭제 API가 없으므로 격리된 개발·스테이징 DB에서만 실행한다. 같은 접두사로 재실행하려면 기존 계정의 비밀번호도 지정한 값과 같아야 한다.
 
 이 스크립트는 인증 계정만 준비하며 매물, 로그인 세션, PostHog 이벤트는 만들지 않는다. 결제 시나리오에는 별도 판매자 계정과 구매 가능한 매물이 필요하다. 성공 결제 20건을 만들려면 각 상품이 주문에 선점되고 결제 완료 후 판매 처리되므로 최소 20개의 서로 다른 판매 가능 매물을 준비한다. 각 가상 사용자는 서로 다른 계정과 브라우저 세션을 써야 한다. 일반 k6 HTTP 요청만으로는 프런트엔드의 `product_viewed` 같은 이벤트가 발생하지 않으므로, 지표 검증은 브라우저 시나리오로 수행하거나 별도 합성 이벤트로 구분한다. 테스트 이벤트는 전용 PostHog 프로젝트에 보내는 것을 권장한다.
+
+[`scripts/create_k6_test_listings.sh`](../scripts/create_k6_test_listings.sh)는 기본 20개의 판매 가능 매물을 전용 판매자 계정으로 등록한다. 먼저 구매자 계정과 분리된 판매자 CSV를 만든 뒤 실행한다.
+
+```sh
+COUNT=1 ACCOUNT_PREFIX=k6seller CSV_PATH=.local/k6-test-seller.csv scripts/create_k6_test_users.sh
+scripts/create_k6_test_listings.sh
+```
+
+스크립트는 기본 이미지 [`floor-lamp.png`](../client/public/images/listings/floor-lamp.png)를 매물마다 업로드하고, 결과 `listingId`와 매물 정보를 `.local/k6-test-listings-<RUN_TAG>.csv`에 저장한다. `COUNT`, `RUN_TAG`, `SELLER_CSV_PATH`, `IMAGE_PATH`, `LISTINGS_CSV_PATH`, `BASE_URL`을 환경변수로 바꿀 수 있다. 같은 `RUN_TAG`로 재실행하면 기존 판매 가능 매물을 재사용해 CSV를 복구하며, 이미 예약·판매된 매물은 재사용하지 않는다. 새 `RUN_TAG`는 새 매물과 S3 이미지 객체를 만들기 때문에 격리된 개발·스테이징 환경에서만 실행하고, 생성된 매물은 테스트 후 정리한다.
