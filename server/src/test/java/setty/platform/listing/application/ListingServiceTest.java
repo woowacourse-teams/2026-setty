@@ -10,6 +10,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import setty.platform.listing.domain.ConditionGrade;
 import setty.platform.listing.domain.Dimensions;
 import setty.platform.listing.domain.Listing;
@@ -31,6 +32,9 @@ class ListingServiceTest {
 
     @Mock
     private ListingImageStorage listingImageStorage;
+
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     private ListingService listingService;

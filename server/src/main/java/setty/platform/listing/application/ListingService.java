@@ -17,11 +17,13 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.multipart.MultipartFile;
+import setty.common.ListingCreated;
 import setty.global.exception.BusinessException;
 import setty.global.logging.ListingRequestTiming;
 import setty.platform.listing.domain.Dimensions;
@@ -42,15 +44,18 @@ public class ListingService {
     private final ListingRepository listingRepository;
     private final ListingImageRepository listingImageRepository;
     private final ListingImageStorage listingImageStorage;
+    private final ApplicationEventPublisher eventPublisher;
 
     public ListingService(
             ListingRepository listingRepository,
             ListingImageRepository listingImageRepository,
-            ListingImageStorage listingImageStorage
+            ListingImageStorage listingImageStorage,
+            ApplicationEventPublisher eventPublisher
     ) {
         this.listingRepository = listingRepository;
         this.listingImageRepository = listingImageRepository;
         this.listingImageStorage = listingImageStorage;
+        this.eventPublisher = eventPublisher;
     }
 
     @Transactional
@@ -71,6 +76,8 @@ public class ListingService {
         ));
         listingRepository.flush();
         listingImageRepository.saveAll(createImages(listing.getId(), objectKeys, 1));
+        eventPublisher.publishEvent(new ListingCreated(
+                listing.getId(), sellerId, listing.getTitle(), listing.getCreatedAt()));
 
         return new ListingView.Created(listing.getId(), listing.getCreatedAt());
     }
