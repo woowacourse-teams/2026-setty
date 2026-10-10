@@ -6,5 +6,9 @@
 /client/dist/
 /client/.webpack-cache/
 
+# 로컬 부하 테스트 계정과 자격 증명 CSV는 레포에 올리지 않는다.
+/.local/
+**/k6-test-users*.csv
+
 .DS_Store
 .idea/
