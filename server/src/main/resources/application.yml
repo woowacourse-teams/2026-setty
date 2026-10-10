@@ -59,8 +59,8 @@ setty:
   storage:
     listing-images:
       region: ${AWS_REGION:ap-northeast-2}
-      bucket: ${SETTY_S3_BUCKET:setty-listing-local}
-      public-base-url: ${SETTY_S3_PUBLIC_BASE_URL:https://setty-listing-local.s3.ap-northeast-2.amazonaws.com}
+      bucket: ${SETTY_S3_BUCKET:techcourse-project-2026}
+      public-base-url: ${SETTY_S3_PUBLIC_BASE_URL:https://techcourse-project-2026.s3.ap-northeast-2.amazonaws.com}
   payment:
     # 결제 성공/실패 복귀(GET /payments/success·/fail) 처리 후 브라우저를 돌려보낼 프론트 주소.
     client-redirect-url: ${PAYMENT_CLIENT_REDIRECT_URL:http://localhost:3000}
