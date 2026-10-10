@@ -79,8 +79,10 @@ scripts/create_k6_test_users.sh
 [`scripts/create_k6_test_listings.sh`](../scripts/create_k6_test_listings.sh)는 기본 20개의 판매 가능 매물을 전용 판매자 계정으로 등록한다. 먼저 구매자 계정과 분리된 판매자 CSV를 만든 뒤 실행한다.
 
 ```sh
-COUNT=1 ACCOUNT_PREFIX=k6seller CSV_PATH=.local/k6-test-seller.csv scripts/create_k6_test_users.sh
-scripts/create_k6_test_listings.sh
+BASE_URL=https://www.setty.cloud/dev COUNT=1 ACCOUNT_PREFIX=k6seller CSV_PATH=.local/k6-test-seller.csv scripts/create_k6_test_users.sh
+BASE_URL=https://www.setty.cloud/dev SELLER_CSV_PATH=.local/k6-test-seller.csv scripts/create_k6_test_listings.sh
 ```
 
-스크립트는 기본 이미지 [`floor-lamp.png`](../client/public/images/listings/floor-lamp.png)를 매물마다 업로드하고, 결과 `listingId`와 매물 정보를 `.local/k6-test-listings-<RUN_TAG>.csv`에 저장한다. `COUNT`, `RUN_TAG`, `SELLER_CSV_PATH`, `IMAGE_PATH`, `LISTINGS_CSV_PATH`, `BASE_URL`을 환경변수로 바꿀 수 있다. 같은 `RUN_TAG`로 재실행하면 기존 판매 가능 매물을 재사용해 CSV를 복구하며, 이미 예약·판매된 매물은 재사용하지 않는다. 새 `RUN_TAG`는 새 매물과 S3 이미지 객체를 만들기 때문에 격리된 개발·스테이징 환경에서만 실행하고, 생성된 매물은 테스트 후 정리한다.
+첫 명령은 판매자 `k6seller1`을 생성하거나 로그인으로 확인하며 비밀번호를 입력받는다. 기존 계정이면 등록 당시 비밀번호를 사용한다. 판매자 CSV와 계정이 이미 준비되어 있으면 첫 명령은 생략하고 두 번째만 실행한다. 두 번째 명령은 기본 20개를 등록하고, `COUNT`로 개수를 바꿀 수 있다.
+
+두 스크립트는 기본 API 주소가 dev 환경이다. 이 작업에는 **dev 서버**의 `AWS_REGION`, `SETTY_S3_BUCKET=techcourse-project-2026`, `SETTY_S3_PUBLIC_BASE_URL=https://techcourse-project-2026.s3.ap-northeast-2.amazonaws.com` 설정이 필요하며, prod 서버의 환경변수 변경은 dev에 적용되지 않는다. 스크립트는 기본 이미지 [`floor-lamp.png`](../client/public/images/listings/floor-lamp.png)를 매물마다 업로드하고, 결과 `listingId`와 매물 정보를 `.local/k6-test-listings-<RUN_TAG>.csv`에 저장한다. `RUN_TAG`, `SELLER_CSV_PATH`, `IMAGE_PATH`, `LISTINGS_CSV_PATH`, `BASE_URL`을 환경변수로 바꿀 수 있다. 같은 `RUN_TAG`로 재실행하면 기존 판매 가능 매물을 재사용해 CSV를 복구하며, 이미 예약·판매된 매물은 재사용하지 않는다. 새 `RUN_TAG`는 새 매물과 S3 이미지 객체를 만들기 때문에 격리된 개발·스테이징 환경에서 실행하고, 생성된 매물은 테스트 후 정리한다.
