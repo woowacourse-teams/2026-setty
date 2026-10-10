@@ -18,6 +18,7 @@
 ## 이벤트 문서 인덱스
 
 - 배송: [DeliveryAccepted.md](DeliveryAccepted.md), [DeliveryCancellationRejected.md](DeliveryCancellationRejected.md), [DeliveryCancelled.md](DeliveryCancelled.md), [DeliveryDelivered.md](DeliveryDelivered.md), [DeliveryPickedUp.md](DeliveryPickedUp.md), [DeliveryRequestsChanged.md](DeliveryRequestsChanged.md)
+- 매물: [ListingCreated.md](ListingCreated.md)
 - 주문: [OrderCancelled.md](OrderCancelled.md), [OrderCancellationRequested.md](OrderCancellationRequested.md), [OrderCompleted.md](OrderCompleted.md), [OrderConfirmed.md](OrderConfirmed.md)
 - 결제: [PaymentCompleted.md](PaymentCompleted.md), [PaymentFailed.md](PaymentFailed.md)
 
