@@ -52,6 +52,7 @@ SETTY는 구매자가 판매자와 운송 서비스를 오가며 직접 조율�
 ## 📚 문서와 협업
 
 - [서비스 정책](docs/policy/README.md): 주문·결제·배송의 확정 규칙과 미정 항목
+- [사용자 행동 수집](docs/analytics.md): PostHog 연결 설정, 이벤트 정의와 WAU·결제 전환율 기준
 - [기사 앱 문서](apps/docs/README.md): 앱 구조, API 매핑, 확인할 사항
 - [CI](.github/workflows/ci.yml): 서버 테스트와 웹 타입 검사
 
