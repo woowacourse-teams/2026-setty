@@ -18,6 +18,7 @@ spring:
       # 모듈별 스키마. FK가 있는 플랫폼을 먼저 실행한다.
       schema-locations:
         - classpath:schema/platform.sql
+        - classpath:schema/notification.sql
         - classpath:schema/delivery.sql
         - classpath:schema/payment.sql
         - classpath:schema/settlement.sql

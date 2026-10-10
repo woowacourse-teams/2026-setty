@@ -32,6 +32,11 @@ public enum ErrorCode {
     // ===== 찜 (플랫폼 팀) =====
     CANNOT_FAVORITE_OWN_LISTING(400, "본인 매물은 찜할 수 없습니다"),
 
+    // ===== 키워드 알림 (notification) =====
+    INVALID_KEYWORD(400, "키워드는 공백을 제외하고 1자 이상 20자 이하여야 합니다"),
+    TOO_MANY_KEYWORDS(400, "키워드는 10개까지 등록할 수 있습니다"),
+    KEYWORD_NOT_FOUND(404, "존재하지 않는 키워드입니다"),
+
     // ===== 결제 (payment) =====
     PAYMENT_AMOUNT_MISMATCH(400, "결제 금액이 주문 금액과 일치하지 않습니다"),
     PAYMENT_CONFIRM_FAILED(400, "결제 승인에 실패했습니다"),
