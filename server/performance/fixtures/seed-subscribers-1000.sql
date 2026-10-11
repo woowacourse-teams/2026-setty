@@ -32,11 +32,12 @@ SELECT 'fixture_members_do_not_exist', IF(COUNT(*) = 0, 1, 0)
 FROM members WHERE login_id = 's3-seller-001' OR login_id LIKE 's3-sub-%';
 INSERT INTO fixture_assertion
 SELECT 'seller_token_unused', IF(COUNT(*) = 0, 1, 0)
-FROM members WHERE token = @fixture_seller_token;
+FROM members WHERE token = CONVERT(@fixture_seller_token USING utf8mb4) COLLATE utf8mb4_unicode_ci;
 
 INSERT INTO members (login_id, password, role, phone_number, address, token)
 VALUES ('s3-seller-001', REPEAT('!', 60), 'MEMBER', '000-0000-0000',
-        'SETTY_SPRINT3_NOTIFY_FIXTURE_ONLY', @fixture_seller_token);
+        'SETTY_SPRINT3_NOTIFY_FIXTURE_ONLY',
+        CONVERT(@fixture_seller_token USING utf8mb4) COLLATE utf8mb4_unicode_ci);
 
 INSERT INTO members (login_id, password, role, phone_number, address, token)
 SELECT CONCAT('s3-sub-', LPAD(seq.n, 6, '0')), REPEAT('!', 60), 'MEMBER', '000-0000-0000',
