@@ -2,7 +2,6 @@ package setty.notification.send.fcm;
 
 import com.google.firebase.messaging.AndroidConfig;
 import com.google.firebase.messaging.Message;
-import com.google.firebase.messaging.Notification;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -21,7 +20,6 @@ import setty.notification.send.SendResult;
 @ConditionalOnProperty(name = "setty.notification.sender", havingValue = "fcm")
 public class FcmNotificationSender implements NotificationSender {
 
-    private static final String TITLE = "새 매물이 올라왔어요";
 
     private final DeviceTokenService deviceTokenService;
     private final FcmClient fcmClient;
@@ -99,7 +97,6 @@ public class FcmNotificationSender implements NotificationSender {
     private Message toFcmMessage(final NotificationMessage message, final String token) {
         return Message.builder()
                 .setToken(token)
-                .setNotification(Notification.builder().setTitle(TITLE).setBody(message.title()).build())
                 .putData("notificationId", String.valueOf(message.notificationId()))
                 .putData("listingId", String.valueOf(message.listingId()))
                 .putData("title", message.title())
