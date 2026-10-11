@@ -26,7 +26,7 @@ public class NotificationBatchSender {
         this.listingNotificationService = listingNotificationService;
     }
 
-    public void send(final List<ListingNotification> batch, final String title) {
+    public long send(final List<ListingNotification> batch, final String title) {
         final List<NotificationMessage> messages = batch.stream()
                 .map(notification -> toMessage(notification, title))
                 .toList();
@@ -37,7 +37,7 @@ public class NotificationBatchSender {
             (result.failed(notification.getId()) ? failed : sent).add(notification.getId());
         }
         listingNotificationService.markSent(sent);
-        listingNotificationService.markFailedAttempt(failed);
+        return listingNotificationService.markFailedAttempt(failed);
     }
 
     private SendResult sendSafely(final List<NotificationMessage> messages) {

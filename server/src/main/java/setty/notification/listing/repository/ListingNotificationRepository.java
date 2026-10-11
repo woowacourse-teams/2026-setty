@@ -24,5 +24,4 @@ public interface ListingNotificationRepository extends JpaRepository<ListingNoti
 
     List<ListingNotification> findAllByMemberIdOrderByCreatedAtDescIdDesc(Long memberId, Pageable pageable);
 
-    long countByListingIdAndStatus(Long listingId, NotificationStatus status);
 }
