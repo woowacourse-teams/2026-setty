@@ -38,7 +38,8 @@ public class FirebaseFcmClient implements FcmClient {
             return FcmDelivery.success();
         }
         final FirebaseMessagingException exception = response.getException();
-        if (exception != null && INVALID_TOKEN_CODES.contains(exception.getMessagingErrorCode())) {
+        final MessagingErrorCode code = exception == null ? null : exception.getMessagingErrorCode();
+        if (code != null && INVALID_TOKEN_CODES.contains(code)) {
             return FcmDelivery.invalidToken();
         }
         return FcmDelivery.failure();

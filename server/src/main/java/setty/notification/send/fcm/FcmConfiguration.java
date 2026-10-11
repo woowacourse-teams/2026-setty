@@ -1,5 +1,6 @@
 package setty.notification.send.fcm;
 
+import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
@@ -21,6 +22,7 @@ public class FcmConfiguration {
         try (FileInputStream credentials = new FileInputStream(properties.fcmCredentialsPath())) {
             final FirebaseOptions options = FirebaseOptions.builder()
                     .setCredentials(GoogleCredentials.fromStream(credentials))
+                    .setHttpTransport(new NetHttpTransport())
                     .build();
             final FirebaseApp app = FirebaseApp.getApps().isEmpty()
                     ? FirebaseApp.initializeApp(options)
