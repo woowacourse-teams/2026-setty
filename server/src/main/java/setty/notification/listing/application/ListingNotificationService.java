@@ -59,9 +59,9 @@ public class ListingNotificationService {
         );
     }
 
-    public void markFailedAttempt(final List<Long> notificationIds) {
+    public long markFailedAttempt(final List<Long> notificationIds) {
         if (notificationIds.isEmpty()) {
-            return;
+            return 0;
         }
         namedJdbcTemplate.update(
                 """
@@ -72,10 +72,11 @@ public class ListingNotificationService {
                 """,
                 Map.of("ids", notificationIds, "max", ListingNotification.MAXIMUM_ATTEMPTS)
         );
-    }
-
-    public long countPending(final Long listingId) {
-        return listingNotificationRepository.countByListingIdAndStatus(listingId, NotificationStatus.PENDING);
+        return namedJdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM listing_notifications WHERE id IN (:ids) AND status = 'PENDING'",
+                Map.of("ids", notificationIds),
+                Long.class
+        );
     }
 
     public List<ListingNotification> findPendingBatch(final Long listingId, final Long afterId) {

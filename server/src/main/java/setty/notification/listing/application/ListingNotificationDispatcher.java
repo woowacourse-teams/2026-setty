@@ -45,19 +45,19 @@ public class ListingNotificationDispatcher {
 
     public void dispatch(final Long listingId, final String title) {
         final long started = System.nanoTime();
-        final int batches = sendAllPending(listingId, title);
-        final long retryable = listingNotificationService.countPending(listingId);
+        final List<CompletableFuture<Long>> batches = sendAllPending(listingId, title);
+        final long retryable = batches.stream().mapToLong(CompletableFuture::join).sum();
         log.info("listing notification dispatched listingId={} batches={} retryable={} elapsedMs={}",
-                listingId, batches, retryable, (System.nanoTime() - started) / 1_000_000);
+                listingId, batches.size(), retryable, (System.nanoTime() - started) / 1_000_000);
         if (retryable > 0) {
             throw new IllegalStateException(
                     "listing " + listingId + " has " + retryable + " notifications left to retry");
         }
     }
 
-    private int sendAllPending(final Long listingId, final String title) {
+    private List<CompletableFuture<Long>> sendAllPending(final Long listingId, final String title) {
         final Semaphore inFlight = new Semaphore(properties.sendConcurrency() * IN_FLIGHT_BATCHES_PER_THREAD);
-        final List<CompletableFuture<Void>> futures = new ArrayList<>();
+        final List<CompletableFuture<Long>> futures = new ArrayList<>();
         long afterId = 0L;
         while (true) {
             inFlight.acquireUninterruptibly();
@@ -68,10 +68,10 @@ public class ListingNotificationDispatcher {
             }
             afterId = batch.getLast().getId();
             futures.add(CompletableFuture
-                    .runAsync(() -> batchSender.send(batch, title), sendExecutor)
+                    .supplyAsync(() -> batchSender.send(batch, title), sendExecutor)
                     .whenComplete((ignored, error) -> inFlight.release()));
         }
         CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new)).join();
-        return futures.size();
+        return futures;
     }
 }

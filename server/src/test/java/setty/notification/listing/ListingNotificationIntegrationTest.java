@@ -1,6 +1,8 @@
 package setty.notification.listing;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.when;
 import static setty.global.event.EventPublicationTestSupport.awaitEventsHandled;
@@ -18,6 +20,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.transaction.support.TransactionTemplate;
 import setty.notification.keyword.application.KeywordSubscriptionService;
 import setty.notification.listing.application.ListingNotificationDispatcher;
 import setty.notification.send.NotificationSender;
@@ -50,6 +53,9 @@ class ListingNotificationIntegrationTest extends MySqlIntegrationTestSupport {
 
     @Autowired
     private ListingNotificationDispatcher listingNotificationDispatcher;
+
+    @Autowired
+    private TransactionTemplate transactionTemplate;
 
     @MockitoBean
     private ListingImageStorage listingImageStorage;
@@ -133,6 +139,35 @@ class ListingNotificationIntegrationTest extends MySqlIntegrationTestSupport {
         final Map<String, Object> afterSecond = notification(listingId);
         assertThat(afterSecond.get("status")).isEqualTo("SENT");
         assertThat(afterSecond.get("attempts")).isEqualTo(2);
+    }
+
+    @Test
+    void 트랜잭션_안에서_전부_보내면_남은_건수를_0으로_보고한다() {
+        for (final long memberId : List.of(FIRST_SUBSCRIBER_ID, SECOND_SUBSCRIBER_ID, THIRD_SUBSCRIBER_ID)) {
+            subscribe(memberId, "아이폰");
+        }
+        final long listingId = createListing("아이폰 15 팝니다");
+        awaitEventsHandled(jdbcTemplate);
+        jdbcTemplate.update("UPDATE listing_notifications SET status = 'PENDING', sent_at = NULL WHERE listing_id = ?",
+                listingId);
+
+        assertThatCode(() -> transactionTemplate.executeWithoutResult(
+                status -> listingNotificationDispatcher.dispatch(listingId, "아이폰 15 팝니다")))
+                .doesNotThrowAnyException();
+        assertThat(countByStatus(listingId, "SENT")).isEqualTo(3);
+    }
+
+    @Test
+    void 실패해_남은_건이_있으면_재발행을_위해_예외를_던진다() {
+        subscribe(FIRST_SUBSCRIBER_ID, "아이폰");
+        when(notificationSender.send(anyList()))
+                .thenAnswer(invocation -> SendResult.allFailed(invocation.getArgument(0)));
+        final long listingId = createListing("아이폰 15 팝니다");
+        awaitEventsHandled(jdbcTemplate);
+
+        assertThatThrownBy(() -> listingNotificationDispatcher.dispatch(listingId, "아이폰 15 팝니다"))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("1 notifications left");
     }
 
     @Test
