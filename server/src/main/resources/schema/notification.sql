@@ -33,3 +33,17 @@ CREATE TABLE IF NOT EXISTS listing_notifications (
     INDEX idx_listing_notifications_pending (listing_id, status, id),
     INDEX idx_listing_notifications_member (member_id, created_at, id)
 );
+
+-- 앱이 받은 FCM 등록 토큰. 토큰 하나는 기기 하나이며, 사용자 1명이 기기 여러 대를 가질 수 있다.
+-- 같은 토큰이 다른 사용자로 다시 오면 기기 주인이 바뀐 것으로 보고 member_id를 갱신한다.
+CREATE TABLE IF NOT EXISTS device_tokens (
+    id         BIGINT       NOT NULL AUTO_INCREMENT,
+    member_id  BIGINT       NOT NULL,
+    token      VARCHAR(255) NOT NULL,
+    platform   VARCHAR(10)  NOT NULL,              -- ANDROID / IOS
+    updated_at TIMESTAMP(6) NOT NULL,
+    PRIMARY KEY (id),
+    CONSTRAINT uk_device_tokens_token UNIQUE (token),
+    CONSTRAINT fk_device_tokens_member FOREIGN KEY (member_id) REFERENCES members (id),
+    INDEX idx_device_tokens_member (member_id)
+);
