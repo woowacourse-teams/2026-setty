@@ -17,7 +17,8 @@ import setty.payment.repository.PaymentRepository;
  * 실패 복귀는 기록 없이 이벤트만 발행하므로 여기를 거치지 않는다({@code PaymentService.fail}).
  *
  * <p>주문은 결제 이전에 PENDING으로 존재하므로 여기서는 주문을 만들지 않고, 결과만 이벤트로 알린다.
- * 주문 상태 전이·배차 발행·선점 해제는 이벤트를 수신하는 플랫폼(주문) 팀이 담당한다.
+ * 승인 성공 이벤트를 수신한 플랫폼(주문) 팀이 주문 상태 전이와 배차 발행을 담당한다.
+ * 결제 실패 후의 매물 선점 해제는 주문 만료 처리에서 담당한다.
  */
 @Component
 @RequiredArgsConstructor

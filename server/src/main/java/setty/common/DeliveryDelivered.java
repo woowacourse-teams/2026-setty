@@ -5,6 +5,8 @@ import java.time.Instant;
 public record DeliveryDelivered(
         Long deliveryId,
         Long orderId,
-        Instant changedAt
+        Instant changedAt,
+        Long driverId,
+        int deliveryFee
 ) {
 }

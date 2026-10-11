@@ -1,7 +1,5 @@
 package setty.payment.presentation;
 
-import static org.mockito.Mockito.lenient;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -25,7 +23,6 @@ import org.springframework.web.method.support.ModelAndViewContainer;
 import setty.global.auth.LoginMember;
 import setty.payment.application.PaymentService;
 import setty.payment.domain.Payment;
-import setty.platform.member.domain.Member;
 
 @ExtendWith(MockitoExtension.class)
 class PaymentControllerTest {
@@ -43,8 +40,6 @@ class PaymentControllerTest {
 
     @BeforeEach
     void setUp() {
-        final Member buyer = mock(Member.class);
-        lenient().when(buyer.getId()).thenReturn(BUYER_ID);
         mockMvc = MockMvcBuilders.standaloneSetup(new PaymentController(paymentService))
                 .setCustomArgumentResolvers(new HandlerMethodArgumentResolver() {
                     @Override
@@ -59,7 +54,7 @@ class PaymentControllerTest {
                             final NativeWebRequest request,
                             final WebDataBinderFactory binderFactory
                     ) {
-                        return buyer;
+                        return BUYER_ID;
                     }
                 })
                 .build();

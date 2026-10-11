@@ -59,12 +59,12 @@ import com.aksworns22.setty.feature.common.ErrorContent
 import com.aksworns22.setty.feature.common.FurnitureThumbnail
 import com.aksworns22.setty.feature.common.LoadUiState
 import com.aksworns22.setty.feature.common.LoadingContent
-import com.aksworns22.setty.feature.common.SaleStatusBadge
 import com.aksworns22.setty.feature.common.SettyMessage
 import com.aksworns22.setty.model.MyFurniture
 import com.aksworns22.setty.model.categoryLabel
 import com.aksworns22.setty.model.formatWon
 import com.aksworns22.setty.model.registeredDateLabel
+import com.aksworns22.setty.ui.component.SaleStatusBadge
 import com.aksworns22.setty.ui.theme.Paperlogy
 import com.aksworns22.setty.ui.theme.SettyTheme
 

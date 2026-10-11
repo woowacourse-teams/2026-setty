@@ -120,7 +120,10 @@ class OrderServiceTest {
                 "구매자 주소",
                 10_000,
                 "010-0000-0001",
-                "010-0000-0002"
+                "010-0000-0002",
+                LISTING_ID,
+                SELLER_ID,
+                150_000
         ));
         verify(orderRepository).findByIdForUpdate(ORDER_ID);
     }
@@ -133,6 +136,20 @@ class OrderServiceTest {
 
         orderService.publishOrderConfirmed(ORDER_ID);
 
+        verifyNoInteractions(listingRepository, memberRepository, eventPublisher);
+    }
+
+    @Test
+    void 만료된_주문에_늦게_온_결제_완료는_배송을_요청하지_않는다() {
+        final Order order = Order.pending(LISTING_ID, BUYER_ID, Instant.parse("2026-09-02T05:00:00Z"));
+        ReflectionTestUtils.setField(order, "id", ORDER_ID);
+        order.expire(Instant.parse("2026-09-02T05:00:00Z"));
+        when(orderRepository.findByIdForUpdate(ORDER_ID)).thenReturn(Optional.of(order));
+
+        orderService.publishOrderConfirmed(ORDER_ID);
+
+        assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.EXPIRED);
+        assertThat(order.getDeliveryStatus()).isEqualTo(DeliveryStatus.PENDING);
         verifyNoInteractions(listingRepository, memberRepository, eventPublisher);
     }
 
@@ -253,38 +270,6 @@ class OrderServiceTest {
     }
 
     @Test
-    void 결제대기_주문을_취소하면_주문이_삭제되고_선점이_해제된다() {
-        final Order order = order();
-        when(orderRepository.findByIdForUpdate(ORDER_ID)).thenReturn(Optional.of(order));
-
-        orderService.cancelPending(ORDER_ID);
-
-        verify(listingService).releasePurchaseRequest(LISTING_ID);
-        verify(orderRepository).delete(order);
-    }
-
-    @Test
-    void 결제대기가_아닌_주문은_취소_요청을_무시한다() {
-        final Order order = new Order(LISTING_ID, BUYER_ID);
-        ReflectionTestUtils.setField(order, "id", ORDER_ID);
-        when(orderRepository.findByIdForUpdate(ORDER_ID)).thenReturn(Optional.of(order));
-
-        orderService.cancelPending(ORDER_ID);
-
-        verifyNoInteractions(listingService);
-        verify(orderRepository, never()).delete(order);
-    }
-
-    @Test
-    void 존재하지_않는_주문의_취소_요청은_무시한다() {
-        when(orderRepository.findByIdForUpdate(ORDER_ID)).thenReturn(Optional.empty());
-
-        orderService.cancelPending(ORDER_ID);
-
-        verifyNoInteractions(listingService);
-    }
-
-    @Test
     void 내_주문_목록에_매물_썸네일을_포함한다() {
         final Order order = new Order(LISTING_ID, BUYER_ID);
         ReflectionTestUtils.setField(order, "id", ORDER_ID);
@@ -313,6 +298,35 @@ class OrderServiceTest {
         });
     }
 
+    @Test
+    void 취소_후_같은_매물을_재구매해도_두_주문을_조회한다() {
+        final Order cancelledOrder = confirmedOrder();
+        cancelledOrder.requestCancellation("cancellation-1");
+        cancelledOrder.confirmCancellation("cancellation-1");
+        final Order nextOrder = Order.pending(LISTING_ID, BUYER_ID);
+        ReflectionTestUtils.setField(nextOrder, "id", ORDER_ID + 1);
+        final ListingView.Summary listing = new ListingView.Summary(
+                LISTING_ID, "가상 책상", null, 100_000, 10_000, 110_000,
+                ListingCategory.DESK, ConditionGrade.A,
+                new ListingView.Dimensions(120, 60, 75), Instant.parse("2026-09-03T00:00:00Z")
+        );
+        when(orderRepository.findAllByBuyerIdOrderByIdDesc(BUYER_ID))
+                .thenReturn(List.of(nextOrder, cancelledOrder));
+        when(listingService.findSummaries(any())).thenAnswer(invocation -> {
+            final List<Long> ids = invocation.getArgument(0);
+            return ids.stream().map(id -> listing).toList();
+        });
+
+        final List<MyOrderResponse> responses = orderService.findMyOrders(BUYER_ID);
+
+        assertThat(responses).extracting(MyOrderResponse::id)
+                .containsExactly(ORDER_ID + 1, ORDER_ID);
+        assertThat(responses).extracting(MyOrderResponse::orderStatus)
+                .containsExactly("PENDING", "CANCELLED");
+        assertThat(responses).allSatisfy(response ->
+                assertThat(response.listing().id()).isEqualTo(LISTING_ID));
+    }
+
     private static Order order() {
         final Order order = Order.pending(LISTING_ID, BUYER_ID);
         ReflectionTestUtils.setField(order, "id", ORDER_ID);
@@ -327,8 +341,10 @@ class OrderServiceTest {
 
     private static Listing listing() {
         final Listing listing = mock(Listing.class);
+        when(listing.getId()).thenReturn(LISTING_ID);
         when(listing.getSellerId()).thenReturn(SELLER_ID);
         when(listing.getTitle()).thenReturn("가상 책상");
+        when(listing.getPrice()).thenReturn(150_000);
         when(listing.getCategory()).thenReturn(ListingCategory.DESK);
         when(listing.getDeliveryFee()).thenReturn(10_000);
         return listing;

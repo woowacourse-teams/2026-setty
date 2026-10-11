@@ -1,5 +1,5 @@
--- SETTY 스키마. ddl-auto는 validate 고정이므로 스키마 변경은 이 파일에 SQL 추가로만 한다.
--- 매 부팅 시 실행되므로 모든 문장은 멱등이어야 한다 (CREATE TABLE IF NOT EXISTS, 컬럼 추가는 새 문장 대신 팀 합의 후 정리).
+-- 플랫폼 모듈(회원·매물·주문·찜) 스키마. 다른 모듈 파일보다 먼저 실행한다(테이블 간 FK가 이 파일 안에 있음).
+-- 매 부팅 시 실행되므로 모든 문장은 멱등이어야 한다. 실행 순서는 application.yml의 spring.sql.init.schema-locations를 따른다.
 
 CREATE TABLE IF NOT EXISTS members (
     id           BIGINT       NOT NULL AUTO_INCREMENT,
@@ -57,54 +57,6 @@ CREATE TABLE IF NOT EXISTS listing_images (
     INDEX idx_listing_images_listing (listing_id, display_order)
 );
 
-CREATE TABLE IF NOT EXISTS delivery (
-    id                    BIGINT       NOT NULL AUTO_INCREMENT,
-    order_id              BIGINT       NOT NULL,
-    driver_id             BIGINT       NULL,
-    item_name             VARCHAR(100) NOT NULL,
-    category              VARCHAR(50)  NOT NULL,
-    pickup_address        VARCHAR(255) NOT NULL,
-    delivery_address      VARCHAR(255) NOT NULL,
-    pickup_phone_number   VARCHAR(30)  NOT NULL,
-    delivery_phone_number VARCHAR(30)  NOT NULL,
-    estimated_fee         INT          NOT NULL,
-    status                VARCHAR(20)  NOT NULL,
-    requested_at          TIMESTAMP(6) NOT NULL,
-    accepted_at           TIMESTAMP(6) NULL,
-    picked_up_at          TIMESTAMP(6) NULL,
-    delivered_at          TIMESTAMP(6) NULL,
-    PRIMARY KEY (id),
-    UNIQUE KEY uk_delivery_order_id (order_id),
-    CONSTRAINT chk_delivery_estimated_fee CHECK (estimated_fee >= 0)
-);
-
--- 주문별 배송 판정. 배송 요청 등록과 구매자 취소 중 먼저 INSERT한 쪽이 결론을 정한다.
--- 취소가 먼저 판정된 주문은 재발행된 OrderConfirmed가 와도 배송 요청을 만들지 않는다.
-CREATE TABLE IF NOT EXISTS delivery_order_decision (
-    order_id   BIGINT       NOT NULL,
-    outcome    VARCHAR(20)  NOT NULL,   -- REQUESTED / CANCELLED
-    decided_at TIMESTAMP(6) NOT NULL,
-    PRIMARY KEY (order_id)
-);
-
--- 판정 테이블 도입 전에 만들어진 배송 요청을 REQUESTED 판정으로 채운다. 이미 있는 판정은 건너뛴다.
-INSERT IGNORE INTO delivery_order_decision (order_id, outcome, decided_at)
-SELECT order_id, 'REQUESTED', requested_at FROM delivery;
-
-CREATE TABLE IF NOT EXISTS delivery_member (
-    id                           BIGINT       NOT NULL AUTO_INCREMENT,
-    login_id                     VARCHAR(20)  NOT NULL,
-    password                     VARCHAR(60)  NOT NULL,   -- BCrypt 해시 고정 60자
-    phone_number                 VARCHAR(13)  NOT NULL,   -- 010-0000-0000
-    license_plate_number         VARCHAR(20)  NOT NULL,   -- 00가0000
-    car_type                     VARCHAR(30)  NOT NULL,   -- 다마스 등
-    business_registration_number VARCHAR(12)  NOT NULL,   -- 000-00-00000
-    token                        VARCHAR(36)  NULL,       -- 로그인 시 회전하는 UUID. 로그인 전 NULL
-    PRIMARY KEY (id),
-    UNIQUE KEY uk_delivery_member_login_id (login_id),
-    UNIQUE KEY uk_delivery_member_token (token)
-);
-
 -- 기존 DB에 orders가 이미 있다면 FK는 수동으로 1회 적용:
 --   ALTER TABLE orders
 --     ADD CONSTRAINT fk_orders_listing FOREIGN KEY (listing_id) REFERENCES listings (id),
@@ -118,12 +70,18 @@ CREATE TABLE IF NOT EXISTS orders (
     cancellation_request_id VARCHAR(36) NULL,           -- 현재 취소 SAGA 요청 식별자
     driver_id       BIGINT       NULL,                  -- 현재 미사용, 실제 배정 기사는 delivery.driver_id에 저장
     pending_expires_at TIMESTAMP(6) NULL,                -- PENDING 주문 자동 만료 시각
+    delivery_status_changed_at TIMESTAMP(6) NULL,        -- 배송 이벤트로 동기화된 배송 상태 변경 시각
+    active_listing_id BIGINT GENERATED ALWAYS AS (
+        CASE WHEN order_status IN ('EXPIRED', 'CANCELLED') THEN NULL ELSE listing_id END
+    ) STORED,
     PRIMARY KEY (id),
-    UNIQUE KEY uk_orders_listing_id (listing_id),
+    INDEX idx_orders_listing_id (listing_id),
+    UNIQUE KEY uk_orders_active_listing_id (active_listing_id),
     CONSTRAINT fk_orders_listing FOREIGN KEY (listing_id) REFERENCES listings (id),
     CONSTRAINT fk_orders_buyer   FOREIGN KEY (buyer_id)   REFERENCES members (id),
     INDEX idx_orders_pending_expiration (delivery_status, pending_expires_at),
-    INDEX idx_orders_order_expiration (order_status, pending_expires_at)
+    INDEX idx_orders_order_expiration (order_status, pending_expires_at),
+    INDEX idx_orders_completion_due (order_status, delivery_status, delivery_status_changed_at)
 );
 
 -- 기존 orders 테이블 마이그레이션. MySQL은 ADD COLUMN/INDEX IF NOT EXISTS를 지원하지 않으므로
@@ -236,22 +194,82 @@ PREPARE add_orders_order_expiration_index_statement FROM @add_orders_order_expir
 EXECUTE add_orders_order_expiration_index_statement;
 DEALLOCATE PREPARE add_orders_order_expiration_index_statement;
 
--- 결제 (payment 계층). 토스페이먼츠 결제 결과(성공 DONE / 실패 ABORTED)를 1주문 1행으로 저장한다.
--- 주문은 결제 이전에 PENDING으로 먼저 생성되므로 payments.order_id는 항상 존재하는 주문을 가리킨다.
--- 실패 저장을 위해 payment_key·approved_at은 NULL 허용. 실패 후 재승인 시 같은 행을 DONE으로 전이한다.
-CREATE TABLE IF NOT EXISTS payments (
-    id            BIGINT       NOT NULL AUTO_INCREMENT,
-    order_id      BIGINT       NOT NULL,                  -- 결제 이전에 PENDING으로 존재하는 주문 (1주문 1행)
-    payment_key   VARCHAR(200) NULL,                      -- 토스가 발급한 결제 키 (실패/ABORTED 시 NULL)
-    toss_order_id VARCHAR(64)  NOT NULL,                  -- 토스 결제창 orderId (= 내부 주문 id)
-    amount        INT          NOT NULL,                  -- 결제 금액 (매물 totalPrice와 일치)
-    status        VARCHAR(20)  NOT NULL,                  -- 결제 상태 (DONE / ABORTED)
-    approved_at   DATETIME     NULL,                      -- 토스 승인 시각 (실패/ABORTED 시 NULL)
-    PRIMARY KEY (id),
-    UNIQUE KEY uk_payments_order_id (order_id),
-    UNIQUE KEY uk_payments_toss_order_id (toss_order_id),
-    CONSTRAINT fk_payments_order FOREIGN KEY (order_id) REFERENCES orders (id)
+SET @orders_delivery_status_changed_at_exists = (
+    SELECT COUNT(*)
+    FROM information_schema.columns
+    WHERE table_schema = DATABASE()
+      AND table_name = 'orders'
+      AND column_name = 'delivery_status_changed_at'
 );
+SET @add_orders_delivery_status_changed_at = IF(
+    @orders_delivery_status_changed_at_exists = 0,
+    'ALTER TABLE orders ADD COLUMN delivery_status_changed_at TIMESTAMP(6) NULL AFTER pending_expires_at, ADD INDEX idx_orders_completion_due (order_status, delivery_status, delivery_status_changed_at)',
+    'SELECT 1'
+);
+PREPARE add_orders_delivery_status_changed_at_statement FROM @add_orders_delivery_status_changed_at;
+EXECUTE add_orders_delivery_status_changed_at_statement;
+DEALLOCATE PREPARE add_orders_delivery_status_changed_at_statement;
+
+-- 판매 완료 확정 도입 전에 배송 완료된 주문은 변경 시각을 알 수 없어 배포 시점으로 채운다. 3일 뒤 자동 판매 완료된다.
+UPDATE orders
+SET delivery_status_changed_at = CURRENT_TIMESTAMP(6)
+WHERE order_status = 'CONFIRMED'
+  AND delivery_status = 'DELIVERED'
+  AND delivery_status_changed_at IS NULL;
+
+-- 종료된 주문은 보존하면서 같은 매물의 새 주문을 허용한다.
+-- MySQL UNIQUE는 NULL 중복을 허용하므로 활성 주문의 listing_id만 유일하게 제한한다.
+SET @orders_active_listing_column_exists = (
+    SELECT COUNT(*) FROM information_schema.columns
+    WHERE table_schema = DATABASE() AND table_name = 'orders' AND column_name = 'active_listing_id'
+);
+SET @add_orders_active_listing_column = IF(
+    @orders_active_listing_column_exists = 0,
+    'ALTER TABLE orders ADD COLUMN active_listing_id BIGINT GENERATED ALWAYS AS (CASE WHEN order_status IN (''EXPIRED'', ''CANCELLED'') THEN NULL ELSE listing_id END) STORED',
+    'SELECT 1'
+);
+PREPARE add_orders_active_listing_column_statement FROM @add_orders_active_listing_column;
+EXECUTE add_orders_active_listing_column_statement;
+DEALLOCATE PREPARE add_orders_active_listing_column_statement;
+
+SET @orders_active_listing_unique_exists = (
+    SELECT COUNT(*) FROM information_schema.statistics
+    WHERE table_schema = DATABASE() AND table_name = 'orders' AND index_name = 'uk_orders_active_listing_id'
+);
+SET @add_orders_active_listing_unique = IF(
+    @orders_active_listing_unique_exists = 0,
+    'ALTER TABLE orders ADD UNIQUE KEY uk_orders_active_listing_id (active_listing_id)',
+    'SELECT 1'
+);
+PREPARE add_orders_active_listing_unique_statement FROM @add_orders_active_listing_unique;
+EXECUTE add_orders_active_listing_unique_statement;
+DEALLOCATE PREPARE add_orders_active_listing_unique_statement;
+
+SET @orders_listing_index_exists = (
+    SELECT COUNT(*) FROM information_schema.statistics
+    WHERE table_schema = DATABASE() AND table_name = 'orders' AND index_name = 'idx_orders_listing_id'
+);
+SET @add_orders_listing_index = IF(
+    @orders_listing_index_exists = 0,
+    'ALTER TABLE orders ADD INDEX idx_orders_listing_id (listing_id)',
+    'SELECT 1'
+);
+PREPARE add_orders_listing_index_statement FROM @add_orders_listing_index;
+EXECUTE add_orders_listing_index_statement;
+DEALLOCATE PREPARE add_orders_listing_index_statement;
+
+SET @orders_listing_unique_exists = (
+    SELECT COUNT(*) FROM information_schema.statistics
+    WHERE table_schema = DATABASE() AND table_name = 'orders' AND index_name = 'uk_orders_listing_id'
+);
+SET @drop_orders_listing_unique = IF(
+    @orders_listing_unique_exists > 0,
+    'ALTER TABLE orders DROP INDEX uk_orders_listing_id',
+    'SELECT 1'
+);
+PREPARE drop_orders_listing_unique_statement FROM @drop_orders_listing_unique;
+EXECUTE drop_orders_listing_unique_statement;
+DEALLOCATE PREPARE drop_orders_listing_unique_statement;
 
 CREATE TABLE IF NOT EXISTS favorites (
     id         BIGINT       NOT NULL AUTO_INCREMENT,
@@ -262,21 +280,4 @@ CREATE TABLE IF NOT EXISTS favorites (
     CONSTRAINT uk_favorites_member_listing UNIQUE (member_id, listing_id),
     CONSTRAINT fk_favorites_member  FOREIGN KEY (member_id)  REFERENCES members (id),
     CONSTRAINT fk_favorites_listing FOREIGN KEY (listing_id) REFERENCES listings (id)
-);
-
--- Spring Modulith 이벤트 발행 기록(spring-modulith-events-jdbc v2 MySQL 스키마).
--- 모듈 간 이벤트를 리스너별로 기록하고, 처리에 실패하거나 남은 건을 재발행한다.
--- Modulith가 대문자 테이블명으로 조회하므로 이름을 바꾸지 않는다.
-CREATE TABLE IF NOT EXISTS EVENT_PUBLICATION (
-    ID                     VARCHAR(36)   NOT NULL,
-    LISTENER_ID            VARCHAR(512)  NOT NULL,
-    EVENT_TYPE             VARCHAR(512)  NOT NULL,
-    SERIALIZED_EVENT       VARCHAR(4000) NOT NULL,
-    PUBLICATION_DATE       TIMESTAMP(6)  NOT NULL,
-    COMPLETION_DATE        TIMESTAMP(6)  DEFAULT NULL NULL,
-    STATUS                 VARCHAR(20),
-    COMPLETION_ATTEMPTS    INT,
-    LAST_RESUBMISSION_DATE TIMESTAMP(6)  DEFAULT NULL NULL,
-    PRIMARY KEY (ID),
-    INDEX EVENT_PUBLICATION_BY_COMPLETION_DATE_IDX (COMPLETION_DATE)
 );

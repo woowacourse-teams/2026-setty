@@ -4,6 +4,9 @@ const CopyWebpackPlugin = require('copy-webpack-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 
 const enableMsw = process.env.ENABLE_MSW === 'true';
+// PostHog 프로젝트 API 키(phc_…). 비어 있으면 행동 데이터를 수집하지 않는다. buildspec이 SETTY_* 변수를 빌드 해시에 포함한다.
+const posthogKey = process.env.SETTY_POSTHOG_KEY ?? '';
+const posthogHost = process.env.SETTY_POSTHOG_HOST ?? 'https://us.i.posthog.com';
 
 module.exports = (_, argv) => {
     const isProduction = argv.mode === 'production';
@@ -50,7 +53,9 @@ module.exports = (_, argv) => {
         },
         plugins: [
             new webpack.DefinePlugin({
-                __ENABLE_MSW__: JSON.stringify(enableMsw)
+                __ENABLE_MSW__: JSON.stringify(enableMsw),
+                __POSTHOG_KEY__: JSON.stringify(posthogKey),
+                __POSTHOG_HOST__: JSON.stringify(posthogHost)
             }),
             new HtmlWebpackPlugin({
                 template: path.resolve(__dirname, 'public/index.html')

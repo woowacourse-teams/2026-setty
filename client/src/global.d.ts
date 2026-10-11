@@ -5,3 +5,5 @@ declare module '*.module.css' {
 }
 
 declare const __ENABLE_MSW__: boolean;
+declare const __POSTHOG_KEY__: string;
+declare const __POSTHOG_HOST__: string;

@@ -42,6 +42,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -148,7 +149,13 @@ private fun MyPageContent(
         AlertDialog(
             onDismissRequest = { isLogoutDialogVisible = false },
             title = { Text("로그아웃할까요?") },
-            text = { Text("다시 이용하려면 로그인해야 합니다.") },
+            text = {
+                Text(
+                    text = "다시 이용하려면 로그인해야 합니다.",
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            },
             confirmButton = {
                 TextButton(
                     onClick = {

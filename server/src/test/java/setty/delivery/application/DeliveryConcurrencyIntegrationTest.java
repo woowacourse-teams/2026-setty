@@ -16,11 +16,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.mysql.MySQLContainer;
 import setty.delivery.domain.DeliveryId;
 import setty.delivery.domain.DriverId;
 import setty.delivery.domain.OrderId;
@@ -29,20 +25,13 @@ import setty.delivery.domain.delivery.DeliveryRoute;
 import setty.delivery.domain.delivery.EstimatedDeliveryFee;
 import setty.delivery.domain.delivery.FurnitureInfo;
 import setty.global.exception.BusinessException;
+import setty.support.MySqlIntegrationTestSupport;
 
 @SpringBootTest
-@Testcontainers
-class DeliveryConcurrencyIntegrationTest {
+class DeliveryConcurrencyIntegrationTest extends MySqlIntegrationTestSupport {
 
     private static final long ORDER_ID = 101L;
     private static final Instant NOW = Instant.parse("2026-08-26T01:00:00Z");
-
-    @Container
-    @ServiceConnection
-    static final MySQLContainer MYSQL = new MySQLContainer("mysql:8.4.11")
-            .withDatabaseName("setty_test")
-            .withUsername("setty_test")
-            .withPassword("setty_test");
 
     @Autowired
     private RegisterDeliveryService registerDeliveryService;

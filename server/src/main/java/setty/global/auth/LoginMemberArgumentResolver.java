@@ -17,7 +17,8 @@ public class LoginMemberArgumentResolver implements HandlerMethodArgumentResolve
     @Override
     public boolean supportsParameter(final MethodParameter parameter) {
         return parameter.hasParameterAnnotation(LoginMember.class)
-                && Member.class.isAssignableFrom(parameter.getParameterType());
+                && (Member.class.isAssignableFrom(parameter.getParameterType())
+                || Long.class.equals(parameter.getParameterType()));
     }
 
     @Override
@@ -27,6 +28,9 @@ public class LoginMemberArgumentResolver implements HandlerMethodArgumentResolve
         if (member == null) {
             // 배송원 토큰 등 member가 아닌 인증으로 플랫폼 API에 진입한 경우 — 500(NPE) 대신 401
             throw new BusinessException(ErrorCode.INVALID_TOKEN);
+        }
+        if (Long.class.equals(parameter.getParameterType())) {
+            return ((Member) member).getId();
         }
         return member;
     }

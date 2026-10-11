@@ -9,29 +9,18 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.mysql.MySQLContainer;
 import setty.common.OrderCancellationRequested;
 import setty.common.OrderConfirmed;
+import setty.support.MySqlIntegrationTestSupport;
 
 @SpringBootTest
-@Testcontainers
-class DeliveryInboundTransactionIntegrationTest {
+class DeliveryInboundTransactionIntegrationTest extends MySqlIntegrationTestSupport {
 
     private static final long ORDER_ID = 101L;
-
-    @Container
-    @ServiceConnection
-    static final MySQLContainer MYSQL = new MySQLContainer("mysql:8.4.11")
-            .withDatabaseName("setty_test")
-            .withUsername("setty_test")
-            .withPassword("setty_test");
 
     @Autowired
     private ApplicationEventPublisher eventPublisher;
@@ -113,7 +102,10 @@ class DeliveryInboundTransactionIntegrationTest {
                 "서울시 가상구 도착로 2",
                 10_000,
                 "010-0000-0001",
-                "010-0000-0002"
+                "010-0000-0002",
+                10L,
+                1L,
+                150_000
         );
     }
 }

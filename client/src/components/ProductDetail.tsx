@@ -1,6 +1,7 @@
 import { ArrowLeft } from '@phosphor-icons/react/dist/icons/ArrowLeft';
 import { Heart } from '@phosphor-icons/react/dist/icons/Heart';
 import { useEffect, useState } from 'react';
+import { trackEvent } from '../analytics/posthog';
 import { addFavorite, fetchFavoriteStatus, removeFavorite } from '../api/favorites';
 import { fetchListing, type ListingDetail } from '../api/listings';
 import { PaymentCheckout } from './PaymentCheckout';
@@ -57,6 +58,11 @@ export function ProductDetail({ listingId, isLoggedIn, isReadOnly = false, onBac
         return () => { isCurrent = false; };
     }, [listingId]);
 
+    useEffect(() => {
+        if (!listing || listing.id !== listingId) return;
+        trackEvent('product_viewed', { listing_id: listing.id });
+    }, [listing, listingId]);
+
     if (error) {
         return <section className={productGridStyles['product-grid-message']}><p>{error}</p><button onClick={onBack} type="button">목록으로</button></section>;
     }
@@ -94,6 +100,12 @@ export function ProductDetail({ listingId, isLoggedIn, isReadOnly = false, onBac
         }
         setPurchaseMessage(null);
         setIsCheckoutOpen(true);
+        trackEvent('checkout_opened', { listing_id: listing.id, amount: listing.totalPrice });
+    };
+
+    const closeCheckout = () => {
+        setIsCheckoutOpen(false);
+        trackEvent('checkout_closed', { listing_id: listing.id });
     };
 
     return (
@@ -175,7 +187,7 @@ export function ProductDetail({ listingId, isLoggedIn, isReadOnly = false, onBac
                     listingId={listing.id}
                     amount={listing.totalPrice}
                     orderName={listing.title}
-                    onClose={() => setIsCheckoutOpen(false)}
+                    onClose={closeCheckout}
                 />
             )}
         </section>

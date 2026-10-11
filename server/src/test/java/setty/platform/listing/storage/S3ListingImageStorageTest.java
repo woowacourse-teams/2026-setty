@@ -167,25 +167,15 @@ class S3ListingImageStorageTest {
         );
     }
 
-    @DisplayName("이관 전 listings/ object key도 조회와 삭제에 사용할 수 있다")
-    @Test
-    void acceptsLegacyObjectKeys() {
-        String legacyObjectKey = "listings/123e4567-e89b-12d3-a456-426614174000.jpg";
-
-        assertThat(storage.publicUrl(legacyObjectKey)).isEqualTo(PUBLIC_BASE_URL + "/" + legacyObjectKey);
-        storage.delete(legacyObjectKey);
-
-        ArgumentCaptor<DeleteObjectRequest> deleteCaptor = ArgumentCaptor.forClass(DeleteObjectRequest.class);
-        verify(s3Client).deleteObject(deleteCaptor.capture());
-        assertThat(deleteCaptor.getValue().bucket()).isEqualTo(BUCKET);
-        assertThat(deleteCaptor.getValue().key()).isEqualTo(legacyObjectKey);
-    }
-
     @DisplayName("Listing 영역 밖의 object key는 조회나 삭제에 사용할 수 없다")
     @Test
     void rejectsInvalidObjectKeys() {
         assertBusinessError(
                 () -> storage.publicUrl("members/profile.jpg"),
+                ErrorCode.INVALID_LISTING_IMAGE_REFERENCE
+        );
+        assertBusinessError(
+                () -> storage.publicUrl("listings/123e4567-e89b-12d3-a456-426614174000.jpg"),
                 ErrorCode.INVALID_LISTING_IMAGE_REFERENCE
         );
         assertBusinessError(

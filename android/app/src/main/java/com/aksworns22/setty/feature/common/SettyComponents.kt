@@ -34,8 +34,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.aksworns22.setty.R
-import com.aksworns22.setty.core.model.SaleStatus
-import com.aksworns22.setty.model.label
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -193,29 +191,6 @@ fun StatusBadge(
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
         )
     }
-}
-
-@Composable
-fun SaleStatusBadge(
-    saleStatus: SaleStatus,
-    modifier: Modifier = Modifier,
-) {
-    val (containerColor, contentColor) = when (saleStatus) {
-        SaleStatus.AVAILABLE -> MaterialTheme.colorScheme.primaryContainer to
-                MaterialTheme.colorScheme.onPrimaryContainer
-
-        SaleStatus.RESERVED -> MaterialTheme.colorScheme.tertiaryContainer to
-                MaterialTheme.colorScheme.onTertiaryContainer
-
-        SaleStatus.SOLD -> MaterialTheme.colorScheme.surfaceContainerHighest to
-                MaterialTheme.colorScheme.onSurfaceVariant
-    }
-    StatusBadge(
-        text = saleStatus.label,
-        containerColor = containerColor,
-        contentColor = contentColor,
-        modifier = modifier,
-    )
 }
 
 @Composable
