@@ -1,5 +1,7 @@
 package setty.notification.device.application;
 
+import java.util.Collection;
+import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import setty.notification.device.domain.DevicePlatform;
@@ -22,6 +24,22 @@ public class DeviceTokenService {
                 existing -> existing.reassign(memberId, platform),
                 () -> deviceTokenRepository.save(new DeviceToken(memberId, normalized, platform))
         );
+    }
+
+    @Transactional(readOnly = true)
+    public List<DeviceToken> findAllByMemberIds(final Collection<Long> memberIds) {
+        if (memberIds.isEmpty()) {
+            return List.of();
+        }
+        return deviceTokenRepository.findAllByMemberIdIn(memberIds);
+    }
+
+    @Transactional
+    public void removeInvalid(final Collection<String> tokens) {
+        if (tokens.isEmpty()) {
+            return;
+        }
+        deviceTokenRepository.deleteByTokenIn(tokens);
     }
 
     @Transactional
