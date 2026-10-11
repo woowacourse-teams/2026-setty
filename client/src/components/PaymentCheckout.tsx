@@ -66,7 +66,7 @@ export function PaymentCheckout({ listingId, amount, orderName, onClose }: Payme
                 // 데스크톱 기본값인 iframe은 successUrl/failUrl로 이동할 수 없어 현재 탭으로 결제창을 연다.
                 windowTarget: 'self',
                 successUrl: paymentReturnUrl('success'),
-                failUrl: paymentReturnUrl('fail')
+                failUrl: paymentReturnUrl('fail', tossOrderId)
             });
         } catch (reason) {
             if (tossOrderId) {
