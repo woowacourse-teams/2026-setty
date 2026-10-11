@@ -8,7 +8,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.aksworns22.setty.model.SaleStatus
+import com.aksworns22.setty.core.model.SaleStatus
+import com.aksworns22.setty.model.label
 
 @Composable
 fun SaleStatusBadge(

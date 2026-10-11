@@ -43,7 +43,20 @@ class AppContainer(
         tokenLocalDataSource = tokenLocalDataSource,
     )
 
-    val listingRepository = ListingRepository(
+    val furnitureRepository = FurnitureRepository(
+        settyNetworkApi = settyNetworkApi,
+        listingImageReader = ListingImageReader(context.applicationContext),
+    )
+
+    val favoriteRepository = FavoriteRepository(
+        settyNetworkApi = settyNetworkApi,
+    )
+
+    val orderRepository = OrderRepository(
+        settyNetworkApi = settyNetworkApi,
+    )
+
+    val paymentRepository = PaymentRepository(
         settyNetworkApi = settyNetworkApi,
     )
 }

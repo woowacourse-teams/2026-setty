@@ -4,11 +4,11 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class ListingListResponse(
-    val items: List<ListingSummaryResponse>
+    val items: List<FurnitureSummaryResponse>
 )
 
 @Serializable
-data class ListingSummaryResponse(
+data class FurnitureSummaryResponse(
     val id: Long,
     val title: String,
     val thumbnailUrl: String? = null,

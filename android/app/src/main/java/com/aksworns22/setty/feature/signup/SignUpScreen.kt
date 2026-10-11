@@ -306,12 +306,12 @@ private fun PhoneNumberTextField(
     )
 }
 
-private val PhoneNumberInputTransformation = InputTransformation {
+internal val PhoneNumberInputTransformation = InputTransformation {
     val digits = asCharSequence().filter(Char::isDigit).take(SignUpViewModel.PHONE_NUMBER_MAX_DIGITS).toString()
     if (digits != asCharSequence().toString()) replace(0, length, digits)
 }
 
-private val PhoneNumberOutputTransformation = OutputTransformation {
+internal val PhoneNumberOutputTransformation = OutputTransformation {
     if (length > 3) insert(3, "-")
     if (length > 8) insert(8, "-")
 }

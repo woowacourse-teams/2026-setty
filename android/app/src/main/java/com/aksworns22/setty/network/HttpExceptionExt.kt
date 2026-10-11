@@ -12,3 +12,12 @@ fun HttpException.toApiException(): Exception {
         ApiException(errorResponse.code, errorResponse.message)
     }.getOrDefault(this)
 }
+
+/** API를 호출하고 서버 에러 응답을 [ApiException]으로 바꿔 던진다. */
+suspend fun <T> apiCall(block: suspend () -> T): T {
+    try {
+        return block()
+    } catch (e: HttpException) {
+        throw e.toApiException()
+    }
+}

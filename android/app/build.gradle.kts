@@ -1,8 +1,9 @@
 import java.util.Properties
 
 plugins {
-    alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.setty.android.application)
+    alias(libs.plugins.setty.android.application.compose)
+    alias(libs.plugins.setty.android.hilt)
     alias(libs.plugins.kotlin.serialization)
 }
 
@@ -14,14 +15,9 @@ localProperties.load(
 
 android {
     namespace = "com.aksworns22.setty"
-    compileSdk {
-        version = release(37)
-    }
 
     defaultConfig {
         applicationId = "com.aksworns22.setty"
-        minSdk = 24
-        targetSdk = 37
         versionCode = 1
         versionName = "1.0"
 
@@ -32,6 +28,21 @@ android {
             "BASE_URL",
             "\"${localProperties.getProperty("BASE_URL")}\""
         )
+
+        buildConfigField(
+            "String",
+            "TOSS_CLIENT_KEY",
+            "\"${
+                localProperties.getProperty(
+                    "TOSS_CLIENT_KEY",
+                    "test_gck_docs_Ovk5rk1EwkEbP0W43n07xlzm"
+                )
+            }\""
+        )
+    }
+
+    buildFeatures {
+        buildConfig = true
     }
 
     buildTypes {
@@ -41,23 +52,13 @@ android {
             }
         }
     }
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
-    }
-    buildFeatures {
-        compose = true
-        buildConfig = true
-    }
 }
 
 dependencies {
-    implementation(platform(libs.androidx.compose.bom))
+    implementation(project(":core:model"))
     implementation(libs.androidx.activity.compose)
-    implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.graphics)
-    implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.material3)
@@ -71,11 +72,11 @@ dependencies {
     implementation(libs.androidx.navigation3.runtime)
     implementation(libs.coil.compose)
     implementation(libs.coil.network.okhttp)
+    implementation(libs.androidx.appcompat)
+    implementation(libs.toss.payments)
     testImplementation(libs.junit)
-    androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.androidx.junit)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
-    debugImplementation(libs.androidx.compose.ui.tooling)
 }
