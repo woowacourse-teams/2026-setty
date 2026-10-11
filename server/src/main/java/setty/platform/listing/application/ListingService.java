@@ -302,7 +302,7 @@ public class ListingService {
         List<Long> listingIds = listings.stream().map(Listing::getId).toList();
         Map<Long, ListingImage> thumbnails = new LinkedHashMap<>();
         List<ListingImage> images = listingImageRepository
-                .findAllByListingIdInOrderByListingIdAscDisplayOrderAsc(listingIds);
+                .findThumbnailsByListingIdIn(listingIds);
         ListingRequestTiming.count("image_count", images.size());
         images.forEach(image -> thumbnails.putIfAbsent(image.getListingId(), image));
         return thumbnails;
