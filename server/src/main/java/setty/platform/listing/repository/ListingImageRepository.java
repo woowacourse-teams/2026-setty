@@ -15,10 +15,7 @@ public interface ListingImageRepository extends JpaRepository<ListingImage, Long
     @Query("""
             select image from ListingImage image
             where image.listingId in :listingIds
-              and image.displayOrder = (
-                  select min(candidate.displayOrder) from ListingImage candidate
-                  where candidate.listingId = image.listingId
-              )
+              and image.displayOrder = 1
             """)
     List<ListingImage> findThumbnailsByListingIdIn(@Param("listingIds") Collection<Long> listingIds);
 

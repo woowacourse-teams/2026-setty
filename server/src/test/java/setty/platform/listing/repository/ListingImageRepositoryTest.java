@@ -41,12 +41,14 @@ class ListingImageRepositoryTest extends MySqlIntegrationTestSupport {
     }
 
     @Test
-    void 요청한_매물마다_가장_앞선_사진만_반환하고_전체_사진은_유지한다() {
+    void 요청한_매물의_순서_1_사진만_반환하고_전체_사진은_유지한다() {
         long fiveImages = createListing("사진 다섯 개");
         for (int order : List.of(5, 3, 1, 4, 2)) {
             imageRepository.save(ListingImage.create(fiveImages, "five-" + order + ".jpg", order));
         }
-        long gapInOrder = createListing("표시 순서가 3부터 시작");
+        long singleImage = createListing("사진 한 개");
+        imageRepository.save(ListingImage.create(singleImage, "single-1.jpg", 1));
+        long gapInOrder = createListing("순서 1이 없는 비정상 데이터");
         imageRepository.save(ListingImage.create(gapInOrder, "gap-5.jpg", 5));
         imageRepository.save(ListingImage.create(gapInOrder, "gap-3.jpg", 3));
         long noImage = createListing("사진 없음");
@@ -55,13 +57,13 @@ class ListingImageRepositoryTest extends MySqlIntegrationTestSupport {
         imageRepository.flush();
 
         List<ListingImage> thumbnails = imageRepository.findThumbnailsByListingIdIn(
-                List.of(fiveImages, gapInOrder, noImage));
+                List.of(fiveImages, singleImage, gapInOrder, noImage));
 
         assertThat(thumbnails)
                 .extracting(ListingImage::getListingId, ListingImage::getObjectKey, ListingImage::getDisplayOrder)
                 .containsExactlyInAnyOrder(
                         tuple(fiveImages, "five-1.jpg", 1),
-                        tuple(gapInOrder, "gap-3.jpg", 3));
+                        tuple(singleImage, "single-1.jpg", 1));
         assertThat(imageRepository.findAllByListingIdOrderByDisplayOrderAsc(fiveImages))
                 .extracting(ListingImage::getDisplayOrder)
                 .containsExactly(1, 2, 3, 4, 5);
