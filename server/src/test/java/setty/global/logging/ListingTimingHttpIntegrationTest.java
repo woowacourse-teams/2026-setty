@@ -98,8 +98,8 @@ class ListingTimingHttpIntegrationTest {
         when(context.getBean(ListingRepository.class)
                 .findAllBySaleStatusAndDeletedAtIsNullOrderByCreatedAtDescIdDesc(SaleStatus.AVAILABLE))
                 .thenReturn(List.of(listing));
-        when(context.getBean(ListingImageRepository.class).findAllByListingIdInOrderByListingIdAscDisplayOrderAsc(anyCollection()))
-                .thenReturn(List.of(ListingImage.create(7L, "first.jpg", 1), ListingImage.create(7L, "second.jpg", 2)));
+        when(context.getBean(ListingImageRepository.class).findThumbnailsByListingIdIn(anyCollection()))
+                .thenReturn(List.of(ListingImage.create(7L, "first.jpg", 1)));
         when(context.getBean(ListingImageStorage.class).publicUrl("first.jpg")).thenReturn("https://example.test/first.jpg");
 
         HttpResponse<String> response = get();
@@ -111,7 +111,7 @@ class ListingTimingHttpIntegrationTest {
         Map<String, Object> event = jsonLog();
         assertThat(event).containsEntry("requestId", response.headers().firstValue("X-Request-Id").orElseThrow())
                 .containsEntry("event", "listing_request_timing").containsEntry("status", 200)
-                .containsEntry("listing_count", 1).containsEntry("image_count", 2).containsEntry("summary_count", 1)
+                .containsEntry("listing_count", 1).containsEntry("image_count", 1).containsEntry("summary_count", 1)
                 .containsEntry("listings_completed", true).containsEntry("images_completed", true)
                 .containsEntry("mapping_completed", true).containsEntry("response_complete", true);
         assertThat(((Number) event.get("filter_ms")).doubleValue()).isGreaterThanOrEqualTo(

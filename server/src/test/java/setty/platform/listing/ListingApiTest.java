@@ -181,6 +181,76 @@ class ListingApiTest extends MySqlIntegrationTestSupport {
     }
 
     @Test
+    void 목록은_대표_사진을_반환하고_상세는_전체_사진과_변경된_순서를_유지한다() throws Exception {
+        MockMultipartHttpServletRequestBuilder create = multipart("/api/listings")
+                .file(jsonPart("request", createRequest("사진 다섯 개 책상")))
+                .header(HttpHeaders.AUTHORIZATION, bearerToken(SELLER_ID));
+        for (int index = 1; index <= 5; index++) {
+            create.file(imagePart("photo-" + index + ".jpg"));
+        }
+        long listingId = read(mockMvc.perform(create)
+                .andExpect(status().isCreated()).andReturn()).path("listingId").asLong();
+        long otherId = createListing(SELLER_ID, "나중에 등록한 책상");
+
+        mockMvc.perform(get("/api/listings"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items", hasSize(2)))
+                .andExpect(jsonPath("$.items[0].id").value(otherId))
+                .andExpect(jsonPath("$.items[1].id").value(listingId))
+                .andExpect(jsonPath("$.items[1].thumbnailUrl")
+                        .value("https://images.example.test/setty/images/listings/test-1.jpg"));
+        mockMvc.perform(get("/api/me/listings")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(SELLER_ID)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[1].thumbnailUrl")
+                        .value("https://images.example.test/setty/images/listings/test-1.jpg"));
+        assertThat(listingService.findSummaries(List.of(listingId, otherId)))
+                .extracting(ListingView.Summary::id, ListingView.Summary::thumbnailUrl)
+                .containsExactly(
+                        org.assertj.core.api.Assertions.tuple(listingId,
+                                "https://images.example.test/setty/images/listings/test-1.jpg"),
+                        org.assertj.core.api.Assertions.tuple(otherId,
+                                "https://images.example.test/setty/images/listings/test-6.jpg"));
+
+        JsonNode images = read(mockMvc.perform(get("/api/listings/{listingId}", listingId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.images", hasSize(5)))
+                .andExpect(jsonPath("$.images[0].displayOrder").value(1))
+                .andExpect(jsonPath("$.images[4].displayOrder").value(5))
+                .andReturn()).path("images");
+        List<Long> reversedIds = IntStream.range(0, 5)
+                .mapToObj(index -> images.get(4 - index).path("id").asLong()).toList();
+        mockMvc.perform(updateRequest(listingId, SELLER_ID,
+                        updateRequest("순서를 바꾼 책상", reversedIds)))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(get("/api/listings"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[1].thumbnailUrl")
+                        .value("https://images.example.test/setty/images/listings/test-5.jpg"));
+        mockMvc.perform(get("/api/listings/{listingId}", listingId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.images", hasSize(5)))
+                .andExpect(jsonPath("$.images[0].id").value(reversedIds.get(0)))
+                .andExpect(jsonPath("$.images[0].displayOrder").value(1))
+                .andExpect(jsonPath("$.images[4].id").value(reversedIds.get(4)))
+                .andExpect(jsonPath("$.images[4].displayOrder").value(5));
+    }
+
+    @Test
+    void 사진_없는_매물의_대표_사진은_null이다() throws Exception {
+        long listingId = createListing(SELLER_ID, "사진을 잃은 책상");
+        jdbcTemplate.update("DELETE FROM listing_images WHERE listing_id = ?", listingId);
+
+        mockMvc.perform(get("/api/listings"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[0].id").value(listingId))
+                .andExpect(jsonPath("$.items[0].thumbnailUrl").value(org.hamcrest.Matchers.nullValue()));
+        assertThat(listingService.findMine(SELLER_ID).getFirst().thumbnailUrl()).isNull();
+        assertThat(listingService.findSummaries(List.of(listingId)).getFirst().thumbnailUrl()).isNull();
+    }
+
+    @Test
     void requestWithoutBearerTokenReturnsUnauthorizedErrorContract() throws Exception {
         mockMvc.perform(get("/api/me/listings"))
                 .andExpect(status().isUnauthorized())
