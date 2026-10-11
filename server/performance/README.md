@@ -168,6 +168,19 @@ mysql --batch -u DEV_DB_USER -p DEV_DB_NAME < notification-metrics.sql
 
 매물마다 알림 수, 상태별 건수, 커밋부터 마지막 발송까지(`commit_to_last_sent_s`), 첫 발송부터 마지막 발송까지(`first_to_last_sent_s`)를 초 단위로 낸다. 모의 서버의 `GET /stats`와 CSV로 교차 확인한다. DB 커넥션 대기·타임아웃은 CloudWatch의 HikariCP 지표(#331)를 같은 시간대로 본다.
 
+### 5 실기기 수신 측정 (FCM)
+
+설계 3번. 모의 서버 대신 실제 FCM으로 보내고, 앱이 수신 즉시 보내는 ack 시각(서버 시계)과 발송 시각의 차이를 본다.
+
+```
+SETTY_NOTIFICATION_SENDER=fcm
+SETTY_NOTIFICATION_FCM_CREDENTIALS_PATH=/opt/setty/firebase-service-account.json
+```
+
+- 서비스 계정 키는 저장소에 두지 않는다. dev EC2에 파일로 두고 소유자 `setty`, 권한 600.
+- 폰에서 로그인한 계정으로 키워드 `s3-notify`를 구독한 뒤 3절의 `single`을 돌린다. 구독자가 폰 1대뿐이라 `SUBSCRIBERS=1`, `REGISTER_PAUSE_SECONDS=5`.
+- 4절 집계의 `acked`, `sent_to_ack_avg_s`, `sent_to_ack_max_s`가 FCM 구간이다. 표본이 기기 1대라 기준으로 쓰지 않고 참고값으로 남긴다.
+
 ### 순서
 
 구독자 1,000 → `sync` single/burst → `async` single/burst → 10,000으로 확장 → 반복 → 100,000(시간 보고 `sync`는 생략 가능) → `async`에서 `SEND_CONCURRENCY` 4/8/16으로 재측정 → cleanup.

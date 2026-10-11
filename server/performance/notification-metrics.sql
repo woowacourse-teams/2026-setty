@@ -1,4 +1,4 @@
--- 측정 후 dev DB에서 실행하는 읽기 전용 집계. 매물(등록 1건)마다 커밋~마지막 발송, 첫~마지막 발송 차이를 초 단위로 낸다.
+-- 측정 후 dev DB에서 실행하는 읽기 전용 집계. 매물(등록 1건)마다 커밋~마지막 발송, 첫~마지막 발송 차이, 발송~기기 ack 차이를 초 단위로 낸다.
 SELECT l.id AS listing_id,
        l.title,
        l.created_at,
@@ -8,7 +8,10 @@ SELECT l.id AS listing_id,
        SUM(n.status = 'FAILED') AS failed,
        MAX(n.attempts) AS max_attempts,
        ROUND(TIMESTAMPDIFF(MICROSECOND, l.created_at, MAX(n.sent_at)) / 1000000, 3) AS commit_to_last_sent_s,
-       ROUND(TIMESTAMPDIFF(MICROSECOND, MIN(n.sent_at), MAX(n.sent_at)) / 1000000, 3) AS first_to_last_sent_s
+       ROUND(TIMESTAMPDIFF(MICROSECOND, MIN(n.sent_at), MAX(n.sent_at)) / 1000000, 3) AS first_to_last_sent_s,
+       SUM(n.acked_at IS NOT NULL) AS acked,
+       ROUND(AVG(TIMESTAMPDIFF(MICROSECOND, n.sent_at, n.acked_at)) / 1000000, 3) AS sent_to_ack_avg_s,
+       ROUND(MAX(TIMESTAMPDIFF(MICROSECOND, n.sent_at, n.acked_at)) / 1000000, 3) AS sent_to_ack_max_s
 FROM listings l
 JOIN members m ON m.id = l.seller_id AND m.login_id = 's3-seller-001'
 LEFT JOIN listing_notifications n ON n.listing_id = l.id

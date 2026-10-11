@@ -3,7 +3,12 @@ package setty.notification.send;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @ConfigurationProperties(prefix = "setty.notification")
-public record NotificationSendProperties(int sendConcurrency, boolean syncSend, String mockPushUrl) {
+public record NotificationSendProperties(
+        int sendConcurrency,
+        boolean syncSend,
+        String mockPushUrl,
+        String fcmCredentialsPath
+) {
 
     private static final int DEFAULT_SEND_CONCURRENCY = 8;
     private static final String DEFAULT_MOCK_PUSH_URL = "http://127.0.0.1:9000";

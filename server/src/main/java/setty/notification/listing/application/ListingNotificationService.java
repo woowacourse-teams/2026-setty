@@ -8,6 +8,8 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import setty.global.exception.BusinessException;
+import setty.global.exception.ErrorCode;
 import setty.notification.listing.domain.ListingNotification;
 import setty.notification.listing.domain.NotificationStatus;
 import setty.notification.listing.repository.ListingNotificationRepository;
@@ -79,6 +81,20 @@ public class ListingNotificationService {
     public List<ListingNotification> findPendingBatch(final Long listingId, final Long afterId) {
         return listingNotificationRepository.findBatch(
                 listingId, NotificationStatus.PENDING, afterId, PageRequest.of(0, NotificationSender.MAXIMUM_BATCH_SIZE));
+    }
+
+    public void ack(final Long memberId, final Long notificationId) {
+        final int matched = jdbcTemplate.update(
+                """
+                UPDATE listing_notifications
+                SET acked_at = COALESCE(acked_at, NOW(6))
+                WHERE id = ? AND member_id = ?
+                """,
+                notificationId, memberId
+        );
+        if (matched == 0) {
+            throw new BusinessException(ErrorCode.NOTIFICATION_NOT_FOUND);
+        }
     }
 
     @Transactional(readOnly = true)

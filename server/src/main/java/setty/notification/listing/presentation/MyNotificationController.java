@@ -5,6 +5,8 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -46,6 +48,15 @@ public class MyNotificationController {
                 .map(notification -> NotificationResponse.of(notification, titles.get(notification.getListingId())))
                 .toList();
         return ResponseEntity.ok(new ListingListResponse<>(items));
+    }
+
+    @PostMapping("/{notificationId}/ack")
+    public ResponseEntity<Void> ack(
+            @LoginMember final Member member,
+            @PathVariable final Long notificationId
+    ) {
+        listingNotificationService.ack(member.getId(), notificationId);
+        return ResponseEntity.noContent().build();
     }
 
     private Map<Long, String> findTitles(final List<ListingNotification> notifications) {
