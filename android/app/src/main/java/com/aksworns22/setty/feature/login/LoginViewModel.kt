@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.aksworns22.setty.SettyApp
+import com.aksworns22.setty.data.DeviceTokenRepository
 import com.aksworns22.setty.data.UserRepository
 import com.aksworns22.setty.network.ApiException
 import kotlinx.coroutines.channels.Channel
@@ -29,7 +30,8 @@ enum class LoginEvent {
 }
 
 class LoginViewModel(
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    private val deviceTokenRepository: DeviceTokenRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(
@@ -52,6 +54,7 @@ class LoginViewModel(
             runCatching {
                 userRepository.login(_uiState.value.username, _uiState.value.password)
             }.onSuccess {
+                runCatching { deviceTokenRepository.register() }
                 _uiState.update { it.copy(isLoading = false) }
                 _event.send(LoginEvent.SUCCESS)
             }.onFailure { throwable ->
@@ -87,7 +90,7 @@ class LoginViewModel(
         val Factory = viewModelFactory {
             initializer {
                 val appContainer = (this[APPLICATION_KEY] as SettyApp).appContainer
-                LoginViewModel(appContainer.userRepository)
+                LoginViewModel(appContainer.userRepository, appContainer.deviceTokenRepository)
             }
         }
     }

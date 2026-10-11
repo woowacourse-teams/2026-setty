@@ -60,8 +60,8 @@ sealed interface SettyScreen : NavKey {
 }
 
 @Composable
-fun SettyNavHost() {
-    val backStack = rememberNavBackStack(SettyScreen.Login)
+fun SettyNavHost(startFurnitureId: Long? = null) {
+    val backStack = rememberNavBackStack(*startKeys(startFurnitureId))
     var isSignUpCompleted by rememberSaveable { mutableStateOf(false) }
 
     // 로그아웃하거나 토큰이 만료되면 쌓인 화면을 모두 버리고 로그인으로 보낸다
@@ -187,3 +187,10 @@ fun SettyNavHost() {
         }
     )
 }
+
+private fun startKeys(startFurnitureId: Long?): Array<SettyScreen> =
+    if (startFurnitureId == null) {
+        arrayOf(SettyScreen.Login)
+    } else {
+        arrayOf(SettyScreen.Home, SettyScreen.FurnitureDetail(startFurnitureId))
+    }

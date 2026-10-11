@@ -59,4 +59,12 @@ class AppContainer(
     val paymentRepository = PaymentRepository(
         settyNetworkApi = settyNetworkApi,
     )
+
+    val deviceTokenRepository = DeviceTokenRepository(
+        settyNetworkApi = settyNetworkApi,
+    )
+
+    val notificationRepository = NotificationRepository(
+        settyNetworkApi = settyNetworkApi,
+    )
 }

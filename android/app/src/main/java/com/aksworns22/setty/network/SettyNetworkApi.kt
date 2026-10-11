@@ -5,6 +5,7 @@ import okhttp3.RequestBody
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
+import retrofit2.http.HTTP
 import retrofit2.http.Multipart
 import retrofit2.http.POST
 import retrofit2.http.PUT
@@ -109,5 +110,20 @@ interface SettyNetworkApi {
     @POST("/api/payments/fail")
     suspend fun failPayment(
         @Body request: PaymentFailRequest
+    )
+
+    @PUT("/api/me/device-token")
+    suspend fun registerDeviceToken(
+        @Body request: DeviceTokenRequest
+    )
+
+    @HTTP(method = "DELETE", path = "/api/me/device-token", hasBody = true)
+    suspend fun unregisterDeviceToken(
+        @Body request: DeviceTokenDeleteRequest
+    )
+
+    @POST("/api/me/notifications/{notificationId}/ack")
+    suspend fun ackNotification(
+        @Path("notificationId") notificationId: Long
     )
 }
