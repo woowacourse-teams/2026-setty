@@ -16,6 +16,8 @@ material3 = "1.5.0-alpha28"
 retrofit = "3.0.0"
 nav3Core = "1.1.7"
 coil = "3.2.0"
+googleServices = "4.5.0"
+firebaseBom = "34.3.0"
 tossPayments = "0.1.22"
 appcompat = "1.7.0"
 ksp = "2.3.4"
@@ -53,12 +55,16 @@ toss-payments = { module = "com.github.tosspayments:payment-sdk-android", versio
 android-gradlePlugin = { module = "com.android.tools.build:gradle", version.ref = "agp" }
 kotlin-gradlePlugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
 
+firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebaseBom" }
+firebase-messaging = { module = "com.google.firebase:firebase-messaging" }
+
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
+google-services = { id = "com.google.gms.google-services", version.ref = "googleServices" }
 setty-android-hilt = { id = "setty.android.hilt" }
 setty-android-application = { id = "setty.android.application" }
 setty-android-application-compose = { id = "setty.android.application.compose" }
