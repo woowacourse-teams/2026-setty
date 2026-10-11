@@ -17,6 +17,7 @@ import com.aksworns22.setty.feature.listingeditor.ListingEditorScreen
 import com.aksworns22.setty.feature.login.LoginScreen
 import com.aksworns22.setty.feature.mylistings.MyListingsScreen
 import com.aksworns22.setty.feature.mypage.MyPageScreen
+import com.aksworns22.setty.feature.notification.NotificationListScreen
 import com.aksworns22.setty.feature.orders.OrderDetailScreen
 import com.aksworns22.setty.feature.orders.OrdersScreen
 import com.aksworns22.setty.feature.profile.ProfileEditScreen
@@ -61,6 +62,9 @@ sealed interface SettyScreen : NavKey {
 
     @Serializable
     data object Keywords : SettyScreen
+
+    @Serializable
+    data object Notifications : SettyScreen
 }
 
 @Composable
@@ -128,6 +132,7 @@ fun SettyNavHost(startFurnitureId: Long? = null) {
                     onFavoritesClick = { backStack.add(SettyScreen.Favorites) },
                     onOrdersClick = { backStack.add(SettyScreen.Orders) },
                     onKeywordsClick = { backStack.add(SettyScreen.Keywords) },
+                    onNotificationsClick = { backStack.add(SettyScreen.Notifications) },
                     onLoggedOut = navigateToLogin,
                 )
             }
@@ -182,6 +187,15 @@ fun SettyNavHost(startFurnitureId: Long? = null) {
             entry<SettyScreen.Keywords> {
                 KeywordScreen(
                     onBack = navigateBack,
+                    onRequireLogin = navigateToLogin,
+                )
+            }
+            entry<SettyScreen.Notifications> {
+                NotificationListScreen(
+                    onBack = navigateBack,
+                    onFurnitureClick = { furnitureId ->
+                        backStack.add(SettyScreen.FurnitureDetail(furnitureId))
+                    },
                     onRequireLogin = navigateToLogin,
                 )
             }

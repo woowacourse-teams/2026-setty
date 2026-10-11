@@ -65,6 +65,7 @@ fun MyPageScreen(
     onFavoritesClick: () -> Unit,
     onOrdersClick: () -> Unit,
     onKeywordsClick: () -> Unit,
+    onNotificationsClick: () -> Unit,
     onLoggedOut: () -> Unit,
     viewModel: MyPageViewModel = viewModel(factory = MyPageViewModel.Factory),
 ) {
@@ -89,6 +90,7 @@ fun MyPageScreen(
         onFavoritesClick = onFavoritesClick,
         onOrdersClick = onOrdersClick,
         onKeywordsClick = onKeywordsClick,
+        onNotificationsClick = onNotificationsClick,
         onLogout = viewModel::logout,
         onRequireLogin = onLoggedOut,
     )
@@ -105,6 +107,7 @@ private fun MyPageContent(
     onFavoritesClick: () -> Unit,
     onOrdersClick: () -> Unit,
     onKeywordsClick: () -> Unit,
+    onNotificationsClick: () -> Unit,
     onLogout: () -> Unit,
     onRequireLogin: () -> Unit,
 ) {
@@ -145,6 +148,7 @@ private fun MyPageContent(
                 onFavoritesClick = onFavoritesClick,
                 onOrdersClick = onOrdersClick,
                 onKeywordsClick = onKeywordsClick,
+                onNotificationsClick = onNotificationsClick,
                 onLogoutClick = { isLogoutDialogVisible = true },
             )
         }
@@ -189,6 +193,7 @@ private fun MyPageBody(
     onFavoritesClick: () -> Unit,
     onOrdersClick: () -> Unit,
     onKeywordsClick: () -> Unit,
+    onNotificationsClick: () -> Unit,
     onLogoutClick: () -> Unit,
 ) {
     val tradeMenus = listOf(
@@ -198,6 +203,7 @@ private fun MyPageBody(
     )
     val notificationMenus = listOf(
         MyPageMenu("키워드 알림", "관심 키워드의 새 매물을 알려드려요", R.drawable.outline_notifications_24, onKeywordsClick),
+        MyPageMenu("알림함", "받은 매물 알림을 모아봐요", R.drawable.outline_search_24, onNotificationsClick),
     )
     val accountMenus = listOf(
         MyPageMenu("로그아웃", null, R.drawable.outline_logout_24, onLogoutClick),
@@ -360,6 +366,7 @@ private fun MyPageContentPreview() {
             onFavoritesClick = {},
             onOrdersClick = {},
             onKeywordsClick = {},
+            onNotificationsClick = {},
             onLogout = {},
             onRequireLogin = {},
         )

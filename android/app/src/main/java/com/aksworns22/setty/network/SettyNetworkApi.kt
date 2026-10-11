@@ -11,6 +11,7 @@ import retrofit2.http.POST
 import retrofit2.http.PUT
 import retrofit2.http.Part
 import retrofit2.http.Path
+import retrofit2.http.Query
 
 
 interface SettyNetworkApi {
@@ -121,6 +122,12 @@ interface SettyNetworkApi {
     suspend fun unregisterDeviceToken(
         @Body request: DeviceTokenDeleteRequest
     )
+
+    @GET("/api/me/notifications")
+    suspend fun getNotifications(
+        @Query("page") page: Int = 0,
+        @Query("size") size: Int = 100,
+    ): NotificationListResponse
 
     @POST("/api/me/notifications/{notificationId}/ack")
     suspend fun ackNotification(
