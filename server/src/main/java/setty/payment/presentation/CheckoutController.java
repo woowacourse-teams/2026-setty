@@ -56,11 +56,21 @@ public class CheckoutController {
     public ResponseEntity<Void> fail(
             @RequestParam(required = false) final String code,
             @RequestParam(required = false) final String message,
-            @RequestParam final String orderId
+            @RequestParam(required = false) final String orderId,
+            @RequestParam(required = false) final String fallbackOrderId
     ) {
-        log.info("결제 실패 복귀. orderId={}, code={}, message={}", orderId, code, message);
-        publishFailureQuietly(orderId);
-        return redirect("fail", orderId, code);
+        final String resolvedOrderId = hasText(orderId) ? orderId : fallbackOrderId;
+        log.info("결제 실패 복귀. orderId={}, code={}, message={}", resolvedOrderId, code, message);
+        if (hasText(resolvedOrderId)) {
+            publishFailureQuietly(resolvedOrderId);
+        } else {
+            log.warn("결제 실패 복귀에 orderId가 없어 실패 이벤트를 발행하지 못했습니다. code={}", code);
+        }
+        return redirect("fail", resolvedOrderId, code);
+    }
+
+    private boolean hasText(final String value) {
+        return value != null && !value.isBlank();
     }
 
     // 실패 이벤트 발행은 최선 노력으로 처리한다. 잘못된 orderId 등으로 실패해도 리다이렉트는 막지 않는다.
@@ -74,8 +84,10 @@ public class CheckoutController {
 
     private ResponseEntity<Void> redirect(final String result, final String orderId, final String reason) {
         final UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(clientRedirectUrl)
-                .queryParam("payment", result)
-                .queryParam("orderId", orderId);
+                .queryParam("payment", result);
+        if (hasText(orderId)) {
+            builder.queryParam("orderId", orderId);
+        }
         if (reason != null) {
             builder.queryParam("reason", reason);
         }

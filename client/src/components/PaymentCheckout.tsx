@@ -46,8 +46,7 @@ export function PaymentCheckout({ listingId, amount, orderName, onClose }: Payme
         setRequesting(true);
         setError(null);
 
-        // 데스크톱 오버레이 결제창은 취소 시 failUrl로 리다이렉트하지 않고 requestPayment를 reject한다.
-        // 주문 생성 이후의 취소·실패는 서버 실패 복귀로 알린다.
+        // 결제창 취소가 failUrl 리다이렉트 대신 requestPayment reject로 전달되는 경우도 서버에 알린다.
         let tossOrderId: string | null = null;
         try {
             // 결제 전에 PENDING 주문을 만들고, 그 내부 주문 id를 토스 orderId로 쓴다(서버가 이 id로 조회·승인).
@@ -64,8 +63,10 @@ export function PaymentCheckout({ listingId, amount, orderName, onClose }: Payme
             await widgetsRef.current?.requestPayment({
                 orderId: tossOrderId,
                 orderName,
+                // 데스크톱 기본값인 iframe은 successUrl/failUrl로 이동할 수 없어 현재 탭으로 결제창을 연다.
+                windowTarget: 'self',
                 successUrl: paymentReturnUrl('success'),
-                failUrl: paymentReturnUrl('fail')
+                failUrl: paymentReturnUrl('fail', tossOrderId)
             });
         } catch (reason) {
             if (tossOrderId) {
