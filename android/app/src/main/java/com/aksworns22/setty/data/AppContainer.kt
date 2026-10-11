@@ -5,6 +5,9 @@ import com.aksworns22.setty.BuildConfig
 import com.aksworns22.setty.network.AuthInterceptor
 import com.aksworns22.setty.network.BasePathInterceptor
 import com.aksworns22.setty.network.SettyNetworkApi
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -15,6 +18,8 @@ import retrofit2.converter.kotlinx.serialization.asConverterFactory
 class AppContainer(
     private val context: Context
 ) {
+    val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
     private val tokenLocalDataSource =
         TokenLocalDataSource(context.applicationContext)
 

@@ -11,15 +11,10 @@ import com.aksworns22.setty.R
 import com.aksworns22.setty.SettyApp
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 
 class SettyMessagingService : FirebaseMessagingService() {
 
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val appContainer get() = (application as SettyApp).appContainer
 
     override fun onCreate() {
@@ -28,7 +23,7 @@ class SettyMessagingService : FirebaseMessagingService() {
     }
 
     override fun onNewToken(token: String) {
-        scope.launch {
+        appContainer.applicationScope.launch {
             runCatching { appContainer.deviceTokenRepository.register(token) }
         }
     }
@@ -38,15 +33,10 @@ class SettyMessagingService : FirebaseMessagingService() {
         val listingId = message.data["listingId"]?.toLongOrNull() ?: return
         val title = message.data["title"] ?: return
 
-        scope.launch {
+        appContainer.applicationScope.launch {
             runCatching { appContainer.notificationRepository.ack(notificationId) }
         }
         showNotification(notificationId, listingId, title)
-    }
-
-    override fun onDestroy() {
-        scope.cancel()
-        super.onDestroy()
     }
 
     private fun showNotification(notificationId: Long, listingId: Long, title: String) {
