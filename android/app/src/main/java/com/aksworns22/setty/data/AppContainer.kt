@@ -67,4 +67,8 @@ class AppContainer(
     val notificationRepository = NotificationRepository(
         settyNetworkApi = settyNetworkApi,
     )
+
+    val keywordRepository = KeywordRepository(
+        settyNetworkApi = settyNetworkApi,
+    )
 }

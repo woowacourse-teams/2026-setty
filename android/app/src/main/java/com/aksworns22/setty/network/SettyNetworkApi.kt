@@ -126,4 +126,17 @@ interface SettyNetworkApi {
     suspend fun ackNotification(
         @Path("notificationId") notificationId: Long
     )
+
+    @GET("/api/me/keywords")
+    suspend fun getKeywords(): KeywordListResponse
+
+    @PUT("/api/me/keywords")
+    suspend fun addKeyword(
+        @Body request: KeywordRequest
+    )
+
+    @DELETE("/api/me/keywords/{subscriptionId}")
+    suspend fun removeKeyword(
+        @Path("subscriptionId") subscriptionId: Long
+    )
 }

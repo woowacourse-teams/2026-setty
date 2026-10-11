@@ -11,6 +11,7 @@ import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.ui.NavDisplay
 import com.aksworns22.setty.feature.favorites.FavoritesScreen
 import com.aksworns22.setty.feature.home.HomeScreen
+import com.aksworns22.setty.feature.keyword.KeywordScreen
 import com.aksworns22.setty.feature.listingdetail.FurnitureDetailScreen
 import com.aksworns22.setty.feature.listingeditor.ListingEditorScreen
 import com.aksworns22.setty.feature.login.LoginScreen
@@ -57,6 +58,9 @@ sealed interface SettyScreen : NavKey {
 
     @Serializable
     data class OrderDetail(val orderId: Long) : SettyScreen
+
+    @Serializable
+    data object Keywords : SettyScreen
 }
 
 @Composable
@@ -123,6 +127,7 @@ fun SettyNavHost(startFurnitureId: Long? = null) {
                     onMyListingsClick = { backStack.add(SettyScreen.MyListings) },
                     onFavoritesClick = { backStack.add(SettyScreen.Favorites) },
                     onOrdersClick = { backStack.add(SettyScreen.Orders) },
+                    onKeywordsClick = { backStack.add(SettyScreen.Keywords) },
                     onLoggedOut = navigateToLogin,
                 )
             }
@@ -171,6 +176,12 @@ fun SettyNavHost(startFurnitureId: Long? = null) {
                 OrdersScreen(
                     onBack = navigateBack,
                     onOrderClick = { orderId -> backStack.add(SettyScreen.OrderDetail(orderId)) },
+                    onRequireLogin = navigateToLogin,
+                )
+            }
+            entry<SettyScreen.Keywords> {
+                KeywordScreen(
+                    onBack = navigateBack,
                     onRequireLogin = navigateToLogin,
                 )
             }
