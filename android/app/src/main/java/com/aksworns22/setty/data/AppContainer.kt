@@ -3,6 +3,7 @@ package com.aksworns22.setty.data
 import android.content.Context
 import com.aksworns22.setty.BuildConfig
 import com.aksworns22.setty.network.AuthInterceptor
+import com.aksworns22.setty.network.BasePathInterceptor
 import com.aksworns22.setty.network.SettyNetworkApi
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
@@ -27,6 +28,7 @@ class AppContainer(
                     level = HttpLoggingInterceptor.Level.BODY
                 })
             }
+            addInterceptor(BasePathInterceptor(BuildConfig.BASE_URL))
             addInterceptor(authInterceptor)
         }
         .build()
