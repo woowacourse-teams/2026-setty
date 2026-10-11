@@ -2,11 +2,11 @@
 set -euo pipefail
 
 # Create or verify disposable buyer accounts for the k6/browser scenario.
-# Usage: scripts/create_k6_test_users.sh
+# Usage: scripts/payment-conversion/create_k6_test_users.sh
 # For non-interactive use, provide PASSWORD in the environment.
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd -- "${SCRIPT_DIR}/.." && pwd)"
+REPO_ROOT="$(cd -- "${SCRIPT_DIR}/../.." && pwd)"
 
 BASE_URL="${BASE_URL:-https://www.setty.cloud/dev}"
 CSV_PATH="${CSV_PATH:-${REPO_ROOT}/.local/k6-test-users.csv}"
