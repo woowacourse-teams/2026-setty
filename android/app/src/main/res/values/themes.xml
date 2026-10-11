@@ -2,4 +2,6 @@
 <resources>
 
     <style name="Theme.Setty" parent="android:Theme.Material.Light.NoActionBar" />
+
+    <style name="Theme.Setty.TossPayments" parent="Theme.AppCompat.Light.NoActionBar" />
 </resources>

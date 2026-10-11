@@ -24,6 +24,19 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <!-- 토스 결제위젯이 AppCompatActivity를 요구하고, 결제창 복귀 중 재생성되면 결제 결과 콜백을 잃으므로 세로로 고정한다 -->
+        <activity
+            android:name=".feature.payment.PaymentActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.Setty.TossPayments" />
+        <!-- 토스 결제창은 AppCompatActivity라 AppCompat 테마가 없으면 열 때 크래시가 난다 -->
+        <activity
+            android:name="com.tosspayments.paymentsdk.activity.TossPaymentActivity"
+            android:theme="@style/Theme.Setty.TossPayments" />
+        <activity
+            android:name="com.tosspayments.paymentsdk.activity.TossPaymentsWebActivity"
+            android:theme="@style/Theme.Setty.TossPayments" />
     </application>
 
 </manifest>

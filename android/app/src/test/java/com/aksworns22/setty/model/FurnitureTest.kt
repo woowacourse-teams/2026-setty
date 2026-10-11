@@ -1,10 +1,10 @@
 package com.aksworns22.setty.model
 
+import com.aksworns22.setty.core.model.FurnitureCategory
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
 import org.junit.Test
 
-class ListingTest {
+class FurnitureTest {
     @Test
     fun `금액을 천 단위 구분 기호와 원 단위로 표시한다`() {
         assertEquals("150,000원", formatWon(150000))
@@ -24,8 +24,8 @@ class ListingTest {
     }
 
     @Test
-    fun `알 수 없는 카테고리는 null로 변환한다`() {
-        assertEquals(ListingCategory.SOFA, ListingCategory.fromOrNull("SOFA"))
-        assertNull(ListingCategory.fromOrNull("LAMP"))
+    fun `알 수 없는 카테고리는 기타로 변환한다`() {
+        assertEquals(FurnitureCategory.SOFA, furnitureCategoryOf("SOFA"))
+        assertEquals(FurnitureCategory.ETC, furnitureCategoryOf("LAMP"))
     }
 }

@@ -1,5 +1,8 @@
 package com.aksworns22.setty.feature.listingdetail
 
+import android.app.Activity
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -27,6 +30,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledTonalIconButton
+import androidx.compose.material3.FilledTonalIconToggleButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LargeFlexibleTopAppBar
@@ -36,6 +40,10 @@ import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedListItem
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
@@ -44,12 +52,16 @@ import androidx.compose.material3.carousel.HorizontalUncontainedCarousel
 import androidx.compose.material3.carousel.rememberCarouselState
 import androidx.compose.material3.toShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -61,29 +73,77 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil3.compose.AsyncImage
 import com.aksworns22.setty.R
-import com.aksworns22.setty.model.ListingCategory
-import com.aksworns22.setty.model.ListingDetail
-import com.aksworns22.setty.model.SaleStatus
+import com.aksworns22.setty.feature.payment.PaymentActivity
+import com.aksworns22.setty.core.model.FurnitureCategory
+import com.aksworns22.setty.core.model.FurnitureDetail
+import com.aksworns22.setty.core.model.SaleStatus
+import com.aksworns22.setty.model.categoryLabel
 import com.aksworns22.setty.model.formatWon
+import com.aksworns22.setty.model.isPurchasable
+import com.aksworns22.setty.model.label
 import com.aksworns22.setty.ui.theme.Paperlogy
 import com.aksworns22.setty.ui.theme.SettyTheme
+import kotlinx.coroutines.launch
 
 @Composable
-fun ListingDetailScreen(
-    listingId: Long,
+fun FurnitureDetailScreen(
+    furnitureId: Long,
     onBack: () -> Unit,
-    onPurchaseClick: (Long) -> Unit,
+    onOrdersClick: () -> Unit,
+    onRequireLogin: () -> Unit,
     viewModel: ListingDetailViewModel = viewModel(
-        key = "listing-detail-$listingId",
-        factory = ListingDetailViewModel.factory(listingId),
+        key = "listing-detail-$furnitureId",
+        factory = ListingDetailViewModel.factory(furnitureId),
     ),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val favorite by viewModel.favorite.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val paymentLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            // 결제로 매물 상태가 바뀌었으므로 다시 불러온다
+            viewModel.load()
+            coroutineScope.launch {
+                val result = snackbarHostState.showSnackbar(
+                    message = "결제가 완료되었습니다",
+                    actionLabel = "주문 내역",
+                    duration = SnackbarDuration.Long,
+                )
+                if (result == SnackbarResult.ActionPerformed) onOrdersClick()
+            }
+        }
+    }
+    LaunchedEffect(Unit) {
+        viewModel.refresh()
+        viewModel.loadFavorite()
+        viewModel.event.collect { event ->
+            when (event) {
+                is ListingDetailEvent.Message -> snackbarHostState.showSnackbar(event.message)
+                ListingDetailEvent.RequireLogin -> onRequireLogin()
+            }
+        }
+    }
     ListingDetailContent(
         uiState = uiState,
+        favorite = favorite,
+        onFavoriteToggle = viewModel::toggleFavorite,
+        snackbarHostState = snackbarHostState,
         onBack = onBack,
         onRetry = viewModel::load,
-        onPurchaseClick = onPurchaseClick,
+        onPurchaseClick = { listing ->
+            paymentLauncher.launch(
+                PaymentActivity.intent(
+                    context = context,
+                    listingId = listing.id,
+                    orderName = listing.title,
+                    amount = listing.totalPrice,
+                )
+            )
+        },
     )
 }
 
@@ -91,14 +151,18 @@ fun ListingDetailScreen(
 @Composable
 private fun ListingDetailContent(
     uiState: ListingDetailUiState,
+    favorite: FavoriteUiState,
+    onFavoriteToggle: () -> Unit,
     onBack: () -> Unit,
     onRetry: () -> Unit,
-    onPurchaseClick: (Long) -> Unit,
+    onPurchaseClick: (FurnitureDetail) -> Unit,
     modifier: Modifier = Modifier,
+    snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
 ) {
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val listing = (uiState as? ListingDetailUiState.Success)?.listing
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             LargeFlexibleTopAppBar(
                 title = {
@@ -139,6 +203,25 @@ private fun ListingDetailContent(
                         )
                     }
                 },
+                actions = {
+                    val isFavorited = favorite.isFavorited
+                    if (listing != null && isFavorited != null) {
+                        FilledTonalIconToggleButton(
+                            checked = isFavorited,
+                            onCheckedChange = { onFavoriteToggle() },
+                            enabled = !favorite.isUpdating,
+                            shapes = IconButtonDefaults.toggleableShapes(),
+                            modifier = Modifier.padding(end = 8.dp),
+                        ) {
+                            Icon(
+                                painter = painterResource(
+                                    if (isFavorited) R.drawable.baseline_favorite_24 else R.drawable.outline_favorite_24
+                                ),
+                                contentDescription = if (isFavorited) "찜 해제" else "찜하기",
+                            )
+                        }
+                    }
+                },
                 scrollBehavior = scrollBehavior,
             )
         },
@@ -146,7 +229,7 @@ private fun ListingDetailContent(
             if (listing != null) {
                 PurchaseBar(
                     listing = listing,
-                    onPurchaseClick = { onPurchaseClick(listing.id) },
+                    onPurchaseClick = { onPurchaseClick(listing) },
                 )
             }
         },
@@ -188,7 +271,7 @@ private fun ListingDetailContent(
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun ListingDetailBody(
-    listing: ListingDetail,
+    listing: FurnitureDetail,
     modifier: Modifier = Modifier,
 ) {
     LazyColumn(
@@ -416,7 +499,7 @@ private fun DimensionValue(
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun PriceSection(
-    listing: ListingDetail,
+    listing: FurnitureDetail,
     modifier: Modifier = Modifier,
 ) {
     val rows = listOf(
@@ -525,7 +608,7 @@ private fun SectionTitle(
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun PurchaseBar(
-    listing: ListingDetail,
+    listing: FurnitureDetail,
     onPurchaseClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -600,14 +683,14 @@ private val CarouselHeight = 320.dp
 private val CarouselHorizontalPadding = 16.dp
 private val IntrinsicSpecHeight = 148.dp
 
-private val PreviewListing = ListingDetail(
+private val PreviewListing = FurnitureDetail(
     id = 1,
     title = "원목 4인 식탁",
     description = "2년 사용한 원목 식탁입니다.\n모서리 찍힘 없이 깨끗하게 사용했어요.",
     price = 120_000,
     deliveryFee = 20_000,
     totalPrice = 140_000,
-    category = ListingCategory.TABLE,
+    category = FurnitureCategory.TABLE,
     conditionGrade = "A",
     widthCm = 140,
     depthCm = 80,
@@ -622,6 +705,8 @@ private fun ListingDetailContentPreview() {
     SettyTheme {
         ListingDetailContent(
             uiState = ListingDetailUiState.Success(PreviewListing),
+            favorite = FavoriteUiState(isFavorited = true),
+            onFavoriteToggle = {},
             onBack = {},
             onRetry = {},
             onPurchaseClick = {},
@@ -635,6 +720,8 @@ private fun ListingDetailSoldPreview() {
     SettyTheme {
         ListingDetailContent(
             uiState = ListingDetailUiState.Success(PreviewListing.copy(saleStatus = SaleStatus.SOLD)),
+            favorite = FavoriteUiState(isFavorited = false),
+            onFavoriteToggle = {},
             onBack = {},
             onRetry = {},
             onPurchaseClick = {},
@@ -648,6 +735,8 @@ private fun ListingDetailErrorPreview() {
     SettyTheme {
         ListingDetailContent(
             uiState = ListingDetailUiState.Error(ListingDetailError.NETWORK_ERROR),
+            favorite = FavoriteUiState(),
+            onFavoriteToggle = {},
             onBack = {},
             onRetry = {},
             onPurchaseClick = {},

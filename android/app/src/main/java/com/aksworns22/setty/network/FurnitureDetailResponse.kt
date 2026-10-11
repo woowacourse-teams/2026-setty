@@ -3,7 +3,7 @@ package com.aksworns22.setty.network
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class ListingDetailResponse(
+data class FurnitureDetailResponse(
     val id: Long,
     val title: String,
     val description: String,

@@ -1,18 +1,20 @@
 package com.aksworns22.setty.data
 
-import com.aksworns22.setty.model.ListingCategory
-import com.aksworns22.setty.model.SaleStatus
+import com.aksworns22.setty.core.model.FurnitureCategory
+import com.aksworns22.setty.core.model.SaleStatus
+import com.aksworns22.setty.model.categoryLabel
+import com.aksworns22.setty.model.isPurchasable
 import com.aksworns22.setty.network.DimensionsResponse
-import com.aksworns22.setty.network.ListingDetailResponse
+import com.aksworns22.setty.network.FurnitureDetailResponse
 import com.aksworns22.setty.network.ListingImageResponse
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-class ListingDetailMapperTest {
+class FurnitureDetailMapperTest {
 
-    private val response = ListingDetailResponse(
+    private val response = FurnitureDetailResponse(
         id = 1,
         title = "원목 4인 식탁",
         description = "깨끗하게 사용했습니다",
@@ -33,9 +35,9 @@ class ListingDetailMapperTest {
 
     @Test
     fun `카테고리와 크기를 매물 상세 모델로 변환한다`() {
-        val listing = response.toListingDetail()
+        val listing = response.toFurnitureDetail()
 
-        assertEquals(ListingCategory.TABLE, listing.category)
+        assertEquals(FurnitureCategory.TABLE, listing.category)
         assertEquals("테이블", listing.categoryLabel)
         assertEquals(140, listing.widthCm)
         assertEquals(80, listing.depthCm)
@@ -46,20 +48,20 @@ class ListingDetailMapperTest {
     fun `사진을 노출 순서대로 정렬한다`() {
         assertEquals(
             listOf("https://image/first", "https://image/second"),
-            response.toListingDetail().imageUrls,
+            response.toFurnitureDetail().imageUrls,
         )
     }
 
     @Test
     fun `판매중인 매물만 구매할 수 있다`() {
-        assertTrue(response.toListingDetail().isPurchasable)
-        assertFalse(response.copy(saleStatus = "RESERVED").toListingDetail().isPurchasable)
-        assertFalse(response.copy(saleStatus = "SOLD").toListingDetail().isPurchasable)
+        assertTrue(response.toFurnitureDetail().isPurchasable)
+        assertFalse(response.copy(saleStatus = "RESERVED").toFurnitureDetail().isPurchasable)
+        assertFalse(response.copy(saleStatus = "SOLD").toFurnitureDetail().isPurchasable)
     }
 
     @Test
     fun `알 수 없는 판매 상태는 구매할 수 없는 판매완료로 취급한다`() {
-        val listing = response.copy(saleStatus = "UNKNOWN").toListingDetail()
+        val listing = response.copy(saleStatus = "UNKNOWN").toFurnitureDetail()
 
         assertEquals(SaleStatus.SOLD, listing.saleStatus)
         assertFalse(listing.isPurchasable)
