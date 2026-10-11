@@ -39,6 +39,9 @@ public class ListingNotification {
     @Column(name = "sent_at")
     private Instant sentAt;
 
+    @Column(name = "acked_at")
+    private Instant ackedAt;
+
     protected ListingNotification() {
     }
 
@@ -68,5 +71,9 @@ public class ListingNotification {
 
     public Instant getSentAt() {
         return sentAt;
+    }
+
+    public Instant getAckedAt() {
+        return ackedAt;
     }
 }

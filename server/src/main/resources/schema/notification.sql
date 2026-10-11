@@ -34,6 +34,23 @@ CREATE TABLE IF NOT EXISTS listing_notifications (
     INDEX idx_listing_notifications_member (member_id, created_at, id)
 );
 
+-- 앱이 수신 즉시 보내는 ack를 받은 시각(서버 시계). 기기 도착 측정용. 기존 테이블이라 멱등 ALTER로 추가한다.
+SET @listing_notifications_acked_at_exists = (
+    SELECT COUNT(*)
+    FROM information_schema.columns
+    WHERE table_schema = DATABASE()
+      AND table_name = 'listing_notifications'
+      AND column_name = 'acked_at'
+);
+SET @add_listing_notifications_acked_at = IF(
+    @listing_notifications_acked_at_exists = 0,
+    'ALTER TABLE listing_notifications ADD COLUMN acked_at TIMESTAMP(6) NULL AFTER sent_at',
+    'SELECT 1'
+);
+PREPARE add_listing_notifications_acked_at_statement FROM @add_listing_notifications_acked_at;
+EXECUTE add_listing_notifications_acked_at_statement;
+DEALLOCATE PREPARE add_listing_notifications_acked_at_statement;
+
 -- 앱이 받은 FCM 등록 토큰. 토큰 하나는 기기 하나이며, 사용자 1명이 기기 여러 대를 가질 수 있다.
 -- 같은 토큰이 다른 사용자로 다시 오면 기기 주인이 바뀐 것으로 보고 member_id를 갱신한다.
 CREATE TABLE IF NOT EXISTS device_tokens (
