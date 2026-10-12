@@ -8,8 +8,10 @@ import java.util.concurrent.Semaphore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.modulith.events.ApplicationModuleListener;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
 import setty.common.ListingCreated;
 import setty.notification.listing.domain.ListingNotification;
 import setty.notification.send.NotificationSendConfiguration;
@@ -38,7 +40,8 @@ public class ListingNotificationDispatcher {
         this.properties = properties;
     }
 
-    @ApplicationModuleListener
+    @Async(NotificationSendConfiguration.DISPATCH_EXECUTOR)
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onListingCreated(final ListingCreated event) {
         dispatch(event.listingId(), event.title());
     }
