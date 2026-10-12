@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.aksworns22.setty.SettyApp
+import com.aksworns22.setty.data.DeviceTokenRepository
 import com.aksworns22.setty.data.UserRepository
 import com.aksworns22.setty.feature.common.LoadUiState
 import com.aksworns22.setty.feature.common.toLoadError
@@ -28,6 +29,7 @@ enum class MyPageEvent {
 
 class MyPageViewModel(
     private val userRepository: UserRepository,
+    private val deviceTokenRepository: DeviceTokenRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(MyPageUiState())
@@ -59,6 +61,7 @@ class MyPageViewModel(
         if (_uiState.value.isLoggingOut) return
         viewModelScope.launch {
             _uiState.update { it.copy(isLoggingOut = true) }
+            runCatching { deviceTokenRepository.unregister() }
             userRepository.logout()
             _uiState.value = MyPageUiState()
             _event.send(MyPageEvent.LOGGED_OUT)
@@ -69,7 +72,7 @@ class MyPageViewModel(
         val Factory = viewModelFactory {
             initializer {
                 val appContainer = (this[APPLICATION_KEY] as SettyApp).appContainer
-                MyPageViewModel(appContainer.userRepository)
+                MyPageViewModel(appContainer.userRepository, appContainer.deviceTokenRepository)
             }
         }
     }

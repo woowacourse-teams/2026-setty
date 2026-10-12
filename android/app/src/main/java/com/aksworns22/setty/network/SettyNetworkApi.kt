@@ -5,11 +5,13 @@ import okhttp3.RequestBody
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
+import retrofit2.http.HTTP
 import retrofit2.http.Multipart
 import retrofit2.http.POST
 import retrofit2.http.PUT
 import retrofit2.http.Part
 import retrofit2.http.Path
+import retrofit2.http.Query
 
 
 interface SettyNetworkApi {
@@ -109,5 +111,39 @@ interface SettyNetworkApi {
     @POST("/api/payments/fail")
     suspend fun failPayment(
         @Body request: PaymentFailRequest
+    )
+
+    @PUT("/api/me/device-token")
+    suspend fun registerDeviceToken(
+        @Body request: DeviceTokenRequest
+    )
+
+    @HTTP(method = "DELETE", path = "/api/me/device-token", hasBody = true)
+    suspend fun unregisterDeviceToken(
+        @Body request: DeviceTokenDeleteRequest
+    )
+
+    @GET("/api/me/notifications")
+    suspend fun getNotifications(
+        @Query("page") page: Int = 0,
+        @Query("size") size: Int = 100,
+    ): NotificationListResponse
+
+    @POST("/api/me/notifications/{notificationId}/ack")
+    suspend fun ackNotification(
+        @Path("notificationId") notificationId: Long
+    )
+
+    @GET("/api/me/keywords")
+    suspend fun getKeywords(): KeywordListResponse
+
+    @PUT("/api/me/keywords")
+    suspend fun addKeyword(
+        @Body request: KeywordRequest
+    )
+
+    @DELETE("/api/me/keywords/{subscriptionId}")
+    suspend fun removeKeyword(
+        @Path("subscriptionId") subscriptionId: Long
     )
 }

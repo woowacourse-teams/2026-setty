@@ -3,7 +3,11 @@ package com.aksworns22.setty.data
 import android.content.Context
 import com.aksworns22.setty.BuildConfig
 import com.aksworns22.setty.network.AuthInterceptor
+import com.aksworns22.setty.network.BasePathInterceptor
 import com.aksworns22.setty.network.SettyNetworkApi
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -14,6 +18,8 @@ import retrofit2.converter.kotlinx.serialization.asConverterFactory
 class AppContainer(
     private val context: Context
 ) {
+    val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
     private val tokenLocalDataSource =
         TokenLocalDataSource(context.applicationContext)
 
@@ -27,6 +33,7 @@ class AppContainer(
                     level = HttpLoggingInterceptor.Level.BODY
                 })
             }
+            addInterceptor(BasePathInterceptor(BuildConfig.BASE_URL))
             addInterceptor(authInterceptor)
         }
         .build()
@@ -57,6 +64,18 @@ class AppContainer(
     )
 
     val paymentRepository = PaymentRepository(
+        settyNetworkApi = settyNetworkApi,
+    )
+
+    val deviceTokenRepository = DeviceTokenRepository(
+        settyNetworkApi = settyNetworkApi,
+    )
+
+    val notificationRepository = NotificationRepository(
+        settyNetworkApi = settyNetworkApi,
+    )
+
+    val keywordRepository = KeywordRepository(
         settyNetworkApi = settyNetworkApi,
     )
 }

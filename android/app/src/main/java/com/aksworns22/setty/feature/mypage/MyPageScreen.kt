@@ -64,6 +64,8 @@ fun MyPageScreen(
     onMyListingsClick: () -> Unit,
     onFavoritesClick: () -> Unit,
     onOrdersClick: () -> Unit,
+    onKeywordsClick: () -> Unit,
+    onNotificationsClick: () -> Unit,
     onLoggedOut: () -> Unit,
     viewModel: MyPageViewModel = viewModel(factory = MyPageViewModel.Factory),
 ) {
@@ -87,6 +89,8 @@ fun MyPageScreen(
         onMyListingsClick = onMyListingsClick,
         onFavoritesClick = onFavoritesClick,
         onOrdersClick = onOrdersClick,
+        onKeywordsClick = onKeywordsClick,
+        onNotificationsClick = onNotificationsClick,
         onLogout = viewModel::logout,
         onRequireLogin = onLoggedOut,
     )
@@ -102,6 +106,8 @@ private fun MyPageContent(
     onMyListingsClick: () -> Unit,
     onFavoritesClick: () -> Unit,
     onOrdersClick: () -> Unit,
+    onKeywordsClick: () -> Unit,
+    onNotificationsClick: () -> Unit,
     onLogout: () -> Unit,
     onRequireLogin: () -> Unit,
 ) {
@@ -141,6 +147,8 @@ private fun MyPageContent(
                 onMyListingsClick = onMyListingsClick,
                 onFavoritesClick = onFavoritesClick,
                 onOrdersClick = onOrdersClick,
+                onKeywordsClick = onKeywordsClick,
+                onNotificationsClick = onNotificationsClick,
                 onLogoutClick = { isLogoutDialogVisible = true },
             )
         }
@@ -184,12 +192,18 @@ private fun MyPageBody(
     onMyListingsClick: () -> Unit,
     onFavoritesClick: () -> Unit,
     onOrdersClick: () -> Unit,
+    onKeywordsClick: () -> Unit,
+    onNotificationsClick: () -> Unit,
     onLogoutClick: () -> Unit,
 ) {
     val tradeMenus = listOf(
         MyPageMenu("내 판매 가구", "등록한 가구를 관리해요", R.drawable.outline_sell_24, onMyListingsClick),
         MyPageMenu("찜한 가구", "마음에 둔 가구를 모아봐요", R.drawable.outline_favorite_24, onFavoritesClick),
         MyPageMenu("주문 내역", "구매한 가구의 배송을 확인해요", R.drawable.outline_local_shipping_24, onOrdersClick),
+    )
+    val notificationMenus = listOf(
+        MyPageMenu("키워드 알림", "관심 키워드의 새 매물을 알려드려요", R.drawable.outline_notifications_24, onKeywordsClick),
+        MyPageMenu("알림함", "받은 매물 알림을 모아봐요", R.drawable.outline_search_24, onNotificationsClick),
     )
     val accountMenus = listOf(
         MyPageMenu("로그아웃", null, R.drawable.outline_logout_24, onLogoutClick),
@@ -213,6 +227,10 @@ private fun MyPageBody(
         }
         item(key = "tradeTitle") { SectionTitle(text = "거래") }
         menuItems(tradeMenus)
+        item(key = "notificationTitle") {
+            SectionTitle(text = "알림", modifier = Modifier.padding(top = 20.dp))
+        }
+        menuItems(notificationMenus)
         item(key = "accountTitle") {
             SectionTitle(text = "계정", modifier = Modifier.padding(top = 20.dp))
         }
@@ -347,6 +365,8 @@ private fun MyPageContentPreview() {
             onMyListingsClick = {},
             onFavoritesClick = {},
             onOrdersClick = {},
+            onKeywordsClick = {},
+            onNotificationsClick = {},
             onLogout = {},
             onRequireLogin = {},
         )

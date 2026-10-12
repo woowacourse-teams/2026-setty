@@ -5,6 +5,7 @@ plugins {
     alias(libs.plugins.setty.android.application.compose)
     alias(libs.plugins.setty.android.hilt)
     alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.google.services)
 }
 
 val localProperties = Properties()
@@ -74,6 +75,8 @@ dependencies {
     implementation(libs.coil.network.okhttp)
     implementation(libs.androidx.appcompat)
     implementation(libs.toss.payments)
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.messaging)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     androidTestImplementation(libs.androidx.espresso.core)

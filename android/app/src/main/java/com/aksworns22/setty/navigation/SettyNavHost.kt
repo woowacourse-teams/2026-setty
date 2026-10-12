@@ -11,11 +11,13 @@ import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.ui.NavDisplay
 import com.aksworns22.setty.feature.favorites.FavoritesScreen
 import com.aksworns22.setty.feature.home.HomeScreen
+import com.aksworns22.setty.feature.keyword.KeywordScreen
 import com.aksworns22.setty.feature.listingdetail.FurnitureDetailScreen
 import com.aksworns22.setty.feature.listingeditor.ListingEditorScreen
 import com.aksworns22.setty.feature.login.LoginScreen
 import com.aksworns22.setty.feature.mylistings.MyListingsScreen
 import com.aksworns22.setty.feature.mypage.MyPageScreen
+import com.aksworns22.setty.feature.notification.NotificationListScreen
 import com.aksworns22.setty.feature.orders.OrderDetailScreen
 import com.aksworns22.setty.feature.orders.OrdersScreen
 import com.aksworns22.setty.feature.profile.ProfileEditScreen
@@ -57,11 +59,17 @@ sealed interface SettyScreen : NavKey {
 
     @Serializable
     data class OrderDetail(val orderId: Long) : SettyScreen
+
+    @Serializable
+    data object Keywords : SettyScreen
+
+    @Serializable
+    data object Notifications : SettyScreen
 }
 
 @Composable
-fun SettyNavHost() {
-    val backStack = rememberNavBackStack(SettyScreen.Login)
+fun SettyNavHost(startFurnitureId: Long? = null) {
+    val backStack = rememberNavBackStack(*startKeys(startFurnitureId))
     var isSignUpCompleted by rememberSaveable { mutableStateOf(false) }
 
     // 로그아웃하거나 토큰이 만료되면 쌓인 화면을 모두 버리고 로그인으로 보낸다
@@ -123,6 +131,8 @@ fun SettyNavHost() {
                     onMyListingsClick = { backStack.add(SettyScreen.MyListings) },
                     onFavoritesClick = { backStack.add(SettyScreen.Favorites) },
                     onOrdersClick = { backStack.add(SettyScreen.Orders) },
+                    onKeywordsClick = { backStack.add(SettyScreen.Keywords) },
+                    onNotificationsClick = { backStack.add(SettyScreen.Notifications) },
                     onLoggedOut = navigateToLogin,
                 )
             }
@@ -174,6 +184,21 @@ fun SettyNavHost() {
                     onRequireLogin = navigateToLogin,
                 )
             }
+            entry<SettyScreen.Keywords> {
+                KeywordScreen(
+                    onBack = navigateBack,
+                    onRequireLogin = navigateToLogin,
+                )
+            }
+            entry<SettyScreen.Notifications> {
+                NotificationListScreen(
+                    onBack = navigateBack,
+                    onFurnitureClick = { furnitureId ->
+                        backStack.add(SettyScreen.FurnitureDetail(furnitureId))
+                    },
+                    onRequireLogin = navigateToLogin,
+                )
+            }
             entry<SettyScreen.OrderDetail> { key ->
                 OrderDetailScreen(
                     orderId = key.orderId,
@@ -187,3 +212,10 @@ fun SettyNavHost() {
         }
     )
 }
+
+private fun startKeys(startFurnitureId: Long?): Array<SettyScreen> =
+    if (startFurnitureId == null) {
+        arrayOf(SettyScreen.Login)
+    } else {
+        arrayOf(SettyScreen.Home, SettyScreen.FurnitureDetail(startFurnitureId))
+    }
