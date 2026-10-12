@@ -37,7 +37,7 @@ spring:
 
   task:
     execution:
-      # @Async 이벤트 리스너(주문·배송·정산·알림)가 공유하는 풀. 리스너마다 DB 커넥션을 쓰므로 풀(10) 안에서 상한을 둔다.
+      # @Async 이벤트 리스너(주문·배송·정산)가 공유하는 풀. 알림 디스패처는 전용 풀을 쓴다. 리스너마다 DB 커넥션을 쓰므로 풀(10) 안에서 상한을 둔다.
       thread-name-prefix: event-listener-
       pool:
         core-size: ${SETTY_EVENT_LISTENER_CONCURRENCY:2}

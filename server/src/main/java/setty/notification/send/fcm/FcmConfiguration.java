@@ -8,6 +8,7 @@ import com.google.firebase.messaging.FirebaseMessaging;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.time.Duration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -17,12 +18,16 @@ import setty.notification.send.NotificationSendProperties;
 @ConditionalOnProperty(name = "setty.notification.sender", havingValue = "fcm")
 public class FcmConfiguration {
 
+    private static final int TIMEOUT_MILLIS = (int) Duration.ofSeconds(10).toMillis();
+
     @Bean
     public FirebaseMessaging firebaseMessaging(final NotificationSendProperties properties) {
         try (FileInputStream credentials = new FileInputStream(properties.fcmCredentialsPath())) {
             final FirebaseOptions options = FirebaseOptions.builder()
                     .setCredentials(GoogleCredentials.fromStream(credentials))
                     .setHttpTransport(new NetHttpTransport())
+                    .setConnectTimeout(TIMEOUT_MILLIS)
+                    .setReadTimeout(TIMEOUT_MILLIS)
                     .build();
             final FirebaseApp app = FirebaseApp.getApps().isEmpty()
                     ? FirebaseApp.initializeApp(options)
