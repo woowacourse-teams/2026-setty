@@ -52,7 +52,7 @@ SETTY는 구매자가 판매자와 운송 서비스를 오가며 직접 조율�
 ## 📚 문서와 협업
 
 - [서비스 정책](docs/policy/README.md): 주문·결제·배송의 확정 규칙과 미정 항목
-- [테스트 계정과 매물 준비](docs/test-data-setup.md): 부하·시나리오 테스트용 계정과 매물 등록 방법
+- [결제 전환 시나리오 테스트](scripts/payment-conversion/README.md): 테스트 스크립트 인덱스와 계정·매물 준비 및 실행 방법
 - [기사 앱 문서](apps/docs/README.md): 앱 구조, API 매핑, 확인할 사항
 - [CI](.github/workflows/ci.yml): 서버 테스트와 웹 타입 검사
 

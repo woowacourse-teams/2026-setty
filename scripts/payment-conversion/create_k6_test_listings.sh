@@ -5,7 +5,7 @@ set -euo pipefail
 # First create a dedicated seller CSV with create_k6_test_users.sh.
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd -- "${SCRIPT_DIR}/.." && pwd)"
+REPO_ROOT="$(cd -- "${SCRIPT_DIR}/../.." && pwd)"
 
 BASE_URL="${BASE_URL:-https://www.setty.cloud/dev}"
 SELLER_CSV_PATH="${SELLER_CSV_PATH:-${REPO_ROOT}/.local/k6-test-seller.csv}"
@@ -28,7 +28,7 @@ if ! command -v python3 >/dev/null 2>&1; then
     fail "로그인 응답을 읽으려면 python3이 필요합니다."
 fi
 if [[ ! -f "${SELLER_CSV_PATH}" ]]; then
-    fail "판매자 계정 CSV가 없습니다. 먼저 COUNT=1 ACCOUNT_PREFIX=k6seller CSV_PATH='${SELLER_CSV_PATH}' scripts/create_k6_test_users.sh 를 실행하세요."
+    fail "판매자 계정 CSV가 없습니다. 먼저 COUNT=1 ACCOUNT_PREFIX=k6seller CSV_PATH='${SELLER_CSV_PATH}' scripts/payment-conversion/create_k6_test_users.sh 를 실행하세요."
 fi
 if [[ ! -f "${IMAGE_PATH}" ]]; then
     fail "매물 이미지 파일을 찾을 수 없습니다: ${IMAGE_PATH}"
