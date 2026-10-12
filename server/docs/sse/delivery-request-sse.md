@@ -7,7 +7,7 @@
 - 결정일: 2026-10-12.
 - 대상: 기사 앱의 배송 요청 목록 SSE(Server-Sent Events: 열린 HTTP 연결로 서버 이벤트를 전달하는 방식), `GET /api/delivery/requests/events`.
 - 적용 범위: 현재의 단일 서버. 여러 서버 사이의 기사별 연결 수 공유는 **비범위**다.
-- 구현 상태: 기사 ID 전달, 연결 정보 관리, [연결 상한과 등록 및 정리 동시성 제어](#연결-상한과-등록-및-정리-동시성-제어), 초과 HTTP 응답을 구현했다. 관련 테스트 27개가 통과했다.
+- 구현 상태: 기사 ID 전달, 연결 정보 관리, [연결 상한과 등록 및 정리 동시성 제어](#연결-상한과-등록-및-정리-동시성-제어), 초과 HTTP 응답을 구현했다. [실제 HTTP 연결의 거부와 정리 후 재등록](#실제-http-연결의-거부와-정리-후-재등록-검증)까지 검증했으며 관련 테스트 30개가 통과했다.
 
 ## 기사당 최대 2개 허용
 
@@ -76,7 +76,27 @@ Emitter 생성과 종료 콜백 등록 후 잠금 안에서 상한을 검사하�
 | [SSE API 테스트](../../src/test/java/setty/delivery/api/DeliveryRequestSseControllerTest.java) 3개 | MockMvc에서 SSE Accept 헤더를 사용한 429·503 JSON 응답, 오류 응답 시 비동기 처리 미시작, 정리 후 재등록을 검증했다. 인증된 기사 정보는 모의로 제공했다. |
 | [재접속 복구 통합 테스트](../../src/test/java/setty/delivery/api/DeliveryRequestReconnectRecoveryIntegrationTest.java) 1개 | Spring 컨텍스트와 테스트 DB에서 인증된 구독 등록·정리 및 단절 중 놓친 변경 이후 최신 목록 복구를 확인했다. |
 
-이 검증은 실제 TCP 연결 부하, 기사 기기의 재접속 시간, 서버 heap·프로세스 메모리 계측을 포함하지 않는다. 등록된 구독 수 제한과 운영 용량 검증은 구분한다.
+위 27개 테스트는 실제 TCP 연결 부하, 기사 기기의 재접속 시간, 서버 heap·프로세스 메모리 계측을 포함하지 않는다. 등록된 구독 수 제한과 운영 용량 검증은 구분한다.
+
+## 실제 HTTP 연결의 거부와 정리 후 재등록 검증
+
+2026-10-12에 [실제 HTTP 통합 테스트](../../src/test/java/setty/delivery/api/DeliveryRequestSseHttpIntegrationTest.java) 3개와 기존 SSE 테스트 27개를 함께 실행했다. 총 30개가 통과했고 실패·오류·건너뛴 테스트는 0개다. 실행 환경은 macOS, Java 21.0.5, Testcontainers의 MySQL 8.4.11이다.
+
+전체 Spring 애플리케이션을 임의의 로컬 포트로 기동하고 Java HTTP 클라이언트로 HTTP/1.1 요청을 보냈다. 격리 DB에 만든 기사 계정 4개의 Bearer 토큰으로 실제 인증 경로를 통과했다. 전체 연결 상한은 테스트값 3개를 사용하고 기사당 상한은 기존 정책을 유지했다. 서버 동작 코드는 수정하지 않았다.
+
+| 시나리오 | 확인 결과 |
+| --- | --- |
+| 정상 구독과 목록 조회 | 200 SSE 응답과 `connected` 수신, 인증된 기사의 연결 등록, 목록 API의 200 배열 응답을 확인했다. |
+| 기사별 상한 초과 | 같은 기사의 추가 연결은 429와 `DRIVER_LIMIT_EXCEEDED` JSON을 반환했다. 기존 연결 2개는 유지됐고 커밋 후 변경 알림을 모두 수신했다. 연결 하나를 닫고 서버 정리를 확인한 뒤 같은 기사가 재접속했다. |
+| 전체 상한 초과 | 기사 3명의 연결 이후 다른 기사의 추가 연결은 503과 `TOTAL_LIMIT_EXCEEDED` JSON을 반환했다. 기존 연결 3개는 유지됐고 변경 알림을 모두 수신했다. 연결 하나를 닫고 서버 정리를 확인한 뒤 거부됐던 기사가 접속했다. |
+
+거부 응답은 `Accept: text/event-stream` 요청에서도 `application/json`이었다. 5초 이내에 완결된 JSON 본문을 받았고 SSE의 `event:`·`data:` 필드가 없음을 확인했다. 거부 전후 등록된 연결 수는 같았다.
+
+정리 검증에서는 클라이언트의 응답 스트림을 닫은 뒤 목록 변경 신호를 100ms 간격으로 발행했다. 서버가 실제 응답 쓰기에서 단절을 확인하고 구독 항목을 제거할 때까지 최대 5초 기다렸다. 종료 콜백이나 연결 맵을 테스트에서 직접 조작하지 않았다. 이 5초는 테스트의 대기 상한이며 운영 정리 시간의 측정값은 아니다. 변경이 없는 유휴 연결을 heartbeat만으로 정리하는 시간도 이번 검증에 포함하지 않았다.
+
+429·503 이후 재등록 시나리오에서는 거부 이후 새 배송 요청을 실제 등록 서비스로 저장했다. 재접속한 기사 토큰으로 목록 API를 호출해 새 요청 ID가 응답에 포함되는지 확인했다. 테스트 종료 시 모든 HTTP 연결을 닫고 등록된 구독 수가 0으로 복구되는지도 확인했다.
+
+실제 기사 앱의 자동 재시도·화면 반영, 운영 프록시, 대량 연결 부하와 메모리 계측은 **비범위**다. 로컬 HTTP 클라이언트의 재등록 성공과 기사 앱의 자동 복구는 구분한다.
 
 Java 21과 Docker를 준비한 뒤 `server/`에서 실행한다.
 
@@ -84,7 +104,8 @@ Java 21과 Docker를 준비한 뒤 `server/`에서 실행한다.
 ./gradlew --no-daemon test \
   --tests setty.delivery.api.DeliveryRequestEventStreamTest \
   --tests setty.delivery.api.DeliveryRequestSseControllerTest \
-  --tests setty.delivery.api.DeliveryRequestReconnectRecoveryIntegrationTest
+  --tests setty.delivery.api.DeliveryRequestReconnectRecoveryIntegrationTest \
+  --tests setty.delivery.api.DeliveryRequestSseHttpIntegrationTest
 ```
 
 ## 후속 검증 기준
