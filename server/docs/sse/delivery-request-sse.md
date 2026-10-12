@@ -7,7 +7,7 @@
 - 결정일: 2026-10-12.
 - 대상: 기사 앱의 배송 요청 목록 SSE(Server-Sent Events: 열린 HTTP 연결로 서버 이벤트를 전달하는 방식), `GET /api/delivery/requests/events`.
 - 적용 범위: 현재의 단일 서버. 여러 서버 사이의 기사별 연결 수 공유는 **비범위**다.
-- 구현 상태: 연결 수 제한 구현과 후속 검증은 미착수다.
+- 구현 상태: [기사 ID 전달과 연결 정보 관리](#기사-id-전달과-연결-정보-관리)를 구현했다. 기사별·전체 연결 상한 검사는 미구현이다.
 
 ## 기사당 최대 2개 허용
 
@@ -40,6 +40,26 @@
 | 초과 연결 처리 방식 | 보류 | 기존 연결을 유지하고 신규 연결을 거부하는 방식을 권장했다. 이전 연결 정리가 늦으면 신규 접속이 지연될 수 있으므로 복구 동작을 확인한다. |
 | 초과 응답과 재시도 안내 | 보류 | 기사별 초과에 HTTP 429, 전체 상한 초과에 HTTP 503, 초기 `Retry-After` 5초를 제안했다. 초과 처리 방식과 함께 확정한다. |
 | 앱의 재시도 조정 | 보류 | 서버의 재시도 안내 반영과 재시도 시점을 분산하는 무작위 지연을 검토한다. |
+
+## 기사 ID 전달과 연결 정보 관리
+
+구독 API는 인증된 기사 ID를 `subscribe(DriverId)`에 전달한다. 연결마다 새 UUID를 만들고, 연결 맵의 값에 `DriverId`와 `SseEmitter`를 함께 저장한다. 기사별 구독 수는 이 맵에서 계산하며 별도 카운터는 두지 않는다.
+
+같은 기사의 연결도 각각 등록하고, 변경 알림과 heartbeat는 기사 ID에 관계없이 모든 구독자에게 전송한다. 완료·타임아웃·오류·전송 실패는 UUID와 연결 정보를 함께 확인해 해당 항목만 제거한다. 같은 연결의 정리가 중복되어도 다른 연결에는 영향을 주지 않는다.
+
+이 단계는 기사별 연결을 구분하기 위한 준비 구현이다. 기사당 2개 제한, 전체 연결 상한, 상한 검사와 등록을 묶는 동시성 제어, 초과 HTTP 응답은 아직 적용하지 않았다.
+
+2026-10-12에 [구독 관리 단위 테스트](../../src/test/java/setty/delivery/api/DeliveryRequestEventStreamTest.java) 10개와 [재접속 복구 통합 테스트](../../src/test/java/setty/delivery/api/DeliveryRequestReconnectRecoveryIntegrationTest.java) 1개가 모두 통과했다. 실패·오류·건너뛴 테스트는 0개다. 실행 환경은 Java 21.0.5와 Testcontainers의 MySQL 8.4.11이다.
+
+단위 테스트는 기사별 연결 구분, 전체 구독자 대상 변경 알림·heartbeat, 완료·타임아웃·오류·전송 실패의 개별 정리, 중복 콜백과 서버 종료를 검증했다. 복구 통합 테스트는 MockMvc의 구독 API로 인증된 기사 ID의 등록과 연결 종료 후 제거를 확인하고, SSE 단절 중 놓친 변경 이후의 최신 목록을 검사했다. 실제 네트워크 연결·부하·메모리 측정은 별도 검증이다.
+
+Java 21과 Docker를 준비한 뒤 `server/`에서 실행한다.
+
+```bash
+./gradlew --no-daemon test \
+  --tests setty.delivery.api.DeliveryRequestEventStreamTest \
+  --tests setty.delivery.api.DeliveryRequestReconnectRecoveryIntegrationTest
+```
 
 ## 후속 검증 기준
 
