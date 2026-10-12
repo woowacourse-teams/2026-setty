@@ -10,7 +10,7 @@ public record NotificationSendProperties(
         String fcmCredentialsPath
 ) {
 
-    private static final int DEFAULT_SEND_CONCURRENCY = 8;
+    private static final int DEFAULT_SEND_CONCURRENCY = 4;
     private static final String DEFAULT_MOCK_PUSH_URL = "http://127.0.0.1:9000";
 
     public NotificationSendProperties {
