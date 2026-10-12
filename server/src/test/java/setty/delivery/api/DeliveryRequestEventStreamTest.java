@@ -13,6 +13,7 @@ import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import setty.delivery.application.DeliveryRequestsChanged;
+import setty.delivery.domain.DriverId;
 
 class DeliveryRequestEventStreamTest {
 
@@ -30,7 +31,7 @@ class DeliveryRequestEventStreamTest {
         final CapturingSseEmitter emitter = new CapturingSseEmitter();
         stream = new DeliveryRequestEventStream(() -> emitter);
 
-        stream.subscribe();
+        stream.subscribe(new DriverId(1L));
         stream.on(new DeliveryRequestsChanged());
 
         assertThat(stream.subscriberCount()).isOne();
@@ -41,7 +42,7 @@ class DeliveryRequestEventStreamTest {
     void failedSendRemovesDisconnectedSubscriber() {
         stream = new DeliveryRequestEventStream(FailingSseEmitter::new);
 
-        stream.subscribe();
+        stream.subscribe(new DriverId(1L));
 
         assertThat(stream.subscriberCount()).isZero();
     }
@@ -50,7 +51,7 @@ class DeliveryRequestEventStreamTest {
     void notificationFailureDoesNotEscapeListener() {
         final CapturingSseEmitter emitter = new CapturingSseEmitter();
         stream = new DeliveryRequestEventStream(() -> emitter);
-        stream.subscribe();
+        stream.subscribe(new DriverId(1L));
         emitter.failWith(new UnsupportedOperationException("전송 실패"));
 
         assertThatCode(() -> stream.on(new DeliveryRequestsChanged()))

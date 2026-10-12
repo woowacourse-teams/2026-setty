@@ -49,11 +49,11 @@ public class DeliveryController {
     public ResponseEntity<SseEmitter> subscribeRequestEvents(
             @LoginDeliveryMember final DeliveryMember member
     ) {
-        authenticatedDriverId(member);
+        final DriverId driverId = authenticatedDriverId(member);
         return ResponseEntity.ok()
                 .cacheControl(CacheControl.noCache())
                 .header("X-Accel-Buffering", "no")
-                .body(deliveryRequestEventStream.subscribe());
+                .body(deliveryRequestEventStream.subscribe(driverId));
     }
 
     @GetMapping("/requests/{deliveryId}")

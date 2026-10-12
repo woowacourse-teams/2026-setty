@@ -99,7 +99,9 @@ class DeliveryRequestReconnectRecoveryIntegrationTest extends MySqlIntegrationTe
         publishCommitted(new OrderCancellationRequested(CANCELLED_ORDER_ID, "cancel-sse-recovery"));
         awaitEventsHandled(jdbcTemplate);
 
-        final SseEmitter reconnected = eventStream.subscribe();
+        final DriverId driverId = new DriverId(jdbcTemplate.queryForObject(
+                "SELECT id FROM delivery_member WHERE token = ?", Long.class, DRIVER_TOKEN));
+        final SseEmitter reconnected = eventStream.subscribe(driverId);
         try {
             final MvcResult result = mockMvc.perform(get("/api/delivery/requests")
                             .header("Authorization", "Bearer " + DRIVER_TOKEN))

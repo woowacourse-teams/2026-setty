@@ -15,6 +15,7 @@ import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import setty.delivery.application.DeliveryRequestsChanged;
+import setty.delivery.domain.DriverId;
 
 /**
  * 단일 서버에서 활성 SSE 연결을 관리한다. 이벤트에는 목록 변경 여부만 담는다.
@@ -29,7 +30,7 @@ public class DeliveryRequestEventStream {
     static final String CONNECTED_EVENT = "connected";
     static final String REQUESTS_CHANGED_EVENT = "delivery-requests-changed";
 
-    private final Map<UUID, SseEmitter> emitters = new ConcurrentHashMap<>();
+    private final Map<UUID, Subscription> subscriptions = new ConcurrentHashMap<>();
     private final Supplier<SseEmitter> emitterFactory;
     private final ScheduledExecutorService heartbeatScheduler = Executors.newSingleThreadScheduledExecutor(
             Thread.ofPlatform().name("delivery-request-sse-heartbeat").daemon(true).factory()
@@ -53,15 +54,16 @@ public class DeliveryRequestEventStream {
         );
     }
 
-    public SseEmitter subscribe() {
+    public SseEmitter subscribe(final DriverId driverId) {
         final SseEmitter emitter = emitterFactory.get();
-        final UUID emitterId = UUID.randomUUID();
+        final UUID subscriptionId = UUID.randomUUID();
+        final Subscription subscription = new Subscription(driverId, emitter);
 
-        emitters.put(emitterId, emitter);
-        emitter.onCompletion(() -> remove(emitterId, emitter));
-        emitter.onTimeout(() -> remove(emitterId, emitter));
-        emitter.onError(ignored -> remove(emitterId, emitter));
-        send(emitterId, emitter, SseEmitter.event().name(CONNECTED_EVENT).data("{}"));
+        subscriptions.put(subscriptionId, subscription);
+        emitter.onCompletion(() -> remove(subscriptionId, subscription));
+        emitter.onTimeout(() -> remove(subscriptionId, subscription));
+        emitter.onError(ignored -> remove(subscriptionId, subscription));
+        send(subscriptionId, subscription, SseEmitter.event().name(CONNECTED_EVENT).data("{}"));
         return emitter;
     }
 
@@ -76,9 +78,9 @@ public class DeliveryRequestEventStream {
     }
 
     void notifyRequestsChanged() {
-        emitters.forEach((emitterId, emitter) -> send(
-                emitterId,
-                emitter,
+        subscriptions.forEach((subscriptionId, subscription) -> send(
+                subscriptionId,
+                subscription,
                 SseEmitter.event().name(REQUESTS_CHANGED_EVENT).data("{}")
         ));
     }
@@ -86,31 +88,44 @@ public class DeliveryRequestEventStream {
     @PreDestroy
     void close() {
         heartbeatScheduler.shutdownNow();
-        emitters.forEach((emitterId, emitter) -> emitter.complete());
-        emitters.clear();
+        subscriptions.forEach((subscriptionId, subscription) -> subscription.emitter().complete());
+        subscriptions.clear();
     }
 
     int subscriberCount() {
-        return emitters.size();
+        return subscriptions.size();
+    }
+
+    int subscriberCount(final DriverId driverId) {
+        return (int) subscriptions.values().stream()
+                .filter(subscription -> subscription.driverId().equals(driverId))
+                .count();
     }
 
     private void sendHeartbeat() {
-        emitters.forEach((emitterId, emitter) -> send(
-                emitterId,
-                emitter,
+        subscriptions.forEach((subscriptionId, subscription) -> send(
+                subscriptionId,
+                subscription,
                 SseEmitter.event().comment("heartbeat")
         ));
     }
 
-    private void send(final UUID emitterId, final SseEmitter emitter, final SseEmitter.SseEventBuilder event) {
+    private void send(
+            final UUID subscriptionId,
+            final Subscription subscription,
+            final SseEmitter.SseEventBuilder event
+    ) {
         try {
-            emitter.send(event);
+            subscription.emitter().send(event);
         } catch (final IOException | IllegalStateException ignored) {
-            remove(emitterId, emitter);
+            remove(subscriptionId, subscription);
         }
     }
 
-    private void remove(final UUID emitterId, final SseEmitter emitter) {
-        emitters.remove(emitterId, emitter);
+    private void remove(final UUID subscriptionId, final Subscription subscription) {
+        subscriptions.remove(subscriptionId, subscription);
+    }
+
+    private record Subscription(DriverId driverId, SseEmitter emitter) {
     }
 }
