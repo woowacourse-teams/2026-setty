@@ -62,6 +62,14 @@ setty:
       region: ${AWS_REGION:ap-northeast-2}
       bucket: ${SETTY_S3_BUCKET:techcourse-project-2026}
       public-base-url: ${SETTY_S3_PUBLIC_BASE_URL:https://techcourse-project-2026.s3.ap-northeast-2.amazonaws.com}
+  delivery-fee:
+    # 배송비 = 기본 요금 + (부피 구간 × 구간당 단계 + 거리 단계) × 단계당 금액.
+    # 거리 단계는 무료 거리까지 0, 이후 단계 거리마다 1. 기본값은 거리 0일 때 기존 부피 요금(1만/2만/3만 원)과 같아지도록 잡았다.
+    base-fee: ${DELIVERY_FEE_BASE:10000}
+    step-price: ${DELIVERY_FEE_STEP_PRICE:5000}
+    volume-tier-steps: ${DELIVERY_FEE_VOLUME_TIER_STEPS:2}
+    free-distance-meters: ${DELIVERY_FEE_FREE_DISTANCE_METERS:3000}
+    step-distance-meters: ${DELIVERY_FEE_STEP_DISTANCE_METERS:3000}
   payment:
     # 결제 성공/실패 복귀(GET /payments/success·/fail) 처리 후 브라우저를 돌려보낼 프론트 주소.
     client-redirect-url: ${PAYMENT_CLIENT_REDIRECT_URL:http://localhost:3000}
