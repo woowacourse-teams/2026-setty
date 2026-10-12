@@ -51,6 +51,10 @@ management:
         enabled: false
 
 setty:
+  delivery:
+    request-sse:
+      # 개발·검증 초기값. 운영 상한은 연결 수와 메모리 측정으로 조정한다.
+      max-connections: ${SETTY_DELIVERY_REQUEST_SSE_MAX_CONNECTIONS:1000}
   order:
     pending-expiration:
       timeout: ${PENDING_ORDER_EXPIRATION_TIMEOUT:PT6M}
