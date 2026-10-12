@@ -38,6 +38,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.servlet.DispatcherServlet;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 import setty.global.exception.GlobalExceptionHandler;
+import setty.platform.listing.application.ListingRecorder;
 import setty.platform.listing.application.ListingService;
 import setty.platform.listing.domain.ConditionGrade;
 import setty.platform.listing.domain.Dimensions;
@@ -161,7 +162,7 @@ class ListingTimingHttpIntegrationTest {
 
     @TestConfiguration(proxyBeanMethods = false)
     @EnableWebMvc
-    @Import({RequestIdConfiguration.class, ListingController.class, ListingService.class, GlobalExceptionHandler.class})
+    @Import({RequestIdConfiguration.class, ListingController.class, ListingService.class, ListingRecorder.class, GlobalExceptionHandler.class})
     static class Config {
         @Bean TomcatServletWebServerFactory webServerFactory() { return new TomcatServletWebServerFactory(0); }
         @Bean DispatcherServlet dispatcherServlet() { return new DispatcherServlet(); }

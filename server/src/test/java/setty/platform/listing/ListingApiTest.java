@@ -6,7 +6,9 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -25,6 +27,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.IntStream;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -37,6 +40,7 @@ import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockMultipartHttpServletRequestBuilder;
@@ -321,6 +325,49 @@ class ListingApiTest extends MySqlIntegrationTestSupport {
         verify(listingImageStorage).deleteAll(argThat(objectKeys ->
                 objectKeys.size() == 1 && objectKeys.contains("setty/images/listings/test-1.jpg")
         ));
+    }
+
+    @Test
+    void 등록과_수정의_사진_업로드는_트랜잭션_밖에서_한다() throws Exception {
+        AtomicBoolean uploadedInsideTransaction = new AtomicBoolean(false);
+        when(listingImageStorage.upload(anyList())).thenAnswer(invocation -> {
+            if (TransactionSynchronizationManager.isActualTransactionActive()) {
+                uploadedInsideTransaction.set(true);
+            }
+            List<MultipartFile> images = invocation.getArgument(0);
+            return IntStream.range(0, images.size())
+                    .mapToObj(ignored -> "setty/images/listings/test-" + objectKeySequence.incrementAndGet() + ".jpg")
+                    .toList();
+        });
+
+        long listingId = createListing(SELLER_ID, "업로드 경계 확인용 가상 의자");
+        mockMvc.perform(updateRequest(
+                        listingId,
+                        SELLER_ID,
+                        updateRequest("업로드 경계 확인용 가상 의자", List.of(firstImageId(listingId))),
+                        imagePart("added.jpg")
+                ))
+                .andExpect(status().isNoContent());
+
+        verify(listingImageStorage, times(2)).upload(anyList());
+        assertThat(uploadedInsideTransaction).isFalse();
+    }
+
+    @Test
+    void 다른_판매자의_수정_요청은_사진을_올리기_전에_막는다() throws Exception {
+        long listingId = createListing(SELLER_ID, "업로드 전 차단 확인용 가상 소파");
+
+        mockMvc.perform(updateRequest(
+                        listingId,
+                        OTHER_SELLER_ID,
+                        updateRequest("다른 판매자의 수정 시도", List.of(firstImageId(listingId))),
+                        imagePart("blocked.jpg")
+                ))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("LISTING_NOT_FOUND"));
+
+        verify(listingImageStorage, times(1)).upload(anyList());
+        verify(listingImageStorage, never()).deleteAll(anyList());
     }
 
     @Test
