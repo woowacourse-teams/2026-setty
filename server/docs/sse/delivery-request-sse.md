@@ -1,6 +1,8 @@
-# 배송 요청 SSE 연결 허용 정책
+# 배송 요청 SSE 연결 허용 구현 정책
 
 **채택: 같은 기사에게 동시에 최대 2개의 배송 요청 SSE 연결을 허용한다.** 재접속 중 이전 연결과 새 연결의 일시적 중첩을 허용하기 위한 정책이다. 전체 연결 상한 수치와 초과 연결 처리 방식의 확정은 **보류**한다.
+
+이 문서는 SSE 연결 관리의 구현 기준을 정의한다. 제품·서비스 정책과 별도로 `server/docs/sse/`에서 관리한다.
 
 - 결정일: 2026-10-12.
 - 대상: 기사 앱의 배송 요청 목록 SSE(Server-Sent Events: 열린 HTTP 연결로 서버 이벤트를 전달하는 방식), `GET /api/delivery/requests/events`.
@@ -51,7 +53,7 @@
 
 ## 구현 및 검증 자료
 
-- [서버 연결 등록·정리와 전송](../../server/src/main/java/setty/delivery/api/DeliveryRequestEventStream.java)
-- [기사 인증과 SSE 구독 API](../../server/src/main/java/setty/delivery/api/DeliveryController.java)
-- [앱 연결 종료·재접속과 목록 재조회](../../apps/driver/src/api/deliveryRequestEvents.ts)
-- [기존 재접속 복구 검증 결과](../../server/docs/sse/delivery-request-sse-recovery.md)
+- [서버 연결 등록·정리와 전송](../../src/main/java/setty/delivery/api/DeliveryRequestEventStream.java)
+- [기사 인증과 SSE 구독 API](../../src/main/java/setty/delivery/api/DeliveryController.java)
+- [앱 연결 종료·재접속과 목록 재조회](../../../apps/driver/src/api/deliveryRequestEvents.ts)
+- [기존 재접속 복구 검증 결과](delivery-request-sse-recovery.md)
