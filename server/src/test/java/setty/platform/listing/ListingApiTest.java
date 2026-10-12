@@ -26,6 +26,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.IntStream;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -75,11 +76,14 @@ class ListingApiTest extends MySqlIntegrationTestSupport {
 
     private final AtomicInteger objectKeySequence = new AtomicInteger();
 
+    @AfterEach
+    void tearDown() {
+        deleteListingsAndMembers();
+    }
+
     @BeforeEach
     void setUp() {
-        jdbcTemplate.update("DELETE FROM listing_images");
-        jdbcTemplate.update("DELETE FROM listings");
-        jdbcTemplate.update("DELETE FROM members");
+        deleteListingsAndMembers();
         insertMember(SELLER_ID);
         insertMember(OTHER_SELLER_ID);
         insertMember(FIRST_BUYER_ID);
@@ -596,6 +600,12 @@ class ListingApiTest extends MySqlIntegrationTestSupport {
 
     private JsonNode read(MvcResult result) throws Exception {
         return objectMapper.readTree(result.getResponse().getContentAsByteArray());
+    }
+
+    private void deleteListingsAndMembers() {
+        jdbcTemplate.update("DELETE FROM listing_images");
+        jdbcTemplate.update("DELETE FROM listings");
+        jdbcTemplate.update("DELETE FROM members");
     }
 
     private void insertMember(long memberId) {
