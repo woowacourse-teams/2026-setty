@@ -121,10 +121,9 @@ PORT=9000 DELAY_MS=50 OUT=/var/tmp/mock-push-received.csv node mock-push.mjs
 SETTY_NOTIFICATION_SENDER=mock
 SETTY_NOTIFICATION_MOCK_PUSH_URL=http://127.0.0.1:9000
 SETTY_NOTIFICATION_SEND_CONCURRENCY=4
-SETTY_NOTIFICATION_SYNC_SEND=false
 ```
 
-`SYNC_SEND=true`가 분리 전 구조(등록 트랜잭션 안에서 한 명씩 동기 발송)다.
+분리 전 구조(등록 트랜잭션 안에서 한 명씩 동기 발송)를 재현하던 `SYNC_SEND` 플래그는 알림 생성을 등록 트랜잭션 밖으로 옮기면서(#446) 없앴다. 분리 전 측정값은 설계 문서에 남아 있다.
 
 ### 2 구독자 데이터 (dev EC2 SSM 셸)
 

@@ -6,7 +6,6 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import setty.global.exception.BusinessException;
 import setty.global.exception.ErrorCode;
@@ -31,7 +30,7 @@ public class ListingNotificationService {
         this.namedJdbcTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
     }
 
-    @Transactional(propagation = Propagation.MANDATORY)
+    @Transactional
     public int createForListing(final Long listingId, final Long sellerId, final String title) {
         return jdbcTemplate.update(
                 """
@@ -40,6 +39,7 @@ public class ListingNotificationService {
                 FROM keyword_subscriptions s
                 WHERE ? LIKE CONCAT('%', s.keyword, '%')
                   AND s.member_id <> ?
+                ON DUPLICATE KEY UPDATE listing_id = listing_notifications.listing_id
                 """,
                 listingId, title, sellerId
         );

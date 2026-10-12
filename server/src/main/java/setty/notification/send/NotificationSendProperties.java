@@ -5,7 +5,6 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "setty.notification")
 public record NotificationSendProperties(
         int sendConcurrency,
-        boolean syncSend,
         String mockPushUrl,
         String fcmCredentialsPath
 ) {

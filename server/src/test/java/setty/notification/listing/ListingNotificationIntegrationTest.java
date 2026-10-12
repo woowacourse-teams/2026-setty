@@ -23,6 +23,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.support.TransactionTemplate;
 import setty.notification.keyword.application.KeywordSubscriptionService;
 import setty.notification.listing.application.ListingNotificationDispatcher;
+import setty.notification.listing.application.ListingNotificationService;
 import setty.notification.send.NotificationSender;
 import setty.notification.send.SendResult;
 import setty.platform.listing.application.ListingCreateCommand;
@@ -56,6 +57,9 @@ class ListingNotificationIntegrationTest extends MySqlIntegrationTestSupport {
 
     @Autowired
     private TransactionTemplate transactionTemplate;
+
+    @Autowired
+    private ListingNotificationService listingNotificationService;
 
     @MockitoBean
     private ListingImageStorage listingImageStorage;
@@ -192,18 +196,34 @@ class ListingNotificationIntegrationTest extends MySqlIntegrationTestSupport {
         subscribe(FIRST_SUBSCRIBER_ID, "아이폰");
 
         final long listingId = createListing("갤럭시 S24 팝니다");
+        awaitEventsHandled(jdbcTemplate);
 
         assertThat(notificationCount(listingId)).isZero();
+    }
+
+    @Test
+    void 알림_생성이_다시_실행돼도_중복되지_않는다() {
+        subscribe(FIRST_SUBSCRIBER_ID, "아이폰");
+        subscribe(SECOND_SUBSCRIBER_ID, "아이폰");
+        final long listingId = createListing("아이폰 15 팝니다");
+        awaitEventsHandled(jdbcTemplate);
+
+        assertThatCode(() -> listingNotificationService.createForListing(listingId, SELLER_ID, "아이폰 15 팝니다"))
+                .doesNotThrowAnyException();
+        assertThat(notificationCount(listingId)).isEqualTo(2);
+        assertThat(countByStatus(listingId, "SENT")).isEqualTo(2);
     }
 
     @Test
     void 매물을_수정해도_알림이_추가되지_않는다() {
         subscribe(FIRST_SUBSCRIBER_ID, "아이폰");
         final long listingId = createListing("아이폰 15 팝니다");
+        awaitEventsHandled(jdbcTemplate);
 
         listingService.update(SELLER_ID, listingId, new ListingUpdateCommand(
                 "아이폰 15 프로 팝니다", "수정된 설명", 900_000, ListingCategory.DESK, ConditionGrade.A,
                 Dimensions.of(10, 10, 10), retainedImageIds(listingId), List.of()));
+        awaitEventsHandled(jdbcTemplate);
 
         assertThat(notificationCount(listingId)).isEqualTo(1);
     }
@@ -214,6 +234,7 @@ class ListingNotificationIntegrationTest extends MySqlIntegrationTestSupport {
         subscribe(FIRST_SUBSCRIBER_ID, "15");
 
         final long listingId = createListing("아이폰 15 팝니다");
+        awaitEventsHandled(jdbcTemplate);
 
         assertThat(notificationCount(listingId)).isEqualTo(1);
     }
@@ -224,6 +245,7 @@ class ListingNotificationIntegrationTest extends MySqlIntegrationTestSupport {
         subscribe(FIRST_SUBSCRIBER_ID, "아이폰");
 
         final long listingId = createListing("아이폰 15 팝니다");
+        awaitEventsHandled(jdbcTemplate);
 
         assertThat(notificationCount(listingId)).isEqualTo(1);
         assertThat(countByMember(listingId, SELLER_ID)).isZero();
@@ -234,6 +256,7 @@ class ListingNotificationIntegrationTest extends MySqlIntegrationTestSupport {
         subscribe(FIRST_SUBSCRIBER_ID, "  iphone ");
 
         final long listingId = createListing("IPHONE 15 팝니다");
+        awaitEventsHandled(jdbcTemplate);
 
         assertThat(notificationCount(listingId)).isEqualTo(1);
     }
