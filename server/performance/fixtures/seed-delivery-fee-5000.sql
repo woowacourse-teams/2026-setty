@@ -1,6 +1,7 @@
--- 배송비 필터 측정: 서울 행정동마다 판매자 1명(427명) + AVAILABLE 매물 5,000개 + 사진 메타데이터 5,000개.
+-- 배송비 필터 측정: 서울 행정동마다 판매자 1명(427명) + AVAILABLE 매물 5,000개 + 사진 메타데이터 5,000개 + 측정용 구매자 1명.
 -- MySQL 8.0.16+ / InnoDB. 실행 방법은 ../README.md의 "배송비 필터 측정 데이터"를 따른다.
--- --init-command로 @fixture_expected_database, @fixture_expected_hostname 전달.
+-- --init-command로 @fixture_expected_database, @fixture_expected_hostname,
+-- @fixture_buyer_token(36자 UUID, Gatling BUYER_TOKEN과 같은 값) 전달.
 -- --skip-reconnect --skip-force 필수. 대화형 SOURCE 금지. 기본은 마지막 ROLLBACK, 시험 통과 후 임시 실행본만 COMMIT.
 -- 다른 매물 수를 검사하지 않으므로 기존 데이터와 함께 들어간다. 대신 목록 측정 시드(seed-listings-100 등)는
 -- "판매 가능 매물 0개"를 요구하므로 그 시드보다 먼저 넣지 않는다. 재실행 시 전용 판매자가 있으면 중단한다.
@@ -28,6 +29,8 @@ FROM information_schema.tables
 WHERE table_schema = DATABASE() AND engine = 'InnoDB'
   AND table_name IN ('members', 'listings', 'listing_images');
 INSERT INTO fixture_assertion VALUES ('foreign_keys_enabled', @@foreign_key_checks);
+INSERT INTO fixture_assertion VALUES ('buyer_token_provided',
+    IF(CHAR_LENGTH(@fixture_buyer_token) = 36, 1, 0));
 
 -- deliveryfee/seoul-dongs.csv의 (index, 행정동 코드). index는 거리표 순서와 같다.
 CREATE TEMPORARY TABLE fixture_dong (idx INT PRIMARY KEY, code CHAR(10) NOT NULL);
@@ -476,13 +479,21 @@ INSERT INTO fixture_assertion SELECT 'dong_and_sequence_ready',
 START TRANSACTION;
 INSERT INTO fixture_assertion
 SELECT 'fixture_sellers_do_not_exist', IF(COUNT(*) = 0, 1, 0)
-FROM members WHERE login_id LIKE 's4-fee-%' OR address = 'SETTY_DELIVERY_FEE_FILTER_FIXTURE_ONLY';
+FROM members WHERE login_id LIKE 's4-fee-%' OR address IN ('SETTY_DELIVERY_FEE_FILTER_FIXTURE_ONLY', 'SETTY_DELIVERY_FEE_FILTER_BUYER_FIXTURE_ONLY');
+INSERT INTO fixture_assertion
+SELECT 'buyer_token_unused', IF(COUNT(*) = 0, 1, 0)
+FROM members WHERE token = CONVERT(@fixture_buyer_token USING utf8mb4) COLLATE utf8mb4_unicode_ci;
 
 -- 로그인하지 않는 계정이다. password는 BCrypt 해시가 아닌 로그인 불가 표식이다.
 INSERT INTO members (login_id, password, role, phone_number, address, dong_code, token)
 SELECT CONCAT('s4-fee-', LPAD(idx, 3, '0')), REPEAT('!', 60), 'MEMBER', '000-0000-0000',
        'SETTY_DELIVERY_FEE_FILTER_FIXTURE_ONLY', code, NULL
 FROM fixture_dong ORDER BY idx;
+
+-- 필터 요청은 구매자 행정동이 필요하다. Gatling이 측정 조건마다 PUT /api/auth/me/dong으로 행정동을 바꾼다.
+INSERT INTO members (login_id, password, role, phone_number, address, dong_code, token)
+VALUES ('s4-fee-buyer', REPEAT('!', 60), 'MEMBER', '000-0000-0000', 'SETTY_DELIVERY_FEE_FILTER_BUYER_FIXTURE_ONLY', '1111053000',
+        CONVERT(@fixture_buyer_token USING utf8mb4) COLLATE utf8mb4_unicode_ci);
 
 -- 부피 구간별 크기와 배송비는 DeliveryFeePolicy 경계를 따른다(SMALL 28만, MEDIUM 60만, LARGE 160만 cm3).
 INSERT INTO listings
@@ -539,9 +550,11 @@ GROUP BY l.volume_tier ORDER BY l.volume_tier;
 -- 기본은 롤백. 위 출력은 커밋 전 검증값이며 저장 완료를 뜻하지 않는다.
 ROLLBACK;
 
--- 롤백 후에는 0/0, COMMIT으로 바꾼 실제 저장 후에는 427/5000이어야 한다.
+-- 롤백 후에는 0/0/0, COMMIT으로 바꾼 실제 저장 후에는 427/5000/1이어야 한다.
 SELECT COUNT(*) AS fixture_sellers_after_run
 FROM members WHERE address = 'SETTY_DELIVERY_FEE_FILTER_FIXTURE_ONLY';
 SELECT COUNT(*) AS fixture_listings_after_run
 FROM listings l JOIN members m ON m.id = l.seller_id
 WHERE m.address = 'SETTY_DELIVERY_FEE_FILTER_FIXTURE_ONLY';
+SELECT COUNT(*) AS fixture_buyers_after_run
+FROM members WHERE address = 'SETTY_DELIVERY_FEE_FILTER_BUYER_FIXTURE_ONLY';

@@ -1,9 +1,11 @@
+-- 목록 측정 시드(seed-listings-100.sql + expand-*.sql)를 100·1,000·5,000개 어느 단계에서든 지운다.
 -- 실험 종료 시에만 사용. seed와 같은 dev 접속을 확인하고 새 mysql 배치 연결에서 실행한다.
 -- 실행 명령은 ../README.md 참고. mysql --init-command로 아래 확인값을 전달한다:
 -- @fixture_expected_database, @fixture_expected_hostname (SELECT @@hostname으로 확인한 값).
 -- --force / 대화형 SOURCE 금지. 오류 시 클라이언트 종료로 전체를 롤백한다.
 -- 기본은 ROLLBACK. 대상과 건수를 확인한 후에만 마지막을 COMMIT으로 바꾼다.
--- seed의 전용 판매자·100개·이미지 키가 일치하고 주문 등이 없을 때만 삭제할 수 있다.
+-- 전용 판매자의 매물 수가 100·1,000·5,000개 중 하나이고, 매물 번호가 1부터 빠짐없이 이어지며,
+-- 이미지 키가 일치하고 주문 등이 없을 때만 삭제할 수 있다.
 CREATE TEMPORARY TABLE fixture_assertion (
     label VARCHAR(100) NOT NULL,
     ok INT NOT NULL,
@@ -28,18 +30,24 @@ SET @fixture_seller_id = (
 );
 INSERT INTO fixture_assertion VALUES ('fixture_seller_matches',
     IF(@fixture_seller_id IS NOT NULL, 1, 0));
+SET @fixture_listing_count = (SELECT COUNT(*) FROM listings WHERE seller_id = @fixture_seller_id);
+INSERT INTO fixture_assertion VALUES ('fixture_listing_count_is_known_step',
+    IF(@fixture_listing_count IN (100, 1000, 5000), 1, 0));
 INSERT INTO fixture_assertion
-SELECT 'exactly_100_untouched_fixture_listings',
-       IF(COUNT(*) = 100 AND SUM(title LIKE '[S2-L001] Test desk %'
-           AND sale_status = 'AVAILABLE' AND deleted_at IS NULL
-           AND has_purchase_request = FALSE) = 100, 1, 0)
+SELECT 'untouched_fixture_listings_numbered_from_1',
+       IF(COUNT(*) = @fixture_listing_count AND COUNT(DISTINCT title) = @fixture_listing_count
+          AND SUM(title LIKE '[S2-L001] Test desk %'
+              AND CAST(RIGHT(title, 6) AS UNSIGNED) BETWEEN 1 AND @fixture_listing_count
+              AND sale_status = 'AVAILABLE' AND deleted_at IS NULL
+              AND has_purchase_request = FALSE) = @fixture_listing_count, 1, 0)
 FROM listings WHERE seller_id = @fixture_seller_id;
 INSERT INTO fixture_assertion
-SELECT 'exactly_100_fixture_images', IF(COUNT(*) = 100 AND SUM(
+SELECT 'one_fixture_image_per_listing', IF(COUNT(*) = @fixture_listing_count AND SUM(
     i.object_key = CONCAT('setty/images/listings/sprint2-l001-', RIGHT(l.title, 6), '-01.jpg')
-    AND i.display_order = 1) = 100, 1, 0)
+    AND i.display_order = 1) = @fixture_listing_count, 1, 0)
 FROM listing_images i JOIN listings l ON l.id = i.listing_id
 WHERE l.seller_id = @fixture_seller_id;
+SELECT @fixture_listing_count AS fixture_listings_before_delete;
 INSERT INTO fixture_assertion
 SELECT 'no_orders', IF(COUNT(*) = 0, 1, 0) FROM orders o
 WHERE o.buyer_id = @fixture_seller_id OR o.listing_id IN
@@ -62,7 +70,7 @@ DELETE FROM members WHERE id = @fixture_seller_id;
 SELECT ROW_COUNT() AS deleted_fixture_sellers;
 ROLLBACK;
 
--- 위 삭제 건수는 커밋 전 값이다. 롤백 후에는 100/1, 실제 삭제 후에는 0/0이어야 한다.
+-- 위 삭제 건수는 커밋 전 값이다. 롤백 후에는 처음 건수(100·1,000·5,000)/1, 실제 삭제 후에는 0/0이어야 한다.
 SELECT COUNT(*) AS fixture_listings_after_run
 FROM listings WHERE seller_id = @fixture_seller_id;
 SELECT COUNT(*) AS fixture_sellers_after_run
