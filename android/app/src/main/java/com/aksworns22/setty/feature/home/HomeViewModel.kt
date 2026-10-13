@@ -10,6 +10,10 @@ import com.aksworns22.setty.data.FurnitureRepository
 import com.aksworns22.setty.data.UserRepository
 import com.aksworns22.setty.core.model.FurnitureCategory
 import com.aksworns22.setty.core.model.FurnitureSummary
+import com.aksworns22.setty.feature.common.isMemberDongRequired
+import com.aksworns22.setty.model.FurniturePage
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -20,12 +24,20 @@ import kotlinx.coroutines.launch
 data class HomeUiState(
     val furnitures: List<FurnitureSummary> = emptyList(),
     val selectedCategory: FurnitureCategory? = null,
+    // 고른 배송비 예산. null이면 거르지 않고 전체를 한 번에 받는다
+    val maxDeliveryFee: Int? = null,
+    // 배송비로 거를 때 이어 받을 다음 페이지 커서. 마지막 페이지면 null
+    val nextCursor: String? = null,
+    val isLoadingMore: Boolean = false,
     // 프로필 버튼에 보여줄 아이디 첫 글자. 회원 정보를 아직 못 받았으면 null
     val profileInitial: String? = null,
     val isLoading: Boolean = true,
     val isRefreshing: Boolean = false,
     val hasError: Boolean = false,
 ) {
+    val hasMore: Boolean
+        get() = maxDeliveryFee != null && nextCursor != null
+
     val visibleFurnitures: List<FurnitureSummary>
         get() = if (selectedCategory == null) {
             furnitures
@@ -43,6 +55,10 @@ data class HomeUiState(
 
 enum class HomeEvent {
     REFRESH_ERROR,
+    LOAD_MORE_ERROR,
+
+    // 회원 행정동이 없어 배송비로 거를 수 없다
+    REQUIRE_DONG,
 }
 
 class HomeViewModel(
@@ -56,12 +72,23 @@ class HomeViewModel(
     private val _event = Channel<HomeEvent>(Channel.BUFFERED)
     val event = _event.receiveAsFlow()
 
+    // 목록을 받는 요청. 필터를 바꾸면 이전 요청의 결과가 뒤늦게 덮어쓰지 않도록 취소한다
+    private var listingsJob: Job? = null
+
+    // 지금 보여주는 목록을 받은 배송비 예산. 다른 예산으로 받다 실패하면 필터를 이 값으로 되돌린다
+    private var shownMaxDeliveryFee: Int? = null
+
     /**
      * 홈에 들어올 때마다 부른다. ViewModel이 Activity 범위라 다른 화면에서 가구를 등록·수정·삭제하고
      * 돌아와도 다시 만들어지지 않으므로, 이미 보여주는 목록이 있으면 로딩 없이 최신 목록으로 바꾼다.
+     * 배송비로 거른 목록은 첫 페이지만 다시 받으면 이어 받은 페이지가 사라지므로 그대로 둔다.
      */
     fun onEnter() {
-        if (_uiState.value.furnitures.isEmpty()) loadListings() else fetchListings()
+        val state = _uiState.value
+        when {
+            state.furnitures.isEmpty() -> loadListings()
+            state.maxDeliveryFee == null -> fetchListings()
+        }
         loadProfile()
     }
 
@@ -90,26 +117,84 @@ class HomeViewModel(
         _uiState.update { it.copy(selectedCategory = category) }
     }
 
-    private fun fetchListings() {
-        viewModelScope.launch {
+    /** 배송비 예산을 바꾸고 첫 페이지부터 다시 받는다. null이면 필터를 해제한다. */
+    fun onMaxDeliveryFeeSelected(maxDeliveryFee: Int?) {
+        if (_uiState.value.maxDeliveryFee == maxDeliveryFee) return
+        _uiState.update { it.copy(maxDeliveryFee = maxDeliveryFee, isLoading = true, hasError = false) }
+        fetchListings()
+    }
+
+    /** 배송비로 거른 목록의 다음 페이지를 이어 받는다. */
+    fun loadMore() {
+        val state = _uiState.value
+        val maxDeliveryFee = state.maxDeliveryFee ?: return
+        val cursor = state.nextCursor ?: return
+        if (state.isLoading || state.isRefreshing || state.isLoadingMore) return
+        _uiState.update { it.copy(isLoadingMore = true) }
+        listingsJob = viewModelScope.launch {
             runCatching {
-                furnitureRepository.getFurniture()
-            }.onSuccess { listings ->
+                furnitureRepository.getFurnitureWithinDeliveryFee(maxDeliveryFee, cursor)
+            }.onSuccess { page ->
                 _uiState.update {
                     it.copy(
-                        furnitures = listings,
+                        // 페이지 사이에 새 매물이 끼어도 같은 매물이 두 번 보이지 않게 한다
+                        furnitures = (it.furnitures + page.items).distinctBy { listing -> listing.id },
+                        nextCursor = page.nextCursor,
+                        isLoadingMore = false,
+                    )
+                }
+            }.onFailure { throwable ->
+                if (throwable is CancellationException) throw throwable
+                _uiState.update { it.copy(isLoadingMore = false) }
+                _event.send(HomeEvent.LOAD_MORE_ERROR)
+            }
+        }
+    }
+
+    private fun fetchListings() {
+        listingsJob?.cancel()
+        val maxDeliveryFee = _uiState.value.maxDeliveryFee
+        listingsJob = viewModelScope.launch {
+            runCatching {
+                if (maxDeliveryFee == null) {
+                    FurniturePage(furnitureRepository.getFurniture(), nextCursor = null)
+                } else {
+                    furnitureRepository.getFurnitureWithinDeliveryFee(maxDeliveryFee, cursor = null)
+                }
+            }.onSuccess { page ->
+                shownMaxDeliveryFee = maxDeliveryFee
+                _uiState.update {
+                    it.copy(
+                        furnitures = page.items,
+                        nextCursor = page.nextCursor,
                         isLoading = false,
                         isRefreshing = false,
+                        isLoadingMore = false,
                         hasError = false,
                     )
                 }
-            }.onFailure {
+            }.onFailure { throwable ->
+                if (throwable is CancellationException) throw throwable
+                if (throwable.isMemberDongRequired) {
+                    _uiState.update {
+                        it.copy(
+                            maxDeliveryFee = shownMaxDeliveryFee,
+                            isLoading = false,
+                            isRefreshing = false,
+                            isLoadingMore = false,
+                        )
+                    }
+                    _event.send(HomeEvent.REQUIRE_DONG)
+                    return@onFailure
+                }
                 val hasListings = _uiState.value.furnitures.isNotEmpty()
                 _uiState.update {
                     it.copy(
                         isLoading = false,
                         isRefreshing = false,
+                        isLoadingMore = false,
                         hasError = !hasListings,
+                        maxDeliveryFee = if (hasListings) shownMaxDeliveryFee else it.maxDeliveryFee,
                     )
                 }
                 if (hasListings) {

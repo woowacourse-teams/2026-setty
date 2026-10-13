@@ -4,7 +4,9 @@ import android.net.Uri
 import com.aksworns22.setty.core.model.FurnitureDetail
 import com.aksworns22.setty.core.model.FurnitureSummary
 import com.aksworns22.setty.core.model.SaleStatus
+import com.aksworns22.setty.model.Dong
 import com.aksworns22.setty.model.EditableListing
+import com.aksworns22.setty.model.FurniturePage
 import com.aksworns22.setty.model.ListingDraft
 import com.aksworns22.setty.model.ListingImage
 import com.aksworns22.setty.model.MyFurniture
@@ -14,6 +16,7 @@ import com.aksworns22.setty.network.DimensionsRequest
 import com.aksworns22.setty.network.FurnitureDetailResponse
 import com.aksworns22.setty.network.FurnitureSummaryResponse
 import com.aksworns22.setty.network.ListingCreateRequest
+import com.aksworns22.setty.network.ListingDongResponse
 import com.aksworns22.setty.network.ListingUpdateRequest
 import com.aksworns22.setty.network.MyFurnitureResponse
 import com.aksworns22.setty.network.SettyNetworkApi
@@ -29,6 +32,17 @@ class FurnitureRepository(
 ) {
     suspend fun getFurniture(): List<FurnitureSummary> {
         return settyNetworkApi.getListings().items.map { it.toFurniture() }
+    }
+
+    /** 배송비가 [maxDeliveryFee] 이하인 매물 한 페이지를 받는다. 첫 페이지는 [cursor]를 null로 넘긴다. */
+    suspend fun getFurnitureWithinDeliveryFee(maxDeliveryFee: Int, cursor: String?): FurniturePage {
+        val response = apiCall {
+            settyNetworkApi.getListingsWithinDeliveryFee(maxDeliveryFee, PAGE_SIZE, cursor)
+        }
+        return FurniturePage(
+            items = response.items.map { it.toFurniture() },
+            nextCursor = response.nextCursor,
+        )
     }
 
     suspend fun getFurnitureDetail(furnitureId: Long): FurnitureDetail =
@@ -83,6 +97,7 @@ class FurnitureRepository(
     }
 
     companion object {
+        private const val PAGE_SIZE = 20
         private val json = Json { encodeDefaults = true }
     }
 }
@@ -105,7 +120,11 @@ internal fun FurnitureSummaryResponse.toFurniture() = FurnitureSummary(
     category = furnitureCategoryOf(category),
     conditionGrade = conditionGrade,
     createdAt = createdAt,
+    dongName = dong?.toDisplayName(),
 )
+
+private fun ListingDongResponse.toDisplayName(): String =
+    Dong(code = code, name = name, district = district).displayName
 
 internal fun FurnitureDetailResponse.toFurnitureDetail() = FurnitureDetail(
     id = id,
@@ -121,6 +140,7 @@ internal fun FurnitureDetailResponse.toFurnitureDetail() = FurnitureDetail(
     heightCm = dimensions.heightCm,
     saleStatus = saleStatusOrNull(saleStatus) ?: SaleStatus.SOLD,
     imageUrls = images.sortedBy { it.displayOrder }.map { it.url },
+    dongName = dong?.toDisplayName(),
 )
 
 internal fun FurnitureDetailResponse.toEditableListing() = EditableListing(

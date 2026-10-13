@@ -14,4 +14,6 @@ data class FurnitureDetail(
     val heightCm: Int,
     val saleStatus: SaleStatus,
     val imageUrls: List<String>,
+    // 판매자 행정동 표시 이름(예: "마포구 서교동"). 행정동 도입 전에 등록한 매물은 null
+    val dongName: String? = null,
 )

@@ -174,7 +174,7 @@ private fun ListingDetailContent(
                             text = listing?.title.orEmpty().keepAllWords(),
                             fontFamily = Paperlogy,
                             fontWeight = FontWeight.Black,
-                            maxLines = 2,
+                            maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                             modifier = Modifier.weight(1f, fill = false),
                         )
@@ -186,7 +186,7 @@ private fun ListingDetailContent(
                 subtitle = listing?.let {
                     {
                         Text(
-                            text = "${it.categoryLabel} · ${it.conditionGrade}급",
+                            text = listOfNotNull(it.categoryLabel, it.dongName).joinToString(" · "),
                             fontFamily = Paperlogy,
                         )
                     }

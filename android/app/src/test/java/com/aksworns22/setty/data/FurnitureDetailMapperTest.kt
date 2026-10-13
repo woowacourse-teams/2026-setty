@@ -6,9 +6,12 @@ import com.aksworns22.setty.model.categoryLabel
 import com.aksworns22.setty.model.isPurchasable
 import com.aksworns22.setty.network.DimensionsResponse
 import com.aksworns22.setty.network.FurnitureDetailResponse
+import com.aksworns22.setty.network.FurnitureSummaryResponse
+import com.aksworns22.setty.network.ListingDongResponse
 import com.aksworns22.setty.network.ListingImageResponse
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -65,5 +68,29 @@ class FurnitureDetailMapperTest {
 
         assertEquals(SaleStatus.SOLD, listing.saleStatus)
         assertFalse(listing.isPurchasable)
+    }
+
+    @Test
+    fun `판매자 행정동을 구와 동 이름으로 보여준다`() {
+        val dong = ListingDongResponse(code = "1144066000", name = "서교동", district = "마포구")
+        val summary = FurnitureSummaryResponse(
+            id = 1,
+            title = "원목 4인 식탁",
+            price = 120_000,
+            deliveryFee = 20_000,
+            totalPrice = 140_000,
+            category = "TABLE",
+            conditionGrade = "A",
+            createdAt = "2026-09-30T00:00:00Z",
+            dong = dong,
+        )
+
+        assertEquals("마포구 서교동", response.copy(dong = dong).toFurnitureDetail().dongName)
+        assertEquals("마포구 서교동", summary.toFurniture().dongName)
+    }
+
+    @Test
+    fun `행정동 도입 전에 등록한 매물은 행정동이 없다`() {
+        assertNull(response.toFurnitureDetail().dongName)
     }
 }

@@ -16,4 +16,9 @@ fun Throwable.toUserMessage(fallback: String = "알 수 없는 에러가 발생�
 val Throwable.isUnauthorized: Boolean
     get() = this is ApiException && code == INVALID_TOKEN
 
+/** 회원 행정동을 정하지 않아 행정동 선택 화면으로 보내야 하는 에러인지 여부. */
+val Throwable.isMemberDongRequired: Boolean
+    get() = this is ApiException && code == MEMBER_DONG_REQUIRED
+
 private const val INVALID_TOKEN = "INVALID_TOKEN"
+private const val MEMBER_DONG_REQUIRED = "MEMBER_DONG_REQUIRED"

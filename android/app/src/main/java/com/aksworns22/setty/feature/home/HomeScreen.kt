@@ -9,17 +9,22 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.ExpandedFullScreenSearchBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
@@ -27,24 +32,35 @@ import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SearchBarDefaults
 import androidx.compose.material3.SegmentedListItem
+import androidx.compose.material3.Slider
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.ToggleButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.rememberSearchBarState
 import androidx.compose.material3.toShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -68,12 +84,15 @@ import com.aksworns22.setty.model.label
 import com.aksworns22.setty.model.registeredDateLabel
 import com.aksworns22.setty.ui.theme.Paperlogy
 import com.aksworns22.setty.ui.theme.SettyTheme
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.launch
 
 @Composable
 fun HomeScreen(
     onFurnitureClick: (Long) -> Unit,
     onProfileClick: () -> Unit,
+    onRequireDong: () -> Unit,
     viewModel: HomeViewModel = viewModel(factory = HomeViewModel.Factory)
 ) {
     val uiState = viewModel.uiState.collectAsStateWithLifecycle()
@@ -85,6 +104,12 @@ fun HomeScreen(
                 HomeEvent.REFRESH_ERROR -> {
                     snackbarHostState.showSnackbar("가구 목록을 새로고침하지 못했습니다")
                 }
+
+                HomeEvent.LOAD_MORE_ERROR -> {
+                    snackbarHostState.showSnackbar("가구를 더 불러오지 못했습니다")
+                }
+
+                HomeEvent.REQUIRE_DONG -> onRequireDong()
             }
         }
     }
@@ -93,6 +118,8 @@ fun HomeScreen(
         onRefresh = viewModel::refresh,
         onRetry = viewModel::loadListings,
         onCategorySelected = viewModel::onCategorySelected,
+        onMaxDeliveryFeeSelected = viewModel::onMaxDeliveryFeeSelected,
+        onLoadMore = viewModel::loadMore,
         onListingClick = onFurnitureClick,
         onProfileClick = onProfileClick,
         snackbarHostState = snackbarHostState,
@@ -106,6 +133,8 @@ private fun HomeContent(
     onRefresh: () -> Unit,
     onRetry: () -> Unit,
     onCategorySelected: (FurnitureCategory?) -> Unit,
+    onMaxDeliveryFeeSelected: (Int?) -> Unit,
+    onLoadMore: () -> Unit,
     onListingClick: (Long) -> Unit,
     onProfileClick: () -> Unit,
     snackbarHostState: SnackbarHostState,
@@ -232,6 +261,8 @@ private fun HomeContent(
                     ListingList(
                         uiState = uiState,
                         onCategorySelected = onCategorySelected,
+                        onMaxDeliveryFeeSelected = onMaxDeliveryFeeSelected,
+                        onLoadMore = onLoadMore,
                         onListingClick = onListingClick,
                     )
                 }
@@ -324,10 +355,28 @@ private fun ProfileButton(
 private fun ListingList(
     uiState: HomeUiState,
     onCategorySelected: (FurnitureCategory?) -> Unit,
+    onMaxDeliveryFeeSelected: (Int?) -> Unit,
+    onLoadMore: () -> Unit,
     onListingClick: (Long) -> Unit,
 ) {
     val listings = uiState.visibleFurnitures
+    val listState = rememberLazyListState()
+    // 배송비로 거른 목록은 끝에 가까워지면 다음 페이지를 이어 받는다.
+    // 받은 뒤에도 끝이 보이면 항목 수가 바뀌었으므로 다시 받고, 실패해 항목 수가 그대로면 다시 받지 않는다.
+    LaunchedEffect(listState, uiState.hasMore) {
+        if (!uiState.hasMore) return@LaunchedEffect
+        snapshotFlow {
+            val layoutInfo = listState.layoutInfo
+            val lastVisibleIndex = layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+            val isNearEnd = lastVisibleIndex >= layoutInfo.totalItemsCount - LOAD_MORE_THRESHOLD
+            if (isNearEnd) layoutInfo.totalItemsCount else null
+        }
+            .distinctUntilChanged()
+            .filterNotNull()
+            .collect { onLoadMore() }
+    }
     LazyColumn(
+        state = listState,
         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 24.dp),
         verticalArrangement = Arrangement.spacedBy(
             ListItemDefaults.SegmentedGap
@@ -338,15 +387,25 @@ private fun ListingList(
             ListingHeader(
                 selectedCategory = uiState.selectedCategory,
                 onCategorySelected = onCategorySelected,
+                maxDeliveryFee = uiState.maxDeliveryFee,
+                onMaxDeliveryFeeSelected = onMaxDeliveryFeeSelected,
             )
         }
-        if (listings.isEmpty()) {
+        if (listings.isEmpty() && !uiState.hasMore) {
             item(key = "empty") {
-                ListingsMessage(
-                    title = "아직 등록된 가구가 없어요",
-                    description = "곧 새로운 가구가 올라올 거예요.",
-                    modifier = Modifier.padding(top = 48.dp),
-                )
+                if (uiState.maxDeliveryFee == null) {
+                    ListingsMessage(
+                        title = "아직 등록된 가구가 없어요",
+                        description = "곧 새로운 가구가 올라올 거예요.",
+                        modifier = Modifier.padding(top = 48.dp),
+                    )
+                } else {
+                    ListingsMessage(
+                        title = "배송비 예산 안의 가구가 없어요",
+                        description = "예산을 늘리거나 필터를 해제해 보세요.",
+                        modifier = Modifier.padding(top = 48.dp),
+                    )
+                }
             }
         }
         itemsIndexed(listings, key = { _, listing -> listing.id }) { index, listing ->
@@ -358,6 +417,40 @@ private fun ListingList(
                 modifier = Modifier.animateItem(),
             )
         }
+        if (uiState.hasMore) {
+            item(key = "loadMore") {
+                LoadMoreFooter(
+                    isLoadingMore = uiState.isLoadingMore,
+                    onLoadMore = onLoadMore,
+                )
+            }
+        }
+    }
+}
+
+// 마지막에서 이만큼 앞의 항목이 보이면 다음 페이지를 받는다
+private const val LOAD_MORE_THRESHOLD = 3
+
+/** 다음 페이지를 받는 중이면 로딩을, 아니면 직접 이어 받을 버튼을 보여준다. 자동으로 받다 실패했을 때 다시 시도하는 용도다. */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun LoadMoreFooter(
+    isLoadingMore: Boolean,
+    onLoadMore: () -> Unit,
+) {
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 12.dp),
+    ) {
+        if (isLoadingMore) {
+            LoadingIndicator()
+        } else {
+            TextButton(onClick = onLoadMore) {
+                Text("더 보기", style = MaterialTheme.typography.labelLarge)
+            }
+        }
     }
 }
 
@@ -366,12 +459,171 @@ private fun ListingList(
 private fun ListingHeader(
     selectedCategory: FurnitureCategory?,
     onCategorySelected: (FurnitureCategory?) -> Unit,
+    maxDeliveryFee: Int?,
+    onMaxDeliveryFeeSelected: (Int?) -> Unit,
 ) {
-    Box(modifier = Modifier.padding(top = 8.dp, bottom = 12.dp)) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier.padding(top = 8.dp, bottom = 12.dp),
+    ) {
         CategoryButtonGroup(
             selectedCategory = selectedCategory,
             onCategorySelected = onCategorySelected,
         )
+        DeliveryFeeFilter(
+            maxDeliveryFee = maxDeliveryFee,
+            onMaxDeliveryFeeSelected = onMaxDeliveryFeeSelected,
+        )
+    }
+}
+
+/**
+ * 배송비 예산 칩. "전체"는 필터를 해제하고, 정해 둔 예산 칩은 다시 누르면 해제한다.
+ * 정해 둔 예산에 없는 값은 직접 입력해 고르고, 고른 값은 직접 입력 칩에 보여준다.
+ */
+@Composable
+private fun DeliveryFeeFilter(
+    maxDeliveryFee: Int?,
+    onMaxDeliveryFeeSelected: (Int?) -> Unit,
+) {
+    var isBudgetSheetVisible by rememberSaveable { mutableStateOf(false) }
+    val customBudget = maxDeliveryFee?.takeIf { it !in DeliveryFeeBudget.PRESETS }
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier.horizontalScroll(rememberScrollState()),
+    ) {
+        FilterChip(
+            selected = maxDeliveryFee == null,
+            onClick = { onMaxDeliveryFeeSelected(null) },
+            label = { Text("배송비 전체", style = MaterialTheme.typography.labelLarge) },
+        )
+        DeliveryFeeBudget.PRESETS.forEach { budget ->
+            val isSelected = maxDeliveryFee == budget
+            FilterChip(
+                selected = isSelected,
+                onClick = { onMaxDeliveryFeeSelected(if (isSelected) null else budget) },
+                label = {
+                    Text(
+                        text = "${DeliveryFeeBudget.format(budget)} 이하",
+                        style = MaterialTheme.typography.labelLarge,
+                    )
+                },
+            )
+        }
+        FilterChip(
+            selected = customBudget != null,
+            onClick = { isBudgetSheetVisible = true },
+            label = {
+                Text(
+                    text = customBudget?.let { "${DeliveryFeeBudget.format(it)} 이하" } ?: "직접 설정",
+                    style = MaterialTheme.typography.labelLarge,
+                )
+            },
+            leadingIcon = {
+                Icon(
+                    painter = painterResource(R.drawable.outline_edit_24),
+                    contentDescription = null,
+                    modifier = Modifier.size(FilterChipDefaults.IconSize),
+                )
+            },
+        )
+    }
+    if (isBudgetSheetVisible) {
+        DeliveryFeeBudgetSheet(
+            initialBudget = maxDeliveryFee ?: DeliveryFeeBudget.DEFAULT,
+            onDismiss = { isBudgetSheetVisible = false },
+            onSelect = { budget ->
+                isBudgetSheetVisible = false
+                onMaxDeliveryFeeSelected(budget)
+            },
+        )
+    }
+}
+
+/** 슬라이더로 배송비 예산을 고르는 시트. [onSelect]에 null을 넘기면 필터를 해제한다. */
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun DeliveryFeeBudgetSheet(
+    initialBudget: Int,
+    onDismiss: () -> Unit,
+    onSelect: (Int?) -> Unit,
+) {
+    var budget by rememberSaveable { mutableIntStateOf(initialBudget.coerceIn(DeliveryFeeBudget.MIN, DeliveryFeeBudget.MAX)) }
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 24.dp, end = 24.dp, bottom = 24.dp),
+        ) {
+            Text(
+                text = "배송비 예산",
+                style = MaterialTheme.typography.titleLargeEmphasized,
+            )
+            Text(
+                text = "내 행정동까지 이 금액 안으로 배송되는 가구만 보여드려요.",
+                style = MaterialTheme.typography.bodyMediumEmphasized,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 4.dp),
+            )
+            Text(
+                text = "${DeliveryFeeBudget.format(budget)} 이하",
+                style = MaterialTheme.typography.displaySmallEmphasized,
+                color = MaterialTheme.colorScheme.primary,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 32.dp, bottom = 24.dp),
+            )
+            Slider(
+                value = budget.toFloat(),
+                onValueChange = { budget = DeliveryFeeBudget.snap(it) },
+                valueRange = DeliveryFeeBudget.MIN.toFloat()..DeliveryFeeBudget.MAX.toFloat(),
+                steps = DeliveryFeeBudget.SLIDER_STEPS,
+            )
+            Row(
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(
+                    text = DeliveryFeeBudget.format(DeliveryFeeBudget.MIN),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    text = DeliveryFeeBudget.format(DeliveryFeeBudget.MAX),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 32.dp),
+            ) {
+                OutlinedButton(
+                    onClick = { onSelect(null) },
+                    shapes = ButtonDefaults.shapes(),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(ButtonDefaults.MediumContainerHeight),
+                ) {
+                    Text("필터 해제", style = MaterialTheme.typography.bodyLargeEmphasized)
+                }
+                Button(
+                    onClick = { onSelect(budget) },
+                    shapes = ButtonDefaults.shapes(),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(ButtonDefaults.MediumContainerHeight),
+                ) {
+                    Text("적용", style = MaterialTheme.typography.bodyLargeEmphasized)
+                }
+            }
+        }
     }
 }
 
@@ -425,8 +677,14 @@ private fun ListingItem(
         },
         overlineContent = {
             Text(
-                text = "${furniture.categoryLabel} · ${furniture.conditionGrade}급",
+                text = listOfNotNull(
+                    furniture.categoryLabel,
+                    "${furniture.conditionGrade}급",
+                    furniture.dongName,
+                ).joinToString(" · "),
                 style = MaterialTheme.typography.labelMedium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
         },
         supportingContent = {
@@ -534,6 +792,7 @@ private val previewFurnitures = listOf(
         category = FurnitureCategory.TABLE,
         conditionGrade = "A",
         createdAt = "2026-09-30T05:03:41Z",
+        dongName = "마포구 서교동",
     ),
     FurnitureSummary(
         id = 2,
@@ -568,6 +827,8 @@ private fun HomeContentPreview() {
             onRefresh = {},
             onRetry = {},
             onCategorySelected = {},
+            onMaxDeliveryFeeSelected = {},
+            onLoadMore = {},
             onListingClick = {},
             onProfileClick = {},
             snackbarHostState = SnackbarHostState(),
@@ -584,6 +845,8 @@ private fun HomeContentErrorPreview() {
             onRefresh = {},
             onRetry = {},
             onCategorySelected = {},
+            onMaxDeliveryFeeSelected = {},
+            onLoadMore = {},
             onListingClick = {},
             onProfileClick = {},
             snackbarHostState = SnackbarHostState(),
