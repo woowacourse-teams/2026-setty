@@ -2,6 +2,7 @@ package setty.delivery.api;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static setty.global.event.EventPublicationTestSupport.awaitEventsHandled;
 
@@ -19,7 +20,6 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
-import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import setty.common.OrderCancellationRequested;
 import setty.common.OrderConfirmed;
 import setty.delivery.application.DeliveryLifecycleService;
@@ -99,8 +99,17 @@ class DeliveryRequestReconnectRecoveryIntegrationTest extends MySqlIntegrationTe
         publishCommitted(new OrderCancellationRequested(CANCELLED_ORDER_ID, "cancel-sse-recovery"));
         awaitEventsHandled(jdbcTemplate);
 
-        final SseEmitter reconnected = eventStream.subscribe();
+        final DriverId driverId = new DriverId(jdbcTemplate.queryForObject(
+                "SELECT id FROM delivery_member WHERE token = ?", Long.class, DRIVER_TOKEN));
+        final MvcResult reconnected = mockMvc.perform(get("/api/delivery/requests/events")
+                        .header("Authorization", "Bearer " + DRIVER_TOKEN))
+                .andExpect(status().isOk())
+                .andExpect(request().asyncStarted())
+                .andReturn();
         try {
+            assertThat(eventStream.subscriberCount()).isOne();
+            assertThat(eventStream.subscriberCount(driverId)).isOne();
+            assertThat(reconnected.getResponse().getContentAsString()).contains("event:connected");
             final MvcResult result = mockMvc.perform(get("/api/delivery/requests")
                             .header("Authorization", "Bearer " + DRIVER_TOKEN))
                     .andExpect(status().isOk())
@@ -112,8 +121,10 @@ class DeliveryRequestReconnectRecoveryIntegrationTest extends MySqlIntegrationTe
 
             assertThat(requestIds).containsExactly(deliveryId(REQUESTED_ORDER_ID).value());
         } finally {
-            reconnected.complete();
+            reconnected.getRequest().getAsyncContext().complete();
         }
+        assertThat(eventStream.subscriberCount()).isZero();
+        assertThat(eventStream.subscriberCount(driverId)).isZero();
     }
 
     private DeliveryId deliveryId(final long orderId) {
