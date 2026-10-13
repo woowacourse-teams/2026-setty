@@ -1,29 +1,22 @@
 package setty.platform.listing.application;
 
 import static setty.global.exception.ErrorCode.CANNOT_ORDER_OWN_LISTING;
-import static setty.global.exception.ErrorCode.INVALID_LISTING_IMAGE_COUNT;
-import static setty.global.exception.ErrorCode.INVALID_LISTING_IMAGE_REFERENCE;
 import static setty.global.exception.ErrorCode.LISTING_NOT_FOUND;
 
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.multipart.MultipartFile;
-import setty.common.ListingCreated;
 import setty.global.exception.BusinessException;
 import setty.global.logging.ListingRequestTiming;
 import setty.platform.listing.domain.Dimensions;
@@ -38,48 +31,34 @@ import setty.platform.listing.storage.ListingImageStorage;
 public class ListingService {
 
     private static final Logger log = LoggerFactory.getLogger(ListingService.class);
-    private static final int MINIMUM_IMAGE_COUNT = 1;
-    private static final int MAXIMUM_IMAGE_COUNT = 5;
 
     private final ListingRepository listingRepository;
     private final ListingImageRepository listingImageRepository;
     private final ListingImageStorage listingImageStorage;
-    private final ApplicationEventPublisher eventPublisher;
+    private final ListingRecorder listingRecorder;
 
     public ListingService(
             ListingRepository listingRepository,
             ListingImageRepository listingImageRepository,
             ListingImageStorage listingImageStorage,
-            ApplicationEventPublisher eventPublisher
+            ListingRecorder listingRecorder
     ) {
         this.listingRepository = listingRepository;
         this.listingImageRepository = listingImageRepository;
         this.listingImageStorage = listingImageStorage;
-        this.eventPublisher = eventPublisher;
+        this.listingRecorder = listingRecorder;
     }
 
-    @Transactional
     public ListingView.Created create(Long sellerId, ListingCreateCommand command) {
         List<MultipartFile> images = normalizeImages(command.images());
-        validateFinalImageCount(images.size());
+        ListingRecorder.validateImageCount(images.size());
         List<String> objectKeys = listingImageStorage.upload(images);
-        deleteImagesOnRollback(objectKeys);
-
-        Listing listing = listingRepository.save(Listing.create(
-                sellerId,
-                command.title(),
-                command.description(),
-                command.price(),
-                command.category(),
-                command.conditionGrade(),
-                command.dimensions()
-        ));
-        listingRepository.flush();
-        listingImageRepository.saveAll(createImages(listing.getId(), objectKeys, 1));
-        eventPublisher.publishEvent(new ListingCreated(
-                listing.getId(), sellerId, listing.getTitle(), listing.getCreatedAt()));
-
-        return new ListingView.Created(listing.getId(), listing.getCreatedAt());
+        try {
+            return listingRecorder.create(sellerId, command, objectKeys);
+        } catch (RuntimeException exception) {
+            safelyDeleteImages(objectKeys, "등록 실패 보상 삭제");
+            throw exception;
+        }
     }
 
     @Transactional(readOnly = true)
@@ -136,48 +115,18 @@ public class ListingService {
                 .toList();
     }
 
-    @Transactional
     public void update(Long sellerId, Long listingId, ListingUpdateCommand command) {
-        Listing listing = findOwnedActiveForUpdate(sellerId, listingId);
-        List<ListingImage> currentImages = listingImageRepository
-                .findAllByListingIdOrderByDisplayOrderAsc(listingId);
-        List<ListingImage> retainedImages = resolveRetainedImages(currentImages, command.retainedImageIds());
         List<MultipartFile> newImages = normalizeImages(command.newImages());
-        validateFinalImageCount(retainedImages.size() + newImages.size());
-
-        List<String> newObjectKeys = newImages.isEmpty()
-                ? List.of()
-                : listingImageStorage.upload(newImages);
-        deleteImagesOnRollback(newObjectKeys);
-
-        listing.update(
-                command.title(),
-                command.description(),
-                command.price(),
-                command.category(),
-                command.conditionGrade(),
-                command.dimensions()
-        );
-
-        List<Long> retainedImageIds = retainedImages.stream().map(ListingImage::getId).toList();
-        Set<Long> retainedIdSet = new HashSet<>(retainedImageIds);
-        List<ListingImage> removedImages = currentImages.stream()
-                .filter(image -> !retainedIdSet.contains(image.getId()))
-                .toList();
-        List<String> removedObjectKeys = removedImages.stream()
-                .map(ListingImage::getObjectKey)
-                .toList();
-
-        listingImageRepository.shiftDisplayOrders(listingId, MAXIMUM_IMAGE_COUNT);
-        listingImageRepository.deleteAllByIdInBatch(removedImages.stream().map(ListingImage::getId).toList());
-
-        List<ListingImage> persistedRetainedImages = findImagesByIdsInOrder(retainedImageIds);
-        for (int index = 0; index < persistedRetainedImages.size(); index++) {
-            persistedRetainedImages.get(index).changeDisplayOrder(index + 1);
+        listingRecorder.validateUpdatable(sellerId, listingId, command, newImages);
+        List<String> newObjectKeys = newImages.isEmpty() ? List.of() : listingImageStorage.upload(newImages);
+        List<String> removedObjectKeys;
+        try {
+            removedObjectKeys = listingRecorder.update(sellerId, listingId, command, newObjectKeys);
+        } catch (RuntimeException exception) {
+            safelyDeleteImages(newObjectKeys, "수정 실패 보상 삭제");
+            throw exception;
         }
-        listingImageRepository.saveAll(persistedRetainedImages);
-        listingImageRepository.saveAll(createImages(listingId, newObjectKeys, persistedRetainedImages.size() + 1));
-        deleteImagesAfterCommit(removedObjectKeys);
+        safelyDeleteImages(removedObjectKeys, "수정 후 정리");
     }
 
     @Transactional
@@ -254,45 +203,6 @@ public class ListingService {
                 .orElseThrow(() -> new BusinessException(LISTING_NOT_FOUND));
     }
 
-    private List<ListingImage> resolveRetainedImages(
-            List<ListingImage> currentImages,
-            List<Long> retainedImageIds
-    ) {
-        if (retainedImageIds == null || new HashSet<>(retainedImageIds).size() != retainedImageIds.size()) {
-            throw new BusinessException(INVALID_LISTING_IMAGE_REFERENCE);
-        }
-
-        Map<Long, ListingImage> currentById = currentImages.stream()
-                .collect(Collectors.toMap(ListingImage::getId, Function.identity()));
-        List<ListingImage> retained = new ArrayList<>(retainedImageIds.size());
-        for (Long retainedImageId : retainedImageIds) {
-            ListingImage image = currentById.get(retainedImageId);
-            if (image == null) {
-                throw new BusinessException(INVALID_LISTING_IMAGE_REFERENCE);
-            }
-            retained.add(image);
-        }
-        return retained;
-    }
-
-    private List<ListingImage> findImagesByIdsInOrder(List<Long> imageIds) {
-        if (imageIds.isEmpty()) {
-            return List.of();
-        }
-
-        Map<Long, ListingImage> imagesById = listingImageRepository.findAllById(imageIds).stream()
-                .collect(Collectors.toMap(ListingImage::getId, Function.identity()));
-        List<ListingImage> images = new ArrayList<>(imageIds.size());
-        for (Long imageId : imageIds) {
-            ListingImage image = imagesById.get(imageId);
-            if (image == null) {
-                throw new BusinessException(INVALID_LISTING_IMAGE_REFERENCE);
-            }
-            images.add(image);
-        }
-        return images;
-    }
-
     private Map<Long, ListingImage> findThumbnails(List<Listing> listings) {
         if (listings.isEmpty()) {
             ListingRequestTiming.count("image_count", 0);
@@ -306,20 +216,6 @@ public class ListingService {
         ListingRequestTiming.count("image_count", images.size());
         images.forEach(image -> thumbnails.putIfAbsent(image.getListingId(), image));
         return thumbnails;
-    }
-
-    private List<ListingImage> createImages(Long listingId, List<String> objectKeys, int firstOrder) {
-        List<ListingImage> images = new ArrayList<>(objectKeys.size());
-        for (int index = 0; index < objectKeys.size(); index++) {
-            images.add(ListingImage.create(listingId, objectKeys.get(index), firstOrder + index));
-        }
-        return images;
-    }
-
-    private void validateFinalImageCount(int imageCount) {
-        if (imageCount < MINIMUM_IMAGE_COUNT || imageCount > MAXIMUM_IMAGE_COUNT) {
-            throw new BusinessException(INVALID_LISTING_IMAGE_COUNT);
-        }
     }
 
     private List<MultipartFile> normalizeImages(List<MultipartFile> images) {
@@ -393,20 +289,6 @@ public class ListingService {
                 listingImageStorage.publicUrl(image.getObjectKey()),
                 image.getDisplayOrder()
         );
-    }
-
-    private void deleteImagesOnRollback(Collection<String> objectKeys) {
-        if (objectKeys.isEmpty() || !TransactionSynchronizationManager.isSynchronizationActive()) {
-            return;
-        }
-        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-            @Override
-            public void afterCompletion(int status) {
-                if (status == STATUS_ROLLED_BACK) {
-                    safelyDeleteImages(objectKeys, "롤백 보상 삭제");
-                }
-            }
-        });
     }
 
     private void deleteImagesAfterCommit(Collection<String> objectKeys) {

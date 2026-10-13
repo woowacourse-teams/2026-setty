@@ -34,8 +34,7 @@ class MockPushNotificationSenderTest {
             }
         });
         server.start();
-        sender = new MockPushNotificationSender(new ObjectMapper(), new NotificationSendProperties(
-                1, false, "http://127.0.0.1:" + server.getAddress().getPort(), null));
+        sender = new MockPushNotificationSender(new ObjectMapper(), new NotificationSendProperties(1, "http://127.0.0.1:" + server.getAddress().getPort(), null));
     }
 
     @AfterEach
@@ -66,7 +65,7 @@ class MockPushNotificationSenderTest {
     @Test
     void 모의_서버에_연결하지_못하면_전부_실패로_본다() {
         final MockPushNotificationSender unreachable = new MockPushNotificationSender(
-                new ObjectMapper(), new NotificationSendProperties(1, false, "http://127.0.0.1:1", null));
+                new ObjectMapper(), new NotificationSendProperties(1, "http://127.0.0.1:1", null));
 
         final SendResult result = unreachable.send(List.of(message(1L)));
 

@@ -43,6 +43,7 @@ public class ListingNotificationDispatcher {
     @Async(NotificationSendConfiguration.DISPATCH_EXECUTOR)
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onListingCreated(final ListingCreated event) {
+        listingNotificationService.createForListing(event.listingId(), event.sellerId(), event.title());
         dispatch(event.listingId(), event.title());
     }
 
