@@ -240,13 +240,16 @@ STRUCTURE=async SUBSCRIBERS=1000 REGISTER_MODE=single REGISTER_REPEATS=30 \
   ./gradlew gatlingRun --simulation setty.performance.ListingRegisterSimulation
 STRUCTURE=async SUBSCRIBERS=1000 REGISTER_MODE=burst BURST_USERS=10 \
   ./gradlew gatlingRun --simulation setty.performance.ListingRegisterSimulation
+STRUCTURE=async SUBSCRIBERS=10000 REGISTER_MODE=rate RATE_PER_MINUTE=5 RATE_DURATION_MINUTES=10 RATE_SEED=470 \
+  ./gradlew gatlingRun --simulation setty.performance.ListingRegisterSimulation
 ```
 
 - `single`: 사용자 1명이 워밍업 5회 → 측정 30회 등록. 요청 사이 `REGISTER_PAUSE_SECONDS`(기본 3초)를 쉬어 앞 등록의 발송이 겹치지 않게 한다. 구독자가 많으면 늘린다.
 - `burst`: `BURST_USERS`명이 동시에 1건씩 등록.
+- `rate`: 예상 트래픽(#470). 워밍업 5회 뒤, 판매자들이 각자 등록하듯 평균 `RATE_PER_MINUTE`건의 무작위 간격으로 `RATE_DURATION_MINUTES`분 동안 응답을 기다리지 않고 1건씩 등록한다. 간격은 `RATE_SEED`로 고정해 고치기 전·후에 같은 시각표를 쓴다. 기본값(분당 5건, 10분, 시드 470)이면 55건이고, 건수와 첫 시각은 실행 시작 로그 `Rate schedule`에 나온다.
 - `STRUCTURE`·`SUBSCRIBERS`는 CSV 라벨이다. 분리 전은 `sync`, 분리 후는 `async`로 적는다.
 - 사진은 `src/gatling/resources/notification-tiny.png`(1×1, 69바이트)로 고정해 업로드 시간을 최소화한다. dev S3에 실제 올라간다.
-- 보고서 `build/reports/gatling/`의 `register-measurement` 행에서 등록 P95를 본다. 요청별 응답 시간·매물 ID·`request_id`는 `build/reports/listing-register/`의 CSV에 남는다.
+- 보고서 `build/reports/gatling/`의 `register-measurement`(`rate`는 `register-rate`) 행에서 등록 P95를 본다. 요청별 응답 시간·매물 ID·`request_id`는 `build/reports/listing-register/`의 CSV에 남는다.
 
 ### 4 발송 시간 집계 (dev EC2 SSM 셸)
 

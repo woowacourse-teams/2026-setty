@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -31,6 +32,7 @@ public class ListingRegisterSimulation extends Simulation {
     private static final String WARMUP = "register-warmup";
     private static final String MEASUREMENT = "register-measurement";
     private static final String BURST = "register-burst";
+    private static final String RATE = "register-rate";
     private static final int WARMUP_REQUESTS = 5;
 
     private final String baseUrl = System.getenv().getOrDefault("NOTIFY_BASE_URL", DEV_BASE_URL);
@@ -39,6 +41,12 @@ public class ListingRegisterSimulation extends Simulation {
     private final int repeats = Integer.parseInt(System.getenv().getOrDefault("REGISTER_REPEATS", "30"));
     private final int burstUsers = Integer.parseInt(System.getenv().getOrDefault("BURST_USERS", "10"));
     private final int pauseSeconds = Integer.parseInt(System.getenv().getOrDefault("REGISTER_PAUSE_SECONDS", "3"));
+    private final double ratePerMinute = Double.parseDouble(System.getenv().getOrDefault("RATE_PER_MINUTE", "5"));
+    private final int durationMinutes = Integer.parseInt(System.getenv().getOrDefault("RATE_DURATION_MINUTES", "10"));
+    private final long rateSeed = Long.parseLong(System.getenv().getOrDefault("RATE_SEED", "470"));
+    private final RegistrationSchedule schedule = mode.equals("rate")
+            ? RegistrationSchedule.random(ratePerMinute, Duration.ofMinutes(durationMinutes), rateSeed)
+            : RegistrationSchedule.none();
     private final String subscribers = System.getenv().getOrDefault("SUBSCRIBERS", "unknown");
     private final String structure = System.getenv().getOrDefault("STRUCTURE", "unknown");
     private final StringBuilder samples = new StringBuilder(
@@ -46,8 +54,8 @@ public class ListingRegisterSimulation extends Simulation {
     private final AtomicInteger requestNumber = new AtomicInteger();
 
     public ListingRegisterSimulation() {
-        if (!Set.of("single", "burst").contains(mode)) {
-            throw new IllegalArgumentException("REGISTER_MODE must be single or burst");
+        if (!Set.of("single", "burst", "rate").contains(mode)) {
+            throw new IllegalArgumentException("REGISTER_MODE must be single, burst or rate");
         }
         if (!DEV_BASE_URL.equals(baseUrl)
                 && !baseUrl.matches("http://(127\\.0\\.0\\.1|localhost):[0-9]{1,5}")) {
@@ -63,13 +71,22 @@ public class ListingRegisterSimulation extends Simulation {
 
         if (mode.equals("single")) {
             ScenarioBuilder single = scenario("매물 등록 반복")
-                    .repeat(WARMUP_REQUESTS).on(register(WARMUP))
-                    .repeat(repeats).on(register(MEASUREMENT));
+                    .repeat(WARMUP_REQUESTS).on(register(WARMUP).pause(pauseSeconds))
+                    .repeat(repeats).on(register(MEASUREMENT).pause(pauseSeconds));
             setUp(single.injectOpen(atOnceUsers(1)))
                     .protocols(protocol)
                     .assertions(
                             global().failedRequests().count().is(0L),
                             details(MEASUREMENT).allRequests().count().is((long) repeats));
+        } else if (mode.equals("rate")) {
+            ScenarioBuilder warmup = scenario("매물 등록 워밍업")
+                    .repeat(WARMUP_REQUESTS).on(register(WARMUP).pause(pauseSeconds));
+            ScenarioBuilder rate = scenario("매물 등록 예상 트래픽").exec(register(RATE));
+            setUp(warmup.injectOpen(atOnceUsers(1)).andThen(rate.injectOpen(schedule.injectionSteps())))
+                    .protocols(protocol)
+                    .assertions(
+                            global().failedRequests().count().is(0L),
+                            details(RATE).allRequests().count().is((long) schedule.size()));
         } else {
             ScenarioBuilder burst = scenario("매물 동시 등록").exec(register(BURST));
             setUp(burst.injectOpen(atOnceUsers(burstUsers)))
@@ -110,8 +127,7 @@ public class ListingRegisterSimulation extends Simulation {
                     }
                     return session;
                 })
-                .exitHereIfFailed()
-                .pause(pauseSeconds);
+                .exitHereIfFailed();
     }
 
     private String path() {
@@ -137,6 +153,10 @@ public class ListingRegisterSimulation extends Simulation {
         System.out.printf(
                 "Listing register experiment: target=%s, structure=%s, subscribers=%s, mode=%s, repeats=%d, burstUsers=%d, pause=%ds%n",
                 baseUrl, structure, subscribers, mode, repeats, burstUsers, pauseSeconds);
+        if (mode.equals("rate")) {
+            System.out.printf("Rate schedule: perMinute=%s, duration=%dm, seed=%d, registrations=%d, first=%s%n",
+                    ratePerMinute, durationMinutes, rateSeed, schedule.size(), schedule.firstOffsetsMillis(5));
+        }
     }
 
     private static String csvCell(String value) {
