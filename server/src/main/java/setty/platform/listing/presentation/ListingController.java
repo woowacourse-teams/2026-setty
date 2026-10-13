@@ -11,10 +11,12 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+import setty.global.auth.AuthInterceptor;
 import setty.global.auth.LoginMember;
 import setty.platform.listing.application.ListingCreateCommand;
 import setty.platform.listing.application.ListingCursor;
@@ -55,16 +57,20 @@ public class ListingController {
 
     @GetMapping
     public ResponseEntity<ListingPageResponse> findAll(
+            @RequestAttribute(name = AuthInterceptor.LOGIN_MEMBER, required = false) Member member,
             @RequestParam(required = false) String cursor,
-            @RequestParam(required = false) Integer size
+            @RequestParam(required = false) Integer size,
+            @RequestParam(required = false) Integer maxDeliveryFee
     ) {
         // 웹·앱은 아직 다음 페이지를 요청하지 않으므로, 커서와 크기 없이 부르면 지금처럼 전체를 준다.
-        if (cursor == null && size == null) {
+        if (cursor == null && size == null && maxDeliveryFee == null) {
             return ResponseEntity.ok(new ListingPageResponse(listingService.findAvailableListings(), null));
         }
         ListingView.SummaryPage page = listingService.findAvailableListings(
                 ListingCursor.parse(cursor),
-                size == null ? ListingService.DEFAULT_PAGE_SIZE : size
+                size == null ? ListingService.DEFAULT_PAGE_SIZE : size,
+                member == null ? null : member.getDongCode(),
+                maxDeliveryFee
         );
         return ResponseEntity.ok(new ListingPageResponse(page.items(), page.nextCursor()));
     }

@@ -1,8 +1,10 @@
 package setty.platform.listing.application;
 
 import static setty.global.exception.ErrorCode.CANNOT_ORDER_OWN_LISTING;
+import static setty.global.exception.ErrorCode.DELIVERY_AREA_NOT_SUPPORTED;
 import static setty.global.exception.ErrorCode.INVALID_REQUEST;
 import static setty.global.exception.ErrorCode.LISTING_NOT_FOUND;
+import static setty.global.exception.ErrorCode.MEMBER_DONG_REQUIRED;
 
 import java.util.Collection;
 import java.util.LinkedHashMap;
@@ -18,6 +20,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.multipart.MultipartFile;
+import setty.deliveryfee.DeliveryFeeService;
+import setty.deliveryfee.Dong;
+import setty.deliveryfee.VolumeTier;
 import setty.global.exception.BusinessException;
 import setty.global.logging.ListingRequestTiming;
 import setty.platform.listing.domain.Dimensions;
@@ -46,6 +51,7 @@ public class ListingService {
     private final ListingImageStorage listingImageStorage;
     private final ListingRecorder listingRecorder;
     private final OrderRepository orderRepository;
+    private final DeliveryFeeService deliveryFeeService;
 
     public ListingService(
             ListingRepository listingRepository,
@@ -53,7 +59,8 @@ public class ListingService {
             ListingQueryRepository listingQueryRepository,
             ListingImageStorage listingImageStorage,
             ListingRecorder listingRecorder,
-            OrderRepository orderRepository
+            OrderRepository orderRepository,
+            DeliveryFeeService deliveryFeeService
     ) {
         this.listingRepository = listingRepository;
         this.listingImageRepository = listingImageRepository;
@@ -61,6 +68,7 @@ public class ListingService {
         this.listingImageStorage = listingImageStorage;
         this.listingRecorder = listingRecorder;
         this.orderRepository = orderRepository;
+        this.deliveryFeeService = deliveryFeeService;
     }
 
     public ListingView.Created create(Long sellerId, ListingCreateCommand command) {
@@ -77,22 +85,51 @@ public class ListingService {
 
     // 트랜잭션을 걸지 않는다. JPA 트랜잭션을 열면 조회 내내 커넥션을 붙잡으므로 쿼리마다 바로 반납하는 JDBC 조회만 쓴다.
     public List<ListingView.Summary> findAvailableListings() {
-        return findAvailable(null, null).items();
+        return findAvailable(null, null, null).items();
     }
 
-    public ListingView.SummaryPage findAvailableListings(ListingCursor cursor, int size) {
+    public ListingView.SummaryPage findAvailableListings(
+            ListingCursor cursor,
+            int size,
+            String buyerDongCode,
+            Integer maxDeliveryFee
+    ) {
         if (size < 1 || size > MAXIMUM_PAGE_SIZE) {
             throw new BusinessException(INVALID_REQUEST);
         }
-        return findAvailable(cursor, size);
+        Map<VolumeTier, List<String>> sellerDongCodes = maxDeliveryFee == null
+                ? null
+                : sellerDongCodesWithin(buyerDongCode, maxDeliveryFee);
+        return findAvailable(cursor, size, sellerDongCodes);
     }
 
-    private ListingView.SummaryPage findAvailable(ListingCursor cursor, Integer size) {
+    private Map<VolumeTier, List<String>> sellerDongCodesWithin(String buyerDongCode, int maxDeliveryFee) {
+        if (buyerDongCode == null) {
+            throw new BusinessException(MEMBER_DONG_REQUIRED);
+        }
+        Dong buyerDong = deliveryFeeService.findDong(buyerDongCode)
+                .orElseThrow(() -> new BusinessException(DELIVERY_AREA_NOT_SUPPORTED));
+        Map<VolumeTier, List<String>> sellerDongCodes = new LinkedHashMap<>();
+        deliveryFeeService.sellerDongsWithinFee(buyerDong, maxDeliveryFee).forEach((volumeTier, dongs) ->
+                sellerDongCodes.put(volumeTier, dongs.stream().map(Dong::code).toList()));
+        return sellerDongCodes;
+    }
+
+    private ListingView.SummaryPage findAvailable(
+            ListingCursor cursor,
+            Integer size,
+            Map<VolumeTier, List<String>> sellerDongCodes
+    ) {
+        // 예산 안에 드는 판매자 동이 하나도 없으면 DB에 묻지 않는다
+        if (sellerDongCodes != null && sellerDongCodes.isEmpty()) {
+            return new ListingView.SummaryPage(List.of(), null);
+        }
         // 다음 페이지가 있는지 알려고 한 개를 더 읽는다
         List<ListingQueryRepository.Row> rows = ListingRequestTiming.measure("listings", () -> listingQueryRepository.findAvailable(
                 cursor == null ? null : cursor.createdAt(),
                 cursor == null ? null : cursor.id(),
-                size == null ? null : size + 1
+                size == null ? null : size + 1,
+                sellerDongCodes
         ));
         boolean hasNext = size != null && rows.size() > size;
         List<ListingQueryRepository.Row> page = hasNext ? rows.subList(0, size) : rows;

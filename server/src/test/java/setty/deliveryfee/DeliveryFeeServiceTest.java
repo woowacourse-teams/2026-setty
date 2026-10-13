@@ -98,4 +98,25 @@ class DeliveryFeeServiceTest {
         assertThatThrownBy(() -> new DeliveryFeeProperties(10_000, 5_000, 2, 3_000, 0))
                 .isInstanceOf(IllegalArgumentException.class);
     }
+
+    @Test
+    void 예산_안에_드는_판매자_동을_부피_구간별로_준다() {
+        final Dong buyer = deliveryFeeService.findDong("1111053000").orElseThrow();
+
+        final var within = deliveryFeeService.sellerDongsWithinFee(buyer, 15_000);
+
+        assertThat(within).containsOnlyKeys(VolumeTier.SMALL);
+        assertThat(within.get(VolumeTier.SMALL)).contains(buyer)
+                .allSatisfy(seller -> assertThat(deliveryFeeService.fee(seller.index(), buyer.index(), VolumeTier.SMALL))
+                        .isLessThanOrEqualTo(15_000));
+        assertThat(within.get(VolumeTier.SMALL)).hasSize(
+                deliveryFeeService.passingSellerDongs(buyer.index(), VolumeTier.SMALL, 1).size());
+    }
+
+    @Test
+    void 기본_배송비보다_작은_예산이면_판매자_동이_없다() {
+        final Dong buyer = deliveryFeeService.findDong("1111053000").orElseThrow();
+
+        assertThat(deliveryFeeService.sellerDongsWithinFee(buyer, 9_999)).isEmpty();
+    }
 }
