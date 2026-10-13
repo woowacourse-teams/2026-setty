@@ -34,9 +34,10 @@ INSERT INTO fixture_assertion
 SELECT 'seller_token_unused', IF(COUNT(*) = 0, 1, 0)
 FROM members WHERE token = CONVERT(@fixture_seller_token USING utf8mb4) COLLATE utf8mb4_unicode_ci;
 
-INSERT INTO members (login_id, password, role, phone_number, address, token)
+-- 매물 등록은 판매자 행정동이 있어야 하므로 판매자에게만 행정동(종로구 사직동)을 넣는다.
+INSERT INTO members (login_id, password, role, phone_number, address, dong_code, token)
 VALUES ('s3-seller-001', REPEAT('!', 60), 'MEMBER', '000-0000-0000',
-        'SETTY_SPRINT3_NOTIFY_FIXTURE_ONLY',
+        'SETTY_SPRINT3_NOTIFY_FIXTURE_ONLY', '1111053000',
         CONVERT(@fixture_seller_token USING utf8mb4) COLLATE utf8mb4_unicode_ci);
 
 INSERT INTO members (login_id, password, role, phone_number, address, token)

@@ -39,6 +39,8 @@ BASE_URL=https://www.setty.cloud/dev SELLER_CSV_PATH=.local/k6-test-seller.csv s
 
 서비스 재시작만으로 DB 계정은 삭제되지 않는다. 판매자 CSV와 계정이 이미 준비되어 있으면 첫 명령은 생략하고 매물 등록 명령만 실행한다. 계정이 DB에서 삭제된 경우 첫 명령으로 다시 만들 수 있다. 기존 계정이면 이전 비밀번호를 사용해야 로그인 확인에 성공한다.
 
+매물 등록에는 판매자 행정동이 필요하다. 매물 등록 스크립트는 로그인 직후 판매자 행정동을 `SELLER_DONG_CODE`(기본 `1111053000`, 종로구 사직동)로 맞추므로, 행정동 도입 전에 만든 판매자 계정도 그대로 쓸 수 있다.
+
 매물 등록 스크립트는 기본 이미지 [`floor-lamp.png`](../../client/public/images/listings/floor-lamp.png)를 매물마다 업로드한다. 이미지의 S3 object key prefix는 `setty/images/listings/`이고, 설정된 버킷이 `techcourse-project-2026`이면 객체는 `s3://techcourse-project-2026/setty/images/listings/` 아래에 저장된다.
 
 결과는 `.local/k6-test-listings-<RUN_TAG>.csv`에 기록되며 `listingId,title,category,price` 열을 제공한다. `COUNT`, `RUN_TAG`, `SELLER_CSV_PATH`, `IMAGE_PATH`, `LISTINGS_CSV_PATH`, `BASE_URL`로 등록 개수와 경로를 바꿀 수 있다. 같은 `RUN_TAG`로 다시 실행하면 판매 가능한 기존 매물을 재사용해 CSV를 복구한다. 예약되거나 판매된 매물은 재사용하지 않는다. 새 `RUN_TAG`는 새 매물과 S3 이미지 객체를 만든다.

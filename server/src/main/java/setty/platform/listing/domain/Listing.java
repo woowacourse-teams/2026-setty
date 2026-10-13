@@ -69,11 +69,15 @@ public class Listing {
     @Column(name = "deleted_at")
     private Instant deletedAt;
 
+    @Column(name = "dong_code", length = 10, updatable = false)
+    private String dongCode;
+
     protected Listing() {
     }
 
     private Listing(
             final Long sellerId,
+            final String dongCode,
             final String title,
             final String description,
             final Integer price,
@@ -85,6 +89,7 @@ public class Listing {
         validateFields(title, description, price, category, conditionGrade, dimensions);
         final Instant now = Instant.now();
         this.sellerId = sellerId;
+        this.dongCode = dongCode;
         this.title = title.trim();
         this.description = description.trim();
         this.price = price;
@@ -100,6 +105,7 @@ public class Listing {
 
     public static Listing create(
             final Long sellerId,
+            final String dongCode,
             final String title,
             final String description,
             final Integer price,
@@ -107,7 +113,7 @@ public class Listing {
             final ConditionGrade conditionGrade,
             final Dimensions dimensions
     ) {
-        return new Listing(sellerId, title, description, price, category, conditionGrade, dimensions);
+        return new Listing(sellerId, dongCode, title, description, price, category, conditionGrade, dimensions);
     }
 
     public void update(
@@ -271,6 +277,10 @@ public class Listing {
 
     public Long getId() {
         return id;
+    }
+
+    public String getDongCode() {
+        return dongCode;
     }
 
     public Long getSellerId() {

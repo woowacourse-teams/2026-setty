@@ -72,12 +72,15 @@ public class ListingService {
         this.deliveryFeeService = deliveryFeeService;
     }
 
-    public ListingView.Created create(Long sellerId, ListingCreateCommand command) {
+    public ListingView.Created create(Long sellerId, String sellerDongCode, ListingCreateCommand command) {
+        if (sellerDongCode == null) {
+            throw new BusinessException(MEMBER_DONG_REQUIRED);
+        }
         List<MultipartFile> images = normalizeImages(command.images());
         ListingRecorder.validateImageCount(images.size());
         List<String> objectKeys = listingImageStorage.upload(images);
         try {
-            return listingRecorder.create(sellerId, command, objectKeys);
+            return listingRecorder.create(sellerId, sellerDongCode, command, objectKeys);
         } catch (RuntimeException exception) {
             safelyDeleteImages(objectKeys, "등록 실패 보상 삭제");
             throw exception;
@@ -328,7 +331,8 @@ public class ListingService {
                 row.category(),
                 row.conditionGrade(),
                 new ListingView.Dimensions(row.widthCm(), row.depthCm(), row.heightCm()),
-                row.createdAt()
+                row.createdAt(),
+                dongOf(row.dongCode())
         );
     }
 
@@ -343,7 +347,8 @@ public class ListingService {
                 listing.getCategory(),
                 listing.getConditionGrade(),
                 dimensionsOf(listing),
-                listing.getCreatedAt()
+                listing.getCreatedAt(),
+                dongOf(listing.getDongCode())
         );
     }
 
@@ -361,8 +366,19 @@ public class ListingService {
                 listing.getSaleStatus(),
                 images,
                 listing.getCreatedAt(),
-                listing.getUpdatedAt()
+                listing.getUpdatedAt(),
+                dongOf(listing.getDongCode())
         );
+    }
+
+    // 행정동 도입 전에 등록된 매물은 dong_code가 없다
+    private ListingView.Dong dongOf(String dongCode) {
+        if (dongCode == null) {
+            return null;
+        }
+        return deliveryFeeService.findDong(dongCode)
+                .map(dong -> new ListingView.Dong(dong.code(), dong.name(), dong.district()))
+                .orElse(null);
     }
 
     private ListingView.Mine toMine(Listing listing, ListingImage thumbnail) {

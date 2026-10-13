@@ -283,7 +283,8 @@ class OrderServiceTest {
                 ListingCategory.DESK,
                 ConditionGrade.A,
                 new ListingView.Dimensions(120, 60, 75),
-                Instant.parse("2026-09-03T00:00:00Z")
+                Instant.parse("2026-09-03T00:00:00Z"),
+                null
         );
         when(orderRepository.findAllByBuyerIdOrderByIdDesc(BUYER_ID)).thenReturn(List.of(order));
         when(listingService.findSummaries(List.of(LISTING_ID))).thenReturn(List.of(listing));
@@ -308,7 +309,7 @@ class OrderServiceTest {
         final ListingView.Summary listing = new ListingView.Summary(
                 LISTING_ID, "가상 책상", null, 100_000, 10_000, 110_000,
                 ListingCategory.DESK, ConditionGrade.A,
-                new ListingView.Dimensions(120, 60, 75), Instant.parse("2026-09-03T00:00:00Z")
+                new ListingView.Dimensions(120, 60, 75), Instant.parse("2026-09-03T00:00:00Z"), null
         );
         when(orderRepository.findAllByBuyerIdOrderByIdDesc(BUYER_ID))
                 .thenReturn(List.of(nextOrder, cancelledOrder));

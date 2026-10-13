@@ -12,6 +12,7 @@ SELLER_CSV_PATH="${SELLER_CSV_PATH:-${REPO_ROOT}/.local/k6-test-seller.csv}"
 BUYER_CSV_PATH="${BUYER_CSV_PATH:-${REPO_ROOT}/.local/k6-test-users.csv}"
 IMAGE_PATH="${IMAGE_PATH:-${REPO_ROOT}/client/public/images/listings/floor-lamp.png}"
 COUNT="${COUNT:-20}"
+SELLER_DONG_CODE="${SELLER_DONG_CODE:-1111053000}"
 RUN_TAG="${RUN_TAG:-$(date '+%Y%m%d%H%M%S')}"
 TITLE_PREFIX="${TITLE_PREFIX:-k6-load-${RUN_TAG}}"
 LISTINGS_CSV_PATH="${LISTINGS_CSV_PATH:-${REPO_ROOT}/.local/k6-test-listings-${RUN_TAG}.csv}"
@@ -38,6 +39,9 @@ if [[ "${BASE_URL}" != https://* && "${BASE_URL}" != http://* ]]; then
 fi
 if [[ ! "${COUNT}" =~ ^[1-9][0-9]*$ ]] || (( ${#COUNT} > 4 )) || (( COUNT > 9999 )); then
     fail "COUNT는 1~9999 사이의 정수여야 합니다."
+fi
+if [[ ! "${SELLER_DONG_CODE}" =~ ^[0-9]{10}$ ]]; then
+    fail "SELLER_DONG_CODE는 10자리 서울 행정동 코드여야 합니다."
 fi
 if [[ ! "${RUN_TAG}" =~ ^[A-Za-z0-9_-]{1,32}$ ]]; then
     fail "RUN_TAG는 영문·숫자·밑줄·하이픈 1~32자로 지정하세요."
@@ -145,6 +149,17 @@ PY
 )"
 if [[ -z "${seller_token}" ]]; then
     fail "로그인 응답에 토큰이 없습니다."
+fi
+
+# 행정동 도입 전에 만든 판매자 계정도 매물을 등록할 수 있게 매번 행정동을 맞춘다
+dong_status="$(http_status \
+    "${BASE_URL}/api/auth/me/dong" \
+    -X PUT \
+    -H "Authorization: Bearer ${seller_token}" \
+    -H 'Content-Type: application/json' \
+    --data "{\"dongCode\":\"${SELLER_DONG_CODE}\"}")"
+if [[ "${dong_status}" != 200 ]]; then
+    fail "판매자 행정동 설정에 실패했습니다 (HTTP ${dong_status})."
 fi
 
 listings_status="$(http_status \

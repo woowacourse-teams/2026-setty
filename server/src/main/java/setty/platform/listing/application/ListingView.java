@@ -17,6 +17,9 @@ public final class ListingView {
     public record Image(Long id, String url, Integer displayOrder) {
     }
 
+    public record Dong(String code, String name, String district) {
+    }
+
     public record Summary(
             Long id,
             String title,
@@ -27,7 +30,8 @@ public final class ListingView {
             ListingCategory category,
             ConditionGrade conditionGrade,
             Dimensions dimensions,
-            Instant createdAt
+            Instant createdAt,
+            Dong dong
     ) {
     }
 
@@ -47,7 +51,8 @@ public final class ListingView {
             SaleStatus saleStatus,
             List<Image> images,
             Instant createdAt,
-            Instant updatedAt
+            Instant updatedAt,
+            Dong dong
     ) {
     }
 

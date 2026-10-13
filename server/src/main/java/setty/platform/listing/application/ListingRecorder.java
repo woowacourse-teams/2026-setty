@@ -58,9 +58,15 @@ public class ListingRecorder {
     }
 
     @Transactional
-    public ListingView.Created create(Long sellerId, ListingCreateCommand command, List<String> objectKeys) {
+    public ListingView.Created create(
+            Long sellerId,
+            String sellerDongCode,
+            ListingCreateCommand command,
+            List<String> objectKeys
+    ) {
         Listing listing = listingRepository.save(Listing.create(
                 sellerId,
+                sellerDongCode,
                 command.title(),
                 command.description(),
                 command.price(),

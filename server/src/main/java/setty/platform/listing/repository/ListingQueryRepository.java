@@ -22,7 +22,7 @@ public class ListingQueryRepository {
 
     private static final String SELECT_COLUMNS = """
             SELECT id, title, price, delivery_fee, category, condition_grade,
-                   width_cm, depth_cm, height_cm, created_at""";
+                   width_cm, depth_cm, height_cm, created_at, dong_code""";
     private static final String ORDER_BY_LATEST = " ORDER BY created_at DESC, id DESC";
 
     private final JdbcTemplate jdbcTemplate;
@@ -100,7 +100,8 @@ public class ListingQueryRepository {
                 resultSet.getInt("width_cm"),
                 resultSet.getInt("depth_cm"),
                 resultSet.getInt("height_cm"),
-                resultSet.getTimestamp("created_at").toInstant()
+                resultSet.getTimestamp("created_at").toInstant(),
+                resultSet.getString("dong_code")
         );
     }
 
@@ -114,7 +115,8 @@ public class ListingQueryRepository {
             Integer widthCm,
             Integer depthCm,
             Integer heightCm,
-            Instant createdAt
+            Instant createdAt,
+            String dongCode
     ) {
     }
 }

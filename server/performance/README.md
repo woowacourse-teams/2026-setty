@@ -136,7 +136,7 @@ run_fixture_sql fixtures/seed-subscribers-1000.sql
 
 | SQL (`fixtures/`) | 결과 |
 | --- | --- |
-| `seed-subscribers-1000.sql` | 판매자 `s3-seller-001` 1명, 구독자 `s3-sub-000001`~`001000`, 키워드 `s3-notify` 구독 1,000건 |
+| `seed-subscribers-1000.sql` | 판매자 `s3-seller-001` 1명(행정동 `1111053000`, 매물 등록에 필요), 구독자 `s3-sub-000001`~`001000`, 키워드 `s3-notify` 구독 1,000건 |
 | `expand-subscribers-1000-to-10000.sql` | 구독자·구독 10,000 |
 | `expand-subscribers-10000-to-100000.sql` | 구독자·구독 100,000 |
 | `cleanup-subscribers.sql` | 측정 중 등록된 매물·사진 행·알림, 구독, 전용 회원 삭제. S3 객체는 남는다 |
