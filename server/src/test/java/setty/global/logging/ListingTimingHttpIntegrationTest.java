@@ -36,6 +36,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.web.servlet.DispatcherServlet;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
+import setty.deliveryfee.DeliveryFeeService;
 import setty.global.exception.GlobalExceptionHandler;
 import setty.platform.listing.application.ListingRecorder;
 import setty.platform.listing.application.ListingService;
@@ -90,7 +91,7 @@ class ListingTimingHttpIntegrationTest {
 
     @Test
     void actualControllerAndServiceProduceJsonAndOneCorrelatedStructuredLog() throws Exception {
-        when(context.getBean(ListingQueryRepository.class).findAvailable(null, null, null))
+        when(context.getBean(ListingQueryRepository.class).findAvailable(null, null, null, null))
                 .thenReturn(List.of(new ListingQueryRepository.Row(7L, "test desk", 50000, 10000, ListingCategory.DESK,
                         ConditionGrade.A, 80, 50, 70, Instant.parse("2026-10-01T00:00:00Z"))));
         when(context.getBean(ListingQueryRepository.class).findThumbnailObjectKeys(List.of(7L)))
@@ -125,7 +126,7 @@ class ListingTimingHttpIntegrationTest {
 
     @Test
     void handledRepositoryFailureRetains500AndMarksOnlyAttemptedStage() throws Exception {
-        when(context.getBean(ListingQueryRepository.class).findAvailable(null, null, null))
+        when(context.getBean(ListingQueryRepository.class).findAvailable(null, null, null, null))
                 .thenThrow(new IllegalStateException("synthetic failure"));
         HttpResponse<String> response = get();
         assertThat(response.statusCode()).isEqualTo(500);
@@ -166,6 +167,7 @@ class ListingTimingHttpIntegrationTest {
         @Bean ListingRepository listingRepository() { return mock(ListingRepository.class); }
         @Bean ListingImageRepository imageRepository() { return mock(ListingImageRepository.class); }
         @Bean OrderRepository orderRepository() { return mock(OrderRepository.class); }
+        @Bean DeliveryFeeService deliveryFeeService() { return mock(DeliveryFeeService.class); }
         @Bean ListingImageStorage imageStorage() { return mock(ListingImageStorage.class); }
         @Bean ListingQueryRepository listingQueryRepository() { return mock(ListingQueryRepository.class); }
     }

@@ -1,7 +1,9 @@
 package setty.deliveryfee;
 
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -51,6 +53,24 @@ public class DeliveryFeeService {
             }
         }
         return List.copyOf(dongs);
+    }
+
+    public Map<VolumeTier, List<Dong>> sellerDongsWithinFee(final Dong buyerDong, final int maxFee) {
+        final Map<VolumeTier, List<Dong>> result = new EnumMap<>(VolumeTier.class);
+        if (maxFee < properties.baseFee()) {
+            return result;
+        }
+        final int budgetSteps = (maxFee - properties.baseFee()) / properties.stepPrice();
+        final List<Dong> dongs = seoulDongs.all();
+        for (final VolumeTier volumeTier : VolumeTier.values()) {
+            final List<Dong> sellerDongs = passingSellerDongs(buyerDong.index(), volumeTier, budgetSteps).stream()
+                    .map(dongs::get)
+                    .toList();
+            if (!sellerDongs.isEmpty()) {
+                result.put(volumeTier, sellerDongs);
+            }
+        }
+        return result;
     }
 
     int distanceSteps(final int meters) {

@@ -11,6 +11,7 @@ public enum ErrorCode {
     LOGIN_FAILED(401, "아이디 또는 비밀번호가 일치하지 않습니다"),
     DUPLICATE_LOGIN_ID(400, "이미 사용 중인 아이디입니다"),
     DELIVERY_AREA_NOT_SUPPORTED(400, "배송 가능 지역이 아닙니다"),
+    MEMBER_DONG_REQUIRED(400, "행정동을 먼저 설정해 주세요"),
 
     // ===== 매물 (플랫폼 팀) =====
     LISTING_NOT_FOUND(404, "존재하지 않는 매물입니다"),
