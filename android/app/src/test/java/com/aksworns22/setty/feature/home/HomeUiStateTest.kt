@@ -3,6 +3,8 @@ package com.aksworns22.setty.feature.home
 import com.aksworns22.setty.core.model.FurnitureCategory
 import com.aksworns22.setty.core.model.FurnitureSummary
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class HomeUiStateTest {
@@ -38,6 +40,13 @@ class HomeUiStateTest {
     @Test
     fun `검색어가 비어 있으면 결과가 없다`() {
         assertEquals(emptyList<FurnitureSummary>(), HomeUiState(furnitures = listOf(sofa)).search("  "))
+    }
+
+    @Test
+    fun `배송비로 거르고 다음 커서가 있을 때만 이어 받는다`() {
+        assertTrue(HomeUiState(maxDeliveryFee = 20_000, nextCursor = "cursor").hasMore)
+        assertFalse(HomeUiState(maxDeliveryFee = 20_000, nextCursor = null).hasMore)
+        assertFalse(HomeUiState(maxDeliveryFee = null, nextCursor = "cursor").hasMore)
     }
 
     private fun listing(id: Long, category: FurnitureCategory) = FurnitureSummary(

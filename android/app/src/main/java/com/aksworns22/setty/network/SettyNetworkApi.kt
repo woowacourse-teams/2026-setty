@@ -47,6 +47,14 @@ interface SettyNetworkApi {
     @GET("/api/listings")
     suspend fun getListings(): ListingListResponse
 
+    /** [maxDeliveryFee] 이하로 배송받을 수 있는 매물을 커서 페이지로 받는다. 로그인과 회원 행정동이 필요하다. */
+    @GET("/api/listings")
+    suspend fun getListingsWithinDeliveryFee(
+        @Query("maxDeliveryFee") maxDeliveryFee: Int,
+        @Query("size") size: Int,
+        @Query("cursor") cursor: String?,
+    ): ListingListResponse
+
     @GET("/api/listings/{listingId}")
     suspend fun getFurnitureDetail(
         @Path("listingId") listingId: Long

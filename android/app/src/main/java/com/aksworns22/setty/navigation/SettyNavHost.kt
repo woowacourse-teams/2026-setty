@@ -114,6 +114,9 @@ fun SettyNavHost(startFurnitureId: Long? = null) {
                     onProfileClick = {
                         backStack.add(SettyScreen.MyPage)
                     },
+                    onRequireDong = {
+                        backStack.add(SettyScreen.ProfileEdit)
+                    },
                 )
             }
             entry<SettyScreen.FurnitureDetail> { key ->

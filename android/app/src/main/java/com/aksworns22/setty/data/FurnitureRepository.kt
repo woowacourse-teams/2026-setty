@@ -6,6 +6,7 @@ import com.aksworns22.setty.core.model.FurnitureSummary
 import com.aksworns22.setty.core.model.SaleStatus
 import com.aksworns22.setty.model.Dong
 import com.aksworns22.setty.model.EditableListing
+import com.aksworns22.setty.model.FurniturePage
 import com.aksworns22.setty.model.ListingDraft
 import com.aksworns22.setty.model.ListingImage
 import com.aksworns22.setty.model.MyFurniture
@@ -31,6 +32,17 @@ class FurnitureRepository(
 ) {
     suspend fun getFurniture(): List<FurnitureSummary> {
         return settyNetworkApi.getListings().items.map { it.toFurniture() }
+    }
+
+    /** 배송비가 [maxDeliveryFee] 이하인 매물 한 페이지를 받는다. 첫 페이지는 [cursor]를 null로 넘긴다. */
+    suspend fun getFurnitureWithinDeliveryFee(maxDeliveryFee: Int, cursor: String?): FurniturePage {
+        val response = apiCall {
+            settyNetworkApi.getListingsWithinDeliveryFee(maxDeliveryFee, PAGE_SIZE, cursor)
+        }
+        return FurniturePage(
+            items = response.items.map { it.toFurniture() },
+            nextCursor = response.nextCursor,
+        )
     }
 
     suspend fun getFurnitureDetail(furnitureId: Long): FurnitureDetail =
@@ -85,6 +97,7 @@ class FurnitureRepository(
     }
 
     companion object {
+        private const val PAGE_SIZE = 20
         private val json = Json { encodeDefaults = true }
     }
 }

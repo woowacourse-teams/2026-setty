@@ -4,7 +4,9 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class ListingListResponse(
-    val items: List<FurnitureSummaryResponse>
+    val items: List<FurnitureSummaryResponse>,
+    // 다음 페이지 커서. 마지막 페이지거나 페이지로 요청하지 않았으면 없다
+    val nextCursor: String? = null,
 )
 
 @Serializable
