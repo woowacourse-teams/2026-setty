@@ -4,6 +4,7 @@ import static setty.global.exception.ErrorCode.CANNOT_ORDER_OWN_LISTING;
 import static setty.global.exception.ErrorCode.INVALID_REQUEST;
 import static setty.global.exception.ErrorCode.LISTING_NOT_FOUND;
 
+import java.time.Instant;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -217,6 +218,19 @@ public class ListingService {
         Listing listing = listingRepository.findByIdForUpdate(listingId)
                 .orElseThrow(() -> new BusinessException(LISTING_NOT_FOUND));
         listing.releasePurchaseRequestForExpiredPendingOrder();
+    }
+
+    @Transactional
+    public void releasePurchaseRequestsForExpiredPendingOrders(List<Long> listingIds) {
+        if (listingIds.isEmpty()) {
+            return;
+        }
+        List<Long> distinctIds = listingIds.stream().distinct().sorted().toList();
+        // 단건 경로와 같이 삭제 여부와 무관하게 선점만 해제한다. 매물이 누락되면 주문 변경도 롤백한다.
+        if (listingRepository.findAllByIdForUpdate(distinctIds).size() != distinctIds.size()) {
+            throw new BusinessException(LISTING_NOT_FOUND);
+        }
+        listingRepository.releasePurchaseRequests(distinctIds, Instant.now());
     }
 
     @Transactional
