@@ -19,6 +19,14 @@ public class DeliveryFeeService {
     private final DistanceTable distanceTable;
     private final DeliveryFeeProperties properties;
 
+    public List<Dong> dongs() {
+        return seoulDongs.all();
+    }
+
+    public Optional<Dong> findDong(final String code) {
+        return seoulDongs.findByCode(code);
+    }
+
     public Optional<Dong> locate(final double latitude, final double longitude) {
         return seoulDongs.locate(latitude, longitude);
     }

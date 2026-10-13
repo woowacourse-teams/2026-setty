@@ -6,7 +6,9 @@ import java.io.InputStreamReader;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
@@ -20,6 +22,7 @@ public class SeoulDongs {
     private static final String BOUNDARIES = "deliveryfee/seoul-dong-boundaries.txt";
 
     private final List<Dong> dongs = new ArrayList<>();
+    private final Map<String, Dong> dongsByCode = new HashMap<>();
     private final List<List<Polygon>> polygons = new ArrayList<>();
 
     public SeoulDongs() {
@@ -28,7 +31,16 @@ public class SeoulDongs {
             dongs.add(new Dong(Integer.parseInt(fields[0]), fields[1], fields[2], fields[3]));
             polygons.add(new ArrayList<>());
         }
+        dongs.forEach(dong -> dongsByCode.put(dong.code(), dong));
         loadBoundaries();
+    }
+
+    public List<Dong> all() {
+        return List.copyOf(dongs);
+    }
+
+    public Optional<Dong> findByCode(final String code) {
+        return Optional.ofNullable(dongsByCode.get(code));
     }
 
     public Optional<Dong> locate(final double latitude, final double longitude) {

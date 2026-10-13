@@ -36,6 +36,9 @@ public class Member {
     @Column(nullable = false, length = 200)
     private String address;
 
+    @Column(name = "dong_code", length = 10)
+    private String dongCode;
+
     @Column(length = 36)
     private String token;
 
@@ -47,13 +50,15 @@ public class Member {
             final String password,
             final MemberRole role,
             final String phoneNumber,
-            final String address
+            final String address,
+            final String dongCode
     ) {
         this.loginId = loginId;
         this.password = password;
         this.role = role;
         this.phoneNumber = phoneNumber;
         this.address = address;
+        this.dongCode = dongCode;
     }
 
     public Long getId() {
@@ -80,6 +85,10 @@ public class Member {
         return address;
     }
 
+    public String getDongCode() {
+        return dongCode;
+    }
+
     public String getToken() {
         return token;
     }
@@ -95,6 +104,10 @@ public class Member {
     public void updateContact(final String phoneNumber, final String address) {
         this.phoneNumber = phoneNumber;
         this.address = address;
+    }
+
+    public void changeDong(final String dongCode) {
+        this.dongCode = dongCode;
     }
 
     public boolean matchPassword(final org.springframework.security.crypto.password.PasswordEncoder encoder, final String rawPassword) {

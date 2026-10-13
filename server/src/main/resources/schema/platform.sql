@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS members (
     role         VARCHAR(20)  NOT NULL,              -- MEMBER / ADMIN (ADMIN은 DB에서 직접 지정)
     phone_number VARCHAR(13)  NOT NULL,              -- 010-0000-0000
     address      VARCHAR(200) NOT NULL,
+    dong_code    VARCHAR(10)  NULL,                  -- 서울 행정동 코드(deliveryfee/seoul-dongs.csv). 도입 전 가입자는 NULL
     token        VARCHAR(36)  NULL,                  -- 로그인 시 회전하는 UUID. 로그인 전 NULL
     PRIMARY KEY (id),
     UNIQUE KEY uk_members_login_id (login_id),
@@ -17,6 +18,19 @@ CREATE TABLE IF NOT EXISTS members (
 -- role 체계 개편(PLATFORM/DRIVER → MEMBER) 마이그레이션. 멱등 — 이미 옮긴 행에는 no-op.
 -- 기사 계정은 delivery_member로 분리(#190, #194)되어 DRIVER 행도 MEMBER로 흡수.
 UPDATE members SET role = 'MEMBER' WHERE role IN ('PLATFORM', 'DRIVER');
+
+SET @members_dong_code_exists = (
+    SELECT COUNT(*) FROM information_schema.columns
+    WHERE table_schema = DATABASE() AND table_name = 'members' AND column_name = 'dong_code'
+);
+SET @add_members_dong_code = IF(
+    @members_dong_code_exists = 0,
+    'ALTER TABLE members ADD COLUMN dong_code VARCHAR(10) NULL AFTER address',
+    'SELECT 1'
+);
+PREPARE add_members_dong_code_statement FROM @add_members_dong_code;
+EXECUTE add_members_dong_code_statement;
+DEALLOCATE PREPARE add_members_dong_code_statement;
 
 CREATE TABLE IF NOT EXISTS listings (
     id BIGINT NOT NULL AUTO_INCREMENT,
@@ -35,6 +49,12 @@ CREATE TABLE IF NOT EXISTS listings (
     created_at TIMESTAMP(6) NOT NULL,
     updated_at TIMESTAMP(6) NOT NULL,
     deleted_at TIMESTAMP(6) NULL,
+    dong_code VARCHAR(10) NULL,
+    volume_tier VARCHAR(10) GENERATED ALWAYS AS (
+        CASE WHEN width_cm * depth_cm * height_cm <= 300000 THEN 'SMALL'
+             WHEN width_cm * depth_cm * height_cm <= 1000000 THEN 'MEDIUM'
+             ELSE 'LARGE' END
+    ) STORED,
     PRIMARY KEY (id),
     CONSTRAINT fk_listings_seller FOREIGN KEY (seller_id) REFERENCES members (id),
     CONSTRAINT chk_listings_price CHECK (price BETWEEN 0 AND 100000000),
@@ -43,8 +63,50 @@ CREATE TABLE IF NOT EXISTS listings (
     CONSTRAINT chk_listings_depth CHECK (depth_cm BETWEEN 1 AND 1000),
     CONSTRAINT chk_listings_height CHECK (height_cm BETWEEN 1 AND 1000),
     INDEX idx_listings_public (deleted_at, sale_status, created_at, id),
-    INDEX idx_listings_seller (seller_id, deleted_at, created_at, id)
+    INDEX idx_listings_seller (seller_id, deleted_at, created_at, id),
+    INDEX idx_listings_delivery_filter (deleted_at, sale_status, created_at, id, dong_code, volume_tier)
 );
+
+-- 배송비 예산 검색용. dong_code는 판매자 행정동을 복사하고, volume_tier는 DeliveryFeePolicy와 같은 부피 경계로 계산한다.
+-- 색인 끝에 두 컬럼을 두어 최신순으로 읽으면서 색인 안에서 (행정동, 부피) 조건을 거른다.
+SET @listings_dong_code_exists = (
+    SELECT COUNT(*) FROM information_schema.columns
+    WHERE table_schema = DATABASE() AND table_name = 'listings' AND column_name = 'dong_code'
+);
+SET @add_listings_dong_code = IF(
+    @listings_dong_code_exists = 0,
+    'ALTER TABLE listings ADD COLUMN dong_code VARCHAR(10) NULL AFTER deleted_at',
+    'SELECT 1'
+);
+PREPARE add_listings_dong_code_statement FROM @add_listings_dong_code;
+EXECUTE add_listings_dong_code_statement;
+DEALLOCATE PREPARE add_listings_dong_code_statement;
+
+SET @listings_volume_tier_exists = (
+    SELECT COUNT(*) FROM information_schema.columns
+    WHERE table_schema = DATABASE() AND table_name = 'listings' AND column_name = 'volume_tier'
+);
+SET @add_listings_volume_tier = IF(
+    @listings_volume_tier_exists = 0,
+    'ALTER TABLE listings ADD COLUMN volume_tier VARCHAR(10) GENERATED ALWAYS AS (CASE WHEN width_cm * depth_cm * height_cm <= 300000 THEN ''SMALL'' WHEN width_cm * depth_cm * height_cm <= 1000000 THEN ''MEDIUM'' ELSE ''LARGE'' END) STORED AFTER dong_code',
+    'SELECT 1'
+);
+PREPARE add_listings_volume_tier_statement FROM @add_listings_volume_tier;
+EXECUTE add_listings_volume_tier_statement;
+DEALLOCATE PREPARE add_listings_volume_tier_statement;
+
+SET @listings_delivery_filter_index_exists = (
+    SELECT COUNT(*) FROM information_schema.statistics
+    WHERE table_schema = DATABASE() AND table_name = 'listings' AND index_name = 'idx_listings_delivery_filter'
+);
+SET @add_listings_delivery_filter_index = IF(
+    @listings_delivery_filter_index_exists = 0,
+    'ALTER TABLE listings ADD INDEX idx_listings_delivery_filter (deleted_at, sale_status, created_at, id, dong_code, volume_tier)',
+    'SELECT 1'
+);
+PREPARE add_listings_delivery_filter_index_statement FROM @add_listings_delivery_filter_index;
+EXECUTE add_listings_delivery_filter_index_statement;
+DEALLOCATE PREPARE add_listings_delivery_filter_index_statement;
 
 CREATE TABLE IF NOT EXISTS listing_images (
     id BIGINT NOT NULL AUTO_INCREMENT,

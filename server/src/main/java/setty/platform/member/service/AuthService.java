@@ -6,12 +6,14 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import setty.deliveryfee.DeliveryFeeService;
 import setty.global.exception.BusinessException;
 import setty.global.exception.ErrorCode;
 import setty.platform.member.controller.dto.LoginRequest;
 import setty.platform.member.controller.dto.LoginResponse;
 import setty.platform.member.controller.dto.MemberMeResponse;
 import setty.platform.member.controller.dto.SignupRequest;
+import setty.platform.member.controller.dto.UpdateDongRequest;
 import setty.platform.member.controller.dto.UpdateProfileRequest;
 import setty.platform.member.domain.Member;
 import setty.platform.member.domain.MemberRole;
@@ -21,10 +23,12 @@ import setty.platform.member.repository.MemberRepository;
 public class AuthService {
 
     private final MemberRepository memberRepository;
+    private final DeliveryFeeService deliveryFeeService;
     private final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
-    public AuthService(final MemberRepository memberRepository) {
+    public AuthService(final MemberRepository memberRepository, final DeliveryFeeService deliveryFeeService) {
         this.memberRepository = memberRepository;
+        this.deliveryFeeService = deliveryFeeService;
     }
 
     @Transactional
@@ -32,12 +36,16 @@ public class AuthService {
         if (memberRepository.existsByLoginId(request.loginId())) {
             throw new BusinessException(ErrorCode.DUPLICATE_LOGIN_ID);
         }
+        if (request.dongCode() != null) {
+            validateDong(request.dongCode());
+        }
         final Member member = new Member(
                 request.loginId(),
                 passwordEncoder.encode(request.password()),
                 MemberRole.MEMBER,
                 request.phoneNumber(),
-                request.address()
+                request.address(),
+                request.dongCode()
         );
         try {
             return memberRepository.saveAndFlush(member);
@@ -79,5 +87,20 @@ public class AuthService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_TOKEN));
         member.updateContact(request.phoneNumber(), request.address());
         return MemberMeResponse.from(member);
+    }
+
+    @Transactional
+    public MemberMeResponse updateDong(final Long memberId, final UpdateDongRequest request) {
+        validateDong(request.dongCode());
+        final Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_TOKEN));
+        member.changeDong(request.dongCode());
+        return MemberMeResponse.from(member);
+    }
+
+    private void validateDong(final String dongCode) {
+        if (deliveryFeeService.findDong(dongCode).isEmpty()) {
+            throw new BusinessException(ErrorCode.DELIVERY_AREA_NOT_SUPPORTED);
+        }
     }
 }
