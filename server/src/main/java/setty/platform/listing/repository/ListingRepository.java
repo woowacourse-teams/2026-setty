@@ -1,10 +1,12 @@
 package setty.platform.listing.repository;
 
 import jakarta.persistence.LockModeType;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import setty.platform.listing.domain.Listing;
@@ -27,4 +29,16 @@ public interface ListingRepository extends JpaRepository<Listing, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select listing from Listing listing where listing.id = :id")
     Optional<Listing> findByIdForUpdate(@Param("id") Long id);
+
+    @Query(value = "select * from listings force index (PRIMARY) where id in (:ids) order by id for update",
+            nativeQuery = true)
+    List<Listing> findAllByIdForUpdate(@Param("ids") List<Long> ids);
+
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query(value = """
+            update listings force index (PRIMARY)
+            set has_purchase_request = false, updated_at = :updatedAt
+            where id in (:ids) and has_purchase_request = true
+            """, nativeQuery = true)
+    int releasePurchaseRequests(@Param("ids") List<Long> ids, @Param("updatedAt") Instant updatedAt);
 }
