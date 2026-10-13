@@ -12,6 +12,7 @@ import com.aksworns22.setty.feature.common.isUnauthorized
 import com.aksworns22.setty.feature.common.toLoadError
 import com.aksworns22.setty.feature.common.toUserMessage
 import com.aksworns22.setty.feature.signup.SignUpViewModel
+import com.aksworns22.setty.model.Dong
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -24,6 +25,9 @@ data class ProfileForm(
     // 하이픈 없는 숫자만 저장한다
     val phoneNumber: String,
     val address: String,
+    val dongCode: String?,
+    // 서버에 저장된 행정동. 바뀌었을 때만 행정동 변경을 요청한다
+    val savedDongCode: String? = dongCode,
 ) {
     val isPhoneNumberValid: Boolean
         get() = PHONE_NUMBER_REGEX.matches(phoneNumber)
@@ -32,7 +36,10 @@ data class ProfileForm(
         get() = address.length > ADDRESS_MAX_LENGTH
 
     val canSubmit: Boolean
-        get() = isPhoneNumberValid && address.isNotBlank() && !isAddressTooLong
+        get() = isPhoneNumberValid && address.isNotBlank() && !isAddressTooLong && dongCode != null
+
+    val isDongChanged: Boolean
+        get() = dongCode != savedDongCode
 
     companion object {
         private val PHONE_NUMBER_REGEX = Regex("^010\\d{8}$")
@@ -74,6 +81,7 @@ class ProfileEditViewModel(
                     loginId = member.loginId,
                     phoneNumber = member.phoneNumber.filter(Char::isDigit),
                     address = member.address,
+                    dongCode = member.dongCode,
                 )
                 _uiState.update { it.copy(form = LoadUiState.Success(form)) }
             }.onFailure { throwable ->
@@ -88,6 +96,8 @@ class ProfileEditViewModel(
 
     fun onAddressChanged(value: String) = updateForm { it.copy(address = value) }
 
+    fun onDongSelected(dong: Dong) = updateForm { it.copy(dongCode = dong.code) }
+
     fun save() {
         val state = _uiState.value
         val form = (state.form as? LoadUiState.Success)?.data ?: return
@@ -99,6 +109,10 @@ class ProfileEditViewModel(
                     phoneNumber = SignUpViewModel.formatPhoneNumber(form.phoneNumber),
                     address = form.address.trim(),
                 )
+                if (form.isDongChanged && form.dongCode != null) {
+                    userRepository.updateDong(form.dongCode)
+                    updateForm { it.copy(savedDongCode = form.dongCode) }
+                }
             }.onSuccess {
                 _uiState.update { it.copy(isSaving = false) }
                 _event.send(ProfileEditEvent.Saved)

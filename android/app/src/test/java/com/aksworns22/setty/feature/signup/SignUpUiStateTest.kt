@@ -14,6 +14,7 @@ class SignUpUiStateTest {
         passwordConfirm = "password1",
         phoneNumber = "01000000000",
         address = "서울시 가상구 테스트로 1",
+        dongCode = "1111051500",
     )
 
     @Test
@@ -79,5 +80,10 @@ class SignUpUiStateTest {
         assertEquals("010-0000", SignUpViewModel.formatPhoneNumber("0100000"))
         assertEquals("010-0000-0000", SignUpViewModel.formatPhoneNumber("01000000000"))
         assertEquals("010-0000-0000", SignUpViewModel.formatPhoneNumber("010-0000-00001"))
+    }
+
+    @Test
+    fun `행정동을 고르지 않으면 가입할 수 없다`() {
+        assertFalse(validState.copy(dongCode = null).canSubmit)
     }
 }

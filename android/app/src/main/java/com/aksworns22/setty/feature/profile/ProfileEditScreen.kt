@@ -49,8 +49,12 @@ import com.aksworns22.setty.feature.common.ErrorContent
 import com.aksworns22.setty.feature.common.LoadUiState
 import com.aksworns22.setty.feature.common.LoadingContent
 import com.aksworns22.setty.feature.common.SectionTitle
+import com.aksworns22.setty.feature.dong.DongCatalog
+import com.aksworns22.setty.feature.dong.DongField
+import com.aksworns22.setty.feature.dong.DongPickerViewModel
 import com.aksworns22.setty.feature.signup.PhoneNumberInputTransformation
 import com.aksworns22.setty.feature.signup.PhoneNumberOutputTransformation
+import com.aksworns22.setty.model.Dong
 import com.aksworns22.setty.ui.theme.Paperlogy
 import com.aksworns22.setty.ui.theme.SettyTheme
 
@@ -60,8 +64,10 @@ fun ProfileEditScreen(
     onSaved: () -> Unit,
     onRequireLogin: () -> Unit,
     viewModel: ProfileEditViewModel = viewModel(factory = ProfileEditViewModel.Factory),
+    dongPickerViewModel: DongPickerViewModel = viewModel(factory = DongPickerViewModel.Factory),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val dongCatalog by dongPickerViewModel.catalog.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     // 화면에 처음 들어올 때만 서버 값으로 폼을 채운다. 회전 등으로 다시 그려질 때는 입력을 유지한다.
     var isLoaded by rememberSaveable { mutableStateOf(false) }
@@ -80,12 +86,15 @@ fun ProfileEditScreen(
     }
     ProfileEditContent(
         uiState = uiState,
+        dongCatalog = dongCatalog,
         snackbarHostState = snackbarHostState,
         onBack = onBack,
         onRetry = viewModel::load,
         onRequireLogin = onRequireLogin,
         onPhoneNumberChanged = viewModel::onPhoneNumberChanged,
         onAddressChanged = viewModel::onAddressChanged,
+        onDongSelected = viewModel::onDongSelected,
+        onRetryDongs = dongPickerViewModel::load,
         onSave = viewModel::save,
     )
 }
@@ -94,12 +103,15 @@ fun ProfileEditScreen(
 @Composable
 private fun ProfileEditContent(
     uiState: ProfileEditUiState,
+    dongCatalog: LoadUiState<DongCatalog>,
     snackbarHostState: SnackbarHostState,
     onBack: () -> Unit,
     onRetry: () -> Unit,
     onRequireLogin: () -> Unit,
     onPhoneNumberChanged: (String) -> Unit,
     onAddressChanged: (String) -> Unit,
+    onDongSelected: (Dong) -> Unit,
+    onRetryDongs: () -> Unit,
     onSave: () -> Unit,
 ) {
     val form = (uiState.form as? LoadUiState.Success)?.data
@@ -141,8 +153,12 @@ private fun ProfileEditContent(
 
             is LoadUiState.Success -> ProfileFormFields(
                 form = state.data,
+                dongCatalog = dongCatalog,
+                isSaving = uiState.isSaving,
                 onPhoneNumberChanged = onPhoneNumberChanged,
                 onAddressChanged = onAddressChanged,
+                onDongSelected = onDongSelected,
+                onRetryDongs = onRetryDongs,
                 onSave = onSave,
                 modifier = Modifier.padding(innerPadding),
             )
@@ -154,8 +170,12 @@ private fun ProfileEditContent(
 @Composable
 private fun ProfileFormFields(
     form: ProfileForm,
+    dongCatalog: LoadUiState<DongCatalog>,
+    isSaving: Boolean,
     onPhoneNumberChanged: (String) -> Unit,
     onAddressChanged: (String) -> Unit,
+    onDongSelected: (Dong) -> Unit,
+    onRetryDongs: () -> Unit,
     onSave: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -171,7 +191,7 @@ private fun ProfileFormFields(
             .padding(horizontal = 32.dp, vertical = 16.dp),
     ) {
         Text(
-            text = "배송에 쓰일 연락처와 주소를 최신으로 유지해 주세요.\n이미 생성된 주문의 배송 정보는 바뀌지 않아요.",
+            text = "배송에 쓰일 연락처와 주소, 행정동을 최신으로 유지해 주세요.\n이미 생성된 주문의 배송 정보는 바뀌지 않아요.",
             style = MaterialTheme.typography.bodyLargeEmphasized,
         )
         SectionTitle(text = "계정", modifier = Modifier.padding(top = 12.dp))
@@ -203,6 +223,13 @@ private fun ProfileFormFields(
             ),
             lineLimits = TextFieldLineLimits.SingleLine,
             modifier = Modifier.fillMaxWidth(),
+        )
+        DongField(
+            catalog = dongCatalog,
+            selectedCode = form.dongCode,
+            onDongSelected = onDongSelected,
+            onRetry = onRetryDongs,
+            enabled = !isSaving,
         )
         OutlinedTextField(
             value = form.address,
@@ -264,8 +291,12 @@ private fun ProfileEditContentPreview() {
                         loginId = "settyuser1",
                         phoneNumber = "01012345678",
                         address = "서울시 세티구 세티로 1",
+                        dongCode = "1111051500",
                     )
                 )
+            ),
+            dongCatalog = LoadUiState.Success(
+                DongCatalog(listOf(Dong(code = "1111051500", name = "청운효자동", district = "종로구")))
             ),
             snackbarHostState = SnackbarHostState(),
             onBack = {},
@@ -273,6 +304,8 @@ private fun ProfileEditContentPreview() {
             onRequireLogin = {},
             onPhoneNumberChanged = {},
             onAddressChanged = {},
+            onDongSelected = {},
+            onRetryDongs = {},
             onSave = {},
         )
     }

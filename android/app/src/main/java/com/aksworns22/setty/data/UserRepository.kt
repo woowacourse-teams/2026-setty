@@ -2,6 +2,7 @@ package com.aksworns22.setty.data
 
 import com.aksworns22.setty.model.Member
 import com.aksworns22.setty.network.AboutMeResponse
+import com.aksworns22.setty.network.DongUpdateRequest
 import com.aksworns22.setty.network.LoginRequest
 import com.aksworns22.setty.network.MemberUpdateRequest
 import com.aksworns22.setty.network.SettyNetworkApi
@@ -24,14 +25,18 @@ class UserRepository(
         password: String,
         phoneNumber: String,
         address: String,
+        dongCode: String,
     ) {
-        apiCall { settyNetworkApi.signUp(SignUpRequest(loginId, password, phoneNumber, address)) }
+        apiCall { settyNetworkApi.signUp(SignUpRequest(loginId, password, phoneNumber, address, dongCode)) }
     }
 
     suspend fun getMe(): Member = apiCall { settyNetworkApi.aboutMe() }.toMember()
 
     suspend fun updateMe(phoneNumber: String, address: String): Member =
         apiCall { settyNetworkApi.updateMe(MemberUpdateRequest(phoneNumber, address)) }.toMember()
+
+    suspend fun updateDong(dongCode: String): Member =
+        apiCall { settyNetworkApi.updateDong(DongUpdateRequest(dongCode)) }.toMember()
 
     /** 서버 응답과 상관없이 저장한 토큰을 지운다. */
     suspend fun logout() {
@@ -52,4 +57,5 @@ private fun AboutMeResponse.toMember() = Member(
     loginId = loginId,
     phoneNumber = phoneNumber,
     address = address,
+    dongCode = dongCode,
 )

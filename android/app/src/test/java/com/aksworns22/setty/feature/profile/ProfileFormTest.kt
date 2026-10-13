@@ -10,6 +10,7 @@ class ProfileFormTest {
         loginId = "settyuser1",
         phoneNumber = "01012345678",
         address = "서울시 세티구 세티로 1",
+        dongCode = "1111051500",
     )
 
     @Test
@@ -27,5 +28,16 @@ class ProfileFormTest {
     fun `주소가 비었거나 200자를 넘으면 저장할 수 없다`() {
         assertFalse(validForm.copy(address = " ").canSubmit)
         assertFalse(validForm.copy(address = "가".repeat(201)).canSubmit)
+    }
+
+    @Test
+    fun `행정동을 고르지 않았으면 저장할 수 없다`() {
+        assertFalse(validForm.copy(dongCode = null, savedDongCode = null).canSubmit)
+    }
+
+    @Test
+    fun `저장된 행정동과 다른 동을 골랐을 때만 행정동이 바뀐 것으로 본다`() {
+        assertFalse(validForm.isDongChanged)
+        assertTrue(validForm.copy(dongCode = "1111053000").isDongChanged)
     }
 }

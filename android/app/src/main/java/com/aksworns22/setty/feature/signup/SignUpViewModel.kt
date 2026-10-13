@@ -7,6 +7,7 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.aksworns22.setty.SettyApp
 import com.aksworns22.setty.data.UserRepository
+import com.aksworns22.setty.model.Dong
 import com.aksworns22.setty.network.ApiException
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,6 +23,7 @@ data class SignUpUiState(
     val passwordConfirm: String = "",
     val phoneNumber: String = "",
     val address: String = "",
+    val dongCode: String? = null,
     val isLoading: Boolean = false,
 ) {
     val loginIdError: SignUpFieldError?
@@ -62,6 +64,7 @@ data class SignUpUiState(
         get() = !isLoading &&
                 listOf(loginId, password, passwordConfirm, phoneNumber).all { it.isNotEmpty() } &&
                 address.isNotBlank() &&
+                dongCode != null &&
                 listOf(
                     loginIdError,
                     passwordError,
@@ -87,7 +90,7 @@ enum class SignUpFieldError {
 }
 
 enum class SignUpEvent {
-    SUCCESS, DUPLICATE_LOGIN_ID, INVALID_REQUEST, NETWORK_ERROR, UNKNOWN_ERROR,
+    SUCCESS, DUPLICATE_LOGIN_ID, INVALID_REQUEST, UNSUPPORTED_DONG, NETWORK_ERROR, UNKNOWN_ERROR,
 }
 
 class SignUpViewModel(
@@ -102,7 +105,8 @@ class SignUpViewModel(
 
     fun signUp() {
         val state = _uiState.value
-        if (!state.canSubmit) return
+        val dongCode = state.dongCode
+        if (!state.canSubmit || dongCode == null) return
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             runCatching {
@@ -111,6 +115,7 @@ class SignUpViewModel(
                     password = state.password,
                     phoneNumber = formatPhoneNumber(state.phoneNumber),
                     address = state.address.trim(),
+                    dongCode = dongCode,
                 )
             }.onSuccess {
                 _uiState.update { it.copy(isLoading = false) }
@@ -142,10 +147,15 @@ class SignUpViewModel(
         _uiState.update { it.copy(address = value) }
     }
 
+    fun onDongSelected(dong: Dong) {
+        _uiState.update { it.copy(dongCode = dong.code) }
+    }
+
     private fun Throwable.toSignUpEvent(): SignUpEvent = when (this) {
         is ApiException -> when (code) {
             "DUPLICATE_LOGIN_ID" -> SignUpEvent.DUPLICATE_LOGIN_ID
             "INVALID_REQUEST" -> SignUpEvent.INVALID_REQUEST
+            "DELIVERY_AREA_NOT_SUPPORTED" -> SignUpEvent.UNSUPPORTED_DONG
             else -> SignUpEvent.UNKNOWN_ERROR
         }
 
