@@ -186,7 +186,11 @@ private fun ListingDetailContent(
                 subtitle = listing?.let {
                     {
                         Text(
-                            text = "${it.categoryLabel} · ${it.conditionGrade}급",
+                            text = listOfNotNull(
+                                it.categoryLabel,
+                                "${it.conditionGrade}급",
+                                it.dongName,
+                            ).joinToString(" · "),
                             fontFamily = Paperlogy,
                         )
                     }

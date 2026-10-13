@@ -166,6 +166,7 @@ fun SettyNavHost(startFurnitureId: Long? = null) {
                         }
                     },
                     onRequireLogin = navigateToLogin,
+                    onRequireDong = { backStack.add(SettyScreen.ProfileEdit) },
                 )
             }
             entry<SettyScreen.Favorites> {

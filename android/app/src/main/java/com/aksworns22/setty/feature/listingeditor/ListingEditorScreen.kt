@@ -85,6 +85,7 @@ fun ListingEditorScreen(
     onBack: () -> Unit,
     onSaved: (listingId: Long) -> Unit,
     onRequireLogin: () -> Unit,
+    onRequireDong: () -> Unit,
     viewModel: ListingEditorViewModel = viewModel(factory = ListingEditorViewModel.Factory),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -100,6 +101,7 @@ fun ListingEditorScreen(
             when (event) {
                 is ListingEditorEvent.Saved -> onSaved(event.listingId)
                 ListingEditorEvent.RequireLogin -> onRequireLogin()
+                ListingEditorEvent.RequireDong -> onRequireDong()
                 is ListingEditorEvent.Failed -> snackbarHostState.showSnackbar(event.message)
             }
         }

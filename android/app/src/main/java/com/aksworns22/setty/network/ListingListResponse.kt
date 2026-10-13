@@ -18,4 +18,13 @@ data class FurnitureSummaryResponse(
     val category: String,
     val conditionGrade: String,
     val createdAt: String,
+    // 행정동 도입 전에 등록한 매물은 null
+    val dong: ListingDongResponse? = null,
+)
+
+@Serializable
+data class ListingDongResponse(
+    val code: String,
+    val name: String,
+    val district: String,
 )

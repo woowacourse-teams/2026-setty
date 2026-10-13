@@ -425,8 +425,14 @@ private fun ListingItem(
         },
         overlineContent = {
             Text(
-                text = "${furniture.categoryLabel} · ${furniture.conditionGrade}급",
+                text = listOfNotNull(
+                    furniture.categoryLabel,
+                    "${furniture.conditionGrade}급",
+                    furniture.dongName,
+                ).joinToString(" · "),
                 style = MaterialTheme.typography.labelMedium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
         },
         supportingContent = {
@@ -534,6 +540,7 @@ private val previewFurnitures = listOf(
         category = FurnitureCategory.TABLE,
         conditionGrade = "A",
         createdAt = "2026-09-30T05:03:41Z",
+        dongName = "마포구 서교동",
     ),
     FurnitureSummary(
         id = 2,

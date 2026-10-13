@@ -17,6 +17,8 @@ data class FurnitureDetailResponse(
     val images: List<ListingImageResponse>,
     val createdAt: String,
     val updatedAt: String,
+    // 행정동 도입 전에 등록한 매물은 null
+    val dong: ListingDongResponse? = null,
 )
 
 @Serializable

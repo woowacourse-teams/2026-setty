@@ -10,6 +10,7 @@ import com.aksworns22.setty.SettyApp
 import com.aksworns22.setty.core.model.FurnitureCategory
 import com.aksworns22.setty.data.FurnitureRepository
 import com.aksworns22.setty.feature.common.LoadUiState
+import com.aksworns22.setty.feature.common.isMemberDongRequired
 import com.aksworns22.setty.feature.common.isUnauthorized
 import com.aksworns22.setty.feature.common.toLoadError
 import com.aksworns22.setty.feature.common.toUserMessage
@@ -102,6 +103,9 @@ sealed interface ListingEditorEvent {
     data class Saved(val listingId: Long) : ListingEditorEvent
 
     data object RequireLogin : ListingEditorEvent
+
+    // 판매자 행정동이 없어 등록할 수 없다
+    data object RequireDong : ListingEditorEvent
 
     data class Failed(val message: String) : ListingEditorEvent
 }
@@ -211,10 +215,10 @@ class ListingEditorViewModel(
             }.onFailure { throwable ->
                 _uiState.update { it.copy(isSubmitting = false) }
                 _event.send(
-                    if (throwable.isUnauthorized) {
-                        ListingEditorEvent.RequireLogin
-                    } else {
-                        ListingEditorEvent.Failed(throwable.toUserMessage("가구를 저장하지 못했습니다"))
+                    when {
+                        throwable.isUnauthorized -> ListingEditorEvent.RequireLogin
+                        throwable.isMemberDongRequired -> ListingEditorEvent.RequireDong
+                        else -> ListingEditorEvent.Failed(throwable.toUserMessage("가구를 저장하지 못했습니다"))
                     }
                 )
             }
