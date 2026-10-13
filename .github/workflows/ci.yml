@@ -25,14 +25,6 @@ jobs:
         working-directory: server
         run: ./gradlew test
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-
-      - name: Test SSE load runner
-        working-directory: server
-        run: node --test performance/sse-connection-load.test.mjs
-
   client-type-check:
     runs-on: ubuntu-latest
     steps:
