@@ -9,13 +9,13 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.time.Duration;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import setty.notification.send.NotificationSendProperties;
 
 @Configuration
-@ConditionalOnProperty(name = "setty.notification.sender", havingValue = "fcm")
+@ConditionalOnExpression("'${setty.notification.sender:noop}' == 'fcm' or '${setty.notification.sender:noop}' == 'mixed'")
 public class FcmConfiguration {
 
     private static final int TIMEOUT_MILLIS = (int) Duration.ofSeconds(10).toMillis();
