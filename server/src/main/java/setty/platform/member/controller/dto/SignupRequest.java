@@ -19,6 +19,9 @@ public record SignupRequest(
 
         @NotBlank
         @Size(max = 200, message = "주소는 200자 이내입니다")
-        String address
+        String address,
+
+        // 앱이 행정동 선택 화면(#451)을 내보내기 전까지는 비워 둔 가입도 받는다
+        String dongCode
 ) {
 }

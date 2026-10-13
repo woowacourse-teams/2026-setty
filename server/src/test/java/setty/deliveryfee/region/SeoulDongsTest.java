@@ -26,6 +26,13 @@ class SeoulDongsTest {
         assertThat(seoulDongs.locate(latitude, longitude)).contains(new Dong(index, code, name, district));
     }
 
+    @Test
+    void 행정동_코드로_행정동을_찾는다() {
+        assertThat(seoulDongs.all()).hasSize(427);
+        assertThat(seoulDongs.findByCode("1111053000")).contains(new Dong(1, "1111053000", "사직동", "종로구"));
+        assertThat(seoulDongs.findByCode("4113510300")).isEmpty();
+    }
+
     @ParameterizedTest
     @CsvSource({
             "37.3830, 127.1150",
