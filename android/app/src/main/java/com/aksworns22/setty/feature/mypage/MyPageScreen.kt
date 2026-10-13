@@ -356,6 +356,7 @@ private fun MyPageContentPreview() {
                         loginId = "settyuser1",
                         phoneNumber = "010-1234-5678",
                         address = "서울시 세티구 세티로 1",
+                        dongCode = "1111051500",
                     )
                 )
             ),

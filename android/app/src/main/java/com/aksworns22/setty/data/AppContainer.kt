@@ -75,6 +75,10 @@ class AppContainer(
         settyNetworkApi = settyNetworkApi,
     )
 
+    val dongRepository = DongRepository(
+        settyNetworkApi = settyNetworkApi,
+    )
+
     val keywordRepository = KeywordRepository(
         settyNetworkApi = settyNetworkApi,
     )

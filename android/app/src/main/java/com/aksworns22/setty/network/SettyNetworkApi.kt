@@ -33,6 +33,14 @@ interface SettyNetworkApi {
         @Body request: MemberUpdateRequest
     ): AboutMeResponse
 
+    @PUT("/api/auth/me/dong")
+    suspend fun updateDong(
+        @Body request: DongUpdateRequest
+    ): AboutMeResponse
+
+    @GET("/api/dongs")
+    suspend fun getDongs(): DongListResponse
+
     @POST("/api/auth/logout")
     suspend fun logout()
 

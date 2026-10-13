@@ -5,4 +5,5 @@ data class Member(
     val loginId: String,
     val phoneNumber: String,
     val address: String,
+    val dongCode: String?,
 )
