@@ -370,7 +370,7 @@ private fun OrderedFurnitureSection(
             Text(
                 text = listing.name,
                 style = MaterialTheme.typography.titleMedium,
-                maxLines = 2,
+                maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
         }
