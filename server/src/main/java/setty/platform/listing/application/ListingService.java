@@ -26,27 +26,34 @@ import setty.platform.listing.domain.SaleStatus;
 import setty.platform.listing.repository.ListingImageRepository;
 import setty.platform.listing.repository.ListingRepository;
 import setty.platform.listing.storage.ListingImageStorage;
+import setty.platform.order.domain.OrderStatus;
+import setty.platform.order.repository.OrderRepository;
 
 @Service
 public class ListingService {
 
     private static final Logger log = LoggerFactory.getLogger(ListingService.class);
 
+    private static final List<OrderStatus> CLOSED_ORDER_STATUSES = List.of(OrderStatus.EXPIRED, OrderStatus.CANCELLED);
+
     private final ListingRepository listingRepository;
     private final ListingImageRepository listingImageRepository;
     private final ListingImageStorage listingImageStorage;
     private final ListingRecorder listingRecorder;
+    private final OrderRepository orderRepository;
 
     public ListingService(
             ListingRepository listingRepository,
             ListingImageRepository listingImageRepository,
             ListingImageStorage listingImageStorage,
-            ListingRecorder listingRecorder
+            ListingRecorder listingRecorder,
+            OrderRepository orderRepository
     ) {
         this.listingRepository = listingRepository;
         this.listingImageRepository = listingImageRepository;
         this.listingImageStorage = listingImageStorage;
         this.listingRecorder = listingRecorder;
+        this.orderRepository = orderRepository;
     }
 
     public ListingView.Created create(Long sellerId, ListingCreateCommand command) {
@@ -165,7 +172,12 @@ public class ListingService {
     @Transactional
     public void releasePurchaseRequest(Long listingId) {
         listingRepository.findActiveByIdForUpdate(listingId)
+                .filter(listing -> !hasActiveOrder(listingId))
                 .ifPresent(Listing::releasePurchaseRequest);
+    }
+
+    private boolean hasActiveOrder(Long listingId) {
+        return orderRepository.existsByListingIdAndOrderStatusNotIn(listingId, CLOSED_ORDER_STATUSES);
     }
 
     @Transactional

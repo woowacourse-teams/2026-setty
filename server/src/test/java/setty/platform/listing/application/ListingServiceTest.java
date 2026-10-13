@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -13,6 +14,7 @@ import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -27,6 +29,7 @@ import setty.platform.listing.domain.ListingCategory;
 import setty.platform.listing.repository.ListingImageRepository;
 import setty.platform.listing.repository.ListingRepository;
 import setty.platform.listing.storage.ListingImageStorage;
+import setty.platform.order.repository.OrderRepository;
 
 @ExtendWith(MockitoExtension.class)
 class ListingServiceTest {
@@ -45,6 +48,9 @@ class ListingServiceTest {
 
     @Mock
     private ListingRecorder listingRecorder;
+
+    @Mock
+    private OrderRepository orderRepository;
 
     @InjectMocks
     private ListingService listingService;
@@ -104,6 +110,47 @@ class ListingServiceTest {
         listingService.update(SELLER_ID, LISTING_ID, updateCommand());
 
         verify(listingImageStorage).deleteAll(removed);
+    }
+
+    @Test
+    void 매물에_진행_중인_다른_주문이_있으면_구매_신청을_해제하지_않는다() {
+        final Listing listing = listingWithPurchaseRequest();
+        when(listingRepository.findActiveByIdForUpdate(LISTING_ID)).thenReturn(Optional.of(listing));
+        when(orderRepository.existsByListingIdAndOrderStatusNotIn(eq(LISTING_ID), anyList())).thenReturn(true);
+
+        listingService.releasePurchaseRequest(LISTING_ID);
+
+        assertThat(listing.hasPurchaseRequest()).isTrue();
+    }
+
+    @Test
+    void 매물에_진행_중인_주문이_없으면_구매_신청을_해제한다() {
+        final Listing listing = listingWithPurchaseRequest();
+        when(listingRepository.findActiveByIdForUpdate(LISTING_ID)).thenReturn(Optional.of(listing));
+        when(orderRepository.existsByListingIdAndOrderStatusNotIn(eq(LISTING_ID), anyList())).thenReturn(false);
+
+        listingService.releasePurchaseRequest(LISTING_ID);
+
+        assertThat(listing.hasPurchaseRequest()).isFalse();
+    }
+
+    @Test
+    void 진행_중인_주문은_매물을_잠근_뒤에_확인한다() {
+        when(listingRepository.findActiveByIdForUpdate(LISTING_ID)).thenReturn(Optional.of(listingWithPurchaseRequest()));
+
+        listingService.releasePurchaseRequest(LISTING_ID);
+
+        final InOrder order = inOrder(listingRepository, orderRepository);
+        order.verify(listingRepository).findActiveByIdForUpdate(LISTING_ID);
+        order.verify(orderRepository).existsByListingIdAndOrderStatusNotIn(eq(LISTING_ID), anyList());
+    }
+
+    private Listing listingWithPurchaseRequest() {
+        final Listing listing = Listing.create(
+                SELLER_ID, "가상 책상", "테스트용 가상 매물입니다.", 100_000, ListingCategory.DESK, ConditionGrade.A,
+                Dimensions.of(100, 50, 40));
+        listing.registerPurchaseRequest();
+        return listing;
     }
 
     private ListingCreateCommand createCommand() {

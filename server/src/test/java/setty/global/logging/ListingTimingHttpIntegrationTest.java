@@ -50,6 +50,7 @@ import setty.platform.listing.presentation.ListingController;
 import setty.platform.listing.repository.ListingImageRepository;
 import setty.platform.listing.repository.ListingRepository;
 import setty.platform.listing.storage.ListingImageStorage;
+import setty.platform.order.repository.OrderRepository;
 
 class ListingTimingHttpIntegrationTest {
 
@@ -171,6 +172,7 @@ class ListingTimingHttpIntegrationTest {
         }
         @Bean ListingRepository listingRepository() { return mock(ListingRepository.class); }
         @Bean ListingImageRepository imageRepository() { return mock(ListingImageRepository.class); }
+        @Bean OrderRepository orderRepository() { return mock(OrderRepository.class); }
         @Bean ListingImageStorage imageStorage() { return mock(ListingImageStorage.class); }
     }
 }
