@@ -71,7 +71,7 @@ for ((i = 1; i <= COUNT; i++)); do
     printf -v suffix "%0${width}d" "${i}"
     login_id="${ACCOUNT_PREFIX}${suffix}"
     phone_number="$(printf '010-0000-%04d' "${i}")"
-    signup_payload="{\"loginId\":\"${login_id}\",\"password\":\"${PASSWORD}\",\"phoneNumber\":\"${phone_number}\",\"address\":\"부하 테스트 주소 ${i}\"}"
+    signup_payload="{\"loginId\":\"${login_id}\",\"password\":\"${PASSWORD}\",\"phoneNumber\":\"${phone_number}\",\"address\":\"부하 테스트 주소 ${i}\",\"dongCode\":\"1111053000\"}"
 
     signup_status="$(http_status \
         "${BASE_URL}/api/auth/signup" \

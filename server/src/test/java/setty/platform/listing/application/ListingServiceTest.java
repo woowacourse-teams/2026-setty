@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.verify;
@@ -59,6 +60,7 @@ class ListingServiceTest {
     void 만료된_PENDING_주문의_매물을_잠그고_구매_요청을_해제한다() {
         final Listing listing = Listing.create(
                 201L,
+                "1111053000",
                 "가상 책상",
                 "테스트용 가상 매물입니다.",
                 100_000,
@@ -79,10 +81,10 @@ class ListingServiceTest {
     void 등록_저장이_실패하면_올린_사진을_지운다() {
         final List<String> uploaded = List.of("setty/images/listings/uploaded.jpg");
         when(listingImageStorage.upload(anyList())).thenReturn(uploaded);
-        when(listingRecorder.create(anyLong(), any(), eq(uploaded)))
+        when(listingRecorder.create(anyLong(), anyString(), any(), eq(uploaded)))
                 .thenThrow(new CannotCreateTransactionException("커넥션을 얻지 못함"));
 
-        assertThatThrownBy(() -> listingService.create(SELLER_ID, createCommand()))
+        assertThatThrownBy(() -> listingService.create(SELLER_ID, "1111053000", createCommand()))
                 .isInstanceOf(CannotCreateTransactionException.class);
 
         verify(listingImageStorage).deleteAll(uploaded);
@@ -147,7 +149,7 @@ class ListingServiceTest {
 
     private Listing listingWithPurchaseRequest() {
         final Listing listing = Listing.create(
-                SELLER_ID, "가상 책상", "테스트용 가상 매물입니다.", 100_000, ListingCategory.DESK, ConditionGrade.A,
+                SELLER_ID, "1111053000", "가상 책상", "테스트용 가상 매물입니다.", 100_000, ListingCategory.DESK, ConditionGrade.A,
                 Dimensions.of(100, 50, 40));
         listing.registerPurchaseRequest();
         return listing;

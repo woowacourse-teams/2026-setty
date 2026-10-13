@@ -93,7 +93,7 @@ class ListingTimingHttpIntegrationTest {
     void actualControllerAndServiceProduceJsonAndOneCorrelatedStructuredLog() throws Exception {
         when(context.getBean(ListingQueryRepository.class).findAvailable(null, null, null, null))
                 .thenReturn(List.of(new ListingQueryRepository.Row(7L, "test desk", 50000, 10000, ListingCategory.DESK,
-                        ConditionGrade.A, 80, 50, 70, Instant.parse("2026-10-01T00:00:00Z"))));
+                        ConditionGrade.A, 80, 50, 70, Instant.parse("2026-10-01T00:00:00Z"), null)));
         when(context.getBean(ListingQueryRepository.class).findThumbnailObjectKeys(List.of(7L)))
                 .thenReturn(Map.of(7L, "first.jpg"));
         when(context.getBean(ListingImageStorage.class).publicUrl("first.jpg")).thenReturn("https://example.test/first.jpg");

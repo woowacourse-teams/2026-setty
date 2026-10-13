@@ -3,6 +3,7 @@ package setty.platform.listing;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
@@ -59,6 +60,7 @@ import tools.jackson.databind.ObjectMapper;
 class ListingApiTest extends MySqlIntegrationTestSupport {
 
     private static final long SELLER_ID = 101L;
+    private static final String SELLER_DONG_CODE = "1111053000";
     private static final long OTHER_SELLER_ID = 202L;
     private static final long FIRST_BUYER_ID = 303L;
     private static final long SECOND_BUYER_ID = 404L;
@@ -273,6 +275,46 @@ class ListingApiTest extends MySqlIntegrationTestSupport {
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("INVALID_TOKEN"))
                 .andExpect(jsonPath("$.message").value("유효하지 않은 토큰입니다"));
+    }
+
+    @Test
+    void 등록한_매물에_판매자_행정동을_저장하고_목록과_상세에_보여_준다() throws Exception {
+        long listingId = createListing(SELLER_ID, "행정동 확인용 가상 책상");
+
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT dong_code FROM listings WHERE id = ?", String.class, listingId)).isEqualTo(SELLER_DONG_CODE);
+        mockMvc.perform(get("/api/listings/{listingId}", listingId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.dong.code").value(SELLER_DONG_CODE))
+                .andExpect(jsonPath("$.dong.name").value("사직동"))
+                .andExpect(jsonPath("$.dong.district").value("종로구"));
+        mockMvc.perform(get("/api/listings"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[0].dong.code").value(SELLER_DONG_CODE))
+                .andExpect(jsonPath("$.items[0].dong.name").value("사직동"));
+    }
+
+    @Test
+    void 행정동이_없는_판매자는_사진을_올리기_전에_등록을_막는다() throws Exception {
+        jdbcTemplate.update("UPDATE members SET dong_code = NULL WHERE id = ?", SELLER_ID);
+
+        mockMvc.perform(multipart("/api/listings")
+                        .file(jsonPart("request", createRequest("행정동 없는 가상 매물")))
+                        .file(imagePart("furniture.jpg"))
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(SELLER_ID)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("MEMBER_DONG_REQUIRED"));
+        verify(listingImageStorage, never()).upload(anyList());
+    }
+
+    @Test
+    void 행정동_도입_전_매물은_행정동이_비어_있다() throws Exception {
+        long listingId = createListing(SELLER_ID, "예전 가상 매물");
+        jdbcTemplate.update("UPDATE listings SET dong_code = NULL WHERE id = ?", listingId);
+
+        mockMvc.perform(get("/api/listings/{listingId}", listingId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.dong").value(nullValue()));
     }
 
     @Test
@@ -658,12 +700,13 @@ class ListingApiTest extends MySqlIntegrationTestSupport {
     private void insertMember(long memberId) {
         jdbcTemplate.update(
                 """
-                INSERT INTO members (id, login_id, password, role, phone_number, address, token)
-                VALUES (?, ?, ?, 'MEMBER', '010-0000-0000', '가상 주소', ?)
+                INSERT INTO members (id, login_id, password, role, phone_number, address, dong_code, token)
+                VALUES (?, ?, ?, 'MEMBER', '010-0000-0000', '가상 주소', ?, ?)
                 """,
                 memberId,
                 "member" + memberId,
                 "encoded-password",
+                SELLER_DONG_CODE,
                 token(memberId)
         );
     }
