@@ -1,6 +1,7 @@
 package setty.platform.listing.application;
 
 import static setty.global.exception.ErrorCode.CANNOT_ORDER_OWN_LISTING;
+import static setty.global.exception.ErrorCode.INVALID_REQUEST;
 import static setty.global.exception.ErrorCode.LISTING_NOT_FOUND;
 
 import java.util.Collection;
@@ -24,6 +25,7 @@ import setty.platform.listing.domain.Listing;
 import setty.platform.listing.domain.ListingImage;
 import setty.platform.listing.domain.SaleStatus;
 import setty.platform.listing.repository.ListingImageRepository;
+import setty.platform.listing.repository.ListingQueryRepository;
 import setty.platform.listing.repository.ListingRepository;
 import setty.platform.listing.storage.ListingImageStorage;
 
@@ -31,20 +33,25 @@ import setty.platform.listing.storage.ListingImageStorage;
 public class ListingService {
 
     private static final Logger log = LoggerFactory.getLogger(ListingService.class);
+    public static final int DEFAULT_PAGE_SIZE = 20;
+    private static final int MAXIMUM_PAGE_SIZE = 100;
 
     private final ListingRepository listingRepository;
     private final ListingImageRepository listingImageRepository;
+    private final ListingQueryRepository listingQueryRepository;
     private final ListingImageStorage listingImageStorage;
     private final ListingRecorder listingRecorder;
 
     public ListingService(
             ListingRepository listingRepository,
             ListingImageRepository listingImageRepository,
+            ListingQueryRepository listingQueryRepository,
             ListingImageStorage listingImageStorage,
             ListingRecorder listingRecorder
     ) {
         this.listingRepository = listingRepository;
         this.listingImageRepository = listingImageRepository;
+        this.listingQueryRepository = listingQueryRepository;
         this.listingImageStorage = listingImageStorage;
         this.listingRecorder = listingRecorder;
     }
@@ -61,18 +68,43 @@ public class ListingService {
         }
     }
 
-    @Transactional(readOnly = true)
+    // 트랜잭션을 걸지 않는다. JPA 트랜잭션을 열면 조회 내내 커넥션을 붙잡으므로 쿼리마다 바로 반납하는 JDBC 조회만 쓴다.
     public List<ListingView.Summary> findAvailableListings() {
-        List<Listing> listings = ListingRequestTiming.measure("listings", () -> listingRepository
-                .findAllBySaleStatusAndDeletedAtIsNullOrderByCreatedAtDescIdDesc(SaleStatus.AVAILABLE));
-        ListingRequestTiming.count("listing_count", listings.size());
-        Map<Long, ListingImage> thumbnails = ListingRequestTiming.measure("images", () -> findThumbnails(listings));
+        return findAvailable(null, null).items();
+    }
 
-        List<ListingView.Summary> summaries = ListingRequestTiming.measure("mapping", () -> listings.stream()
-                .map(listing -> toSummary(listing, thumbnails.get(listing.getId())))
+    public ListingView.SummaryPage findAvailableListings(ListingCursor cursor, int size) {
+        if (size < 1 || size > MAXIMUM_PAGE_SIZE) {
+            throw new BusinessException(INVALID_REQUEST);
+        }
+        return findAvailable(cursor, size);
+    }
+
+    private ListingView.SummaryPage findAvailable(ListingCursor cursor, Integer size) {
+        // 다음 페이지가 있는지 알려고 한 개를 더 읽는다
+        List<ListingQueryRepository.Row> rows = ListingRequestTiming.measure("listings", () -> listingQueryRepository.findAvailable(
+                cursor == null ? null : cursor.createdAt(),
+                cursor == null ? null : cursor.id(),
+                size == null ? null : size + 1
+        ));
+        boolean hasNext = size != null && rows.size() > size;
+        List<ListingQueryRepository.Row> page = hasNext ? rows.subList(0, size) : rows;
+        ListingRequestTiming.count("listing_count", page.size());
+
+        List<Long> listingIds = page.stream().map(ListingQueryRepository.Row::id).toList();
+        Map<Long, String> thumbnails = ListingRequestTiming.measure("images", () -> listingIds.isEmpty()
+                ? Map.<Long, String>of()
+                : listingQueryRepository.findThumbnailObjectKeys(listingIds));
+        ListingRequestTiming.count("image_count", thumbnails.size());
+
+        List<ListingView.Summary> summaries = ListingRequestTiming.measure("mapping", () -> page.stream()
+                .map(row -> toSummary(row, thumbnails.get(row.id())))
                 .toList());
         ListingRequestTiming.count("summary_count", summaries.size());
-        return summaries;
+
+        ListingQueryRepository.Row last = hasNext ? page.get(page.size() - 1) : null;
+        String nextCursor = last == null ? null : new ListingCursor(last.createdAt(), last.id()).encode();
+        return new ListingView.SummaryPage(summaries, nextCursor);
     }
 
     @Transactional(readOnly = true)
@@ -220,6 +252,21 @@ public class ListingService {
 
     private List<MultipartFile> normalizeImages(List<MultipartFile> images) {
         return images == null ? List.of() : List.copyOf(images);
+    }
+
+    private ListingView.Summary toSummary(ListingQueryRepository.Row row, String thumbnailObjectKey) {
+        return new ListingView.Summary(
+                row.id(),
+                row.title(),
+                thumbnailObjectKey == null ? null : listingImageStorage.publicUrl(thumbnailObjectKey),
+                row.price(),
+                row.deliveryFee(),
+                row.price() + row.deliveryFee(),
+                row.category(),
+                row.conditionGrade(),
+                new ListingView.Dimensions(row.widthCm(), row.depthCm(), row.heightCm()),
+                row.createdAt()
+        );
     }
 
     private ListingView.Summary toSummary(Listing listing, ListingImage thumbnail) {

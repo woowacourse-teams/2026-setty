@@ -31,6 +31,9 @@ public final class ListingView {
     ) {
     }
 
+    public record SummaryPage(List<Summary> items, String nextCursor) {
+    }
+
     public record Detail(
             Long id,
             String title,

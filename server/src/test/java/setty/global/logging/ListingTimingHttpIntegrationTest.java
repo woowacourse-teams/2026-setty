@@ -1,7 +1,6 @@
 package setty.global.logging;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.when;
@@ -16,6 +15,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -34,18 +34,14 @@ import org.springframework.boot.web.server.servlet.context.AnnotationConfigServl
 import org.springframework.boot.webmvc.autoconfigure.DispatcherServletRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
-import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.servlet.DispatcherServlet;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 import setty.global.exception.GlobalExceptionHandler;
 import setty.platform.listing.application.ListingRecorder;
 import setty.platform.listing.application.ListingService;
 import setty.platform.listing.domain.ConditionGrade;
-import setty.platform.listing.domain.Dimensions;
-import setty.platform.listing.domain.Listing;
 import setty.platform.listing.domain.ListingCategory;
-import setty.platform.listing.domain.ListingImage;
-import setty.platform.listing.domain.SaleStatus;
+import setty.platform.listing.repository.ListingQueryRepository;
 import setty.platform.listing.presentation.ListingController;
 import setty.platform.listing.repository.ListingImageRepository;
 import setty.platform.listing.repository.ListingRepository;
@@ -81,7 +77,7 @@ class ListingTimingHttpIntegrationTest {
     void resetState() {
         logs.list.clear();
         reset(context.getBean(ListingRepository.class), context.getBean(ListingImageRepository.class),
-                context.getBean(ListingImageStorage.class));
+                context.getBean(ListingQueryRepository.class), context.getBean(ListingImageStorage.class));
     }
 
     @AfterAll
@@ -93,14 +89,11 @@ class ListingTimingHttpIntegrationTest {
 
     @Test
     void actualControllerAndServiceProduceJsonAndOneCorrelatedStructuredLog() throws Exception {
-        Listing listing = Listing.create(2L, "test desk", "description", 50000, ListingCategory.DESK,
-                ConditionGrade.A, Dimensions.of(80, 50, 70));
-        ReflectionTestUtils.setField(listing, "id", 7L);
-        when(context.getBean(ListingRepository.class)
-                .findAllBySaleStatusAndDeletedAtIsNullOrderByCreatedAtDescIdDesc(SaleStatus.AVAILABLE))
-                .thenReturn(List.of(listing));
-        when(context.getBean(ListingImageRepository.class).findThumbnailsByListingIdIn(anyCollection()))
-                .thenReturn(List.of(ListingImage.create(7L, "first.jpg", 1)));
+        when(context.getBean(ListingQueryRepository.class).findAvailable(null, null, null))
+                .thenReturn(List.of(new ListingQueryRepository.Row(7L, "test desk", 50000, 10000, ListingCategory.DESK,
+                        ConditionGrade.A, 80, 50, 70, Instant.parse("2026-10-01T00:00:00Z"))));
+        when(context.getBean(ListingQueryRepository.class).findThumbnailObjectKeys(List.of(7L)))
+                .thenReturn(Map.of(7L, "first.jpg"));
         when(context.getBean(ListingImageStorage.class).publicUrl("first.jpg")).thenReturn("https://example.test/first.jpg");
 
         HttpResponse<String> response = get();
@@ -125,13 +118,13 @@ class ListingTimingHttpIntegrationTest {
         assertThat(get().body()).isEqualTo("{\"items\":[]}");
         assertThat(jsonLog()).containsEntry("listing_count", 0).containsEntry("image_count", 0)
                 .containsEntry("summary_count", 0).containsEntry("response_complete", true);
-        org.mockito.Mockito.verifyNoInteractions(context.getBean(ListingImageRepository.class));
+        org.mockito.Mockito.verify(context.getBean(ListingQueryRepository.class), org.mockito.Mockito.never())
+                .findThumbnailObjectKeys(org.mockito.ArgumentMatchers.anyList());
     }
 
     @Test
     void handledRepositoryFailureRetains500AndMarksOnlyAttemptedStage() throws Exception {
-        when(context.getBean(ListingRepository.class)
-                .findAllBySaleStatusAndDeletedAtIsNullOrderByCreatedAtDescIdDesc(SaleStatus.AVAILABLE))
+        when(context.getBean(ListingQueryRepository.class).findAvailable(null, null, null))
                 .thenThrow(new IllegalStateException("synthetic failure"));
         HttpResponse<String> response = get();
         assertThat(response.statusCode()).isEqualTo(500);
@@ -172,5 +165,6 @@ class ListingTimingHttpIntegrationTest {
         @Bean ListingRepository listingRepository() { return mock(ListingRepository.class); }
         @Bean ListingImageRepository imageRepository() { return mock(ListingImageRepository.class); }
         @Bean ListingImageStorage imageStorage() { return mock(ListingImageStorage.class); }
+        @Bean ListingQueryRepository listingQueryRepository() { return mock(ListingQueryRepository.class); }
     }
 }
