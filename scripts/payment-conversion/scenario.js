@@ -99,6 +99,10 @@ const successfulPayments = new Counter('scenario_payment_successes');
 const verifiedPostHogEvents = new Counter('scenario_posthog_verified_events');
 
 const BROWSER_OPTIONS = { browser: { type: 'chromium' } };
+// 결제창을 열면 6분짜리 PENDING 주문이 매물을 잡는다. B(결제창 이탈 30명)와 C(결제 20명)가
+// 같은 매물을 다시 쓰면 ALREADY_ORDERED가 나므로, 매물 CSV의 1~30번은 B, 31~50번은 C에만 배정한다.
+const PURCHASE_LISTING_OFFSET = 30;
+const SCENARIO_LISTINGS = 50;
 
 export const options = {
     scenarios: ANALYTICS_SMOKE ? {
@@ -180,7 +184,7 @@ export const options = {
 
 export function setup() {
     const requiredUsers = ANALYTICS_SMOKE || PURCHASE_SMOKE ? 1 : 100;
-    const requiredListings = ANALYTICS_SMOKE || PURCHASE_SMOKE ? 1 : 20;
+    const requiredListings = ANALYTICS_SMOKE || PURCHASE_SMOKE ? 1 : SCENARIO_LISTINGS;
     if (users.length < requiredUsers) {
         failConfiguration(`구매자 계정은 최소 ${requiredUsers}개가 필요합니다. 현재 ${users.length}개입니다.`);
     }
@@ -344,7 +348,7 @@ export async function checkoutAbandon() {
     const iteration = exec.scenario.iterationInTest;
     const accountIndex = 50 + iteration;
     const account = accountAt(accountIndex);
-    const listing = listingAt(iteration % 20);
+    const listing = listings[iteration];
     const page = await openPageAndLogin(account);
     try {
         const loaded = await visitListing(page, listing, account.loginId, false);
@@ -388,7 +392,7 @@ export async function completePurchase() {
     const accountIndex = PURCHASE_SMOKE ? iteration : 80 + iteration;
     const account = accountAt(accountIndex);
     // Reserve one distinct listing for each successful purchase.
-    const listing = listings[iteration];
+    const listing = listings[PURCHASE_SMOKE ? iteration : PURCHASE_LISTING_OFFSET + iteration];
     const page = await openPageAndLogin(account);
     try {
         const loaded = await visitListing(page, listing, account.loginId, false);

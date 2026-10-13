@@ -30,7 +30,7 @@ BASE_URL=https://www.setty.cloud/dev COUNT=100 ACCOUNT_PREFIX=k6user CSV_PATH=.l
 
 ## 판매자 계정과 매물
 
-매물 등록에는 구매자 계정과 분리된 판매자 계정이 필요하다. 다음 명령은 판매자 `k6seller1`을 만들거나 기존 계정을 로그인으로 확인한 뒤, 기본 20개의 판매 가능 매물을 등록한다.
+매물 등록에는 구매자 계정과 분리된 판매자 계정이 필요하다. 다음 명령은 판매자 `k6seller1`을 만들거나 기존 계정을 로그인으로 확인한 뒤, 기본 50개의 판매 가능 매물을 등록한다.
 
 ```sh
 BASE_URL=https://www.setty.cloud/dev COUNT=1 ACCOUNT_PREFIX=k6seller CSV_PATH=.local/k6-test-seller.csv scripts/payment-conversion/create_k6_test_users.sh
@@ -45,7 +45,7 @@ BASE_URL=https://www.setty.cloud/dev SELLER_CSV_PATH=.local/k6-test-seller.csv s
 
 결과는 `.local/k6-test-listings-<RUN_TAG>.csv`에 기록되며 `listingId,title,category,price` 열을 제공한다. `COUNT`, `RUN_TAG`, `SELLER_CSV_PATH`, `IMAGE_PATH`, `LISTINGS_CSV_PATH`, `BASE_URL`로 등록 개수와 경로를 바꿀 수 있다. 같은 `RUN_TAG`로 다시 실행하면 판매 가능한 기존 매물을 재사용해 CSV를 복구한다. 예약되거나 판매된 매물은 재사용하지 않는다. 새 `RUN_TAG`는 새 매물과 S3 이미지 객체를 만든다.
 
-결제 완료 시 매물은 주문에 선점되고 판매 처리되므로 성공 결제 20건을 시나리오로 만들려면 서로 다른 판매 가능 매물이 최소 20개 필요하다. 생성된 테스트 데이터는 서버 DB와 S3에 남으므로 테스트 후 정리한다.
+결제창을 열면 6분 동안 PENDING 주문이 매물을 선점하고, 결제 완료 시 매물은 판매 처리된다. 그래서 시나리오는 매물 CSV의 1~30번을 결제창 이탈 B 30명에게, 31~50번을 결제 C 20명에게 한 개씩 따로 배정하며 서로 다른 판매 가능 매물이 최소 50개 필요하다. 상품만 보는 A는 1~20번을 조회만 한다. 생성된 테스트 데이터는 서버 DB와 S3에 남으므로 테스트 후 정리한다.
 
 ## 준비한 데이터로 브라우저 시나리오 실행
 
@@ -78,7 +78,7 @@ LISTINGS_CSV="$PWD/.local/k6-test-listings-<RUN_TAG>.csv" \
 K6_BROWSER_HEADLESS=false scripts/payment-conversion/run_scenario.sh
 ```
 
-전체 시나리오는 상품만 확인하는 50명, 결제창에서 이탈하는 30명(재확인 10명 포함), 결제하는 20명을 실행한다. 화면에 표시된 선행 단계 결과와 구매 단계 결과 다음에 전체 합산 결과가 출력된다. 토스 테스트 결제 인증은 직접 완료해야 한다. 이미 판매된 매물이 있으면 새 매물 20개를 준비하고 새 CSV를 지정한다.
+전체 시나리오는 상품만 확인하는 50명, 결제창에서 이탈하는 30명(재확인 10명 포함), 결제하는 20명을 실행한다. 화면에 표시된 선행 단계 결과와 구매 단계 결과 다음에 전체 합산 결과가 출력된다. 토스 테스트 결제 인증은 직접 완료해야 한다. 이미 판매되었거나 결제창을 연 지 6분이 지나지 않은 매물이 있으면 새 매물 50개를 준비하고 새 CSV를 지정한다.
 
 결제창 이탈은 [`scripts/payment-conversion/checkout.js`](checkout.js)가 현재 DOM에서 모달 제거 여부를 확인한다. 닫기 클릭 후에도 모달이 남아 있으면 최대 3회, 전체 10초 안에서 다시 클릭한다. 제거를 확인해야 이탈 건수를 집계하며, 실제 앱의 `checkout_closed` 이벤트 HTTP 2xx 확인도 유지한다. 계속 열려 있으면 계정·매물·시도 횟수·닫기 버튼 존재 여부를 포함해 실패한다. 선행 단계의 닫힘 확인이 실패하면 이후 이벤트 검증도 건너뛰므로, 이벤트 확인 건수 감소만으로 PostHog 전송 실패를 단정하지 않는다. 선행 단계 실패로 구매가 시작되지 않았다면 준비한 매물 CSV를 그대로 지정해 다시 실행할 수 있다. PostHog와 대조할 때는 재실행한 구간만 선택한다.
 
