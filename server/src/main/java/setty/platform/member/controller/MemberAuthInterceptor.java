@@ -1,7 +1,9 @@
 package setty.platform.member.controller;
 
+import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 import setty.global.auth.InvalidTokenResponse;
@@ -14,9 +16,14 @@ public class MemberAuthInterceptor implements HandlerInterceptor {
     static final String LOGIN_MEMBER = "loginMember";
 
     private final MemberRepository memberRepository;
+    private final MeterRegistry meterRegistry;
 
-    public MemberAuthInterceptor(final MemberRepository memberRepository) {
+    public MemberAuthInterceptor(
+            final MemberRepository memberRepository,
+            final ObjectProvider<MeterRegistry> meterRegistries
+    ) {
         this.memberRepository = memberRepository;
+        this.meterRegistry = meterRegistries.getIfAvailable();
     }
 
     @Override
@@ -35,7 +42,12 @@ public class MemberAuthInterceptor implements HandlerInterceptor {
             return false;
         }
 
-        final Member member = memberRepository.findByToken(header.substring(7)).orElse(null);
+        final String token = header.substring(7);
+        final Member member = meterRegistry == null
+                ? memberRepository.findByToken(token).orElse(null)
+                : meterRegistry.timer("setty.auth.repository.lookup", "repository", "member",
+                        "dispatcher", request.getDispatcherType().name())
+                        .record(() -> memberRepository.findByToken(token).orElse(null));
         if (member == null) {
             InvalidTokenResponse.write(response);
             return false;

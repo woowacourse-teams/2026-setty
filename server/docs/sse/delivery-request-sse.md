@@ -1,10 +1,11 @@
 # 배송 요청 SSE 연결 허용 구현 정책
 
-**채택: 기사당 최대 2개, 인스턴스당 전체 연결 상한의 초기값 1,000개를 적용하고 초과 신규 연결을 거부한다.** 기사당 2개는 재접속 중 이전 연결과 새 연결의 일시적 중첩을 허용하기 위한 정책이다. 1,000개는 개발·검증 초기값이며, 검증된 운영 용량이 아니다. 운영 상한은 연결 수와 메모리 측정으로 조정한다.
+**채택: 기사당 최대 2개, 인스턴스당 임시 연결 상한 1,000개를 적용하고 초과 신규 연결을 거부한다.** 기사당 2개는 재접속 중 이전 연결과 새 연결의 일시적 중첩을 허용하기 위한 정책이다. 1,000개는 현재 환경에서 추가 검증을 시작하기 위한 보호 상한이며, 검증된 운영 안전 용량은 아니다. 운영 상한은 연결·목록 조회 부하와 전체 메모리 측정으로 조정한다.
 
 이 문서는 SSE 연결 관리의 구현 기준을 정의한다. 제품·서비스 정책과 별도로 `server/docs/sse/`에서 관리한다.
 
 - 결정일: 2026-10-12.
+- 임시 상한 재검토일: 2026-10-13. 10,000개 상향 검토 후 현재 자원 조건과 실측 범위를 근거로 기본값 1,000개를 선택했다.
 - 대상: 기사 앱의 배송 요청 목록 SSE(Server-Sent Events: 열린 HTTP 연결로 서버 이벤트를 전달하는 방식), `GET /api/delivery/requests/events`.
 - 적용 범위: 현재의 단일 서버. 여러 서버 사이의 기사별 연결 수 공유는 **비범위**다.
 - 구현 상태: 기사 ID 전달, 연결 정보 관리, [연결 상한과 등록 및 정리 동시성 제어](#연결-상한과-등록-및-정리-동시성-제어), 초과 HTTP 응답을 구현했다. [실제 HTTP 연결의 거부와 정리 후 재등록](#실제-http-연결의-거부와-정리-후-재등록-검증)까지 검증했으며 관련 테스트 30개가 통과했다.
@@ -32,7 +33,9 @@
 
 ## 전체 연결 상한과 초과 응답
 
-전체 연결 상한은 `setty.delivery.request-sse.max-connections`로 설정한다. 환경 변수 `SETTY_DELIVERY_REQUEST_SSE_MAX_CONNECTIONS`로 변경할 수 있으며 기본값은 1,000개다. 0 이하의 값은 서버 초기화 시 거부한다. 기본값은 [application.yml](../../src/main/resources/application.yml)에서 관리한다.
+전체 연결 상한은 `setty.delivery.request-sse.max-connections`로 설정한다. 환경 변수 `SETTY_DELIVERY_REQUEST_SSE_MAX_CONNECTIONS`로 변경할 수 있으며 기본값은 임시 상한 1,000개다. 0 이하의 값은 서버 초기화 시 거부한다. 기본값은 [application.yml](../../src/main/resources/application.yml)에서 관리한다.
+
+상한 설정만으로 해당 개수의 연결 객체를 미리 생성하지는 않는다. 실제 등록된 연결 수가 증가할 때 자원 점유가 늘어난다. [기존 로컬 부하 검증](sse-connection-load-local-2026-10-13.md)은 1,000개 연결·45초 유지·변경 이벤트 없음·빈 목록 조건이다. 운영 사양에서의 장시간 연결·목록 조회·재접속과 전체 메모리, FD·Tomcat·프록시 한도는 확인 필요다. 10,000개 운영 적용은 보류한다.
 
 등록은 종료 상태, 전체 상한, 기사별 상한 순서로 검사한다. 전체 상한과 기사별 상한을 함께 초과하면 전체 상한 오류를 반환한다. 기존 연결을 교체하거나 종료하지 않고 신규 요청만 거부한다. 거부된 요청은 연결 맵에 등록하지 않으며 `connected` 이벤트를 보내지 않는다.
 
@@ -107,6 +110,22 @@ Java 21과 Docker를 준비한 뒤 `server/`에서 실행한다.
   --tests setty.delivery.api.DeliveryRequestReconnectRecoveryIntegrationTest \
   --tests setty.delivery.api.DeliveryRequestSseHttpIntegrationTest
 ```
+
+## 구독 제거와 HTTP 완료 로그
+
+**채택: 기존 `SseEmitter.onCompletion`에서 완료 로그를 남긴다.** [구독 제거 로그](../../src/main/java/setty/delivery/api/DeliveryRequestEventStream.java)와 [HTTP 완료 로그](../../src/main/java/setty/global/logging/SseCompletionLogging.java)를 같은 `subscription_id`·`request_id`로 연결한다. 오류·타임아웃으로 구독이 먼저 제거돼도 이후 완료 콜백의 로그는 남는다.
+
+같은 서버 실행에서 `completed_at_nanos - removed_at_nanos`를 1,000,000으로 나누면 제거부터 완료 콜백까지의 밀리초를 얻는다. `*_at_epoch_ms`는 로그 시각 대조에 사용한다. 정상 완료에서는 완료 콜백 안에서 구독을 제거하므로 완료 시각이 제거 시각보다 앞설 수 있다. 이를 종료 지연으로 집계하지 않는다.
+
+별도 HTTP 요청 상태, 필터, 옵저버, 메트릭은 추가하지 않는다. 미완료 HTTP 요청 수의 독립 집계는 **보류**하며, 완료 콜백은 클라이언트나 TCP 연결의 정리 완료를 뜻하지 않는다. 검증은 [기존 로그 단위 테스트](../../src/test/java/setty/delivery/api/DeliveryRequestEventStreamTest.java)와 [실제 HTTP 테스트](../../src/test/java/setty/delivery/api/DeliveryRequestSseHttpIntegrationTest.java)를 사용한다.
+
+## 인증 조회 계측과 자원 대조
+
+**채택: 각 모듈의 인증 저장소 호출을 타이머 하나로 측정한다.** [회원 인증](../../src/main/java/setty/platform/member/controller/MemberAuthInterceptor.java)과 [배송원 인증](../../src/main/java/setty/delivery/auth/api/DeliveryAuthInterceptor.java)의 `setty.auth.repository.lookup`은 실제 조회의 횟수·시간을 기록한다. 태그는 `repository`(`member`, `delivery_member`)와 `dispatcher`(Servlet 디스패치 종류)만 남긴다. `REQUEST`·`ASYNC`·`ERROR`를 구분하며 요청 ID·기사 ID·토큰은 제외한다. 모듈별 인증 경로와 인증 판단은 유지한다.
+
+[허용 목록](../../src/main/java/setty/global/metrics/MetricsConfig.java)과 [dev](../../src/main/resources/application-dev.yml)·[prod](../../src/main/resources/application-prod.yml) 설정으로 노출한다. 타이머는 첫 실제 조회 시 등록한다. SSE를 포함한 인터셉터 전체 조회를 합산하며 다른 경로의 직접 조회는 포함하지 않는다. 횟수·총시간은 누적값이고 평균 시간은 같은 수집 구간의 `총시간 증가량 / 횟수 증가량`이다. 횟수 증가가 0이면 평균을 계산하지 않는다. 타이머의 의미는 [Micrometer 문서](https://docs.micrometer.io/micrometer/reference/concepts/timers.html)를 참조한다.
+
+실측에서는 기존 1분 수집 구간에 맞춰 인증 조회 횟수·시간, Hikari 대기·획득 시간, Heap과 RSS를 대조한다. RSS는 [기존 부하 스크립트](performance/README.md)의 `samples.jsonl`에서 `at`과 `resources.rssBytes`를 사용한다. dev RSS는 dev 서버에서 수집한다. 지표의 누적 횟수·총시간은 0으로 돌아오지 않으며, 구독 수와 Hikari 활성·대기 수의 기준값 복귀를 확인한다. 실제 정상 종료·연결 끊김·타임아웃 시험과 원인 판정은 후속 검증에서 수행한다.
 
 ## 후속 검증 기준
 

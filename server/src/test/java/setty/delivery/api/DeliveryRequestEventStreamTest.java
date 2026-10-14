@@ -5,9 +5,18 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
+import io.micrometer.core.instrument.MockClock;
+import io.micrometer.core.instrument.simple.SimpleConfig;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.io.IOException;
 import java.lang.reflect.Method;
+import java.time.Duration;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -22,12 +31,15 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import setty.delivery.application.DeliveryRequestsChanged;
 import setty.delivery.domain.DriverId;
+import setty.global.logging.SseCompletionLogging;
 
 class DeliveryRequestEventStreamTest {
 
@@ -37,6 +49,8 @@ class DeliveryRequestEventStreamTest {
     private static final String CONNECTED_EVENT = "event:connected\ndata:{}\n\n";
     private static final String REQUESTS_CHANGED_EVENT = "event:delivery-requests-changed\ndata:{}\n\n";
 
+    private final MockClock clock = new MockClock();
+    private final SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry(SimpleConfig.DEFAULT, clock);
     private DeliveryRequestEventStream stream;
 
     @AfterEach
@@ -44,12 +58,13 @@ class DeliveryRequestEventStreamTest {
         if (stream != null) {
             stream.close();
         }
+        meterRegistry.close();
     }
 
     @Test
     void subscriptionReceivesConnectionAndRequestChangedEvents() {
         final CapturingSseEmitter emitter = new CapturingSseEmitter();
-        stream = new DeliveryRequestEventStream(MAX_TOTAL_CONNECTIONS, () -> emitter);
+        stream = new DeliveryRequestEventStream(MAX_TOTAL_CONNECTIONS, () -> emitter, meterRegistry);
 
         stream.subscribe(FIRST_DRIVER);
         stream.on(new DeliveryRequestsChanged());
@@ -131,12 +146,17 @@ class DeliveryRequestEventStreamTest {
         removed.fireError();
         assertThat(stream.subscriberCount()).isEqualTo(2);
         assertThat(stream.subscriberCount(FIRST_DRIVER)).isOne();
+        assertThat(activeSubscriptions()).isEqualTo(2);
+        assertThat(totalRemovals()).isOne();
+        assertThat(removalCount(DeliveryRequestEventStream.RemovalReason.valueOf(cleanup.name()))).isOne();
 
         stream.subscribe(FIRST_DRIVER);
         removed.fireCompletion();
         assertThat(stream.subscriberCount()).isEqualTo(MAX_TOTAL_CONNECTIONS);
         assertThat(stream.subscriberCount(FIRST_DRIVER)).isEqualTo(2);
         assertRejected(new DriverId(3L), DeliveryRequestSseRejectedException.Reason.TOTAL_LIMIT_EXCEEDED);
+        assertThat(activeSubscriptions()).isEqualTo(MAX_TOTAL_CONNECTIONS);
+        assertThat(totalRemovals()).isOne();
     }
 
     @Test
@@ -171,7 +191,7 @@ class DeliveryRequestEventStreamTest {
         final BlockingSendSseEmitter blocked = new BlockingSendSseEmitter();
         final AtomicInteger created = new AtomicInteger();
         stream = new DeliveryRequestEventStream(MAX_TOTAL_CONNECTIONS,
-                () -> created.getAndIncrement() == 0 ? blocked : new CapturingSseEmitter());
+                () -> created.getAndIncrement() == 0 ? blocked : new CapturingSseEmitter(), meterRegistry);
         final ExecutorService executor = Executors.newFixedThreadPool(2);
         try {
             final Future<SseEmitter> sending = executor.submit(() -> stream.subscribe(FIRST_DRIVER));
@@ -198,12 +218,15 @@ class DeliveryRequestEventStreamTest {
         final BlockingCompleteSseEmitter blocked = new BlockingCompleteSseEmitter();
         final AtomicInteger created = new AtomicInteger();
         stream = new DeliveryRequestEventStream(MAX_TOTAL_CONNECTIONS,
-                () -> created.getAndIncrement() == 0 ? blocked : new CapturingSseEmitter());
+                () -> created.getAndIncrement() == 0 ? blocked : new CapturingSseEmitter(), meterRegistry);
         stream.subscribe(FIRST_DRIVER);
+        stream.subscribe(SECOND_DRIVER);
         final ExecutorService executor = Executors.newFixedThreadPool(2);
         try {
             final Future<?> closing = executor.submit(stream::close);
             assertThat(blocked.entered.await(5, TimeUnit.SECONDS)).isTrue();
+            assertThat(activeSubscriptions()).isZero();
+            assertThat(removalCount(DeliveryRequestEventStream.RemovalReason.SHUTDOWN)).isEqualTo(2);
 
             executor.submit(() -> assertRejected(SECOND_DRIVER,
                     DeliveryRequestSseRejectedException.Reason.STREAM_CLOSED)).get(5, TimeUnit.SECONDS);
@@ -211,6 +234,8 @@ class DeliveryRequestEventStreamTest {
             assertThat(closing.isDone()).isFalse();
             blocked.release.countDown();
             closing.get(5, TimeUnit.SECONDS);
+            assertThat(totalRemovals()).isEqualTo(2);
+            assertThat(removalCount(DeliveryRequestEventStream.RemovalReason.COMPLETION)).isZero();
         } finally {
             blocked.release.countDown();
             executor.shutdownNow();
@@ -226,7 +251,7 @@ class DeliveryRequestEventStreamTest {
             entered.countDown();
             await(release);
             return new CapturingSseEmitter();
-        });
+        }, meterRegistry);
         final ExecutorService executor = Executors.newFixedThreadPool(2);
         try {
             final Future<?> subscribing = executor.submit(() ->
@@ -248,7 +273,8 @@ class DeliveryRequestEventStreamTest {
     @ParameterizedTest
     @ValueSource(ints = {0, -1})
     void nonPositiveTotalLimitIsRejected(final int maxTotalConnections) {
-        assertThatThrownBy(() -> new DeliveryRequestEventStream(maxTotalConnections, CapturingSseEmitter::new))
+        assertThatThrownBy(() -> new DeliveryRequestEventStream(
+                maxTotalConnections, CapturingSseEmitter::new, meterRegistry))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -337,18 +363,20 @@ class DeliveryRequestEventStreamTest {
 
     @Test
     void failedSendRemovesDisconnectedSubscriber() {
-        stream = new DeliveryRequestEventStream(MAX_TOTAL_CONNECTIONS, FailingSseEmitter::new);
+        stream = new DeliveryRequestEventStream(MAX_TOTAL_CONNECTIONS, FailingSseEmitter::new, meterRegistry);
 
         stream.subscribe(FIRST_DRIVER);
 
         assertThat(stream.subscriberCount()).isZero();
         assertThat(stream.subscriberCount(FIRST_DRIVER)).isZero();
+        assertThat(activeSubscriptions()).isZero();
+        assertThat(removalCount(DeliveryRequestEventStream.RemovalReason.SEND_FAILURE)).isOne();
     }
 
     @Test
     void notificationFailureDoesNotEscapeListener() {
         final CapturingSseEmitter emitter = new CapturingSseEmitter();
-        stream = new DeliveryRequestEventStream(MAX_TOTAL_CONNECTIONS, () -> emitter);
+        stream = new DeliveryRequestEventStream(MAX_TOTAL_CONNECTIONS, () -> emitter, meterRegistry);
         stream.subscribe(FIRST_DRIVER);
         emitter.failWith(new UnsupportedOperationException("전송 실패"));
 
@@ -365,13 +393,157 @@ class DeliveryRequestEventStreamTest {
         assertThat(annotation.phase()).isEqualTo(TransactionPhase.AFTER_COMMIT);
     }
 
+    @Test
+    void metricsStartAtZeroAndRejectedConnectionsDoNotCreateRemovalEvents() {
+        final List<CapturingSseEmitter> emitters = createStream();
+        assertThat(activeSubscriptions()).isZero();
+        assertThat(totalRemovals()).isZero();
+        assertThat(meterRegistry.getMeters()).hasSize(6);
+
+        stream.subscribe(FIRST_DRIVER);
+        stream.subscribe(FIRST_DRIVER);
+        assertRejected(FIRST_DRIVER, DeliveryRequestSseRejectedException.Reason.DRIVER_LIMIT_EXCEEDED);
+        emitters.get(2).fireError();
+        emitters.get(2).fireTimeout();
+        emitters.get(2).fireCompletion();
+
+        assertThat(activeSubscriptions()).isEqualTo(2);
+        assertThat(totalRemovals()).isZero();
+        assertThat(meterRegistry.getMeters()).allSatisfy(meter ->
+                assertThat(meter.getId().getTags()).allSatisfy(tag ->
+                        assertThat(tag.getKey()).isEqualTo("reason")));
+    }
+
+    @Test
+    void concurrentCallbacksAndShutdownRecordEachSubscriptionOnce() throws Exception {
+        final List<CapturingSseEmitter> emitters = createStream();
+        stream.subscribe(FIRST_DRIVER);
+        stream.subscribe(SECOND_DRIVER);
+        final CapturingSseEmitter emitter = emitters.getFirst();
+        final List<Runnable> signals = List.of(
+                emitter::fireCompletion, emitter::fireTimeout, emitter::fireError, stream::close);
+        final CountDownLatch ready = new CountDownLatch(signals.size());
+        final CountDownLatch start = new CountDownLatch(1);
+        final ExecutorService executor = Executors.newFixedThreadPool(signals.size());
+        try {
+            final List<Future<?>> attempts = signals.stream().<Future<?>>map(signal -> executor.submit(() -> {
+                ready.countDown();
+                await(start);
+                signal.run();
+            })).toList();
+            assertThat(ready.await(5, TimeUnit.SECONDS)).isTrue();
+            start.countDown();
+            for (final Future<?> attempt : attempts) {
+                attempt.get(5, TimeUnit.SECONDS);
+            }
+            emitter.fireCompletion();
+            emitter.fireTimeout();
+            emitter.fireError();
+            stream.close();
+
+            assertThat(activeSubscriptions()).isZero();
+            assertThat(totalRemovals()).isEqualTo(2);
+            assertThat(removalCount(DeliveryRequestEventStream.RemovalReason.SHUTDOWN)).isGreaterThanOrEqualTo(1);
+        } finally {
+            start.countDown();
+            executor.shutdownNow();
+            assertThat(executor.awaitTermination(5, TimeUnit.SECONDS)).isTrue();
+        }
+    }
+
+    @Test
+    void firstRemovalLogsItsTimeAndOriginalRequestIdAcrossThreads() throws Exception {
+        final Logger logger = (Logger) LoggerFactory.getLogger(DeliveryRequestEventStream.class);
+        final Logger completionLogger = (Logger) LoggerFactory.getLogger(SseCompletionLogging.class);
+        final ListAppender<ILoggingEvent> logs = new ListAppender<>();
+        logs.start();
+        logger.addAppender(logs);
+        completionLogger.addAppender(logs);
+        final String previousRequestId = MDC.get("requestId");
+        try {
+            final List<CapturingSseEmitter> emitters = createStream();
+            MDC.put("requestId", "subscription-request");
+            stream.subscribe(FIRST_DRIVER);
+            MDC.remove("requestId");
+            clock.add(Duration.ofSeconds(2));
+            final long removedAt = clock.wallTime();
+            final long removedAtNanos = clock.monotonicTime();
+
+            try (final ExecutorService executor = Executors.newSingleThreadExecutor()) {
+                executor.submit(emitters.getFirst()::fireError).get(5, TimeUnit.SECONDS);
+            }
+            clock.add(Duration.ofSeconds(5));
+            emitters.getFirst().fireTimeout();
+
+            assertThat(logs.list).hasSize(1);
+            final ILoggingEvent event = logs.list.getFirst();
+            final Map<String, Object> fields = new LinkedHashMap<>();
+            event.getKeyValuePairs().forEach(pair -> fields.put(pair.key, pair.value));
+            assertThat(fields).containsEntry("event", "delivery_request_sse_subscription_removed")
+                    .containsEntry("request_id", "subscription-request")
+                    .containsEntry("reason", "error")
+                    .containsEntry("removed_at_epoch_ms", removedAt)
+                    .containsEntry("removed_at_nanos", removedAtNanos)
+                    .containsEntry("subscribers_remaining", 0)
+                    .containsEntry("exception_type", IOException.class.getName())
+                    .containsKey("subscription_id")
+                    .doesNotContainKeys("driver_id", "token");
+            assertThat(event.getFormattedMessage()).contains("request_id=subscription-request", "reason=error",
+                    "removed_at_epoch_ms=" + removedAt);
+            assertThat(event.getFormattedMessage() + fields).doesNotContain("연결 오류");
+            assertThat(event.getThrowableProxy()).isNull();
+            assertThat(removalCount(DeliveryRequestEventStream.RemovalReason.ERROR)).isOne();
+            assertThat(totalRemovals()).isOne();
+
+            try (final ExecutorService executor = Executors.newSingleThreadExecutor()) {
+                executor.submit(emitters.getFirst()::fireCompletion).get(5, TimeUnit.SECONDS);
+            }
+            assertThat(logs.list).hasSize(2);
+            final ILoggingEvent completion = logs.list.getLast();
+            final Map<String, Object> completionFields = new LinkedHashMap<>();
+            completion.getKeyValuePairs().forEach(pair -> completionFields.put(pair.key, pair.value));
+            assertThat(completionFields).containsEntry("event", "delivery_request_sse_http_completed")
+                    .containsEntry("subscription_id", fields.get("subscription_id"))
+                    .containsEntry("request_id", "subscription-request")
+                    .containsEntry("completed_at_epoch_ms", clock.wallTime())
+                    .containsEntry("completed_at_nanos", removedAtNanos + Duration.ofSeconds(5).toNanos())
+                    .doesNotContainKeys("driver_id", "token");
+            assertThat(completion.getFormattedMessage()).contains("request_id=subscription-request",
+                    "completed_at_epoch_ms=" + clock.wallTime());
+            assertThat(totalRemovals()).isOne();
+        } finally {
+            logger.detachAppender(logs);
+            completionLogger.detachAppender(logs);
+            logs.stop();
+            if (previousRequestId == null) {
+                MDC.remove("requestId");
+            } else {
+                MDC.put("requestId", previousRequestId);
+            }
+        }
+    }
+
+    private double activeSubscriptions() {
+        return meterRegistry.get(DeliveryRequestEventStream.ACTIVE_SUBSCRIPTIONS_METRIC).gauge().value();
+    }
+
+    private double removalCount(final DeliveryRequestEventStream.RemovalReason reason) {
+        return meterRegistry.get(DeliveryRequestEventStream.REMOVED_SUBSCRIPTIONS_METRIC)
+                .tag("reason", reason.tagValue()).counter().count();
+    }
+
+    private double totalRemovals() {
+        return java.util.Arrays.stream(DeliveryRequestEventStream.RemovalReason.values())
+                .mapToDouble(this::removalCount).sum();
+    }
+
     private List<CapturingSseEmitter> createStream() {
         final List<CapturingSseEmitter> emitters = new CopyOnWriteArrayList<>();
         stream = new DeliveryRequestEventStream(MAX_TOTAL_CONNECTIONS, () -> {
             final CapturingSseEmitter emitter = new CapturingSseEmitter();
             emitters.add(emitter);
             return emitter;
-        });
+        }, meterRegistry);
         return emitters;
     }
 

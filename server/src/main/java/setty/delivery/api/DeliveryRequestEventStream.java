@@ -4,10 +4,17 @@ import static setty.delivery.api.DeliveryRequestSseRejectedException.Reason.DRIV
 import static setty.delivery.api.DeliveryRequestSseRejectedException.Reason.STREAM_CLOSED;
 import static setty.delivery.api.DeliveryRequestSseRejectedException.Reason.TOTAL_LIMIT_EXCEEDED;
 
+import io.micrometer.core.instrument.Clock;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.Gauge;
+import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import java.io.IOException;
+import java.util.EnumMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
@@ -16,6 +23,9 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -24,6 +34,7 @@ import org.springframework.transaction.event.TransactionalEventListener;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import setty.delivery.application.DeliveryRequestsChanged;
 import setty.delivery.domain.DriverId;
+import setty.global.logging.SseCompletionLogging;
 
 /**
  * 단일 서버에서 활성 SSE 연결을 관리한다. 이벤트에는 목록 변경 여부만 담는다.
@@ -31,8 +42,10 @@ import setty.delivery.domain.DriverId;
 @Component
 public class DeliveryRequestEventStream {
 
-    private static final System.Logger LOGGER = System.getLogger(DeliveryRequestEventStream.class.getName());
+    private static final Logger LOGGER = LoggerFactory.getLogger(DeliveryRequestEventStream.class);
 
+    static final String ACTIVE_SUBSCRIPTIONS_METRIC = "setty.delivery.request.sse.subscriptions.active";
+    static final String REMOVED_SUBSCRIPTIONS_METRIC = "setty.delivery.request.sse.subscriptions.removed";
     static final long CONNECTION_TIMEOUT_MILLIS = 120_000L;
     private static final long HEARTBEAT_INTERVAL_SECONDS = 15L;
     static final String CONNECTED_EVENT = "connected";
@@ -43,6 +56,8 @@ public class DeliveryRequestEventStream {
     private final Object subscriptionsLock = new Object();
     private final int maxTotalConnections;
     private final Supplier<SseEmitter> emitterFactory;
+    private final Clock clock;
+    private final Map<RemovalReason, Counter> removalCounters = new EnumMap<>(RemovalReason.class);
     // 등록과 종료 상태 변경은 subscriptionsLock으로 함께 보호한다.
     private boolean closed;
     private final ScheduledExecutorService heartbeatScheduler = Executors.newSingleThreadScheduledExecutor(
@@ -51,17 +66,32 @@ public class DeliveryRequestEventStream {
 
     @Autowired
     public DeliveryRequestEventStream(
-            @Value("${setty.delivery.request-sse.max-connections}") final int maxTotalConnections
+            @Value("${setty.delivery.request-sse.max-connections}") final int maxTotalConnections,
+            final MeterRegistry meterRegistry
     ) {
-        this(maxTotalConnections, () -> new SseEmitter(CONNECTION_TIMEOUT_MILLIS));
+        this(maxTotalConnections, () -> new SseEmitter(CONNECTION_TIMEOUT_MILLIS), meterRegistry);
     }
 
-    DeliveryRequestEventStream(final int maxTotalConnections, final Supplier<SseEmitter> emitterFactory) {
+    DeliveryRequestEventStream(
+            final int maxTotalConnections,
+            final Supplier<SseEmitter> emitterFactory,
+            final MeterRegistry meterRegistry
+    ) {
         if (maxTotalConnections <= 0) {
             throw new IllegalArgumentException("배송 요청 SSE 전체 연결 상한은 1 이상이어야 합니다.");
         }
         this.maxTotalConnections = maxTotalConnections;
         this.emitterFactory = Objects.requireNonNull(emitterFactory);
+        this.clock = Objects.requireNonNull(meterRegistry).config().clock();
+        Gauge.builder(ACTIVE_SUBSCRIPTIONS_METRIC, this, DeliveryRequestEventStream::subscriberCount)
+                .description("Current registered delivery request SSE subscriptions")
+                .register(meterRegistry);
+        for (final RemovalReason reason : RemovalReason.values()) {
+            removalCounters.put(reason, Counter.builder(REMOVED_SUBSCRIPTIONS_METRIC)
+                    .description("First removals of registered delivery request SSE subscriptions")
+                    .tag("reason", reason.tagValue())
+                    .register(meterRegistry));
+        }
     }
 
     @PostConstruct
@@ -78,11 +108,17 @@ public class DeliveryRequestEventStream {
         Objects.requireNonNull(driverId);
         final SseEmitter emitter = emitterFactory.get();
         final UUID subscriptionId = UUID.randomUUID();
-        final Subscription subscription = new Subscription(driverId, emitter);
+        final Subscription subscription = new Subscription(driverId, emitter, MDC.get("requestId"));
 
-        emitter.onCompletion(() -> remove(subscriptionId, subscription));
-        emitter.onTimeout(() -> remove(subscriptionId, subscription));
-        emitter.onError(ignored -> remove(subscriptionId, subscription));
+        emitter.onCompletion(() -> {
+            final long completedAtEpochMillis = clock.wallTime();
+            final long completedAtNanos = clock.monotonicTime();
+            remove(subscriptionId, subscription, RemovalReason.COMPLETION, null);
+            SseCompletionLogging.completed(subscriptionId, subscription.requestId(),
+                    completedAtEpochMillis, completedAtNanos);
+        });
+        emitter.onTimeout(() -> remove(subscriptionId, subscription, RemovalReason.TIMEOUT, null));
+        emitter.onError(exception -> remove(subscriptionId, subscription, RemovalReason.ERROR, exception));
         register(subscriptionId, subscription);
         send(subscriptionId, subscription, SseEmitter.event().name(CONNECTED_EVENT).data("{}"));
         return emitter;
@@ -94,7 +130,7 @@ public class DeliveryRequestEventStream {
         try {
             notifyRequestsChanged();
         } catch (final RuntimeException exception) {
-            LOGGER.log(System.Logger.Level.WARNING, "배송 요청 SSE 알림 전송에 실패했습니다.", exception);
+            LOGGER.warn("배송 요청 SSE 알림 전송에 실패했습니다.", exception);
         }
     }
 
@@ -108,17 +144,24 @@ public class DeliveryRequestEventStream {
 
     @PreDestroy
     void close() {
-        final List<Subscription> closingSubscriptions;
+        final List<Removal> removals;
         synchronized (subscriptionsLock) {
             if (closed) {
                 return;
             }
             closed = true;
-            closingSubscriptions = List.copyOf(subscriptions.values());
+            final List<Map.Entry<UUID, Subscription>> closingSubscriptions = List.copyOf(subscriptions.entrySet());
             subscriptions.clear();
+            final long removedAtEpochMillis = clock.wallTime();
+            final long removedAtNanos = clock.monotonicTime();
+            removals = closingSubscriptions.stream()
+                    .map(entry -> new Removal(entry.getKey(), entry.getValue(), RemovalReason.SHUTDOWN,
+                            removedAtEpochMillis, removedAtNanos, 0, null))
+                    .toList();
         }
         heartbeatScheduler.shutdownNow();
-        closingSubscriptions.forEach(subscription -> subscription.emitter().complete());
+        removals.forEach(this::recordRemoval);
+        removals.forEach(removal -> removal.subscription().emitter().complete());
     }
 
     int subscriberCount() {
@@ -148,15 +191,46 @@ public class DeliveryRequestEventStream {
     ) {
         try {
             subscription.emitter().send(event);
-        } catch (final IOException | IllegalStateException ignored) {
-            remove(subscriptionId, subscription);
+        } catch (final IOException | IllegalStateException exception) {
+            remove(subscriptionId, subscription, RemovalReason.SEND_FAILURE, exception);
         }
     }
 
-    private void remove(final UUID subscriptionId, final Subscription subscription) {
+    private void remove(
+            final UUID subscriptionId,
+            final Subscription subscription,
+            final RemovalReason reason,
+            final Throwable exception
+    ) {
+        final Removal removal;
         synchronized (subscriptionsLock) {
-            subscriptions.remove(subscriptionId, subscription);
+            if (!subscriptions.remove(subscriptionId, subscription)) {
+                return;
+            }
+            removal = new Removal(subscriptionId, subscription, reason,
+                    clock.wallTime(), clock.monotonicTime(), subscriptions.size(), exception);
         }
+        recordRemoval(removal);
+    }
+
+    // 구독 맵의 최초 제거만 기록한다. HTTP 비동기 요청의 완료 여부와는 별개다.
+    private void recordRemoval(final Removal removal) {
+        removalCounters.get(removal.reason()).increment();
+        final Map<String, Object> fields = new LinkedHashMap<>();
+        fields.put("event", "delivery_request_sse_subscription_removed");
+        fields.put("subscription_id", removal.subscriptionId());
+        fields.put("request_id", removal.subscription().requestId());
+        fields.put("reason", removal.reason().tagValue());
+        fields.put("removed_at_epoch_ms", removal.removedAtEpochMillis());
+        fields.put("removed_at_nanos", removal.removedAtNanos());
+        fields.put("subscribers_remaining", removal.subscribersRemaining());
+        if (removal.exception() != null) {
+            fields.put("exception_type", removal.exception().getClass().getName());
+        }
+        final var event = LOGGER.atInfo();
+        fields.forEach(event::addKeyValue);
+        // 기본 텍스트 로그에도 필드를 남기고 dev/prod JSON 로그에서는 개별 속성으로도 제공한다.
+        event.log("delivery request SSE subscription removed {}", fields);
     }
 
     private void register(final UUID subscriptionId, final Subscription subscription) {
@@ -181,6 +255,25 @@ public class DeliveryRequestEventStream {
                 .count();
     }
 
-    private record Subscription(DriverId driverId, SseEmitter emitter) {
+    enum RemovalReason {
+        COMPLETION, TIMEOUT, ERROR, SEND_FAILURE, SHUTDOWN;
+
+        String tagValue() {
+            return name().toLowerCase(Locale.ROOT);
+        }
+    }
+
+    private record Subscription(DriverId driverId, SseEmitter emitter, String requestId) {
+    }
+
+    private record Removal(
+            UUID subscriptionId,
+            Subscription subscription,
+            RemovalReason reason,
+            long removedAtEpochMillis,
+            long removedAtNanos,
+            int subscribersRemaining,
+            Throwable exception
+    ) {
     }
 }

@@ -92,6 +92,40 @@ class MetricsConfigTest {
     }
 
     @Test
+    void keepsSseSubscriptionMetricsWithOnlyTheRemovalReasonAsATag() {
+        OtlpConfig config = key -> "otlp.enabled".equals(key) ? "false" : null;
+        OtlpMeterRegistry registry = new OtlpMeterRegistry(config, Clock.SYSTEM);
+        try {
+            new MetricsConfig().metrics().customize(registry);
+            AtomicInteger active = new AtomicInteger(3);
+            Gauge.builder("setty.delivery.request.sse.subscriptions.active", active, AtomicInteger::doubleValue)
+                    .tags("requestId", "synthetic-request", "driverId", "synthetic-driver", "token", "synthetic-token")
+                    .register(registry);
+            for (String reason : new String[]{"completion", "timeout", "error", "send_failure", "shutdown"}) {
+                for (String request : new String[]{"request-a", "request-b"}) {
+                    Counter.builder("setty.delivery.request.sse.subscriptions.removed")
+                            .tags("reason", reason, "requestId", request,
+                                    "driverId", "synthetic-driver", "token", "synthetic-token")
+                            .register(registry).increment();
+                }
+                assertThat(registry.get("setty.delivery.request.sse.subscriptions.removed")
+                        .tag("reason", reason).counter().count()).isEqualTo(2);
+            }
+            assertThat(registry.getMeters()).hasSize(6);
+            assertThat(registry.get("setty.delivery.request.sse.subscriptions.active").gauge().value()).isEqualTo(3);
+            assertThat(registry.getMeters()).allSatisfy(meter -> {
+                if (meter.getId().getName().endsWith(".active")) {
+                    assertThat(meter.getId().getTags()).isEmpty();
+                } else {
+                    assertThat(meter.getId().getTags()).extracting(Tag::getKey).containsExactly("reason");
+                }
+            });
+        } finally {
+            registry.close();
+        }
+    }
+
+    @Test
     void exportsOnlyHttpRequestsGroupedByRouteMethodAndOutcome() {
         OtlpConfig config = key -> "otlp.enabled".equals(key) ? "false" : null;
         OtlpMeterRegistry registry = new OtlpMeterRegistry(config, Clock.SYSTEM);

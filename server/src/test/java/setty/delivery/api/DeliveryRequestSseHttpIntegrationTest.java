@@ -26,8 +26,11 @@ import java.util.concurrent.TimeoutException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.core.env.Environment;
 import org.springframework.http.MediaType;
@@ -52,6 +55,7 @@ import tools.jackson.databind.ObjectMapper;
         "setty.delivery.request-sse.max-connections=3"
 })
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
+@ExtendWith(OutputCaptureExtension.class)
 class DeliveryRequestSseHttpIntegrationTest extends MySqlIntegrationTestSupport {
 
     private static final Duration HTTP_TIMEOUT = Duration.ofSeconds(5);
@@ -137,8 +141,8 @@ class DeliveryRequestSseHttpIntegrationTest extends MySqlIntegrationTestSupport 
     }
 
     @Test
-    void authenticatedSubscriptionStartsAnSseResponseAndCanReadTheList() throws Exception {
-        connect(1);
+    void authenticatedSubscriptionStartsAnSseResponseAndCanReadTheList(final CapturedOutput output) throws Exception {
+        final SseConnection connection = connect(1);
 
         assertThat(eventStream.subscriberCount()).isOne();
         assertThat(eventStream.subscriberCount(driverIds.get(1))).isOne();
@@ -146,6 +150,13 @@ class DeliveryRequestSseHttpIntegrationTest extends MySqlIntegrationTestSupport 
         assertThat(list.statusCode()).isEqualTo(200);
         assertThat(objectMapper.readTree(list.body()).isArray()).isTrue();
         assertThat(objectMapper.readTree(list.body()).size()).isZero();
+
+        connection.close();
+        awaitSubscriberCount(0);
+        await().atMost(HTTP_TIMEOUT).untilAsserted(() ->
+                assertThat(output.getOut().lines()).anyMatch(line ->
+                        line.contains("delivery_request_sse_http_completed")
+                                && line.contains("request_id=" + connection.requestId)));
     }
 
     @Test
@@ -307,10 +318,12 @@ class DeliveryRequestSseHttpIntegrationTest extends MySqlIntegrationTestSupport 
 
         private final InputStream body;
         private final BufferedReader reader;
+        private final String requestId;
 
         private SseConnection(final HttpResponse<InputStream> response) {
             body = response.body();
             reader = new BufferedReader(new InputStreamReader(body, StandardCharsets.UTF_8));
+            requestId = response.headers().firstValue("X-Request-Id").orElseThrow();
         }
 
         private String readEvent() throws IOException {

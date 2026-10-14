@@ -1,7 +1,9 @@
 package setty.delivery.auth.api;
 
+import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 import setty.delivery.auth.application.DeliveryMemberRepository;
@@ -14,9 +16,14 @@ public class DeliveryAuthInterceptor implements HandlerInterceptor {
     static final String LOGIN_DELIVERY_MEMBER = "loginDeliveryMember";
 
     private final DeliveryMemberRepository deliveryMemberRepository;
+    private final MeterRegistry meterRegistry;
 
-    public DeliveryAuthInterceptor(final DeliveryMemberRepository deliveryMemberRepository) {
+    public DeliveryAuthInterceptor(
+            final DeliveryMemberRepository deliveryMemberRepository,
+            final ObjectProvider<MeterRegistry> meterRegistries
+    ) {
         this.deliveryMemberRepository = deliveryMemberRepository;
+        this.meterRegistry = meterRegistries.getIfAvailable();
     }
 
     @Override
@@ -31,7 +38,12 @@ public class DeliveryAuthInterceptor implements HandlerInterceptor {
             return false;
         }
 
-        final DeliveryMember deliveryMember = deliveryMemberRepository.findByToken(header.substring(7)).orElse(null);
+        final String token = header.substring(7);
+        final DeliveryMember deliveryMember = meterRegistry == null
+                ? deliveryMemberRepository.findByToken(token).orElse(null)
+                : meterRegistry.timer("setty.auth.repository.lookup", "repository", "delivery_member",
+                        "dispatcher", request.getDispatcherType().name())
+                        .record(() -> deliveryMemberRepository.findByToken(token).orElse(null));
         if (deliveryMember == null) {
             InvalidTokenResponse.write(response);
             return false;
