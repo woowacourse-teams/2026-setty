@@ -1,6 +1,7 @@
 package setty.global.logging;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.when;
@@ -20,6 +21,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.Function;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -82,6 +84,9 @@ class ListingTimingHttpIntegrationTest {
         logs.list.clear();
         reset(context.getBean(ListingRepository.class), context.getBean(ListingImageRepository.class),
                 context.getBean(ListingQueryRepository.class), context.getBean(ListingImageStorage.class));
+        ListingQueryRepository repository = context.getBean(ListingQueryRepository.class);
+        when(repository.inOneConnection(any())).thenAnswer(invocation ->
+                invocation.<Function<ListingQueryRepository, Object>>getArgument(0).apply(repository));
     }
 
     @AfterAll

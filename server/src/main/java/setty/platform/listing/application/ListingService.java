@@ -91,7 +91,8 @@ public class ListingService {
 
     // 트랜잭션을 걸지 않는다. JPA 트랜잭션을 열면 조회 내내 커넥션을 붙잡으므로 쿼리마다 바로 반납하는 JDBC 조회만 쓴다.
     public List<ListingView.Summary> findAvailableListings(String buyerToken) {
-        return findAvailable(null, null, null, buyerOf(buyerToken).dong()).items();
+        return listingQueryRepository.inOneConnection(reader ->
+                findAvailable(reader, null, null, null, buyerOf(reader, buyerToken).dong()).items());
     }
 
     public ListingView.SummaryPage findAvailableListings(
@@ -103,20 +104,22 @@ public class ListingService {
         if (size < 1 || size > MAXIMUM_PAGE_SIZE) {
             throw new BusinessException(INVALID_REQUEST);
         }
-        Buyer buyer = buyerOf(buyerToken);
-        Map<VolumeTier, List<String>> sellerDongCodes = maxDeliveryFee == null
-                ? null
-                : sellerDongCodesWithin(buyer, maxDeliveryFee);
-        return findAvailable(cursor, size, sellerDongCodes, buyer.dong());
+        return listingQueryRepository.inOneConnection(reader -> {
+            Buyer buyer = buyerOf(reader, buyerToken);
+            Map<VolumeTier, List<String>> sellerDongCodes = maxDeliveryFee == null
+                    ? null
+                    : sellerDongCodesWithin(buyer, maxDeliveryFee);
+            return findAvailable(reader, cursor, size, sellerDongCodes, buyer.dong());
+        });
     }
 
     // 매물 조회는 비로그인도 허용해 인터셉터가 회원을 읽지 않는다. JPA로 회원을 읽으면 OSIV 아래에서
     // 응답이 끝날 때까지 커넥션을 붙잡으므로, 토큰으로 행정동만 JDBC로 한 번 읽는다.
-    private Buyer buyerOf(String token) {
+    private Buyer buyerOf(ListingQueryRepository reader, String token) {
         if (token == null) {
             return Buyer.ANONYMOUS;
         }
-        return ListingRequestTiming.measure("buyer", () -> listingQueryRepository.findMemberDongByToken(token))
+        return ListingRequestTiming.measure("buyer", () -> reader.findMemberDongByToken(token))
                 .map(member -> new Buyer(true, member.dongCode(),
                         member.dongCode() == null ? null : deliveryFeeService.findDong(member.dongCode()).orElse(null)))
                 .orElse(Buyer.ANONYMOUS);
@@ -139,6 +142,7 @@ public class ListingService {
     }
 
     private ListingView.SummaryPage findAvailable(
+            ListingQueryRepository reader,
             ListingCursor cursor,
             Integer size,
             Map<VolumeTier, List<String>> sellerDongCodes,
@@ -149,7 +153,7 @@ public class ListingService {
             return new ListingView.SummaryPage(List.of(), null);
         }
         // 다음 페이지가 있는지 알려고 한 개를 더 읽는다
-        List<ListingQueryRepository.Row> rows = ListingRequestTiming.measure("listings", () -> listingQueryRepository.findAvailable(
+        List<ListingQueryRepository.Row> rows = ListingRequestTiming.measure("listings", () -> reader.findAvailable(
                 cursor == null ? null : cursor.createdAt(),
                 cursor == null ? null : cursor.id(),
                 size == null ? null : size + 1,
@@ -162,7 +166,7 @@ public class ListingService {
         List<Long> listingIds = page.stream().map(ListingQueryRepository.Row::id).toList();
         Map<Long, String> thumbnails = ListingRequestTiming.measure("images", () -> listingIds.isEmpty()
                 ? Map.<Long, String>of()
-                : listingQueryRepository.findThumbnailObjectKeys(listingIds));
+                : reader.findThumbnailObjectKeys(listingIds));
         ListingRequestTiming.count("image_count", thumbnails.size());
 
         List<ListingView.Summary> summaries = ListingRequestTiming.measure("mapping", () -> page.stream()
@@ -184,7 +188,7 @@ public class ListingService {
                 .map(this::toImageView)
                 .toList();
 
-        return toDetail(listing, images, buyerOf(buyerToken).dong());
+        return toDetail(listing, images, buyerOf(listingQueryRepository, buyerToken).dong());
     }
 
     @Transactional(readOnly = true)

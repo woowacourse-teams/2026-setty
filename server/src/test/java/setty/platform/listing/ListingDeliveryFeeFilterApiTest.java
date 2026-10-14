@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import io.micrometer.core.instrument.MeterRegistry;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -63,6 +64,9 @@ class ListingDeliveryFeeFilterApiTest extends MySqlIntegrationTestSupport {
 
     @Autowired
     private PaymentOrderReader paymentOrderReader;
+
+    @Autowired
+    private MeterRegistry meterRegistry;
 
     @MockitoBean
     private ListingImageStorage listingImageStorage;
@@ -238,6 +242,17 @@ class ListingDeliveryFeeFilterApiTest extends MySqlIntegrationTestSupport {
     }
 
     @Test
+    void 목록_요청_1건은_커넥션을_한_번만_빌린다() throws Exception {
+        long before = connectionAcquisitions();
+        read(filtered(20_000).param("size", "20"));
+        long afterFiltered = connectionAcquisitions();
+        read(get("/api/listings").header(HttpHeaders.AUTHORIZATION, "Bearer token-" + BUYER_ID));
+
+        assertThat(afterFiltered - before).isEqualTo(1);
+        assertThat(connectionAcquisitions() - afterFiltered).isEqualTo(1);
+    }
+
+    @Test
     void 배송원_토큰으로는_배송비_필터를_쓸_수_없다() throws Exception {
         jdbcTemplate.update("""
                 INSERT INTO delivery_member (id, login_id, password, phone_number, license_plate_number, car_type,
@@ -302,6 +317,11 @@ class ListingDeliveryFeeFilterApiTest extends MySqlIntegrationTestSupport {
                 deliveryFeeService.findDong(listing.dongCode()).orElseThrow().index(),
                 deliveryFeeService.findDong(BUYER_DONG).orElseThrow().index(),
                 listing.volumeTier());
+    }
+
+    // HikariCP가 커넥션을 내줄 때마다 기록하는 획득 시간 지표의 건수
+    private long connectionAcquisitions() {
+        return meterRegistry.get("hikaricp.connections.acquire").timer().count();
     }
 
     private Listing farListing() {
