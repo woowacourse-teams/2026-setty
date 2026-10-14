@@ -10,7 +10,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
+import org.springframework.jdbc.core.ConnectionCallback;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.datasource.SingleConnectionDataSource;
 import org.springframework.stereotype.Repository;
 import setty.deliveryfee.VolumeTier;
 import setty.platform.listing.domain.ConditionGrade;
@@ -30,6 +33,13 @@ public class ListingQueryRepository {
 
     public ListingQueryRepository(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
+    }
+
+    // 목록 요청의 쿼리 여러 개를 커넥션 한 번 빌려 읽는다. 쿼리마다 빌리고 돌려주면 풀이 붐빌 때 대기가 그만큼 늘어난다.
+    // 트랜잭션은 열지 않고, work가 끝나면(응답 직렬화 전) 커넥션을 돌려준다.
+    public <T> T inOneConnection(Function<ListingQueryRepository, T> work) {
+        return jdbcTemplate.execute((ConnectionCallback<T>) connection -> work.apply(
+                new ListingQueryRepository(new JdbcTemplate(new SingleConnectionDataSource(connection, true)))));
     }
 
     public List<Row> findAvailable(
