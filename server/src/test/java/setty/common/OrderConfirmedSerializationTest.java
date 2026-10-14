@@ -5,15 +5,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.modulith.events.core.EventSerializer;
 import setty.support.MySqlIntegrationTestSupport;
-import tools.jackson.databind.ObjectMapper;
 
 @SpringBootTest
 class OrderConfirmedSerializationTest extends MySqlIntegrationTestSupport {
 
-    // 이벤트 발행 기록은 앱의 ObjectMapper로 저장·복원된다(spring-modulith-events-jackson)
+    // 이벤트 발행 기록(EVENT_PUBLICATION)을 저장·복원하는 직렬화기
     @Autowired
-    private ObjectMapper objectMapper;
+    private EventSerializer eventSerializer;
 
     // 배포 전에 저장된 미완료 이벤트가 재발행될 때 새 필드가 없어도 읽혀야 한다
     @Test
@@ -24,7 +24,7 @@ class OrderConfirmedSerializationTest extends MySqlIntegrationTestSupport {
                  "deliveryPhoneNumber":"010-0000-0002","listingId":100,"sellerId":10,"itemPrice":150000}
                 """;
 
-        OrderConfirmed event = objectMapper.readValue(legacy, OrderConfirmed.class);
+        OrderConfirmed event = eventSerializer.deserialize(legacy, OrderConfirmed.class);
 
         assertThat(event.deliveryDongCode()).isNull();
         assertThat(event.deliveryFee()).isEqualTo(10_000);
@@ -36,8 +36,8 @@ class OrderConfirmedSerializationTest extends MySqlIntegrationTestSupport {
         OrderConfirmed event = new OrderConfirmed(1L, "가상 책상", "DESK", "판매자 주소", "구매자 주소", 25_000,
                 "010-0000-0001", "010-0000-0002", 100L, 10L, 150_000, "1111053000");
 
-        String serialized = objectMapper.writeValueAsString(event);
+        Object serialized = eventSerializer.serialize(event);
 
-        assertThat(objectMapper.readValue(serialized, OrderConfirmed.class)).isEqualTo(event);
+        assertThat(eventSerializer.deserialize(serialized, OrderConfirmed.class)).isEqualTo(event);
     }
 }
