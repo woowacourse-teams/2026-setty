@@ -9,7 +9,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import setty.global.auth.LoginMember;
 import setty.notification.device.application.DeviceTokenService;
-import setty.platform.member.domain.Member;
 
 @RestController
 @RequestMapping("/api/me/device-token")
@@ -23,19 +22,19 @@ public class MyDeviceTokenController {
 
     @PutMapping
     public ResponseEntity<Void> register(
-            @LoginMember final Member member,
+            @LoginMember final Long memberId,
             @Valid @RequestBody final DeviceTokenRequest request
     ) {
-        deviceTokenService.register(member.getId(), request.token(), request.platform());
+        deviceTokenService.register(memberId, request.token(), request.platform());
         return ResponseEntity.noContent().build();
     }
 
     @DeleteMapping
     public ResponseEntity<Void> unregister(
-            @LoginMember final Member member,
+            @LoginMember final Long memberId,
             @Valid @RequestBody final DeviceTokenDeleteRequest request
     ) {
-        deviceTokenService.unregister(member.getId(), request.token());
+        deviceTokenService.unregister(memberId, request.token());
         return ResponseEntity.noContent().build();
     }
 }
