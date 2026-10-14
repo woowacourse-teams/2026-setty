@@ -198,7 +198,7 @@ public class ListingService {
                 .toList();
     }
 
-    // buyerDongCode가 null이면 등록 때 정한 배송비를 보여 준다. 내 주문은 결제한 금액을 보여 줘야 하므로 null로 부른다.
+    // buyerDongCode가 null이면 등록 때 정한 배송비를 보여 준다. 내 주문은 주문에 저장한 금액을 쓰고, 저장값이 없는 예전 주문만 이 금액을 쓴다.
     @Transactional(readOnly = true)
     public List<ListingView.Summary> findSummaries(List<Long> listingIds, String buyerDongCode) {
         if (listingIds.isEmpty()) {
@@ -245,21 +245,23 @@ public class ListingService {
     }
 
     @Transactional
-    public ListingView.PurchaseInfo registerPurchaseRequest(Long listingId, Long buyerId) {
+    public ListingView.PurchaseInfo registerPurchaseRequest(Long listingId, Long buyerId, String buyerDongCode) {
         Listing listing = findActiveForUpdate(listingId);
         if (listing.isOwnedBy(buyerId)) {
             throw new BusinessException(CANNOT_ORDER_OWN_LISTING);
         }
 
         listing.registerPurchaseRequest();
+        Dong buyerDong = buyerDongCode == null ? null : deliveryFeeService.findDong(buyerDongCode).orElse(null);
+        int deliveryFee = deliveryFeeFor(listing, buyerDong);
         return new ListingView.PurchaseInfo(
                 listing.getId(),
                 listing.getSellerId(),
                 listing.getTitle(),
                 listing.getCategory(),
                 listing.getPrice(),
-                listing.getDeliveryFee(),
-                listing.getTotalPrice()
+                deliveryFee,
+                listing.getPrice() + deliveryFee
         );
     }
 

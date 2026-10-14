@@ -40,14 +40,26 @@ class OrderPaymentReaderTest {
     }
 
     @Test
-    void 주문의_매물_총액을_반환한다() {
+    void 배송비를_저장하지_않은_예전_주문은_매물_가격에_매물_배송비를_더한다() {
         final Order order = Order.pending(11L, 22L, NOW.plusSeconds(60));
         final Listing listing = mock(Listing.class);
         when(orderRepository.findById(33L)).thenReturn(Optional.of(order));
         when(listingRepository.findByIdAndDeletedAtIsNull(11L)).thenReturn(Optional.of(listing));
-        when(listing.getTotalPrice()).thenReturn(160_000);
+        when(listing.getPrice()).thenReturn(150_000);
+        when(listing.getDeliveryFee()).thenReturn(10_000);
 
         assertThat(reader.payableAmount(33L)).isEqualTo(160_000);
+    }
+
+    @Test
+    void 주문에_저장한_배송비로_결제_금액을_계산한다() {
+        final Order order = Order.pending(11L, 22L, NOW.plusSeconds(60), 25_000, "1111053000", "가상 주소", "010-0000-0000");
+        final Listing listing = mock(Listing.class);
+        when(orderRepository.findById(33L)).thenReturn(Optional.of(order));
+        when(listingRepository.findByIdAndDeletedAtIsNull(11L)).thenReturn(Optional.of(listing));
+        when(listing.getPrice()).thenReturn(150_000);
+
+        assertThat(reader.payableAmount(33L)).isEqualTo(175_000);
     }
 
     @Test

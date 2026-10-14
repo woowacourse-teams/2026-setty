@@ -71,13 +71,18 @@ public class OrderService {
             throw new BusinessException(ErrorCode.ALREADY_ORDERED);
         }
 
-        listingService.registerPurchaseRequest(request.listingId(), buyer.getId());
+        final ListingView.PurchaseInfo purchase =
+                listingService.registerPurchaseRequest(request.listingId(), buyer.getId(), buyer.getDongCode());
 
         try {
             return orderRepository.saveAndFlush(Order.pending(
                     request.listingId(),
                     buyer.getId(),
-                    clock.instant().plus(pendingOrderExpirationProperties.timeout())
+                    clock.instant().plus(pendingOrderExpirationProperties.timeout()),
+                    purchase.deliveryFee(),
+                    buyer.getDongCode(),
+                    buyer.getAddress(),
+                    buyer.getPhoneNumber()
             ));
         } catch (final DataIntegrityViolationException e) {
             throw new BusinessException(ErrorCode.ALREADY_ORDERED);
@@ -107,18 +112,20 @@ public class OrderService {
         final Member buyer = memberRepository.findById(order.getBuyerId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.INTERNAL_ERROR));
 
+        // 배송지는 주문 시점 값을 쓴다(docs/policy/delivery.md). 도입 전 주문만 지금 회원 정보로 대신한다.
         eventPublisher.publishEvent(new OrderConfirmed(
                 order.getId(),
                 listing.getTitle(),
                 listing.getCategory().name(),
                 seller.getAddress(),
-                buyer.getAddress(),
-                listing.getDeliveryFee(),
+                order.getDeliveryAddress() == null ? buyer.getAddress() : order.getDeliveryAddress(),
+                order.getDeliveryFee() == null ? listing.getDeliveryFee() : order.getDeliveryFee(),
                 seller.getPhoneNumber(),
-                buyer.getPhoneNumber(),
+                order.getDeliveryPhoneNumber() == null ? buyer.getPhoneNumber() : order.getDeliveryPhoneNumber(),
                 listing.getId(),
                 listing.getSellerId(),
-                listing.getPrice()
+                listing.getPrice(),
+                order.getDeliveryDongCode()
         ));
     }
 

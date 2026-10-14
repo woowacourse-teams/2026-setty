@@ -39,6 +39,8 @@ public class OrderPaymentReader implements PaymentOrderReader {
         }
         final Listing listing = listingRepository.findByIdAndDeletedAtIsNull(order.getListingId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.LISTING_NOT_FOUND));
-        return listing.getTotalPrice();
+        // 도입 전 주문은 저장된 배송비가 없어 매물 배송비로 계산한다
+        final int deliveryFee = order.getDeliveryFee() == null ? listing.getDeliveryFee() : order.getDeliveryFee();
+        return listing.getPrice() + deliveryFee;
     }
 }

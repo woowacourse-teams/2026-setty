@@ -6,7 +6,8 @@ public record OrderCreateResponse(
         Long id,
         Long listingId,
         Long buyerId,
-        String deliveryStatus
+        String deliveryStatus,
+        Integer deliveryFee
 ) {
 
     public static OrderCreateResponse from(final Order order) {
@@ -14,7 +15,8 @@ public record OrderCreateResponse(
                 order.getId(),
                 order.getListingId(),
                 order.getBuyerId(),
-                order.getDeliveryStatus().name()
+                order.getDeliveryStatus().name(),
+                order.getDeliveryFee()
         );
     }
 }

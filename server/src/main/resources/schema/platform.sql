@@ -146,6 +146,10 @@ CREATE TABLE IF NOT EXISTS orders (
     driver_id       BIGINT       NULL,                  -- 현재 미사용, 실제 배정 기사는 delivery.driver_id에 저장
     pending_expires_at TIMESTAMP(6) NULL,                -- PENDING 주문 자동 만료 시각
     delivery_status_changed_at TIMESTAMP(6) NULL,        -- 배송 이벤트로 동기화된 배송 상태 변경 시각
+    delivery_fee    INT          NULL,                  -- 주문 시점 구매자 기준 배송비. 도입 전 주문은 NULL(매물 배송비로 대체)
+    delivery_dong_code VARCHAR(10) NULL,                -- 주문 시점 배송지 행정동
+    delivery_address VARCHAR(200) NULL,                 -- 주문 시점 배송지. 도입 전 주문은 NULL(회원 주소로 대체)
+    delivery_phone_number VARCHAR(13) NULL,             -- 주문 시점 구매자 연락처
     active_listing_id BIGINT GENERATED ALWAYS AS (
         CASE WHEN order_status IN ('EXPIRED', 'CANCELLED') THEN NULL ELSE listing_id END
     ) STORED,
@@ -284,6 +288,20 @@ SET @add_orders_delivery_status_changed_at = IF(
 PREPARE add_orders_delivery_status_changed_at_statement FROM @add_orders_delivery_status_changed_at;
 EXECUTE add_orders_delivery_status_changed_at_statement;
 DEALLOCATE PREPARE add_orders_delivery_status_changed_at_statement;
+
+-- 주문 시점 배송비·배송지 스냅샷(docs/policy/delivery.md "요청·정보 확정")
+SET @orders_delivery_fee_exists = (
+    SELECT COUNT(*) FROM information_schema.columns
+    WHERE table_schema = DATABASE() AND table_name = 'orders' AND column_name = 'delivery_fee'
+);
+SET @add_orders_delivery_snapshot = IF(
+    @orders_delivery_fee_exists = 0,
+    'ALTER TABLE orders ADD COLUMN delivery_fee INT NULL AFTER delivery_status_changed_at, ADD COLUMN delivery_dong_code VARCHAR(10) NULL AFTER delivery_fee, ADD COLUMN delivery_address VARCHAR(200) NULL AFTER delivery_dong_code, ADD COLUMN delivery_phone_number VARCHAR(13) NULL AFTER delivery_address',
+    'SELECT 1'
+);
+PREPARE add_orders_delivery_snapshot_statement FROM @add_orders_delivery_snapshot;
+EXECUTE add_orders_delivery_snapshot_statement;
+DEALLOCATE PREPARE add_orders_delivery_snapshot_statement;
 
 -- 판매 완료 확정 도입 전에 배송 완료된 주문은 변경 시각을 알 수 없어 배포 시점으로 채운다. 3일 뒤 자동 판매 완료된다.
 UPDATE orders
