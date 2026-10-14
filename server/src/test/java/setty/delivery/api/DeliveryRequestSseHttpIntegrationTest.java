@@ -57,6 +57,7 @@ class DeliveryRequestSseHttpIntegrationTest extends MySqlIntegrationTestSupport 
     private static final Duration HTTP_TIMEOUT = Duration.ofSeconds(5);
     private static final String EVENTS_PATH = "/api/delivery/requests/events";
     private static final String REQUESTS_PATH = "/api/delivery/requests";
+    private static final String MEMBER_TOKEN = "sse-http-test-member-token";
 
     @Autowired
     private Environment environment;
@@ -97,6 +98,7 @@ class DeliveryRequestSseHttpIntegrationTest extends MySqlIntegrationTestSupport 
         jdbcTemplate.update("DELETE FROM delivery");
         jdbcTemplate.update("DELETE FROM delivery_order_decision");
         jdbcTemplate.update("DELETE FROM EVENT_PUBLICATION");
+        jdbcTemplate.update("DELETE FROM members WHERE token = ?", MEMBER_TOKEN);
         for (int driver = 1; driver <= 4; driver++) {
             final String loginId = "sse_http_" + driver;
             jdbcTemplate.update("DELETE FROM delivery_member WHERE login_id = ?", loginId);
@@ -122,6 +124,7 @@ class DeliveryRequestSseHttpIntegrationTest extends MySqlIntegrationTestSupport 
                 connection.close();
             }
         } finally {
+            jdbcTemplate.update("DELETE FROM members WHERE token = ?", MEMBER_TOKEN);
             if (client != null) {
                 client.shutdownNow();
             }
@@ -139,7 +142,7 @@ class DeliveryRequestSseHttpIntegrationTest extends MySqlIntegrationTestSupport 
 
         assertThat(eventStream.subscriberCount()).isOne();
         assertThat(eventStream.subscriberCount(driverIds.get(1))).isOne();
-        final HttpResponse<String> list = get(REQUESTS_PATH, 1, MediaType.APPLICATION_JSON_VALUE);
+        final HttpResponse<String> list = get(REQUESTS_PATH, token(1), MediaType.APPLICATION_JSON_VALUE);
         assertThat(list.statusCode()).isEqualTo(200);
         assertThat(objectMapper.readTree(list.body()).isArray()).isTrue();
         assertThat(objectMapper.readTree(list.body()).size()).isZero();
@@ -150,7 +153,7 @@ class DeliveryRequestSseHttpIntegrationTest extends MySqlIntegrationTestSupport 
         final SseConnection first = connect(1);
         final SseConnection second = connect(1);
 
-        assertRejected(1, 429, "DRIVER_LIMIT_EXCEEDED");
+        assertRejected(token(1), 429, "DRIVER_LIMIT_EXCEEDED");
         assertThat(eventStream.subscriberCount()).isEqualTo(2);
         assertThat(eventStream.subscriberCount(driverIds.get(1))).isEqualTo(2);
         publishChange();
@@ -173,7 +176,7 @@ class DeliveryRequestSseHttpIntegrationTest extends MySqlIntegrationTestSupport 
         final SseConnection second = connect(2);
         final SseConnection third = connect(3);
 
-        assertRejected(4, 503, "TOTAL_LIMIT_EXCEEDED");
+        assertRejected(token(4), 503, "TOTAL_LIMIT_EXCEEDED");
         assertThat(eventStream.subscriberCount()).isEqualTo(3);
         assertThat(eventStream.subscriberCount(driverIds.get(4))).isZero();
         publishChange();
@@ -192,9 +195,20 @@ class DeliveryRequestSseHttpIntegrationTest extends MySqlIntegrationTestSupport 
         assertLatestList(4, deliveryId);
     }
 
+    @Test
+    void memberTokenIsRejectedWithJsonBeforeSse() throws Exception {
+        jdbcTemplate.update("""
+                INSERT INTO members (login_id, password, role, phone_number, address, token)
+                VALUES ('sse_http_member', 'test-password-hash', 'MEMBER', '010-0000-0000', '가상 주소', ?)
+                """, MEMBER_TOKEN);
+
+        assertRejected(MEMBER_TOKEN, 401, "INVALID_TOKEN");
+        assertThat(eventStream.subscriberCount()).isZero();
+    }
+
     private SseConnection connect(final int driver) throws Exception {
         final HttpResponse<InputStream> response = client.send(
-                request(EVENTS_PATH, driver, MediaType.TEXT_EVENT_STREAM_VALUE),
+                request(EVENTS_PATH, token(driver), MediaType.TEXT_EVENT_STREAM_VALUE),
                 HttpResponse.BodyHandlers.ofInputStream());
         final SseConnection connection = new SseConnection(response);
         connections.add(connection);
@@ -205,9 +219,9 @@ class DeliveryRequestSseHttpIntegrationTest extends MySqlIntegrationTestSupport 
         return connection;
     }
 
-    private void assertRejected(final int driver, final int status, final String code) throws Exception {
+    private void assertRejected(final String token, final int status, final String code) throws Exception {
         // 완결된 JSON 본문까지 제한 시간 안에 받아야 SSE 응답이 시작되지 않았음을 확인할 수 있다.
-        final HttpResponse<String> response = get(EVENTS_PATH, driver, MediaType.TEXT_EVENT_STREAM_VALUE);
+        final HttpResponse<String> response = get(EVENTS_PATH, token, MediaType.TEXT_EVENT_STREAM_VALUE);
         assertThat(response.statusCode()).isEqualTo(status);
         assertThat(MediaType.parseMediaType(response.headers().firstValue("Content-Type").orElseThrow())
                 .isCompatibleWith(MediaType.APPLICATION_JSON)).isTrue();
@@ -219,7 +233,7 @@ class DeliveryRequestSseHttpIntegrationTest extends MySqlIntegrationTestSupport 
     }
 
     private void assertLatestList(final int driver, final long deliveryId) throws Exception {
-        final HttpResponse<String> response = get(REQUESTS_PATH, driver, MediaType.APPLICATION_JSON_VALUE);
+        final HttpResponse<String> response = get(REQUESTS_PATH, token(driver), MediaType.APPLICATION_JSON_VALUE);
         assertThat(response.statusCode()).isEqualTo(200);
         final JsonNode body = objectMapper.readTree(response.body());
         assertThat(body.isArray()).isTrue();
@@ -227,9 +241,9 @@ class DeliveryRequestSseHttpIntegrationTest extends MySqlIntegrationTestSupport 
         assertThat(body.get(0).path("deliveryId").asLong()).isEqualTo(deliveryId);
     }
 
-    private HttpResponse<String> get(final String path, final int driver, final String accept) throws Exception {
+    private HttpResponse<String> get(final String path, final String token, final String accept) throws Exception {
         final Future<HttpResponse<String>> response = client.sendAsync(
-                request(path, driver, accept), HttpResponse.BodyHandlers.ofString());
+                request(path, token, accept), HttpResponse.BodyHandlers.ofString());
         try {
             return response.get(HTTP_TIMEOUT.toSeconds(), TimeUnit.SECONDS);
         } finally {
@@ -237,10 +251,10 @@ class DeliveryRequestSseHttpIntegrationTest extends MySqlIntegrationTestSupport 
         }
     }
 
-    private HttpRequest request(final String path, final int driver, final String accept) {
+    private HttpRequest request(final String path, final String token, final String accept) {
         return HttpRequest.newBuilder(URI.create(baseUrl + path))
                 .timeout(HTTP_TIMEOUT)
-                .header("Authorization", "Bearer " + token(driver))
+                .header("Authorization", "Bearer " + token)
                 .header("Accept", accept)
                 .GET()
                 .build();

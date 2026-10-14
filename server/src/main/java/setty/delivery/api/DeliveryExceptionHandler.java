@@ -30,6 +30,7 @@ public class DeliveryExceptionHandler {
         final ErrorCode errorCode = exception.getErrorCode();
         return ResponseEntity
                 .status(errorCode.getStatus())
+                .contentType(MediaType.APPLICATION_JSON)
                 .body(DeliveryErrorResponse.from(errorCode));
     }
 }
