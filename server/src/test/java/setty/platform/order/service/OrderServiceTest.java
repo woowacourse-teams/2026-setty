@@ -287,7 +287,7 @@ class OrderServiceTest {
                 null
         );
         when(orderRepository.findAllByBuyerIdOrderByIdDesc(BUYER_ID)).thenReturn(List.of(order));
-        when(listingService.findSummaries(List.of(LISTING_ID))).thenReturn(List.of(listing));
+        when(listingService.findSummaries(List.of(LISTING_ID), null)).thenReturn(List.of(listing));
 
         final List<MyOrderResponse> responses = orderService.findMyOrders(BUYER_ID);
 
@@ -313,7 +313,7 @@ class OrderServiceTest {
         );
         when(orderRepository.findAllByBuyerIdOrderByIdDesc(BUYER_ID))
                 .thenReturn(List.of(nextOrder, cancelledOrder));
-        when(listingService.findSummaries(any())).thenAnswer(invocation -> {
+        when(listingService.findSummaries(any(), any())).thenAnswer(invocation -> {
             final List<Long> ids = invocation.getArgument(0);
             return ids.stream().map(id -> listing).toList();
         });

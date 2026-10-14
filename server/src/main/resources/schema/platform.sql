@@ -62,7 +62,6 @@ CREATE TABLE IF NOT EXISTS listings (
     CONSTRAINT chk_listings_width CHECK (width_cm BETWEEN 1 AND 1000),
     CONSTRAINT chk_listings_depth CHECK (depth_cm BETWEEN 1 AND 1000),
     CONSTRAINT chk_listings_height CHECK (height_cm BETWEEN 1 AND 1000),
-    INDEX idx_listings_public (deleted_at, sale_status, created_at, id),
     INDEX idx_listings_seller (seller_id, deleted_at, created_at, id),
     INDEX idx_listings_delivery_filter (deleted_at, sale_status, created_at, id, dong_code, volume_tier)
 );
@@ -107,6 +106,20 @@ SET @add_listings_delivery_filter_index = IF(
 PREPARE add_listings_delivery_filter_index_statement FROM @add_listings_delivery_filter_index;
 EXECUTE add_listings_delivery_filter_index_statement;
 DEALLOCATE PREPARE add_listings_delivery_filter_index_statement;
+
+-- idx_listings_delivery_filter의 앞 네 컬럼과 같아 일반 목록도 그 색인으로 같은 순서로 읽으므로 지운다.
+SET @listings_public_index_exists = (
+    SELECT COUNT(*) FROM information_schema.statistics
+    WHERE table_schema = DATABASE() AND table_name = 'listings' AND index_name = 'idx_listings_public'
+);
+SET @drop_listings_public_index = IF(
+    @listings_public_index_exists > 0,
+    'ALTER TABLE listings DROP INDEX idx_listings_public',
+    'SELECT 1'
+);
+PREPARE drop_listings_public_index_statement FROM @drop_listings_public_index;
+EXECUTE drop_listings_public_index_statement;
+DEALLOCATE PREPARE drop_listings_public_index_statement;
 
 CREATE TABLE IF NOT EXISTS listing_images (
     id BIGINT NOT NULL AUTO_INCREMENT,

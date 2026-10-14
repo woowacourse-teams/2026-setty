@@ -3,6 +3,7 @@ package setty.platform.listing.application;
 import static setty.global.exception.ErrorCode.CANNOT_ORDER_OWN_LISTING;
 import static setty.global.exception.ErrorCode.DELIVERY_AREA_NOT_SUPPORTED;
 import static setty.global.exception.ErrorCode.INVALID_REQUEST;
+import static setty.global.exception.ErrorCode.INVALID_TOKEN;
 import static setty.global.exception.ErrorCode.LISTING_NOT_FOUND;
 import static setty.global.exception.ErrorCode.MEMBER_DONG_REQUIRED;
 
@@ -26,6 +27,7 @@ import setty.deliveryfee.Dong;
 import setty.deliveryfee.VolumeTier;
 import setty.global.exception.BusinessException;
 import setty.global.logging.ListingRequestTiming;
+import setty.platform.listing.domain.DeliveryFeePolicy;
 import setty.platform.listing.domain.Dimensions;
 import setty.platform.listing.domain.Listing;
 import setty.platform.listing.domain.ListingImage;
@@ -88,33 +90,50 @@ public class ListingService {
     }
 
     // 트랜잭션을 걸지 않는다. JPA 트랜잭션을 열면 조회 내내 커넥션을 붙잡으므로 쿼리마다 바로 반납하는 JDBC 조회만 쓴다.
-    public List<ListingView.Summary> findAvailableListings() {
-        return findAvailable(null, null, null).items();
+    public List<ListingView.Summary> findAvailableListings(String buyerToken) {
+        return findAvailable(null, null, null, buyerOf(buyerToken).dong()).items();
     }
 
     public ListingView.SummaryPage findAvailableListings(
             ListingCursor cursor,
             int size,
-            String buyerDongCode,
+            String buyerToken,
             Integer maxDeliveryFee
     ) {
         if (size < 1 || size > MAXIMUM_PAGE_SIZE) {
             throw new BusinessException(INVALID_REQUEST);
         }
+        Buyer buyer = buyerOf(buyerToken);
         Map<VolumeTier, List<String>> sellerDongCodes = maxDeliveryFee == null
                 ? null
-                : sellerDongCodesWithin(buyerDongCode, maxDeliveryFee);
-        return findAvailable(cursor, size, sellerDongCodes);
+                : sellerDongCodesWithin(buyer, maxDeliveryFee);
+        return findAvailable(cursor, size, sellerDongCodes, buyer.dong());
     }
 
-    private Map<VolumeTier, List<String>> sellerDongCodesWithin(String buyerDongCode, int maxDeliveryFee) {
-        if (buyerDongCode == null) {
+    // 매물 조회는 비로그인도 허용해 인터셉터가 회원을 읽지 않는다. JPA로 회원을 읽으면 OSIV 아래에서
+    // 응답이 끝날 때까지 커넥션을 붙잡으므로, 토큰으로 행정동만 JDBC로 한 번 읽는다.
+    private Buyer buyerOf(String token) {
+        if (token == null) {
+            return Buyer.ANONYMOUS;
+        }
+        return ListingRequestTiming.measure("buyer", () -> listingQueryRepository.findMemberDongByToken(token))
+                .map(member -> new Buyer(true, member.dongCode(),
+                        member.dongCode() == null ? null : deliveryFeeService.findDong(member.dongCode()).orElse(null)))
+                .orElse(Buyer.ANONYMOUS);
+    }
+
+    private Map<VolumeTier, List<String>> sellerDongCodesWithin(Buyer buyer, int maxDeliveryFee) {
+        if (!buyer.member()) {
+            throw new BusinessException(INVALID_TOKEN);
+        }
+        if (buyer.dongCode() == null) {
             throw new BusinessException(MEMBER_DONG_REQUIRED);
         }
-        Dong buyerDong = deliveryFeeService.findDong(buyerDongCode)
-                .orElseThrow(() -> new BusinessException(DELIVERY_AREA_NOT_SUPPORTED));
+        if (buyer.dong() == null) {
+            throw new BusinessException(DELIVERY_AREA_NOT_SUPPORTED);
+        }
         Map<VolumeTier, List<String>> sellerDongCodes = new LinkedHashMap<>();
-        deliveryFeeService.sellerDongsWithinFee(buyerDong, maxDeliveryFee).forEach((volumeTier, dongs) ->
+        deliveryFeeService.sellerDongsWithinFee(buyer.dong(), maxDeliveryFee).forEach((volumeTier, dongs) ->
                 sellerDongCodes.put(volumeTier, dongs.stream().map(Dong::code).toList()));
         return sellerDongCodes;
     }
@@ -122,7 +141,8 @@ public class ListingService {
     private ListingView.SummaryPage findAvailable(
             ListingCursor cursor,
             Integer size,
-            Map<VolumeTier, List<String>> sellerDongCodes
+            Map<VolumeTier, List<String>> sellerDongCodes,
+            Dong buyerDong
     ) {
         // 예산 안에 드는 판매자 동이 하나도 없으면 DB에 묻지 않는다
         if (sellerDongCodes != null && sellerDongCodes.isEmpty()) {
@@ -146,7 +166,7 @@ public class ListingService {
         ListingRequestTiming.count("image_count", thumbnails.size());
 
         List<ListingView.Summary> summaries = ListingRequestTiming.measure("mapping", () -> page.stream()
-                .map(row -> toSummary(row, thumbnails.get(row.id())))
+                .map(row -> toSummary(row, thumbnails.get(row.id()), buyerDong))
                 .toList());
         ListingRequestTiming.count("summary_count", summaries.size());
 
@@ -156,7 +176,7 @@ public class ListingService {
     }
 
     @Transactional(readOnly = true)
-    public ListingView.Detail findDetail(Long listingId) {
+    public ListingView.Detail findDetail(Long listingId, String buyerToken) {
         Listing listing = findActive(listingId);
         List<ListingView.Image> images = listingImageRepository
                 .findAllByListingIdOrderByDisplayOrderAsc(listingId)
@@ -164,7 +184,7 @@ public class ListingService {
                 .map(this::toImageView)
                 .toList();
 
-        return toDetail(listing, images);
+        return toDetail(listing, images, buyerOf(buyerToken).dong());
     }
 
     @Transactional(readOnly = true)
@@ -178,11 +198,13 @@ public class ListingService {
                 .toList();
     }
 
+    // buyerDongCode가 null이면 등록 때 정한 배송비를 보여 준다. 내 주문은 결제한 금액을 보여 줘야 하므로 null로 부른다.
     @Transactional(readOnly = true)
-    public List<ListingView.Summary> findSummaries(List<Long> listingIds) {
+    public List<ListingView.Summary> findSummaries(List<Long> listingIds, String buyerDongCode) {
         if (listingIds.isEmpty()) {
             return List.of();
         }
+        Dong buyerDong = buyerDongCode == null ? null : deliveryFeeService.findDong(buyerDongCode).orElse(null);
         List<Listing> listings = listingRepository.findAllByIdInAndDeletedAtIsNull(listingIds);
         Map<Long, Listing> listingById = listings.stream()
                 .collect(Collectors.toMap(Listing::getId, Function.identity()));
@@ -191,7 +213,7 @@ public class ListingService {
         return listingIds.stream()
                 .map(listingById::get)
                 .filter(Objects::nonNull)
-                .map(listing -> toSummary(listing, thumbnails.get(listing.getId())))
+                .map(listing -> toSummary(listing, thumbnails.get(listing.getId()), buyerDong))
                 .toList();
     }
 
@@ -320,14 +342,15 @@ public class ListingService {
         return images == null ? List.of() : List.copyOf(images);
     }
 
-    private ListingView.Summary toSummary(ListingQueryRepository.Row row, String thumbnailObjectKey) {
+    private ListingView.Summary toSummary(ListingQueryRepository.Row row, String thumbnailObjectKey, Dong buyerDong) {
+        int deliveryFee = deliveryFeeFor(row.dongCode(), row.volumeTier(), row.deliveryFee(), buyerDong);
         return new ListingView.Summary(
                 row.id(),
                 row.title(),
                 thumbnailObjectKey == null ? null : listingImageStorage.publicUrl(thumbnailObjectKey),
                 row.price(),
-                row.deliveryFee(),
-                row.price() + row.deliveryFee(),
+                deliveryFee,
+                row.price() + deliveryFee,
                 row.category(),
                 row.conditionGrade(),
                 new ListingView.Dimensions(row.widthCm(), row.depthCm(), row.heightCm()),
@@ -336,14 +359,15 @@ public class ListingService {
         );
     }
 
-    private ListingView.Summary toSummary(Listing listing, ListingImage thumbnail) {
+    private ListingView.Summary toSummary(Listing listing, ListingImage thumbnail, Dong buyerDong) {
+        int deliveryFee = deliveryFeeFor(listing, buyerDong);
         return new ListingView.Summary(
                 listing.getId(),
                 listing.getTitle(),
                 thumbnail == null ? null : listingImageStorage.publicUrl(thumbnail.getObjectKey()),
                 listing.getPrice(),
-                listing.getDeliveryFee(),
-                listing.getTotalPrice(),
+                deliveryFee,
+                listing.getPrice() + deliveryFee,
                 listing.getCategory(),
                 listing.getConditionGrade(),
                 dimensionsOf(listing),
@@ -352,14 +376,15 @@ public class ListingService {
         );
     }
 
-    private ListingView.Detail toDetail(Listing listing, List<ListingView.Image> images) {
+    private ListingView.Detail toDetail(Listing listing, List<ListingView.Image> images, Dong buyerDong) {
+        int deliveryFee = deliveryFeeFor(listing, buyerDong);
         return new ListingView.Detail(
                 listing.getId(),
                 listing.getTitle(),
                 listing.getDescription(),
                 listing.getPrice(),
-                listing.getDeliveryFee(),
-                listing.getTotalPrice(),
+                deliveryFee,
+                listing.getPrice() + deliveryFee,
                 listing.getCategory(),
                 listing.getConditionGrade(),
                 dimensionsOf(listing),
@@ -369,6 +394,21 @@ public class ListingService {
                 listing.getUpdatedAt(),
                 dongOf(listing.getDongCode())
         );
+    }
+
+    private int deliveryFeeFor(Listing listing, Dong buyerDong) {
+        return deliveryFeeFor(listing.getDongCode(), DeliveryFeePolicy.volumeTier(listing.getDimensions()),
+                listing.getDeliveryFee(), buyerDong);
+    }
+
+    // 구매자나 매물의 행정동을 모르면 거리를 잴 수 없어 등록 때 정한 부피 배송비를 그대로 쓴다
+    private int deliveryFeeFor(String sellerDongCode, VolumeTier volumeTier, int fixedFee, Dong buyerDong) {
+        if (buyerDong == null || sellerDongCode == null) {
+            return fixedFee;
+        }
+        return deliveryFeeService.findDong(sellerDongCode)
+                .map(seller -> deliveryFeeService.fee(seller.index(), buyerDong.index(), volumeTier))
+                .orElse(fixedFee);
     }
 
     // 행정동 도입 전에 등록된 매물은 dong_code가 없다
@@ -396,7 +436,8 @@ public class ListingService {
                 listing.hasPurchaseRequest(),
                 listing.canUpdate(),
                 listing.canDelete(),
-                listing.getCreatedAt()
+                listing.getCreatedAt(),
+                dongOf(listing.getDongCode())
         );
     }
 
@@ -435,5 +476,10 @@ public class ListingService {
         } catch (RuntimeException exception) {
             log.error("매물 이미지 {} 실패. imageCount={}", operation, objectKeys.size(), exception);
         }
+    }
+
+    private record Buyer(boolean member, String dongCode, Dong dong) {
+
+        static final Buyer ANONYMOUS = new Buyer(false, null, null);
     }
 }

@@ -16,6 +16,7 @@
 | `event` | `listing_request_timing` |
 | `method`, `path`, `status` | GET, /api/listings, 필터 반환 시 상태 코드. 최종 상태를 알 수 없는 예외·비동기 전환은 status=null |
 | `filter_ms` | 필터 진입부터 체인 반환/예외까지의 경과 시간. 아래 구간 외에 트랜잭션, MVC, JSON 변환과 응답 쓰기를 포함하지만 로그 출력 자체와 이후 컨테이너 flush, 클라이언트 수신 완료는 제외 |
+| `buyer_ms` | Authorization 토큰이 있을 때 구매자 행정동 조회(배송비 계산용). 토큰이 없으면 이 필드가 없음 |
 | `listings_ms` | 매물 repository 호출. SQL 실행뿐 아니라 결과 수신·엔티티 생성도 포함 |
 | `images_ms` | ID 목록 생성, 이미지 repository 조회, 대표 사진 Map 구성 전체 |
 | `mapping_ms` | URL 문자열과 응답 객체 목록 생성. JSON 직렬화는 포함하지 않음 |
@@ -51,7 +52,7 @@ fields jsonParse(@message) as envelope
 | filter app.requestId = "REQUEST_ID_FROM_CSV"
 | filter app.event = "listing_request_timing"
 | fields @timestamp, app.requestId, app.status, app.outcome, app.response_complete,
-    app.filter_ms, app.listings_ms, app.images_ms, app.mapping_ms,
+    app.filter_ms, app.buyer_ms, app.listings_ms, app.images_ms, app.mapping_ms,
     app.listings_completed, app.images_completed, app.mapping_completed,
     app.listing_count, app.image_count, app.summary_count
 | sort @timestamp asc
