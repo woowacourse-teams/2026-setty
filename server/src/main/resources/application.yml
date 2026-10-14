@@ -61,7 +61,7 @@ management:
 setty:
   delivery:
     request-sse:
-      # 개발·검증 초기값. 운영 상한은 연결 수와 메모리 측정으로 조정한다.
+      # 임시 보호 상한. 운영 용량은 연결·목록 조회 부하와 전체 메모리 측정으로 확인한다.
       max-connections: ${SETTY_DELIVERY_REQUEST_SSE_MAX_CONNECTIONS:1000}
   order:
     pending-expiration:
