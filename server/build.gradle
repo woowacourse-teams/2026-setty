@@ -45,6 +45,9 @@ dependencies {
     // 모듈 간 이벤트를 커밋 이후 별도 트랜잭션에서 처리하고, 발행 기록(EVENT_PUBLICATION)으로 실패 건을 재발행한다.
     implementation platform('org.springframework.modulith:spring-modulith-bom:2.1.1')
     implementation 'org.springframework.modulith:spring-modulith-starter-jdbc'
+    // 테스트에서 모듈 경계 검증(ApplicationModules)과 이벤트 직렬화기(EventSerializer)를 쓰려고 넣는다
+    testImplementation 'org.springframework.modulith:spring-modulith-core'
+    testImplementation 'org.springframework.modulith:spring-modulith-events-core'
 }
 
 tasks.named('test') {

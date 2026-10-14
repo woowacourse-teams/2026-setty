@@ -9,6 +9,7 @@ import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
+import java.net.InetAddress;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -160,7 +161,12 @@ class ListingTimingHttpIntegrationTest {
     @EnableWebMvc
     @Import({RequestIdConfiguration.class, ListingController.class, ListingService.class, ListingRecorder.class, GlobalExceptionHandler.class})
     static class Config {
-        @Bean TomcatServletWebServerFactory webServerFactory() { return new TomcatServletWebServerFactory(0); }
+        // 직접 만든 팩토리에는 server.address가 적용되지 않아 루프백을 따로 지정한다
+        @Bean TomcatServletWebServerFactory webServerFactory() {
+            TomcatServletWebServerFactory factory = new TomcatServletWebServerFactory(0);
+            factory.setAddress(InetAddress.getLoopbackAddress());
+            return factory;
+        }
         @Bean DispatcherServlet dispatcherServlet() { return new DispatcherServlet(); }
         @Bean DispatcherServletRegistrationBean dispatcherRegistration(DispatcherServlet servlet) {
             return new DispatcherServletRegistrationBean(servlet, "/");
