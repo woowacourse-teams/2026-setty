@@ -12,8 +12,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import setty.global.auth.LoginMember;
 import setty.notification.keyword.application.KeywordSubscriptionService;
-import setty.platform.listing.presentation.ListingListResponse;
-import setty.platform.member.domain.Member;
+import setty.notification.presentation.ListResponse;
 
 @RestController
 @RequestMapping("/api/me/keywords")
@@ -26,28 +25,28 @@ public class MyKeywordController {
     }
 
     @GetMapping
-    public ResponseEntity<ListingListResponse<KeywordResponse>> findMine(@LoginMember final Member member) {
-        final List<KeywordResponse> keywords = keywordSubscriptionService.findMine(member.getId()).stream()
+    public ResponseEntity<ListResponse<KeywordResponse>> findMine(@LoginMember final Long memberId) {
+        final List<KeywordResponse> keywords = keywordSubscriptionService.findMine(memberId).stream()
                 .map(KeywordResponse::from)
                 .toList();
-        return ResponseEntity.ok(new ListingListResponse<>(keywords));
+        return ResponseEntity.ok(new ListResponse<>(keywords));
     }
 
     @PutMapping
     public ResponseEntity<Void> subscribe(
-            @LoginMember final Member member,
+            @LoginMember final Long memberId,
             @Valid @RequestBody final KeywordRequest request
     ) {
-        keywordSubscriptionService.subscribe(member.getId(), request.keyword());
+        keywordSubscriptionService.subscribe(memberId, request.keyword());
         return ResponseEntity.noContent().build();
     }
 
     @DeleteMapping("/{subscriptionId}")
     public ResponseEntity<Void> unsubscribe(
-            @LoginMember final Member member,
+            @LoginMember final Long memberId,
             @PathVariable final Long subscriptionId
     ) {
-        keywordSubscriptionService.unsubscribe(member.getId(), subscriptionId);
+        keywordSubscriptionService.unsubscribe(memberId, subscriptionId);
         return ResponseEntity.noContent().build();
     }
 }
