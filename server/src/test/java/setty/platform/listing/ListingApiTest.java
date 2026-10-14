@@ -214,7 +214,7 @@ class ListingApiTest extends MySqlIntegrationTestSupport {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items[1].thumbnailUrl")
                         .value("https://images.example.test/setty/images/listings/test-1.jpg"));
-        assertThat(listingService.findSummaries(List.of(listingId, otherId)))
+        assertThat(listingService.findSummaries(List.of(listingId, otherId), null))
                 .extracting(ListingView.Summary::id, ListingView.Summary::thumbnailUrl)
                 .containsExactly(
                         org.assertj.core.api.Assertions.tuple(listingId,
@@ -257,7 +257,7 @@ class ListingApiTest extends MySqlIntegrationTestSupport {
                 .andExpect(jsonPath("$.items[0].id").value(listingId))
                 .andExpect(jsonPath("$.items[0].thumbnailUrl").value(org.hamcrest.Matchers.nullValue()));
         assertThat(listingService.findMine(SELLER_ID).getFirst().thumbnailUrl()).isNull();
-        assertThat(listingService.findSummaries(List.of(listingId)).getFirst().thumbnailUrl()).isNull();
+        assertThat(listingService.findSummaries(List.of(listingId), null).getFirst().thumbnailUrl()).isNull();
     }
 
     @Test
@@ -292,6 +292,10 @@ class ListingApiTest extends MySqlIntegrationTestSupport {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items[0].dong.code").value(SELLER_DONG_CODE))
                 .andExpect(jsonPath("$.items[0].dong.name").value("사직동"));
+        mockMvc.perform(get("/api/me/listings").header(HttpHeaders.AUTHORIZATION, bearerToken(SELLER_ID)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[0].dong.code").value(SELLER_DONG_CODE))
+                .andExpect(jsonPath("$.items[0].dong.district").value("종로구"));
     }
 
     @Test
@@ -440,7 +444,7 @@ class ListingApiTest extends MySqlIntegrationTestSupport {
         long listingId = createListing(SELLER_ID, "구매 흐름 확인용 가상 소파");
         long retainedImageId = firstImageId(listingId);
 
-        ListingView.PurchaseInfo firstPurchase = listingService.registerPurchaseRequest(listingId, FIRST_BUYER_ID);
+        ListingView.PurchaseInfo firstPurchase = listingService.registerPurchaseRequest(listingId, null);
 
         assertThat(firstPurchase.listingId()).isEqualTo(listingId);
         assertThat(firstPurchase.sellerId()).isEqualTo(SELLER_ID);
@@ -495,7 +499,7 @@ class ListingApiTest extends MySqlIntegrationTestSupport {
     @Test
     void concurrentDeliveryReservationsAllowOnlyOneWinner() throws Exception {
         long listingId = createListing(SELLER_ID, "동시 예약 확인용 가상 침대");
-        listingService.registerPurchaseRequest(listingId, FIRST_BUYER_ID);
+        listingService.registerPurchaseRequest(listingId, null);
 
         CountDownLatch ready = new CountDownLatch(2);
         CountDownLatch start = new CountDownLatch(1);
@@ -543,7 +547,7 @@ class ListingApiTest extends MySqlIntegrationTestSupport {
         long second = createListing(SELLER_ID, "두 번째 책상");
         long third = createListing(SELLER_ID, "세 번째 책상");
 
-        List<ListingView.Summary> summaries = listingService.findSummaries(List.of(third, first, second));
+        List<ListingView.Summary> summaries = listingService.findSummaries(List.of(third, first, second), null);
 
         assertThat(summaries)
                 .extracting(ListingView.Summary::id)
@@ -556,7 +560,7 @@ class ListingApiTest extends MySqlIntegrationTestSupport {
         long deleted = createListing(SELLER_ID, "삭제될 책상");
         jdbcTemplate.update("UPDATE listings SET deleted_at = NOW(6) WHERE id = ?", deleted);
 
-        List<ListingView.Summary> summaries = listingService.findSummaries(List.of(kept, deleted));
+        List<ListingView.Summary> summaries = listingService.findSummaries(List.of(kept, deleted), null);
 
         assertThat(summaries)
                 .extracting(ListingView.Summary::id)

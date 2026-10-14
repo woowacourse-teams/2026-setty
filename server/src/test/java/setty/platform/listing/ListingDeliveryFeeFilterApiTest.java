@@ -42,6 +42,8 @@ class ListingDeliveryFeeFilterApiTest extends MySqlIntegrationTestSupport {
     private static final long NO_DONG_BUYER_ID = 103L;
     private static final String BUYER_DONG = "1111053000";
     private static final List<String> SELLER_DONGS = List.of("1111053000", "1111054000", "1156054000", "1171068000", "1132052100");
+    private static final int PRICE = 120_000;
+    private static final int FIXED_FEE = 10_000;
     private static final Instant BASE = Instant.parse("2026-10-01T00:00:00.123456Z");
 
     @Autowired
@@ -82,9 +84,12 @@ class ListingDeliveryFeeFilterApiTest extends MySqlIntegrationTestSupport {
 
     @AfterEach
     void cleanUp() {
+        jdbcTemplate.update("DELETE FROM orders");
+        jdbcTemplate.update("DELETE FROM favorites");
         jdbcTemplate.update("DELETE FROM listing_images");
         jdbcTemplate.update("DELETE FROM listings");
         jdbcTemplate.update("DELETE FROM members");
+        jdbcTemplate.update("DELETE FROM delivery_member");
         listings.clear();
     }
 
@@ -95,6 +100,107 @@ class ListingDeliveryFeeFilterApiTest extends MySqlIntegrationTestSupport {
 
         assertThat(ids(page)).containsExactlyElementsOf(expectedIds(maxDeliveryFee));
         assertThat(ids(page)).isNotEmpty();
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {10_000, 20_000, 25_000, 40_000})
+    void 필터로_걸린_매물의_표시_배송비는_예산_이하인_거리_기준_금액이다(int maxDeliveryFee) throws Exception {
+        JsonNode page = read(filtered(maxDeliveryFee).param("size", "100"));
+
+        assertThat(page.get("items")).isNotEmpty().allSatisfy(item -> {
+            int deliveryFee = item.get("deliveryFee").asInt();
+            assertThat(deliveryFee).isLessThanOrEqualTo(maxDeliveryFee)
+                    .isEqualTo(expectedFee(listingOf(item.get("id").asLong())));
+            assertThat(item.get("totalPrice").asInt()).isEqualTo(PRICE + deliveryFee);
+        });
+    }
+
+    @Test
+    void 로그인한_구매자에게는_필터_없이도_거리_기준_배송비를_보여_준다() throws Exception {
+        JsonNode page = read(get("/api/listings").header(HttpHeaders.AUTHORIZATION, "Bearer token-" + BUYER_ID));
+
+        assertThat(page.get("items")).hasSize(listings.size()).allSatisfy(item -> assertThat(item.get("deliveryFee").asInt())
+                .isEqualTo(expectedFee(listingOf(item.get("id").asLong()))));
+        assertThat(page.get("items")).anySatisfy(item -> assertThat(item.get("deliveryFee").asInt()).isNotEqualTo(FIXED_FEE));
+    }
+
+    @Test
+    void 비로그인이거나_구매자_행정동이_없으면_등록_때_배송비를_보여_준다() throws Exception {
+        JsonNode anonymous = read(get("/api/listings").param("size", "100"));
+        JsonNode noDongBuyer = read(get("/api/listings").param("size", "100")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer token-" + NO_DONG_BUYER_ID));
+
+        assertThat(anonymous.get("items")).allSatisfy(item -> assertThat(item.get("deliveryFee").asInt()).isEqualTo(FIXED_FEE));
+        assertThat(noDongBuyer.get("items")).allSatisfy(item -> assertThat(item.get("deliveryFee").asInt()).isEqualTo(FIXED_FEE));
+    }
+
+    @Test
+    void 행정동이_없는_매물은_구매자가_있어도_등록_때_배송비를_보여_준다() throws Exception {
+        long noDongListingId = listings.getLast().id();
+
+        mockMvc.perform(get("/api/listings/{listingId}", noDongListingId)
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer token-" + BUYER_ID))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.deliveryFee").value(FIXED_FEE))
+                .andExpect(jsonPath("$.totalPrice").value(PRICE + FIXED_FEE));
+    }
+
+    @Test
+    void 상세도_구매자_행정동_기준_배송비를_보여_준다() throws Exception {
+        Listing far = farListing();
+
+        mockMvc.perform(get("/api/listings/{listingId}", far.id())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer token-" + BUYER_ID))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.deliveryFee").value(expectedFee(far)))
+                .andExpect(jsonPath("$.totalPrice").value(PRICE + expectedFee(far)));
+        mockMvc.perform(get("/api/listings/{listingId}", far.id()))
+                .andExpect(jsonPath("$.deliveryFee").value(FIXED_FEE));
+    }
+
+    @Test
+    void 찜_목록은_구매자_행정동_기준_배송비를_보여_준다() throws Exception {
+        Listing far = farListing();
+        jdbcTemplate.update("INSERT INTO favorites (member_id, listing_id, created_at) VALUES (?, ?, CURRENT_TIMESTAMP(6))",
+                BUYER_ID, far.id());
+
+        mockMvc.perform(get("/api/me/favorites").header(HttpHeaders.AUTHORIZATION, "Bearer token-" + BUYER_ID))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[0].id").value(far.id()))
+                .andExpect(jsonPath("$.items[0].deliveryFee").value(expectedFee(far)))
+                .andExpect(jsonPath("$.items[0].totalPrice").value(PRICE + expectedFee(far)));
+    }
+
+    @Test
+    void 내_주문은_구매자_행정동이_있어도_결제한_등록_배송비를_보여_준다() throws Exception {
+        Listing far = farListing();
+        jdbcTemplate.update("""
+                INSERT INTO orders (id, listing_id, buyer_id, delivery_status, order_status)
+                VALUES (801, ?, ?, 'PENDING', 'CONFIRMED')
+                """, far.id(), BUYER_ID);
+
+        mockMvc.perform(get("/api/me/orders").header(HttpHeaders.AUTHORIZATION, "Bearer token-" + BUYER_ID))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].listing.id").value(far.id()))
+                .andExpect(jsonPath("$[0].listing.deliveryFee").value(FIXED_FEE));
+        mockMvc.perform(get("/api/orders/{id}", 801).header(HttpHeaders.AUTHORIZATION, "Bearer token-" + BUYER_ID))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.listing.deliveryFee").value(FIXED_FEE));
+    }
+
+    @Test
+    void 배송원_토큰으로는_배송비_필터를_쓸_수_없다() throws Exception {
+        jdbcTemplate.update("""
+                INSERT INTO delivery_member (id, login_id, password, phone_number, license_plate_number, car_type,
+                                             business_registration_number, token)
+                VALUES (901, 'driver901', 'encoded-password', '010-0000-0000', '12가3456', '다마스', '000-00-00000', 'driver-token')
+                """);
+
+        mockMvc.perform(get("/api/listings")
+                        .param("maxDeliveryFee", "20000")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer driver-token"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("INVALID_TOKEN"));
     }
 
     @Test
@@ -137,6 +243,26 @@ class ListingDeliveryFeeFilterApiTest extends MySqlIntegrationTestSupport {
     @Test
     void 필터_없이_부르면_로그인_없이_전체를_준다() throws Exception {
         assertThat(ids(read(get("/api/listings")))).hasSize(listings.size());
+    }
+
+    private int expectedFee(Listing listing) {
+        if (listing.dongCode() == null) {
+            return FIXED_FEE;
+        }
+        return deliveryFeeService.fee(
+                deliveryFeeService.findDong(listing.dongCode()).orElseThrow().index(),
+                deliveryFeeService.findDong(BUYER_DONG).orElseThrow().index(),
+                listing.volumeTier());
+    }
+
+    private Listing farListing() {
+        return listings.stream()
+                .filter(listing -> listing.dongCode() != null && expectedFee(listing) > FIXED_FEE)
+                .findFirst().orElseThrow();
+    }
+
+    private Listing listingOf(long id) {
+        return listings.stream().filter(listing -> listing.id() == id).findFirst().orElseThrow();
     }
 
     private List<Long> expectedIds(int maxDeliveryFee) {

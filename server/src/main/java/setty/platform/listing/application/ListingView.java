@@ -70,7 +70,8 @@ public final class ListingView {
             boolean hasPurchaseRequest,
             boolean canUpdate,
             boolean canDelete,
-            Instant createdAt
+            Instant createdAt,
+            Dong dong
     ) {
     }
 

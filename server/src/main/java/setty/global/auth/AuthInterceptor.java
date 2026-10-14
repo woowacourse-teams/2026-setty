@@ -59,12 +59,9 @@ public class AuthInterceptor implements HandlerInterceptor {
     }
 
     // 매물 목록·상세 조회만 비로그인 허용. 등록·수정·삭제(POST/PUT/DELETE)는 같은 경로라도 인증 필요.
-    // 배송비 필터는 구매자 행정동이 필요하므로 목록 조회라도 로그인해야 한다.
+    // 구매자 행정동이 필요한 배송비 계산·필터는 ListingService가 토큰을 직접 확인한다.
     private boolean isPublicListingRead(final HttpServletRequest request) {
         final String uri = request.getRequestURI();
-        if (uri.equals("/api/listings") && request.getParameter("maxDeliveryFee") != null) {
-            return false;
-        }
         return "GET".equals(request.getMethod())
                 && (uri.equals("/api/listings") || uri.startsWith("/api/listings/"));
     }

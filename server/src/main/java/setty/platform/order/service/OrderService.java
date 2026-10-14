@@ -193,7 +193,7 @@ public class OrderService {
     public List<MyOrderResponse> findMyOrders(final Long buyerId) {
         final List<Order> orders = orderRepository.findAllByBuyerIdOrderByIdDesc(buyerId);
         final List<Long> listingIds = orders.stream().map(Order::getListingId).distinct().toList();
-        final Map<Long, ListingView.Summary> listings = listingService.findSummaries(listingIds).stream()
+        final Map<Long, ListingView.Summary> listings = listingService.findSummaries(listingIds, null).stream()
                 .collect(Collectors.toMap(ListingView.Summary::id, Function.identity()));
 
         return orders.stream()
@@ -205,7 +205,7 @@ public class OrderService {
     public MyOrderResponse findMyOrder(final Long orderId, final Long buyerId) {
         final Order order = orderRepository.findByIdAndBuyerId(orderId, buyerId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
-        final ListingView.Summary listing = listingService.findSummaries(List.of(order.getListingId())).stream()
+        final ListingView.Summary listing = listingService.findSummaries(List.of(order.getListingId()), null).stream()
                 .findFirst()
                 .orElse(null);
         return MyOrderResponse.of(order, listing);

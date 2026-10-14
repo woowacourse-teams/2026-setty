@@ -9,6 +9,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 import setty.deliveryfee.VolumeTier;
@@ -22,7 +23,7 @@ public class ListingQueryRepository {
 
     private static final String SELECT_COLUMNS = """
             SELECT id, title, price, delivery_fee, category, condition_grade,
-                   width_cm, depth_cm, height_cm, created_at, dong_code""";
+                   width_cm, depth_cm, height_cm, created_at, dong_code, volume_tier""";
     private static final String ORDER_BY_LATEST = " ORDER BY created_at DESC, id DESC";
 
     private final JdbcTemplate jdbcTemplate;
@@ -66,13 +67,19 @@ public class ListingQueryRepository {
                     ListingQueryRepository::mapRow, args.toArray());
         }
         // id만 고르면 idx_listings_delivery_filter 안에서 정렬과 (부피, 행정동) 조건이 끝난다.
-        // 본문 컬럼까지 한 번에 읽으면 옵티마이저가 짧은 idx_listings_public을 골라, 조건에 안 맞는 행까지 읽는다.
+        // 본문 컬럼까지 한 번에 읽으면 첫 페이지(ref 접근)에서 조건을 색인 안에서 거르지 못해 안 맞는 행까지 읽는다.
         return jdbcTemplate.query(
                 SELECT_COLUMNS + " FROM listings JOIN (SELECT id FROM listings" + where + page + ") picked USING (id)"
                         + ORDER_BY_LATEST,
                 ListingQueryRepository::mapRow,
                 args.toArray()
         );
+    }
+
+    public Optional<MemberDong> findMemberDongByToken(String token) {
+        return jdbcTemplate.query("SELECT dong_code FROM members WHERE token = ?",
+                (resultSet, rowNum) -> new MemberDong(resultSet.getString("dong_code")), token)
+                .stream().findFirst();
     }
 
     public Map<Long, String> findThumbnailObjectKeys(List<Long> listingIds) {
@@ -101,7 +108,8 @@ public class ListingQueryRepository {
                 resultSet.getInt("depth_cm"),
                 resultSet.getInt("height_cm"),
                 resultSet.getTimestamp("created_at").toInstant(),
-                resultSet.getString("dong_code")
+                resultSet.getString("dong_code"),
+                VolumeTier.valueOf(resultSet.getString("volume_tier"))
         );
     }
 
@@ -116,7 +124,11 @@ public class ListingQueryRepository {
             Integer depthCm,
             Integer heightCm,
             Instant createdAt,
-            String dongCode
+            String dongCode,
+            VolumeTier volumeTier
     ) {
+    }
+
+    public record MemberDong(String dongCode) {
     }
 }
