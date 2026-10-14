@@ -6,11 +6,6 @@ plugins {
 
 android {
     namespace = "com.aksworns22.setty.core.network"
-    compileSdk = 37
-
-    defaultConfig {
-        minSdk = 24
-    }
 
     buildFeatures {
         buildConfig = true
