@@ -497,6 +497,18 @@ class ListingApiTest extends MySqlIntegrationTestSupport {
     }
 
     @Test
+    void 결제_진행_중인_매물은_목록과_상세에_표시하고_선점이_풀리면_해제한다() throws Exception {
+        long listingId = createListing(SELLER_ID, "결제 진행 표시 확인용 가상 의자");
+        assertPurchaseRequestShown(listingId, false);
+
+        listingService.registerPurchaseRequest(listingId, FIRST_BUYER_ID, null);
+        assertPurchaseRequestShown(listingId, true);
+
+        listingService.releasePurchaseRequestForExpiredPendingOrder(listingId);
+        assertPurchaseRequestShown(listingId, false);
+    }
+
+    @Test
     void concurrentDeliveryReservationsAllowOnlyOneWinner() throws Exception {
         long listingId = createListing(SELLER_ID, "동시 예약 확인용 가상 침대");
         listingService.registerPurchaseRequest(listingId, null, null);
@@ -621,6 +633,16 @@ class ListingApiTest extends MySqlIntegrationTestSupport {
                 .andExpect(jsonPath("$.images", hasSize(1)))
                 .andReturn();
         return read(result).path("images").get(0).path("id").asLong();
+    }
+
+    private void assertPurchaseRequestShown(long listingId, boolean expected) throws Exception {
+        mockMvc.perform(get("/api/listings"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[0].id").value(listingId))
+                .andExpect(jsonPath("$.items[0].hasPurchaseRequest").value(expected));
+        mockMvc.perform(get("/api/listings/{listingId}", listingId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.hasPurchaseRequest").value(expected));
     }
 
     private MockMultipartHttpServletRequestBuilder updateRequest(
