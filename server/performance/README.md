@@ -194,11 +194,20 @@ run_fixture_sql fixtures/revert-dong-backfill.sql
 
 ### 1 모의 푸시 서버 (dev EC2 SSM 셸)
 
-`performance/mock-push/mock-push.mjs`를 서버에 복사하고 Node 20+로 실행한다. `DELAY_MS`는 FCM 왕복 실측값을 넣는다.
+`performance/mock-push/mock-push.mjs`를 서버에 복사하고 Node 20+로 실행한다. `DELAY_MS`는 FCM에 알림 500건을 한 번에 보낼 때 걸리는 시간(아래 dry run의 p50)을 넣는다.
 
 ```bash
-PORT=9000 DELAY_MS=50 OUT=/var/tmp/mock-push-received.csv node mock-push.mjs
+PORT=9000 DELAY_MS=874 OUT=/var/tmp/mock-push-received.csv node mock-push.mjs
 ```
+
+FCM dry run(실제로 보내지 않고 검사만 하는 모드)으로 500건 × 10회를 보내 시간을 잰다(#472). 토큰은 앱이 설치된 폰의 FCM 토큰이며, 키와 토큰은 저장소·로그에 남기지 않는다. 결과는 `build/reports/fcm-dry-run/`의 CSV와 출력의 p50·p95·max로 본다.
+
+```bash
+FCM_DRY_RUN_TOKEN='FCM_TOKEN' SETTY_NOTIFICATION_FCM_CREDENTIALS_PATH='/path/to/firebase-service-account.json' \
+  ./gradlew test --rerun --tests 'setty.notification.send.fcm.FcmDryRunMeasurementTest'
+```
+
+두 환경 변수가 없으면 이 테스트는 건너뛴다. `--rerun`이 없으면 Gradle이 앞선 건너뛴 결과를 재사용한다.
 
 - `POST /send`: 지연 뒤 200과 `failedNotificationIds`를 돌려준다. `FAIL_RATE=0.1`이면 10%를 실패로 돌려준다.
 - `GET /stats`: 요청 수·메시지 수·첫/마지막 수신 시각·차이(ms). `POST /reset`으로 비운다.
@@ -240,13 +249,16 @@ STRUCTURE=async SUBSCRIBERS=1000 REGISTER_MODE=single REGISTER_REPEATS=30 \
   ./gradlew gatlingRun --simulation setty.performance.ListingRegisterSimulation
 STRUCTURE=async SUBSCRIBERS=1000 REGISTER_MODE=burst BURST_USERS=10 \
   ./gradlew gatlingRun --simulation setty.performance.ListingRegisterSimulation
+STRUCTURE=async SUBSCRIBERS=10000 REGISTER_MODE=rate RATE_PER_MINUTE=5 RATE_DURATION_MINUTES=10 RATE_SEED=470 \
+  ./gradlew gatlingRun --simulation setty.performance.ListingRegisterSimulation
 ```
 
 - `single`: 사용자 1명이 워밍업 5회 → 측정 30회 등록. 요청 사이 `REGISTER_PAUSE_SECONDS`(기본 3초)를 쉬어 앞 등록의 발송이 겹치지 않게 한다. 구독자가 많으면 늘린다.
 - `burst`: `BURST_USERS`명이 동시에 1건씩 등록.
+- `rate`: 예상 트래픽(#470). 워밍업 5회 뒤, 판매자들이 각자 등록하듯 평균 `RATE_PER_MINUTE`건의 무작위 간격으로 `RATE_DURATION_MINUTES`분 동안 응답을 기다리지 않고 1건씩 등록한다. 간격은 `RATE_SEED`로 고정해 고치기 전·후에 같은 시각표를 쓴다. 기본값(분당 5건, 10분, 시드 470)이면 55건이고, 건수와 첫 시각은 실행 시작 로그 `Rate schedule`에 나온다.
 - `STRUCTURE`·`SUBSCRIBERS`는 CSV 라벨이다. 분리 전은 `sync`, 분리 후는 `async`로 적는다.
 - 사진은 `src/gatling/resources/notification-tiny.png`(1×1, 69바이트)로 고정해 업로드 시간을 최소화한다. dev S3에 실제 올라간다.
-- 보고서 `build/reports/gatling/`의 `register-measurement` 행에서 등록 P95를 본다. 요청별 응답 시간·매물 ID·`request_id`는 `build/reports/listing-register/`의 CSV에 남는다.
+- 보고서 `build/reports/gatling/`의 `register-measurement`(`rate`는 `register-rate`) 행에서 등록 P95를 본다. 요청별 응답 시간·매물 ID·`request_id`는 `build/reports/listing-register/`의 CSV에 남는다.
 
 ### 4 발송 시간 집계 (dev EC2 SSM 셸)
 
@@ -268,6 +280,20 @@ SETTY_NOTIFICATION_FCM_CREDENTIALS_PATH=/opt/setty/firebase-service-account.json
 - 서비스 계정 키는 저장소에 두지 않는다. dev EC2에 파일로 두고 소유자 `setty`, 권한 600.
 - 폰에서 로그인한 계정으로 키워드 `s3-notify`를 구독한 뒤 3절의 `single`을 돌린다. 구독자가 폰 1대뿐이라 `SUBSCRIBERS=1`, `REGISTER_PAUSE_SECONDS=5`.
 - 4절 집계의 `acked`, `sent_to_ack_avg_s`, `sent_to_ack_max_s`가 FCM 구간이다. 표본이 기기 1대라 기준으로 쓰지 않고 참고값으로 남긴다.
+
+### 6 구독자 1만 명 발송 중 실기기 수신 (#472)
+
+측정용 구독자 1만 명과 실제 폰 1대가 같은 매물 알림을 받게 해, 1만 명에게 보내는 동안 폰에 제때 도착하는지 본다. 측정 전용이며 설정값으로 켤 때만 동작한다.
+
+```
+SETTY_NOTIFICATION_SENDER=mixed
+SETTY_NOTIFICATION_MOCK_PUSH_URL=http://127.0.0.1:9000
+SETTY_NOTIFICATION_FCM_CREDENTIALS_PATH=/opt/setty/firebase-service-account.json
+```
+
+- 폰 토큰이 있는 회원(실제 폰)은 FCM으로, 측정용 구독자처럼 토큰이 없는 회원은 1절의 모의 푸시 서버로 보낸다. 같은 500건 묶음 안에서는 모의 서버 쪽을 먼저 보내고 폰을 나중에 보내, 폰이 묶음에서 가장 늦게 받는 경우를 잰다.
+- 2절로 구독자를 만들고, 폰에서 로그인한 계정으로 키워드 `s3-notify`를 구독한 뒤 3절의 `rate`를 돌린다.
+- 폰 도착은 4절 집계의 `acked`, `sent_to_ack_avg_s`, `sent_to_ack_max_s`로 본다.
 
 ### 순서
 
