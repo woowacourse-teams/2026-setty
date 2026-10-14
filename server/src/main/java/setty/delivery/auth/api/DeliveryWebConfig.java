@@ -1,4 +1,4 @@
-package setty.global.auth;
+package setty.delivery.auth.api;
 
 import java.util.List;
 import org.springframework.context.annotation.Configuration;
@@ -7,35 +7,28 @@ import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @Configuration
-public class WebConfig implements WebMvcConfigurer {
+public class DeliveryWebConfig implements WebMvcConfigurer {
 
-    private final AuthInterceptor authInterceptor;
-    private final LoginMemberArgumentResolver loginMemberArgumentResolver;
+    private final DeliveryAuthInterceptor deliveryAuthInterceptor;
     private final LoginDeliveryMemberArgumentResolver loginDeliveryMemberArgumentResolver;
 
-    public WebConfig(
-            final AuthInterceptor authInterceptor,
-            final LoginMemberArgumentResolver loginMemberArgumentResolver,
+    public DeliveryWebConfig(
+            final DeliveryAuthInterceptor deliveryAuthInterceptor,
             final LoginDeliveryMemberArgumentResolver loginDeliveryMemberArgumentResolver
     ) {
-        this.authInterceptor = authInterceptor;
-        this.loginMemberArgumentResolver = loginMemberArgumentResolver;
+        this.deliveryAuthInterceptor = deliveryAuthInterceptor;
         this.loginDeliveryMemberArgumentResolver = loginDeliveryMemberArgumentResolver;
     }
 
     @Override
     public void addInterceptors(final InterceptorRegistry registry) {
-        registry.addInterceptor(authInterceptor)
-                .addPathPatterns("/api/**")
-                .excludePathPatterns(
-                        "/api/auth/signup", "/api/auth/login", "/api/dongs",
-                        "/api/delivery/auth/signup", "/api/delivery/auth/login"
-                );
+        registry.addInterceptor(deliveryAuthInterceptor)
+                .addPathPatterns("/api/delivery/**")
+                .excludePathPatterns("/api/delivery/auth/signup", "/api/delivery/auth/login");
     }
 
     @Override
     public void addArgumentResolvers(final List<HandlerMethodArgumentResolver> resolvers) {
-        resolvers.add(loginMemberArgumentResolver);
         resolvers.add(loginDeliveryMemberArgumentResolver);
     }
 }

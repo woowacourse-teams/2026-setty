@@ -80,6 +80,9 @@ class AuthMatrixTest extends MySqlIntegrationTestSupport {
             "GET,    /api/listings?maxDeliveryFee=20000, Bearer member-token,  200, -",
             "GET,    /api/listings?maxDeliveryFee=20000, Bearer no-such-token, 401, INVALID_TOKEN",
             "GET,    /api/listings?maxDeliveryFee=20000, member-token,         401, INVALID_TOKEN",
+
+            "GET,    /api/delivery/no-such-path,         Bearer member-token,  401, INVALID_TOKEN",
+            "GET,    /api/no-such-path,                  Bearer driver-token,  401, INVALID_TOKEN",
     })
     void 경로와_토큰에_따른_응답(String method, String path, String authorization, int status, String code) throws Exception {
         MockHttpServletRequestBuilder builder = request(HttpMethod.valueOf(method), path);

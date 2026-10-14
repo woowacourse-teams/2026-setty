@@ -49,16 +49,14 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.DispatcherServlet;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
-import setty.delivery.auth.application.DeliveryMemberRepository;
-import setty.global.auth.AuthInterceptor;
-import setty.global.auth.LoginDeliveryMemberArgumentResolver;
-import setty.global.auth.LoginMemberArgumentResolver;
-import setty.global.auth.WebConfig;
 import setty.global.exception.BusinessException;
 import setty.global.exception.ErrorCode;
 import setty.global.exception.GlobalExceptionHandler;
 import setty.payment.application.PaymentService;
 import setty.payment.presentation.CheckoutController;
+import setty.platform.member.controller.LoginMemberArgumentResolver;
+import setty.platform.member.controller.MemberAuthInterceptor;
+import setty.platform.member.controller.MemberWebConfig;
 import setty.platform.member.repository.MemberRepository;
 
 @ExtendWith(OutputCaptureExtension.class)
@@ -241,9 +239,8 @@ class RequestIdHttpIntegrationTest {
 
     @TestConfiguration(proxyBeanMethods = false)
     @EnableWebMvc
-    @Import({RequestIdConfiguration.class, AuthInterceptor.class, WebConfig.class,
-            LoginMemberArgumentResolver.class, LoginDeliveryMemberArgumentResolver.class,
-            GlobalExceptionHandler.class, ProbeController.class})
+    @Import({RequestIdConfiguration.class, MemberAuthInterceptor.class, MemberWebConfig.class,
+            LoginMemberArgumentResolver.class, GlobalExceptionHandler.class, ProbeController.class})
     static class TestConfig {
 
         @Bean
@@ -269,11 +266,6 @@ class RequestIdHttpIntegrationTest {
         @Bean
         MemberRepository memberRepository() {
             return mock(MemberRepository.class);
-        }
-
-        @Bean
-        DeliveryMemberRepository deliveryMemberRepository() {
-            return mock(DeliveryMemberRepository.class);
         }
 
         @Bean
