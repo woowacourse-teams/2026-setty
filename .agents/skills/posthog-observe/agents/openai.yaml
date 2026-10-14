@@ -1,4 +1,0 @@
-interface:
-  display_name: "세티 PostHog 관찰"
-  short_description: "이벤트 수집과 계정·기간 필터를 확인하고 WAU·결제 전환율을 대조"
-  default_prompt: "$posthog-observe 이번 실행의 WAU와 결제 전환율을 확인하고 불일치 원인을 정리해줘."
