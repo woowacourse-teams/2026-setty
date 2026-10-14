@@ -111,6 +111,14 @@ Java 21과 Docker를 준비한 뒤 `server/`에서 실행한다.
   --tests setty.delivery.api.DeliveryRequestSseHttpIntegrationTest
 ```
 
+## 구독 제거와 HTTP 완료 로그
+
+**채택: 기존 `SseEmitter.onCompletion`에서 완료 로그를 남긴다.** [구독 제거 로그](../../src/main/java/setty/delivery/api/DeliveryRequestEventStream.java)와 [HTTP 완료 로그](../../src/main/java/setty/global/logging/SseCompletionLogging.java)를 같은 `subscription_id`·`request_id`로 연결한다. 오류·타임아웃으로 구독이 먼저 제거돼도 이후 완료 콜백의 로그는 남는다.
+
+같은 서버 실행에서 `completed_at_nanos - removed_at_nanos`를 1,000,000으로 나누면 제거부터 완료 콜백까지의 밀리초를 얻는다. `*_at_epoch_ms`는 로그 시각 대조에 사용한다. 정상 완료에서는 완료 콜백 안에서 구독을 제거하므로 완료 시각이 제거 시각보다 앞설 수 있다. 이를 종료 지연으로 집계하지 않는다.
+
+별도 HTTP 요청 상태, 필터, 옵저버, 메트릭은 추가하지 않는다. 미완료 HTTP 요청 수의 독립 집계는 **보류**하며, 완료 콜백은 클라이언트나 TCP 연결의 정리 완료를 뜻하지 않는다. 검증은 [기존 로그 단위 테스트](../../src/test/java/setty/delivery/api/DeliveryRequestEventStreamTest.java)와 [실제 HTTP 테스트](../../src/test/java/setty/delivery/api/DeliveryRequestSseHttpIntegrationTest.java)를 사용한다.
+
 ## 후속 검증 기준
 
 1. 실제 HTTP 연결에서 이전 연결의 종료 확인이 늦는 구간에 새 연결을 허용하고, 정리 후 다시 등록할 수 있다.

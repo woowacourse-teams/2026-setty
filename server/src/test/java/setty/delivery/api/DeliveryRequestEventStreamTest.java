@@ -39,6 +39,7 @@ import org.springframework.transaction.event.TransactionalEventListener;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import setty.delivery.application.DeliveryRequestsChanged;
 import setty.delivery.domain.DriverId;
+import setty.global.logging.SseCompletionLogging;
 
 class DeliveryRequestEventStreamTest {
 
@@ -453,9 +454,11 @@ class DeliveryRequestEventStreamTest {
     @Test
     void firstRemovalLogsItsTimeAndOriginalRequestIdAcrossThreads() throws Exception {
         final Logger logger = (Logger) LoggerFactory.getLogger(DeliveryRequestEventStream.class);
+        final Logger completionLogger = (Logger) LoggerFactory.getLogger(SseCompletionLogging.class);
         final ListAppender<ILoggingEvent> logs = new ListAppender<>();
         logs.start();
         logger.addAppender(logs);
+        completionLogger.addAppender(logs);
         final String previousRequestId = MDC.get("requestId");
         try {
             final List<CapturingSseEmitter> emitters = createStream();
@@ -464,13 +467,13 @@ class DeliveryRequestEventStreamTest {
             MDC.remove("requestId");
             clock.add(Duration.ofSeconds(2));
             final long removedAt = clock.wallTime();
+            final long removedAtNanos = clock.monotonicTime();
 
             try (final ExecutorService executor = Executors.newSingleThreadExecutor()) {
                 executor.submit(emitters.getFirst()::fireError).get(5, TimeUnit.SECONDS);
             }
             clock.add(Duration.ofSeconds(5));
             emitters.getFirst().fireTimeout();
-            emitters.getFirst().fireCompletion();
 
             assertThat(logs.list).hasSize(1);
             final ILoggingEvent event = logs.list.getFirst();
@@ -480,6 +483,7 @@ class DeliveryRequestEventStreamTest {
                     .containsEntry("request_id", "subscription-request")
                     .containsEntry("reason", "error")
                     .containsEntry("removed_at_epoch_ms", removedAt)
+                    .containsEntry("removed_at_nanos", removedAtNanos)
                     .containsEntry("subscribers_remaining", 0)
                     .containsEntry("exception_type", IOException.class.getName())
                     .containsKey("subscription_id")
@@ -490,8 +494,26 @@ class DeliveryRequestEventStreamTest {
             assertThat(event.getThrowableProxy()).isNull();
             assertThat(removalCount(DeliveryRequestEventStream.RemovalReason.ERROR)).isOne();
             assertThat(totalRemovals()).isOne();
+
+            try (final ExecutorService executor = Executors.newSingleThreadExecutor()) {
+                executor.submit(emitters.getFirst()::fireCompletion).get(5, TimeUnit.SECONDS);
+            }
+            assertThat(logs.list).hasSize(2);
+            final ILoggingEvent completion = logs.list.getLast();
+            final Map<String, Object> completionFields = new LinkedHashMap<>();
+            completion.getKeyValuePairs().forEach(pair -> completionFields.put(pair.key, pair.value));
+            assertThat(completionFields).containsEntry("event", "delivery_request_sse_http_completed")
+                    .containsEntry("subscription_id", fields.get("subscription_id"))
+                    .containsEntry("request_id", "subscription-request")
+                    .containsEntry("completed_at_epoch_ms", clock.wallTime())
+                    .containsEntry("completed_at_nanos", removedAtNanos + Duration.ofSeconds(5).toNanos())
+                    .doesNotContainKeys("driver_id", "token");
+            assertThat(completion.getFormattedMessage()).contains("request_id=subscription-request",
+                    "completed_at_epoch_ms=" + clock.wallTime());
+            assertThat(totalRemovals()).isOne();
         } finally {
             logger.detachAppender(logs);
+            completionLogger.detachAppender(logs);
             logs.stop();
             if (previousRequestId == null) {
                 MDC.remove("requestId");

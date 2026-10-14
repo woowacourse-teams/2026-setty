@@ -34,6 +34,7 @@ import org.springframework.transaction.event.TransactionalEventListener;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import setty.delivery.application.DeliveryRequestsChanged;
 import setty.delivery.domain.DriverId;
+import setty.global.logging.SseCompletionLogging;
 
 /**
  * 단일 서버에서 활성 SSE 연결을 관리한다. 이벤트에는 목록 변경 여부만 담는다.
@@ -109,7 +110,13 @@ public class DeliveryRequestEventStream {
         final UUID subscriptionId = UUID.randomUUID();
         final Subscription subscription = new Subscription(driverId, emitter, MDC.get("requestId"));
 
-        emitter.onCompletion(() -> remove(subscriptionId, subscription, RemovalReason.COMPLETION, null));
+        emitter.onCompletion(() -> {
+            final long completedAtEpochMillis = clock.wallTime();
+            final long completedAtNanos = clock.monotonicTime();
+            remove(subscriptionId, subscription, RemovalReason.COMPLETION, null);
+            SseCompletionLogging.completed(subscriptionId, subscription.requestId(),
+                    completedAtEpochMillis, completedAtNanos);
+        });
         emitter.onTimeout(() -> remove(subscriptionId, subscription, RemovalReason.TIMEOUT, null));
         emitter.onError(exception -> remove(subscriptionId, subscription, RemovalReason.ERROR, exception));
         register(subscriptionId, subscription);
@@ -146,9 +153,10 @@ public class DeliveryRequestEventStream {
             final List<Map.Entry<UUID, Subscription>> closingSubscriptions = List.copyOf(subscriptions.entrySet());
             subscriptions.clear();
             final long removedAtEpochMillis = clock.wallTime();
+            final long removedAtNanos = clock.monotonicTime();
             removals = closingSubscriptions.stream()
                     .map(entry -> new Removal(entry.getKey(), entry.getValue(), RemovalReason.SHUTDOWN,
-                            removedAtEpochMillis, 0, null))
+                            removedAtEpochMillis, removedAtNanos, 0, null))
                     .toList();
         }
         heartbeatScheduler.shutdownNow();
@@ -200,7 +208,7 @@ public class DeliveryRequestEventStream {
                 return;
             }
             removal = new Removal(subscriptionId, subscription, reason,
-                    clock.wallTime(), subscriptions.size(), exception);
+                    clock.wallTime(), clock.monotonicTime(), subscriptions.size(), exception);
         }
         recordRemoval(removal);
     }
@@ -214,6 +222,7 @@ public class DeliveryRequestEventStream {
         fields.put("request_id", removal.subscription().requestId());
         fields.put("reason", removal.reason().tagValue());
         fields.put("removed_at_epoch_ms", removal.removedAtEpochMillis());
+        fields.put("removed_at_nanos", removal.removedAtNanos());
         fields.put("subscribers_remaining", removal.subscribersRemaining());
         if (removal.exception() != null) {
             fields.put("exception_type", removal.exception().getClass().getName());
@@ -262,6 +271,7 @@ public class DeliveryRequestEventStream {
             Subscription subscription,
             RemovalReason reason,
             long removedAtEpochMillis,
+            long removedAtNanos,
             int subscribersRemaining,
             Throwable exception
     ) {
