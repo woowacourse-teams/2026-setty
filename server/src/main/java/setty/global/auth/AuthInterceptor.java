@@ -1,7 +1,11 @@
 package setty.global.auth;
 
+import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import java.util.Optional;
+import java.util.function.Supplier;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 import setty.delivery.auth.domain.DeliveryMember;
@@ -15,13 +19,20 @@ public class AuthInterceptor implements HandlerInterceptor {
 
     public static final String LOGIN_MEMBER = "loginMember";
     public static final String LOGIN_DELIVERY_MEMBER = "loginDeliveryMember";
+    public static final String AUTH_REPOSITORY_LOOKUP_METRIC = "setty.auth.repository.lookup";
 
     private final MemberRepository memberRepository;
     private final DeliveryMemberRepository deliveryMemberRepository;
+    private final MeterRegistry meterRegistry;
 
-    public AuthInterceptor(final MemberRepository memberRepository, final DeliveryMemberRepository deliveryMemberRepository) {
+    public AuthInterceptor(
+            final MemberRepository memberRepository,
+            final DeliveryMemberRepository deliveryMemberRepository,
+            final ObjectProvider<MeterRegistry> meterRegistries
+    ) {
         this.memberRepository = memberRepository;
         this.deliveryMemberRepository = deliveryMemberRepository;
+        this.meterRegistry = meterRegistries.getIfAvailable();
     }
 
     @Override
@@ -42,13 +53,14 @@ public class AuthInterceptor implements HandlerInterceptor {
 
         final String token = header.substring(7);
 
-        final Member member = memberRepository.findByToken(token).orElse(null);
+        final Member member = measureLookup(request, "member", () -> memberRepository.findByToken(token)).orElse(null);
         if (member != null) {
             request.setAttribute(LOGIN_MEMBER, member);
             return true;
         }
 
-        final DeliveryMember deliveryMember = deliveryMemberRepository.findByToken(token).orElse(null);
+        final DeliveryMember deliveryMember = measureLookup(request, "delivery_member",
+                () -> deliveryMemberRepository.findByToken(token)).orElse(null);
         if (deliveryMember != null) {
             request.setAttribute(LOGIN_DELIVERY_MEMBER, deliveryMember);
             return true;
@@ -56,6 +68,18 @@ public class AuthInterceptor implements HandlerInterceptor {
 
         writeError(response);
         return false;
+    }
+
+    private <T> Optional<T> measureLookup(
+            final HttpServletRequest request,
+            final String repository,
+            final Supplier<Optional<T>> lookup
+    ) {
+        if (meterRegistry == null) {
+            return lookup.get();
+        }
+        return meterRegistry.timer(AUTH_REPOSITORY_LOOKUP_METRIC,
+                "repository", repository, "dispatcher", request.getDispatcherType().name()).record(lookup);
     }
 
     // 매물 목록·상세 조회만 비로그인 허용. 등록·수정·삭제(POST/PUT/DELETE)는 같은 경로라도 인증 필요.

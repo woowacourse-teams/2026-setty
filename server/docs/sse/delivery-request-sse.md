@@ -119,6 +119,14 @@ Java 21과 Docker를 준비한 뒤 `server/`에서 실행한다.
 
 별도 HTTP 요청 상태, 필터, 옵저버, 메트릭은 추가하지 않는다. 미완료 HTTP 요청 수의 독립 집계는 **보류**하며, 완료 콜백은 클라이언트나 TCP 연결의 정리 완료를 뜻하지 않는다. 검증은 [기존 로그 단위 테스트](../../src/test/java/setty/delivery/api/DeliveryRequestEventStreamTest.java)와 [실제 HTTP 테스트](../../src/test/java/setty/delivery/api/DeliveryRequestSseHttpIntegrationTest.java)를 사용한다.
 
+## 인증 조회 계측과 자원 대조
+
+**채택: 기존 두 저장소 호출을 타이머 하나로 측정한다.** [AuthInterceptor](../../src/main/java/setty/global/auth/AuthInterceptor.java)의 `setty.auth.repository.lookup`은 실제 조회의 횟수·시간을 기록한다. 태그는 `repository`(`member`, `delivery_member`)와 `dispatcher`(Servlet 디스패치 종류)만 남긴다. `REQUEST`·`ASYNC`·`ERROR`를 구분하며 요청 ID·기사 ID·토큰은 제외한다. 조회 순서와 인증 판단은 유지한다.
+
+[허용 목록](../../src/main/java/setty/global/metrics/MetricsConfig.java)과 [dev](../../src/main/resources/application-dev.yml)·[prod](../../src/main/resources/application-prod.yml) 설정으로 노출한다. 타이머는 첫 실제 조회 시 등록한다. SSE를 포함한 인터셉터 전체 조회를 합산하며 다른 경로의 직접 조회는 포함하지 않는다. 횟수·총시간은 누적값이고 평균 시간은 같은 수집 구간의 `총시간 증가량 / 횟수 증가량`이다. 횟수 증가가 0이면 평균을 계산하지 않는다. 타이머의 의미는 [Micrometer 문서](https://docs.micrometer.io/micrometer/reference/concepts/timers.html)를 참조한다.
+
+실측에서는 기존 1분 수집 구간에 맞춰 인증 조회 횟수·시간, Hikari 대기·획득 시간, Heap과 RSS를 대조한다. RSS는 [기존 부하 스크립트](performance/README.md)의 `samples.jsonl`에서 `at`과 `resources.rssBytes`를 사용한다. dev RSS는 dev 서버에서 수집한다. 지표의 누적 횟수·총시간은 0으로 돌아오지 않으며, 구독 수와 Hikari 활성·대기 수의 기준값 복귀를 확인한다. 실제 정상 종료·연결 끊김·타임아웃 시험과 원인 판정은 후속 검증에서 수행한다.
+
 ## 후속 검증 기준
 
 1. 실제 HTTP 연결에서 이전 연결의 종료 확인이 늦는 구간에 새 연결을 허용하고, 정리 후 다시 등록할 수 있다.
