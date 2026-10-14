@@ -1,4 +1,4 @@
-package setty.global.auth;
+package setty.delivery.auth.api;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -9,6 +9,7 @@ import org.springframework.core.MethodParameter;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.web.context.request.ServletWebRequest;
 import setty.delivery.auth.domain.DeliveryMember;
+import setty.global.auth.LoginDeliveryMember;
 import setty.global.exception.BusinessException;
 import setty.global.exception.ErrorCode;
 
@@ -20,7 +21,7 @@ class LoginDeliveryMemberArgumentResolverTest {
     void 인증된_배송원을_받는다() throws Exception {
         final DeliveryMember deliveryMember = mock(DeliveryMember.class);
         final MockHttpServletRequest request = new MockHttpServletRequest();
-        request.setAttribute(AuthInterceptor.LOGIN_DELIVERY_MEMBER, deliveryMember);
+        request.setAttribute(DeliveryAuthInterceptor.LOGIN_DELIVERY_MEMBER, deliveryMember);
 
         assertThat(resolver.supportsParameter(parameter())).isTrue();
         assertThat(resolver.resolveArgument(parameter(), null, new ServletWebRequest(request), null))
@@ -30,7 +31,7 @@ class LoginDeliveryMemberArgumentResolverTest {
     @Test
     void 배송원이_없으면_401이다() throws Exception {
         final MockHttpServletRequest request = new MockHttpServletRequest();
-        request.setAttribute(AuthInterceptor.LOGIN_MEMBER, new Object());
+        request.setAttribute("loginMember", new Object());
 
         assertThatThrownBy(() -> resolver.resolveArgument(parameter(), null, new ServletWebRequest(request), null))
                 .isInstanceOfSatisfying(BusinessException.class,

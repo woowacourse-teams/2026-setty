@@ -3,7 +3,9 @@ package setty.global.logging;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.modulith.NamedInterface;
 
+@NamedInterface("logging")
 public final class SseCompletionLogging {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SseCompletionLogging.class);

@@ -1,7 +1,5 @@
 package setty.global.metrics;
 
-import static setty.global.auth.AuthInterceptor.AUTH_REPOSITORY_LOOKUP_METRIC;
-
 import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tag;
@@ -48,7 +46,7 @@ public class MetricsConfig {
                                     id.replaceTags(List.of());
                             case "setty.delivery.request.sse.subscriptions.removed" ->
                                     id.replaceTags(List.of(tag(id, "reason")));
-                            case AUTH_REPOSITORY_LOOKUP_METRIC ->
+                            case "setty.auth.repository.lookup" ->
                                     id.replaceTags(List.of(tag(id, "repository"), tag(id, "dispatcher")));
                             // pool별 게이지를 하나로 합치면 합계가 아니라 첫 번째 값만 남는다.
                             case "jvm.memory.used", "jvm.memory.max" -> id.replaceTags(
@@ -68,7 +66,7 @@ public class MetricsConfig {
                     "hikaricp.connections.active", "hikaricp.connections.max",
                     "hikaricp.connections.pending", "hikaricp.connections.acquire",
                     "hikaricp.connections.timeout",
-                    AUTH_REPOSITORY_LOOKUP_METRIC,
+                    "setty.auth.repository.lookup",
                     "setty.delivery.request.sse.subscriptions.active",
                     "setty.delivery.request.sse.subscriptions.removed" -> true;
             case "jvm.memory.used", "jvm.memory.max" -> "heap".equals(id.getTag("area"));

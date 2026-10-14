@@ -15,6 +15,10 @@ public record TossConfirmResult(
         String approvedAt
 ) {
 
+    public boolean isDoneFor(final String tossOrderId, final int amount) {
+        return "DONE".equals(status) && tossOrderId.equals(orderId) && totalAmount != null && totalAmount == amount;
+    }
+
     public LocalDateTime approvedAtAsLocalDateTime() {
         if (approvedAt == null || approvedAt.isBlank()) {
             return LocalDateTime.now();
