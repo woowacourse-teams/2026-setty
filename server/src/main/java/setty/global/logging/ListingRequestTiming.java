@@ -5,8 +5,10 @@ import java.util.Map;
 import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.modulith.NamedInterface;
 
 /** 동기 목록 요청 한 건의 구간 기록. 필터가 연 범위에서만 수집하고 한 줄로 출력한다. */
+@NamedInterface("logging")
 public final class ListingRequestTiming implements AutoCloseable {
 
     private static final Logger log = LoggerFactory.getLogger(ListingRequestTiming.class);
