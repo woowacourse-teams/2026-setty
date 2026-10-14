@@ -100,12 +100,14 @@ run_fixture_sql "$fixture_commit_sql"
 | SQL (`fixtures/`) | 내용 |
 | --- | --- |
 | `seed-delivery-fee-5000.sql` | 행정동마다 판매자 1명(`s4-fee-000`~`426`, 427명), 판매 가능 매물 5,000개(`[S4-F001]`), 매물당 사진 메타데이터 1개, 측정용 구매자 `s4-fee-buyer` 1명(토큰은 실행 시 전달) |
-| `cleanup-delivery-fee-5000.sql` | 위 데이터만 지운다. 표식·건수·상태가 다르거나 주문·찜이 있으면 중단 |
+| `seed-delivery-fee-5000-skewed.sql` | 위와 같은 판매자·구매자·표식이고, 매물 절반(2,500개)을 강남·서초·송파 67개 동에 몰아 둔다(쏠림 분포). 두 시드는 동시에 넣을 수 없다 |
+| `cleanup-delivery-fee-5000.sql` | 위 데이터만 지운다(두 분포 공용). 표식·건수·상태가 다르거나 주문·찜이 있으면 중단 |
 
 분포와 이유
 - **행정동:** 427개 동에 고르게 11~12개씩 둔다. 실제 매물 분포 자료가 없어서, 특정 구에 몰아 두면 구매자 위치에 따라 결과가 크게 갈린다. 고르게 두면 결과 비율이 구매자 위치와 예산만으로 정해진다.
 - **부피:** SMALL 50%·MEDIUM 30%·LARGE 20%로 둔다. 중고 가구는 작은 것이 많다고 가정했다. 큰 가구는 예산을 빨리 넘으므로 좁은 결과 경로도 함께 잰다.
 - **판매자:** 동마다 한 명이고, 매물 행정동은 판매자 행정동과 같다(앱의 등록 규칙과 같음).
+- **쏠림 분포(선택):** 실제 중고 가구 거래는 인구와 이사가 많은 일부 구에 몰린다고 보고, 매물 절반을 강남·서초·송파에 둔다(나머지 절반은 그 밖의 360개 동). 같은 예산이라도 구매자가 몰린 지역에 가까운지 먼지에 따라 결과 수와 색인을 훑는 거리가 고른 분포보다 크게 갈리는지 본다. 부피 비율은 고른 분포와 같다.
 - 로컬 확인(Testcontainers MySQL 8.4.11): 예산 1만~4만 원에서 결과가 전체의 0.2~76.5%로 나뉜다.
 
   | 구매자 행정동 | 1만 원 | 2만 원 | 3만 원 |
@@ -115,6 +117,16 @@ run_fixture_sql "$fixture_commit_sql"
   | 도봉구 도봉1동 | 0.2% | 4.3% | 11.5% |
 
   필터 조회는 `idx_listings_delivery_filter`를 색인만 읽고 탄다(EXPLAIN `Using index`).
+- 두 분포 비교(로컬, 매물 5,000개, 페이지 20개, 쿼리 1건당 읽은 행 수. 노트북 수치라 dev와 비교하지 않는다):
+
+  | 구매자·예산 | 고른 분포: 맞는 매물 / 1페이지 읽은 행 | 쏠림 분포: 맞는 매물 / 1페이지 읽은 행 |
+  | --- | --- | --- |
+  | 사직동·1만 원 | 69개 / 1,618행 | 35개 / 3,090행 |
+  | 잠실3동(송파)·1만 원 | 56개 / 1,660행 | 193개 / 558행 |
+  | 도봉1동·1만 원 | 11개 / 5,022행(전체) | 9개 / 5,018행(전체) |
+  | 도봉1동·2만 원 | 214개 / 209행 | 127개 / 929행 |
+
+  쏠림 분포에서는 강남3구 근처 구매자는 맞는 매물이 늘고 읽는 행이 줄며, 먼 구매자는 그 반대다. 예산이 좁아 맞는 매물이 한 페이지도 안 되면 색인을 끝까지 훑는다(약 5,000행). 응답 시간은 두 분포 모두 쿼리 1건당 1~3.5ms였고, 뒤쪽 페이지(2~5페이지)도 첫 페이지와 비슷했다.
 
 순서
 - **시드 → 필터 측정 → 바로 정리**로 짧게 끝낸다. 웹 클라이언트는 목록을 파라미터 없이 불러 매물 전체를 한 번에 받으므로, 이 데이터가 있는 동안 dev 홈 목록이 5,000개를 받는다.
@@ -130,7 +142,7 @@ run_fixture_sql "$fixture_commit_sql"
 
 ### 필터 측정 (PC)
 
-`DeliveryFeeFilterSimulation`은 측정용 구매자의 행정동을 `PUT /api/auth/me/dong`으로 바꾼 뒤, 필터 첫 페이지(`GET /api/listings?maxDeliveryFee=…&size=20`)를 워밍업 20회·본 측정 100회 순서대로 부른다. 동시 요청은 1건이고 응답 후 1초 쉰다. `MAX_DELIVERY_FEE=none`이면 같은 페이지 크기로 필터 없이 불러 비교 기준을 잰다.
+`DeliveryFeeFilterSimulation`은 측정용 구매자의 행정동을 `PUT /api/auth/me/dong`으로 바꾼 뒤, 필터 목록(`GET /api/listings?maxDeliveryFee=…&size=20`)을 워밍업 20회·본 측정 100회 부른다. 기본은 1명이 첫 페이지만 부르고 응답 후 1초 쉰다. `MAX_DELIVERY_FEE=none`이면 같은 페이지 크기로 필터 없이 불러 비교 기준을 잰다.
 
 ```bash
 cd server
@@ -144,6 +156,9 @@ BUYER_TOKEN='BUYER_TOKEN_UUID' BUYER_DONG=1111053000 MAX_DELIVERY_FEE=20000 \
 | `BUYER_DONG` | `1111053000` | 구매자 행정동(10자리) |
 | `MAX_DELIVERY_FEE` | `20000` | 배송비 예산(원). `none`이면 필터 없음 |
 | `PAGE_SIZE` | `20` | 페이지 크기(1~100) |
+| `PAGES` | `1` | 한 번의 반복에서 `nextCursor`로 이어 받을 페이지 수(1~20). 다음 페이지가 없으면 거기서 멈춘다 |
+| `USERS` | `1` | 동시에 도는 가상 사용자 수(1~100). 모두 같은 구매자 토큰을 쓴다 |
+| `PAUSE_SECONDS` | `1` | 반복 사이 쉬는 시간(0~10초). 동시 요청 측정은 0으로 둔다 |
 | `LISTING_BASE_URL` | dev | 로컬 검증 때만 `http://127.0.0.1:포트` |
 
 조건은 구매자 위치(도심·중간·외곽) × 예산으로 나눈다. 결과가 넓은 경로와 좁은 경로를 함께 보려는 구성이다.
@@ -158,7 +173,31 @@ BUYER_TOKEN='BUYER_TOKEN_UUID' BUYER_DONG=1111053000 MAX_DELIVERY_FEE=20000 \
 - 요청별 시각·응답 시간·받은 매물 수·다음 페이지 여부·`request_id`는 `build/reports/delivery-fee-filter/`의 CSV에 남는다.
 - 한 조건이 약 2분 걸리므로 10개 조건은 약 25분이다. 끝나면 바로 정리 SQL을 실행한다.
 - `MAX_DELIVERY_FEE=none` 기준선은 비로그인 경로라 토큰 조회가 빠진다. 필터와 비교할 때는 `request_id`로 서버 `ListingRequestTiming`의 `listings` 단계 시간을 함께 본다.
-- 첫 페이지만 잰다. 커서로 이어 받는 뒤쪽 페이지 비용은 측정 범위 밖이다.
+
+#### 뒤쪽 페이지
+
+`PAGES=5`이면 반복마다 첫 페이지부터 5페이지까지 이어 받는다. 보고서에서 첫 페이지는 `filter-measurement`, 뒤쪽은 `filter-measurement-p2`~`-p5` 행으로 따로 집계되고, CSV의 `page`·`items` 열로 페이지별 응답 시간과 받은 매물 수를 본다. 예산이 좁은 조건(도봉1동·1만 원 등)은 맞는 매물이 드물어 뒤쪽 페이지일수록 색인을 더 멀리 훑는지 확인하는 용도다.
+
+```bash
+BUYER_TOKEN='BUYER_TOKEN_UUID' BUYER_DONG=1132052100 MAX_DELIVERY_FEE=10000 PAGES=5 \
+  ./gradlew gatlingRun --simulation setty.performance.DeliveryFeeFilterSimulation
+```
+
+#### 동시 요청
+
+`USERS=10`(또는 30)과 `PAUSE_SECONDS=0`으로 같은 조건을 여러 명이 쉬지 않고 부른다. 사용자마다 워밍업 20회·측정 100회라 전체 측정 요청은 `USERS × 100`건이다.
+
+```bash
+BUYER_TOKEN='BUYER_TOKEN_UUID' BUYER_DONG=1111053000 MAX_DELIVERY_FEE=20000 USERS=30 PAUSE_SECONDS=0 \
+  ./gradlew gatlingRun --simulation setty.performance.DeliveryFeeFilterSimulation
+```
+
+같은 시간대의 서버 커넥션 풀 상태를 함께 본다. dev 앱은 OTLP로 1분 간격(`management.otlp.metrics.export.step: 1m`)으로 지표를 보낸다.
+- `hikaricp.connections.active`(쓰는 중), `hikaricp.connections.pending`(커넥션을 기다리는 요청), `hikaricp.connections.acquire`(커넥션을 얻는 데 걸린 시간, 히스토그램)를 측정 시작·끝 시각으로 좁혀 본다.
+- 1분 간격이라 한 조건을 3분 이상 유지해야 값이 2~3개 찍힌다. 측정 100회가 너무 빨리 끝나면 같은 조건을 연달아 두세 번 실행한다.
+- dev 커넥션 대기 상한은 5초(`spring.datasource.hikari.connection-timeout: 5000`)다. 넘으면 요청이 실패하므로 실패 건수와 pending을 같이 본다.
+- 같은 시간대의 `process.cpu.usage`(앱 프로세스 CPU), `system.cpu.usage`(서버 전체 CPU), `jvm.gc.pause`(GC로 멈춘 시간)도 함께 본다. 커넥션 대기가 없는데 느리면 CPU나 GC 쪽을 의심한다.
+- 요청별로는 CSV `request_id`로 `ListingRequestTiming` 로그(`request-timing.md`)의 `buyer_ms`·`listings_ms`·`images_ms`를 찾는다. Gatling 응답 시간에서 이 DB 단계 합을 빼면 나머지(커넥션 대기, 매핑·직렬화 CPU, 네트워크)가 남아, 느린 요청이 DB 때문인지 그 밖 때문인지 나눌 수 있다.
 
 ## dev 행정동 채우기(1회성)
 
@@ -181,6 +220,48 @@ run_fixture_sql fixtures/revert-dong-backfill.sql
 ```
 
 되돌리기는 넘긴 id의 매물을 모두 NULL로 돌린다. 매물 행정동은 등록 뒤 바뀌지 않으므로 그 값은 모두 채우기가 넣은 것이다. 값을 넘기지 않으면 중단한다.
+
+## 배송비 PR 배포 후 dev 확인 (#476 → #478 → #481)
+
+세 PR을 순서대로 머지해 dev에 배포한 뒤 한 번 실행한다. 스키마 변경은 앱이 부팅할 때 `schema/*.sql`로 적용되므로, 배포된 앱이 새 커밋으로 다시 떴는지 먼저 확인한다.
+
+### 1 스키마 (dev EC2 SSM 셸, 읽기 전용)
+
+```bash
+mysql --batch -u DEV_DB_USER -p DEV_DB_NAME -e "
+SELECT column_name, column_type, is_nullable FROM information_schema.columns
+WHERE table_schema = DATABASE() AND table_name = 'orders'
+  AND column_name IN ('delivery_fee', 'delivery_dong_code', 'delivery_address', 'delivery_phone_number')
+ORDER BY ordinal_position;
+SELECT DISTINCT index_name FROM information_schema.statistics
+WHERE table_schema = DATABASE() AND table_name = 'listings'
+  AND index_name IN ('idx_listings_public', 'idx_listings_delivery_filter');"
+```
+
+- 첫 결과는 4행이고 모두 `is_nullable = YES`다(`delivery_fee`는 `int`).
+- 두 번째 결과는 `idx_listings_delivery_filter` 1행뿐이다. `idx_listings_public`이 남아 있으면 부팅 때 삭제 DDL이 실행되지 않은 것이다.
+
+### 2 금액 일치 (PC)
+
+실제 팀원 계정 말고 테스트 회원을 쓴다. 확인용 주문이 결제 없이 `EXPIRED`로 남고, 그 회원의 주소·연락처 스냅샷을 가진다. 행정동이 있는 테스트 회원 1명과, 그 회원과 다른 동(3km 넘게 떨어진 곳이면 더 좋다)의 판매 가능 매물 1개를 고른다. 판매자는 구매자와 달라야 한다.
+
+```bash
+BASE=https://www.setty.cloud/dev
+TOKEN=$(curl -s -X POST "$BASE/api/auth/login" -H 'Content-Type: application/json' \
+  -d '{"loginId":"LOGIN_ID","password":"PASSWORD"}' | python3 -c 'import json,sys; print(json.load(sys.stdin)["token"])')
+curl -s -H "Authorization: Bearer $TOKEN" "$BASE/api/auth/me"            # dongCode가 있어야 한다
+LISTING_ID=매물_ID
+curl -s -H "Authorization: Bearer $TOKEN" "$BASE/api/listings/$LISTING_ID" \
+  | python3 -c 'import json,sys; d=json.load(sys.stdin); print("상세", d["deliveryFee"], d["totalPrice"], d["dong"])'
+curl -s -X POST -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
+  -d "{\"listingId\":$LISTING_ID}" "$BASE/api/orders" \
+  | python3 -c 'import json,sys; d=json.load(sys.stdin); print("주문", d["id"], d["deliveryFee"], d["totalPrice"])'
+```
+
+- 토큰을 붙인 상세의 `deliveryFee`·`totalPrice`와 주문 응답의 `deliveryFee`·`totalPrice`가 같아야 한다. 동이 다르면 고정 금액(1만·2만·3만 원)과 달라질 수 있다.
+- 토스 승인 금액은 서버가 주문 응답 `totalPrice`와 같은 메서드(`PaymentOrderReader.payableAmount`)로 검증한다. 실제 승인까지 보려면 이 주문으로 토스 테스트 결제를 하거나 k6 `PURCHASE_SMOKE`를 실행한다(테스트 주문·결제가 남는다).
+- DB에서도 확인할 수 있다: `SELECT delivery_fee, delivery_dong_code FROM orders WHERE id = 주문_ID;`
+- 결제하지 않은 주문은 6분 뒤 만료되고 매물 선점이 풀린다. 그동안 같은 매물로는 다시 주문할 수 없으므로 테스트용 매물을 쓴다.
 
 ## 검증 범위
 
