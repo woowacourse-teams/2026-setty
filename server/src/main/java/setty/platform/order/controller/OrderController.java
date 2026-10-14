@@ -10,11 +10,13 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import setty.global.auth.LoginMember;
+import setty.platform.PaymentOrderReader;
 import setty.platform.member.domain.Member;
 import setty.platform.order.controller.dto.MyOrderResponse;
 import setty.platform.order.controller.dto.OrderCancellationResponse;
 import setty.platform.order.controller.dto.OrderCreateRequest;
 import setty.platform.order.controller.dto.OrderCreateResponse;
+import setty.platform.order.domain.Order;
 import setty.platform.order.service.OrderCompletionService;
 import setty.platform.order.service.OrderService;
 
@@ -23,10 +25,16 @@ public class OrderController {
 
     private final OrderService orderService;
     private final OrderCompletionService orderCompletionService;
+    private final PaymentOrderReader paymentOrderReader;
 
-    public OrderController(final OrderService orderService, final OrderCompletionService orderCompletionService) {
+    public OrderController(
+            final OrderService orderService,
+            final OrderCompletionService orderCompletionService,
+            final PaymentOrderReader paymentOrderReader
+    ) {
         this.orderService = orderService;
         this.orderCompletionService = orderCompletionService;
+        this.paymentOrderReader = paymentOrderReader;
     }
 
     @PostMapping("/api/orders")
@@ -34,8 +42,10 @@ public class OrderController {
             @LoginMember final Member member,
             @Valid @RequestBody final OrderCreateRequest request
     ) {
+        final Order order = orderService.pending(request, member);
+        // 토스 승인 때 검증하는 금액과 같은 계산으로 결제할 총액을 준다. 클라이언트는 이 값으로 결제창을 연다.
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(OrderCreateResponse.from(orderService.pending(request, member)));
+                .body(OrderCreateResponse.from(order, paymentOrderReader.payableAmount(order.getId())));
     }
 
     @GetMapping("/api/me/orders")

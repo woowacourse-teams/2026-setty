@@ -11,6 +11,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import setty.platform.PaymentOrderReader;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.core.MethodParameter;
 import org.springframework.test.web.servlet.MockMvc;
@@ -47,7 +48,7 @@ class OrderControllerTest {
     void setUp() {
         buyer = mock(Member.class);
         when(buyer.getId()).thenReturn(BUYER_ID);
-        orderController = new OrderController(orderService, orderCompletionService);
+        orderController = new OrderController(orderService, orderCompletionService, mock(PaymentOrderReader.class));
         mockMvc = MockMvcBuilders.standaloneSetup(orderController)
                 .setCustomArgumentResolvers(new HandlerMethodArgumentResolver() {
                     @Override

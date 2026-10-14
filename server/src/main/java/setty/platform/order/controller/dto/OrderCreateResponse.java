@@ -7,16 +7,18 @@ public record OrderCreateResponse(
         Long listingId,
         Long buyerId,
         String deliveryStatus,
-        Integer deliveryFee
+        Integer deliveryFee,
+        int totalPrice
 ) {
 
-    public static OrderCreateResponse from(final Order order) {
+    public static OrderCreateResponse from(final Order order, final int totalPrice) {
         return new OrderCreateResponse(
                 order.getId(),
                 order.getListingId(),
                 order.getBuyerId(),
                 order.getDeliveryStatus().name(),
-                order.getDeliveryFee()
+                order.getDeliveryFee(),
+                totalPrice
         );
     }
 }

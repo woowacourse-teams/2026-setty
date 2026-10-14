@@ -204,6 +204,7 @@ class ListingDeliveryFeeFilterApiTest extends MySqlIntegrationTestSupport {
                         .content("{\"listingId\":" + far.id() + "}"))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.deliveryFee").value(expectedFee(far)))
+                .andExpect(jsonPath("$.totalPrice").value(PRICE + expectedFee(far)))
                 .andReturn().getResponse().getContentAsString();
         long orderId = objectMapper.readTree(body).get("id").asLong();
 
@@ -214,6 +215,26 @@ class ListingDeliveryFeeFilterApiTest extends MySqlIntegrationTestSupport {
                 .andExpect(jsonPath("$[0].listing.deliveryFee").value(expectedFee(far)));
         mockMvc.perform(get("/api/listings/{listingId}", far.id()).header(HttpHeaders.AUTHORIZATION, "Bearer token-" + BUYER_ID))
                 .andExpect(jsonPath("$.totalPrice").value(PRICE + expectedFee(far)));
+    }
+
+    @Test
+    void 비로그인으로_본_상세_금액과_달라도_주문_응답은_승인_때_검증하는_금액을_준다() throws Exception {
+        Listing far = farListing();
+        mockMvc.perform(get("/api/listings/{listingId}", far.id()))
+                .andExpect(jsonPath("$.totalPrice").value(PRICE + FIXED_FEE));
+
+        String body = mockMvc.perform(post("/api/orders")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer token-" + BUYER_ID)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"listingId\":" + far.id() + "}"))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        JsonNode created = objectMapper.readTree(body);
+
+        assertThat(created.get("totalPrice").asInt())
+                .isEqualTo(paymentOrderReader.payableAmount(created.get("id").asLong()))
+                .isEqualTo(PRICE + expectedFee(far))
+                .isNotEqualTo(PRICE + FIXED_FEE);
     }
 
     @Test
