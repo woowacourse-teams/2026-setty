@@ -41,8 +41,11 @@ public class MetricsConfig {
                             // uri는 원본 URL이 아니라 Spring HTTP 관측이 제공하는 매핑 패턴이다.
                             case "http.server.requests" -> id.replaceTags(
                                     List.of(tag(id, "uri"), tag(id, "method"), tag(id, "outcome")));
-                            case "setty.http.requests.completed", "setty.http.requests.server.errors" ->
+                            case "setty.http.requests.completed", "setty.http.requests.server.errors",
+                                    "setty.delivery.request.sse.subscriptions.active" ->
                                     id.replaceTags(List.of());
+                            case "setty.delivery.request.sse.subscriptions.removed" ->
+                                    id.replaceTags(List.of(tag(id, "reason")));
                             // pool별 게이지를 하나로 합치면 합계가 아니라 첫 번째 값만 남는다.
                             case "jvm.memory.used", "jvm.memory.max" -> id.replaceTags(
                                     List.of(tag(id, "area"), tag(id, "id")));
@@ -60,7 +63,9 @@ public class MetricsConfig {
             case "http.server.requests", "setty.http.requests.completed", "setty.http.requests.server.errors",
                     "hikaricp.connections.active", "hikaricp.connections.max",
                     "hikaricp.connections.pending", "hikaricp.connections.acquire",
-                    "hikaricp.connections.timeout" -> true;
+                    "hikaricp.connections.timeout",
+                    "setty.delivery.request.sse.subscriptions.active",
+                    "setty.delivery.request.sse.subscriptions.removed" -> true;
             case "jvm.memory.used", "jvm.memory.max" -> "heap".equals(id.getTag("area"));
             default -> false;
         };

@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.AfterEach;
@@ -34,13 +35,14 @@ class DeliveryRequestSseControllerTest {
 
     private final List<MvcResult> connections = new ArrayList<>();
     private final DeliveryMember member = mock(DeliveryMember.class);
+    private final SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
     private DeliveryRequestEventStream stream;
     private MockMvc mockMvc;
 
     @BeforeEach
     void setUp() {
         stream = new DeliveryRequestEventStream(3,
-                () -> new SseEmitter(DeliveryRequestEventStream.CONNECTION_TIMEOUT_MILLIS));
+                () -> new SseEmitter(DeliveryRequestEventStream.CONNECTION_TIMEOUT_MILLIS), meterRegistry);
         final DeliveryController controller = new DeliveryController(
                 mock(DeliveryQueryService.class), mock(DeliveryLifecycleService.class), stream);
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
@@ -68,6 +70,7 @@ class DeliveryRequestSseControllerTest {
     void tearDown() {
         connections.forEach(connection -> connection.getRequest().getAsyncContext().complete());
         stream.close();
+        meterRegistry.close();
     }
 
     @Test
