@@ -1,4 +1,4 @@
-package setty.global.auth;
+package setty.platform.member.controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.core.MethodParameter;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.web.context.request.ServletWebRequest;
+import setty.global.auth.LoginMember;
 import setty.platform.member.domain.Member;
 
 class LoginMemberArgumentResolverTest {
@@ -19,7 +20,7 @@ class LoginMemberArgumentResolverTest {
         final Member member = mock(Member.class);
         when(member.getId()).thenReturn(42L);
         final MockHttpServletRequest request = new MockHttpServletRequest();
-        request.setAttribute(AuthInterceptor.LOGIN_MEMBER, member);
+        request.setAttribute(MemberAuthInterceptor.LOGIN_MEMBER, member);
         final MethodParameter parameter = new MethodParameter(
                 LoginMemberArgumentResolverTest.class.getDeclaredMethod("memberId", Long.class), 0);
 
