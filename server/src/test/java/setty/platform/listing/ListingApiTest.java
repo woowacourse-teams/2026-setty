@@ -444,12 +444,12 @@ class ListingApiTest extends MySqlIntegrationTestSupport {
         long listingId = createListing(SELLER_ID, "구매 흐름 확인용 가상 소파");
         long retainedImageId = firstImageId(listingId);
 
-        ListingView.PurchaseInfo firstPurchase = listingService.registerPurchaseRequest(listingId, null);
+        ListingView.PurchaseInfo firstPurchase = listingService.registerPurchaseRequest(listingId, null, null);
 
         assertThat(firstPurchase.listingId()).isEqualTo(listingId);
         assertThat(firstPurchase.sellerId()).isEqualTo(SELLER_ID);
         assertThat(firstPurchase.totalPrice()).isEqualTo(130_000);
-        assertThatThrownBy(() -> listingService.registerPurchaseRequest(listingId, SECOND_BUYER_ID))
+        assertThatThrownBy(() -> listingService.registerPurchaseRequest(listingId, SECOND_BUYER_ID, null))
                 .isInstanceOfSatisfying(
                         BusinessException.class,
                         exception -> assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.ALREADY_ORDERED)
@@ -499,7 +499,7 @@ class ListingApiTest extends MySqlIntegrationTestSupport {
     @Test
     void concurrentDeliveryReservationsAllowOnlyOneWinner() throws Exception {
         long listingId = createListing(SELLER_ID, "동시 예약 확인용 가상 침대");
-        listingService.registerPurchaseRequest(listingId, null);
+        listingService.registerPurchaseRequest(listingId, null, null);
 
         CountDownLatch ready = new CountDownLatch(2);
         CountDownLatch start = new CountDownLatch(1);
@@ -607,7 +607,7 @@ class ListingApiTest extends MySqlIntegrationTestSupport {
             throw new IllegalStateException("가상 동시 구매 신청 테스트 시작 신호를 받지 못했습니다");
         }
         try {
-            listingService.registerPurchaseRequest(listingId, buyerId);
+            listingService.registerPurchaseRequest(listingId, buyerId, null);
             return true;
         } catch (BusinessException exception) {
             assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.ALREADY_ORDERED);

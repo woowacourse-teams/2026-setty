@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -21,6 +22,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -28,6 +30,7 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 import setty.deliveryfee.DeliveryFeeService;
 import setty.deliveryfee.Dong;
 import setty.deliveryfee.VolumeTier;
+import setty.platform.PaymentOrderReader;
 import setty.platform.listing.storage.ListingImageStorage;
 import setty.support.MySqlIntegrationTestSupport;
 import tools.jackson.databind.JsonNode;
@@ -57,6 +60,9 @@ class ListingDeliveryFeeFilterApiTest extends MySqlIntegrationTestSupport {
 
     @Autowired
     private DeliveryFeeService deliveryFeeService;
+
+    @Autowired
+    private PaymentOrderReader paymentOrderReader;
 
     @MockitoBean
     private ListingImageStorage listingImageStorage;
@@ -172,7 +178,7 @@ class ListingDeliveryFeeFilterApiTest extends MySqlIntegrationTestSupport {
     }
 
     @Test
-    void 내_주문은_구매자_행정동이_있어도_결제한_등록_배송비를_보여_준다() throws Exception {
+    void 배송비를_저장하지_않은_예전_주문은_등록_배송비를_보여_준다() throws Exception {
         Listing far = farListing();
         jdbcTemplate.update("""
                 INSERT INTO orders (id, listing_id, buyer_id, delivery_status, order_status)
@@ -186,6 +192,28 @@ class ListingDeliveryFeeFilterApiTest extends MySqlIntegrationTestSupport {
         mockMvc.perform(get("/api/orders/{id}", 801).header(HttpHeaders.AUTHORIZATION, "Bearer token-" + BUYER_ID))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.listing.deliveryFee").value(FIXED_FEE));
+    }
+
+    @Test
+    void 주문은_구매자_행정동_기준_배송비를_저장하고_결제_금액과_내_주문에_같은_값을_쓴다() throws Exception {
+        Listing far = farListing();
+
+        String body = mockMvc.perform(post("/api/orders")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer token-" + BUYER_ID)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"listingId\":" + far.id() + "}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.deliveryFee").value(expectedFee(far)))
+                .andReturn().getResponse().getContentAsString();
+        long orderId = objectMapper.readTree(body).get("id").asLong();
+
+        assertThat(jdbcTemplate.queryForObject("SELECT delivery_dong_code FROM orders WHERE id = ?", String.class, orderId))
+                .isEqualTo(BUYER_DONG);
+        assertThat(paymentOrderReader.payableAmount(orderId)).isEqualTo(PRICE + expectedFee(far));
+        mockMvc.perform(get("/api/me/orders").header(HttpHeaders.AUTHORIZATION, "Bearer token-" + BUYER_ID))
+                .andExpect(jsonPath("$[0].listing.deliveryFee").value(expectedFee(far)));
+        mockMvc.perform(get("/api/listings/{listingId}", far.id()).header(HttpHeaders.AUTHORIZATION, "Bearer token-" + BUYER_ID))
+                .andExpect(jsonPath("$.totalPrice").value(PRICE + expectedFee(far)));
     }
 
     @Test

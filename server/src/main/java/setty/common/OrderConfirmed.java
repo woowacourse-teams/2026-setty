@@ -12,6 +12,7 @@ public record OrderConfirmed(
         String deliveryPhoneNumber,
         Long listingId,
         Long sellerId,
-        int itemPrice
+        int itemPrice,
+        String deliveryDongCode
 ) {
 }

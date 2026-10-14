@@ -27,7 +27,7 @@ public record MyOrderResponse(
                         listing.title(),
                         listing.thumbnailUrl(),
                         listing.price(),
-                        listing.deliveryFee()
+                        order.getDeliveryFee() == null ? listing.deliveryFee() : order.getDeliveryFee()
                 ),
                 order.getOrderStatus().name(),
                 order.getDeliveryStatus().name()

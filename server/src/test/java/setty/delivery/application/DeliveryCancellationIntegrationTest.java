@@ -186,7 +186,8 @@ class DeliveryCancellationIntegrationTest extends MySqlIntegrationTestSupport {
                 "010-0000-0002",
                 10L,
                 1L,
-                150_000
+                150_000,
+                null
         );
     }
 

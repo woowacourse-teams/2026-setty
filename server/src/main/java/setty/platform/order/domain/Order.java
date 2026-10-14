@@ -52,6 +52,19 @@ public class Order {
     @Column(name = "delivery_status_changed_at")
     private Instant deliveryStatusChangedAt;
 
+    // 주문 시점 값. 이후 회원정보·매물 배송비가 바뀌어도 결제·배송·정산은 이 값을 쓴다. 도입 전 주문은 NULL이다.
+    @Column(name = "delivery_fee", updatable = false)
+    private Integer deliveryFee;
+
+    @Column(name = "delivery_dong_code", length = 10, updatable = false)
+    private String deliveryDongCode;
+
+    @Column(name = "delivery_address", length = 200, updatable = false)
+    private String deliveryAddress;
+
+    @Column(name = "delivery_phone_number", length = 13, updatable = false)
+    private String deliveryPhoneNumber;
+
     protected Order() {
     }
 
@@ -125,6 +138,23 @@ public class Order {
         order.deliveryStatus = DeliveryStatus.PENDING;
         order.orderStatus = OrderStatus.PENDING;
         order.pendingExpiresAt = pendingExpiresAt;
+        return order;
+    }
+
+    public static Order pending(
+            final Long listingId,
+            final Long buyerId,
+            final Instant pendingExpiresAt,
+            final int deliveryFee,
+            final String deliveryDongCode,
+            final String deliveryAddress,
+            final String deliveryPhoneNumber
+    ) {
+        final Order order = pending(listingId, buyerId, pendingExpiresAt);
+        order.deliveryFee = deliveryFee;
+        order.deliveryDongCode = deliveryDongCode;
+        order.deliveryAddress = deliveryAddress;
+        order.deliveryPhoneNumber = deliveryPhoneNumber;
         return order;
     }
 
@@ -230,5 +260,21 @@ public class Order {
 
     public Instant getDeliveryStatusChangedAt() {
         return deliveryStatusChangedAt;
+    }
+
+    public Integer getDeliveryFee() {
+        return deliveryFee;
+    }
+
+    public String getDeliveryDongCode() {
+        return deliveryDongCode;
+    }
+
+    public String getDeliveryAddress() {
+        return deliveryAddress;
+    }
+
+    public String getDeliveryPhoneNumber() {
+        return deliveryPhoneNumber;
     }
 }
