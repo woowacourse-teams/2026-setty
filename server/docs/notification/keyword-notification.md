@@ -130,7 +130,7 @@
 
 ### 판단 & 적용
 
-* 예상 트래픽은 피크 때 매물 분당 5건, 구독자 1천·1만 명으로 잡았다. 서울 청년 1인 가구 77만 ÷ 평균 거주기간 1.6년 × 이사 1번에 매물 1건(최대치 가정) × 피크 배율 5.5배다. 근거는 #470 댓글.
+* 예상 트래픽은 피크 때 매물 분당 5건, 구독자 1천·1만 명으로 잡았다. 서울에서 한 해 혼자 이사하는 61만~81만 건(2024년 전입 122만 명 × 1인 이동 79.8%)의 60~80%가 매물 1건을 올린다고 보고(상한) 피크 배율 5.5배를 곱했다. SETTY 주 사용자는 혼자 이사하는 사람으로 가정했다. 근거는 #470 댓글.
 * 등록은 응답을 기다리지 않고 무작위 간격으로 10분 보낸다. 시드(470)를 고정해 고치기 전·후에 같은 시각표(55건)를 쓴다(#471).
 * 모의 FCM 지연은 FCM dry run으로 500건 × 10회를 보내 잰 p50 0.874초로 바꿨다(#473). PC에서 잰 값이라 dev에서는 더 빠를 수 있다.
 
@@ -160,6 +160,7 @@
 
 * 내 컴퓨터(Docker MySQL, 가짜 S3, 모의 FCM)에서 잰 값이다. 가짜 S3는 바로 응답해서 실제 업로드 시간이 빠져 있다.
 * 10분만 재서 오래 돌려야 드러나는 문제는 보지 못한다.
+* 이사 건수는 1인 외 이동의 인원을 몰라 범위값이다. 주 사용자가 혼자 이사하는 사람이라는 것도 가정이다.
 
 ## 하지 않은 것
 
@@ -185,6 +186,6 @@
 | high priority | [Firebase, Set the priority of a message](https://firebase.google.com/docs/cloud-messaging/customize-messages/setting-message-priority) |
 | Modulith 재발행 | [Spring Modulith, Working with Application Events](https://docs.spring.io/spring-modulith/reference/events.html) |
 | 월 예산 70달러 | Cost Explorer, 2026-10-08 |
-| 서울 청년 1인 가구 77만 | [2023 서울특별시 청년 통계 (국민일보)](https://www.kukinews.com/article/view/kuk202506250041) |
-| 청년가구 평균 거주기간 1.6년 | [국토연구원 (더팩트)](https://news.tf.co.kr/read/economy/2289736.htm) |
+| 서울 전입 122만 1천 명 (2024) | [국가데이터처 「2024년 국내인구이동통계」 브리핑](https://www.korea.kr/briefing/policyBriefingView.do?newsId=156672078), 서울 숫자는 [한국경제](https://www.hankyung.com/article/2025012492821) |
+| 1인 이동 건수 비중 79.8% | [서울시 「인구이동 분석(2001~2024)」 (헤럴드경제)](https://www.heraldk.com/article/2026012118362209478) |
 | 피크 배율 5.5배 | [번개장터 2024 세컨핸드 리포트 (유니콘팩토리)](https://www.unicornfactory.co.kr/article/2025012209242080325) |
