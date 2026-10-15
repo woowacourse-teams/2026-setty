@@ -15,7 +15,7 @@ const favoriteStore = new Set<number>();
 let listingStore: ListingDetail[] = mockListings.map((listing, index) => ({
     ...listing,
     description: index === 0 ? '사용감이 적은 원목 가구입니다.' : '깨끗하게 관리한 가구입니다.',
-    saleStatus: 'AVAILABLE',
+    saleStatus: __ENABLE_SOLD_LISTING_SCENARIO__ && index === 0 ? 'SOLD' : 'AVAILABLE',
     images: [{ id: index + 10, url: listing.thumbnailUrl ?? '', displayOrder: 1 }],
     updatedAt: listing.createdAt
 }));

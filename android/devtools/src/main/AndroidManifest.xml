@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application>
+        <activity
+            android:name="com.aksworns22.setty.devtools.DevToolsActivity"
+            android:exported="true"
+            android:label="Setty DevTools"
+            android:taskAffinity="com.aksworns22.setty.devtools">
+
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+        </activity>
+    </application>
+</manifest>

@@ -5,6 +5,9 @@ spring:
       validation-timeout: 1000
 
 setty:
+  observability:
+    listing-timing:
+      enabled: true
   cors:
     allowed-origins: http://localhost:3000,https://www.setty.cloud
 
@@ -33,3 +36,4 @@ management:
       percentiles-histogram:
         http.server.requests: true
         hikaricp.connections.acquire: true
+        setty.auth.repository.lookup: true

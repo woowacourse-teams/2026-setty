@@ -8,4 +8,5 @@ data class SignUpRequest(
     val password: String,
     val phoneNumber: String,
     val address: String,
+    val dongCode: String,
 )

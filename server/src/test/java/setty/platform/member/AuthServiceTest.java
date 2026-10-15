@@ -12,6 +12,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import setty.global.exception.BusinessException;
 import setty.global.exception.ErrorCode;
 import setty.platform.member.controller.dto.MemberMeResponse;
+import setty.platform.member.controller.dto.SignupRequest;
+import setty.platform.member.controller.dto.UpdateDongRequest;
 import setty.platform.member.controller.dto.UpdateProfileRequest;
 import setty.platform.member.domain.Member;
 import setty.platform.member.repository.MemberRepository;
@@ -79,6 +81,49 @@ class AuthServiceTest extends MySqlIntegrationTestSupport {
                 .isInstanceOf(BusinessException.class)
                 .extracting(e -> ((BusinessException) e).getErrorCode())
                 .isEqualTo(ErrorCode.INVALID_TOKEN);
+    }
+
+    @Test
+    void 가입할_때_고른_행정동을_저장한다() {
+        final Member member = authService.signup(
+                new SignupRequest("newmember", "password1", "010-1111-2222", "가상 주소", "1111053000"));
+
+        assertThat(memberRepository.findById(member.getId()).orElseThrow().getDongCode()).isEqualTo("1111053000");
+    }
+
+    @Test
+    void 행정동_없이도_가입할_수_있다() {
+        final Member member = authService.signup(
+                new SignupRequest("newmember", "password1", "010-1111-2222", "가상 주소", null));
+
+        assertThat(memberRepository.findById(member.getId()).orElseThrow().getDongCode()).isNull();
+    }
+
+    @Test
+    void 서울_행정동이_아니면_가입을_거부한다() {
+        assertThatThrownBy(() -> authService.signup(
+                new SignupRequest("newmember", "password1", "010-1111-2222", "가상 주소", "4113510300")))
+                .isInstanceOf(BusinessException.class)
+                .extracting(e -> ((BusinessException) e).getErrorCode())
+                .isEqualTo(ErrorCode.DELIVERY_AREA_NOT_SUPPORTED);
+    }
+
+    @Test
+    void 행정동을_바꾼다() {
+        final MemberMeResponse response = authService.updateDong(MEMBER_ID, new UpdateDongRequest("1165052000"));
+
+        assertThat(response.dongCode()).isEqualTo("1165052000");
+        assertThat(memberRepository.findById(MEMBER_ID).orElseThrow().getDongCode()).isEqualTo("1165052000");
+    }
+
+    @Test
+    void 서울_행정동이_아니면_행정동_변경을_거부한다() {
+        assertThatThrownBy(() -> authService.updateDong(MEMBER_ID, new UpdateDongRequest("4113510300")))
+                .isInstanceOf(BusinessException.class)
+                .extracting(e -> ((BusinessException) e).getErrorCode())
+                .isEqualTo(ErrorCode.DELIVERY_AREA_NOT_SUPPORTED);
+
+        assertThat(memberRepository.findById(MEMBER_ID).orElseThrow().getDongCode()).isNull();
     }
 
     private void insertMember(final long memberId, final String token) {

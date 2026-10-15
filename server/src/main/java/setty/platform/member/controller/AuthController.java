@@ -15,6 +15,7 @@ import setty.platform.member.controller.dto.LoginResponse;
 import setty.platform.member.controller.dto.MemberMeResponse;
 import setty.platform.member.controller.dto.SignupRequest;
 import setty.platform.member.controller.dto.SignupResponse;
+import setty.platform.member.controller.dto.UpdateDongRequest;
 import setty.platform.member.controller.dto.UpdateProfileRequest;
 import setty.platform.member.domain.Member;
 import setty.platform.member.service.AuthService;
@@ -52,6 +53,14 @@ public class AuthController {
             @Valid @RequestBody final UpdateProfileRequest request
     ) {
         return ResponseEntity.ok(authService.updateProfile(member.getId(), request));
+    }
+
+    @PutMapping("/me/dong")
+    public ResponseEntity<MemberMeResponse> updateDong(
+            @LoginMember final Member member,
+            @Valid @RequestBody final UpdateDongRequest request
+    ) {
+        return ResponseEntity.ok(authService.updateDong(member.getId(), request));
     }
 
     @PostMapping("/logout")

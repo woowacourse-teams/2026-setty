@@ -10,6 +10,8 @@ public enum ErrorCode {
     INVALID_TOKEN(401, "유효하지 않은 토큰입니다"),
     LOGIN_FAILED(401, "아이디 또는 비밀번호가 일치하지 않습니다"),
     DUPLICATE_LOGIN_ID(400, "이미 사용 중인 아이디입니다"),
+    DELIVERY_AREA_NOT_SUPPORTED(400, "배송 가능 지역이 아닙니다"),
+    MEMBER_DONG_REQUIRED(400, "행정동을 먼저 설정해 주세요"),
 
     // ===== 매물 (플랫폼 팀) =====
     LISTING_NOT_FOUND(404, "존재하지 않는 매물입니다"),
@@ -31,6 +33,12 @@ public enum ErrorCode {
 
     // ===== 찜 (플랫폼 팀) =====
     CANNOT_FAVORITE_OWN_LISTING(400, "본인 매물은 찜할 수 없습니다"),
+
+    // ===== 키워드 알림 (notification) =====
+    INVALID_KEYWORD(400, "키워드는 공백을 제외하고 1자 이상 20자 이하여야 합니다"),
+    TOO_MANY_KEYWORDS(400, "키워드는 10개까지 등록할 수 있습니다"),
+    KEYWORD_NOT_FOUND(404, "존재하지 않는 키워드입니다"),
+    NOTIFICATION_NOT_FOUND(404, "존재하지 않는 알림입니다"),
 
     // ===== 결제 (payment) =====
     PAYMENT_AMOUNT_MISMATCH(400, "결제 금액이 주문 금액과 일치하지 않습니다"),

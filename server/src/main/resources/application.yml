@@ -9,23 +9,42 @@ spring:
 
   jpa:
     hibernate:
-      # 스키마는 schema.sql로만 변경한다 (server/AGENTS.md). 엔티티와 스키마가 어긋나면 부팅이 실패한다.
+      # Flyway가 스키마를 변경하고, JPA는 엔티티와의 일치 여부만 검사한다.
       ddl-auto: validate
 
   sql:
     init:
-      mode: always
+      mode: never
+
+  flyway:
+    locations: classpath:db/migration
+    # 기존 DB 최초 편입 때만 켠다. 0으로 등록하여 V1부터 실제 실행한다.
+    # 기본값 1을 사용하면 플랫폼 변경(V1)이 건너뛰어지므로 바꾸지 않는다.
+    baseline-version: "0"
+    baseline-description: Before Flyway adoption
+    baseline-on-migrate: ${SETTY_FLYWAY_ADOPT_EXISTING:false}
+    clean-disabled: true
+    validate-on-migrate: true
+    validate-migration-naming: true
 
   modulith:
     events:
       jdbc:
-        # EVENT_PUBLICATION도 schema.sql로만 관리한다.
+        # EVENT_PUBLICATION도 Flyway로만 관리한다.
         schema-initialization:
           enabled: false
       # 처리 완료된 발행 기록은 지워 테이블이 계속 쌓이지 않게 한다. 미완료·실패 건만 남는다.
       completion-mode: delete
       # 처리 도중 서버가 내려가 남은 발행 기록은 재시작 시 다시 발행한다.
       republish-outstanding-events-on-restart: true
+
+  task:
+    execution:
+      # @Async 이벤트 리스너(주문·배송·정산)가 공유하는 풀. 알림 디스패처는 전용 풀을 쓴다. 리스너마다 DB 커넥션을 쓰므로 풀(10) 안에서 상한을 둔다.
+      thread-name-prefix: event-listener-
+      pool:
+        core-size: ${SETTY_EVENT_LISTENER_CONCURRENCY:2}
+        max-size: ${SETTY_EVENT_LISTENER_CONCURRENCY:2}
 
   servlet:
     multipart:
@@ -43,20 +62,35 @@ management:
         enabled: false
 
 setty:
+  delivery:
+    request-sse:
+      # 임시 보호 상한. 운영 용량은 연결·목록 조회 부하와 전체 메모리 측정으로 확인한다.
+      max-connections: ${SETTY_DELIVERY_REQUEST_SSE_MAX_CONNECTIONS:1000}
   order:
     pending-expiration:
       timeout: ${PENDING_ORDER_EXPIRATION_TIMEOUT:PT6M}
       scan-interval: ${PENDING_ORDER_EXPIRATION_SCAN_INTERVAL:PT1M}
+    completion:
+      scan-interval: ${ORDER_COMPLETION_SCAN_INTERVAL:PT1M}
   storage:
     listing-images:
       region: ${AWS_REGION:ap-northeast-2}
-      bucket: ${SETTY_S3_BUCKET:setty-listing-local}
-      public-base-url: ${SETTY_S3_PUBLIC_BASE_URL:https://setty-listing-local.s3.ap-northeast-2.amazonaws.com}
+      bucket: ${SETTY_S3_BUCKET:techcourse-project-2026}
+      public-base-url: ${SETTY_S3_PUBLIC_BASE_URL:https://techcourse-project-2026.s3.ap-northeast-2.amazonaws.com}
+  delivery-fee:
+    # 배송비 = 기본 요금 + (부피 구간 × 구간당 단계 + 거리 단계) × 단계당 금액.
+    # 거리 단계는 무료 거리까지 0, 이후 단계 거리마다 1. 기본값은 거리 0일 때 기존 부피 요금(1만/2만/3만 원)과 같아지도록 잡았다.
+    base-fee: ${DELIVERY_FEE_BASE:10000}
+    step-price: ${DELIVERY_FEE_STEP_PRICE:5000}
+    volume-tier-steps: ${DELIVERY_FEE_VOLUME_TIER_STEPS:2}
+    free-distance-meters: ${DELIVERY_FEE_FREE_DISTANCE_METERS:3000}
+    step-distance-meters: ${DELIVERY_FEE_STEP_DISTANCE_METERS:3000}
   payment:
     # 결제 성공/실패 복귀(GET /payments/success·/fail) 처리 후 브라우저를 돌려보낼 프론트 주소.
     client-redirect-url: ${PAYMENT_CLIENT_REDIRECT_URL:http://localhost:3000}
     toss:
       # 토스페이먼츠 결제위젯 공개 테스트 시크릿키(문서 공개값, 비밀 아님). 실제 결제는 붙이지 않는다.
-      # 클라 위젯 클라이언트 키(test_gck_docs_Ovk5rk1…)와 짝이 되는 위젯 시크릿(gsk). 쌍이 맞아야 승인이 통과한다.
-      secret-key: ${TOSS_SECRET_KEY:test_gsk_docs_Ovk5rk1EwkEbP0W43n07xlzm}
+      # 공식 샘플: https://github.com/tosspayments/tosspayments-sample/blob/main/express-react/server.js
+      # 클라이언트 키의 gck를 gsk로 바꾸어 시크릿 키를 만들 수 없다. 공식 키 쌍을 사용한다.
+      secret-key: ${TOSS_SECRET_KEY:test_gsk_docs_OaPz8L5KdmQXkzRz3y47BMw6}
       base-url: ${TOSS_BASE_URL:https://api.tosspayments.com}

@@ -19,6 +19,7 @@ import setty.global.exception.ErrorCode;
 public class Order {
 
     private static final Duration DEFAULT_PENDING_TIMEOUT = Duration.ofMinutes(6);
+    public static final Duration COMPLETION_WAITING_PERIOD = Duration.ofDays(3);
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -46,6 +47,23 @@ public class Order {
 
     @Column(name = "pending_expires_at")
     private Instant pendingExpiresAt;
+
+    // 배송 모듈의 이벤트로 동기화된 시각. DELIVERED는 마지막 배송 상태라 배송 완료 후에는 배송 완료 시각으로 고정된다.
+    @Column(name = "delivery_status_changed_at")
+    private Instant deliveryStatusChangedAt;
+
+    // 주문 시점 값. 이후 회원정보·매물 배송비가 바뀌어도 결제·배송·정산은 이 값을 쓴다. 도입 전 주문은 NULL이다.
+    @Column(name = "delivery_fee", updatable = false)
+    private Integer deliveryFee;
+
+    @Column(name = "delivery_dong_code", length = 10, updatable = false)
+    private String deliveryDongCode;
+
+    @Column(name = "delivery_address", length = 200, updatable = false)
+    private String deliveryAddress;
+
+    @Column(name = "delivery_phone_number", length = 13, updatable = false)
+    private String deliveryPhoneNumber;
 
     protected Order() {
     }
@@ -123,6 +141,23 @@ public class Order {
         return order;
     }
 
+    public static Order pending(
+            final Long listingId,
+            final Long buyerId,
+            final Instant pendingExpiresAt,
+            final int deliveryFee,
+            final String deliveryDongCode,
+            final String deliveryAddress,
+            final String deliveryPhoneNumber
+    ) {
+        final Order order = pending(listingId, buyerId, pendingExpiresAt);
+        order.deliveryFee = deliveryFee;
+        order.deliveryDongCode = deliveryDongCode;
+        order.deliveryAddress = deliveryAddress;
+        order.deliveryPhoneNumber = deliveryPhoneNumber;
+        return order;
+    }
+
     public boolean canExpire(final Instant referenceTime) {
         return orderStatus == OrderStatus.PENDING
                 && pendingExpiresAt != null
@@ -144,14 +179,39 @@ public class Order {
 
     // 직전 상태에서 한 단계 전진만 허용,
     // 같은 상태 중복 이벤트는 무시(멱등), 그 외 불일치는 예외 — 버그를 조용히 삼키지 않는다.
-    public void syncDeliveryStatus(final DeliveryStatus newStatus) {
+    public void syncDeliveryStatus(final DeliveryStatus newStatus, final Instant changedAt) {
         if (this.deliveryStatus == newStatus) {
             return;
         }
         if (this.deliveryStatus != expectedPreviousStatusOf(newStatus)) {
             throw new BusinessException(ErrorCode.ORDER_DELIVERY_STATUS_MISMATCH);
         }
+        if (changedAt == null) {
+            throw new BusinessException(ErrorCode.INVALID_REQUEST);
+        }
         this.deliveryStatus = newStatus;
+        this.deliveryStatusChangedAt = changedAt;
+    }
+
+    // 배송 완료된 주문만 판매 완료할 수 있다. 이미 판매 완료된 주문이면 false.
+    public boolean complete() {
+        if (orderStatus == OrderStatus.COMPLETED) {
+            return false;
+        }
+        if (orderStatus != OrderStatus.CONFIRMED || deliveryStatus != DeliveryStatus.DELIVERED) {
+            throw new BusinessException(ErrorCode.INVALID_ORDER_STATUS_TRANSITION);
+        }
+        this.orderStatus = OrderStatus.COMPLETED;
+        return true;
+    }
+
+    // 취소 대기 중인 주문은 취소 결과가 나와 CONFIRMED로 돌아온 뒤에 자동 확정한다.
+    public boolean canAutoComplete(final Instant referenceTime) {
+        return orderStatus == OrderStatus.CONFIRMED
+                && deliveryStatus == DeliveryStatus.DELIVERED
+                && deliveryStatusChangedAt != null
+                && referenceTime != null
+                && !deliveryStatusChangedAt.plus(COMPLETION_WAITING_PERIOD).isAfter(referenceTime);
     }
 
     private DeliveryStatus expectedPreviousStatusOf(final DeliveryStatus newStatus) {
@@ -196,5 +256,25 @@ public class Order {
 
     public Instant getPendingExpiresAt() {
         return pendingExpiresAt;
+    }
+
+    public Instant getDeliveryStatusChangedAt() {
+        return deliveryStatusChangedAt;
+    }
+
+    public Integer getDeliveryFee() {
+        return deliveryFee;
+    }
+
+    public String getDeliveryDongCode() {
+        return deliveryDongCode;
+    }
+
+    public String getDeliveryAddress() {
+        return deliveryAddress;
+    }
+
+    public String getDeliveryPhoneNumber() {
+        return deliveryPhoneNumber;
     }
 }

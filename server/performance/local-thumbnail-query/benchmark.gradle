@@ -1,0 +1,15 @@
+// Explicit local experiment only; this source directory is not part of normal CI tests.
+def experimentDirectory = gradle.startParameter.initScripts
+        .find { it.name == 'benchmark.gradle' }.parentFile
+allprojects {
+    plugins.withId('java') {
+        sourceSets.test.java.srcDir(new File(experimentDirectory, 'src/test/java'))
+        tasks.named('test') {
+            useJUnitPlatform { includeTags 'local-thumbnail-query' }
+            systemProperty 'thumbnail.benchmark.output',
+                    gradle.startParameter.systemPropertiesArgs.get('thumbnail.benchmark.output',
+                            'build/reports/thumbnail-query-comparison')
+            testLogging { events 'passed', 'failed', 'standardOut'; exceptionFormat 'full' }
+        }
+    }
+}

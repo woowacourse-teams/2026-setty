@@ -46,14 +46,21 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.aksworns22.setty.feature.common.LoadUiState
+import com.aksworns22.setty.feature.dong.DongCatalog
+import com.aksworns22.setty.feature.dong.DongField
+import com.aksworns22.setty.feature.dong.DongPickerViewModel
+import com.aksworns22.setty.model.Dong
 import com.aksworns22.setty.ui.theme.SettyTheme
 
 @Composable
 fun SignUpScreen(
     onSignUpSuccess: () -> Unit,
-    viewModel: SignUpViewModel = viewModel(factory = SignUpViewModel.Factory)
+    viewModel: SignUpViewModel = viewModel(factory = SignUpViewModel.Factory),
+    dongPickerViewModel: DongPickerViewModel = viewModel(factory = DongPickerViewModel.Factory),
 ) {
     val uiState = viewModel.uiState.collectAsStateWithLifecycle()
+    val dongCatalog = dongPickerViewModel.catalog.collectAsStateWithLifecycle()
     val snackbarHostState: SnackbarHostState = remember { SnackbarHostState() }
     LaunchedEffect(Unit) {
         viewModel.event.collect { event ->
@@ -70,6 +77,10 @@ fun SignUpScreen(
                     snackbarHostState.showSnackbar("입력한 정보를 다시 확인해주세요")
                 }
 
+                SignUpEvent.UNSUPPORTED_DONG -> {
+                    snackbarHostState.showSnackbar("배송 가능 지역이 아닙니다. 행정동을 다시 골라주세요")
+                }
+
                 SignUpEvent.NETWORK_ERROR -> {
                     snackbarHostState.showSnackbar("네트워크 에러가 발생했습니다")
                 }
@@ -82,11 +93,14 @@ fun SignUpScreen(
     }
     SignUpContent(
         uiState = uiState.value,
+        dongCatalog = dongCatalog.value,
         onLoginIdChanged = viewModel::onLoginIdChanged,
         onPasswordChanged = viewModel::onPasswordChanged,
         onPasswordConfirmChanged = viewModel::onPasswordConfirmChanged,
         onPhoneNumberChanged = viewModel::onPhoneNumberChanged,
         onAddressChanged = viewModel::onAddressChanged,
+        onDongSelected = viewModel::onDongSelected,
+        onRetryDongs = dongPickerViewModel::load,
         onSignUp = viewModel::signUp,
         snackbarHostState = snackbarHostState,
     )
@@ -96,11 +110,14 @@ fun SignUpScreen(
 @Composable
 private fun SignUpContent(
     uiState: SignUpUiState,
+    dongCatalog: LoadUiState<DongCatalog>,
     onLoginIdChanged: (String) -> Unit,
     onPasswordChanged: (String) -> Unit,
     onPasswordConfirmChanged: (String) -> Unit,
     onPhoneNumberChanged: (String) -> Unit,
     onAddressChanged: (String) -> Unit,
+    onDongSelected: (Dong) -> Unit,
+    onRetryDongs: () -> Unit,
     onSignUp: () -> Unit,
     snackbarHostState: SnackbarHostState,
     modifier: Modifier = Modifier
@@ -189,6 +206,13 @@ private fun SignUpContent(
                             keyboardType = KeyboardType.Phone,
                             imeAction = ImeAction.Next,
                         ),
+                    )
+                    DongField(
+                        catalog = dongCatalog,
+                        selectedCode = uiState.dongCode,
+                        onDongSelected = onDongSelected,
+                        onRetry = onRetryDongs,
+                        enabled = !uiState.isLoading,
                     )
                     SignUpTextField(
                         value = uiState.address,
@@ -306,12 +330,12 @@ private fun PhoneNumberTextField(
     )
 }
 
-private val PhoneNumberInputTransformation = InputTransformation {
+internal val PhoneNumberInputTransformation = InputTransformation {
     val digits = asCharSequence().filter(Char::isDigit).take(SignUpViewModel.PHONE_NUMBER_MAX_DIGITS).toString()
     if (digits != asCharSequence().toString()) replace(0, length, digits)
 }
 
-private val PhoneNumberOutputTransformation = OutputTransformation {
+internal val PhoneNumberOutputTransformation = OutputTransformation {
     if (length > 3) insert(3, "-")
     if (length > 8) insert(8, "-")
 }
@@ -335,12 +359,16 @@ private fun SignUpContentPreview() {
                 passwordConfirm = "password1",
                 phoneNumber = "01000000000",
                 address = "서울시 가상구 테스트로 1",
+                dongCode = "1111051500",
             ),
+            dongCatalog = PreviewDongCatalog,
             onLoginIdChanged = {},
             onPasswordChanged = {},
             onPasswordConfirmChanged = {},
             onPhoneNumberChanged = {},
             onAddressChanged = {},
+            onDongSelected = {},
+            onRetryDongs = {},
             onSignUp = {},
             snackbarHostState = SnackbarHostState(),
         )
@@ -358,13 +386,20 @@ private fun SignUpContentErrorPreview() {
                 passwordConfirm = "shorter",
                 phoneNumber = "01000",
             ),
+            dongCatalog = PreviewDongCatalog,
             onLoginIdChanged = {},
             onPasswordChanged = {},
             onPasswordConfirmChanged = {},
             onPhoneNumberChanged = {},
             onAddressChanged = {},
+            onDongSelected = {},
+            onRetryDongs = {},
             onSignUp = {},
             snackbarHostState = SnackbarHostState(),
         )
     }
 }
+
+private val PreviewDongCatalog = LoadUiState.Success(
+    DongCatalog(listOf(Dong(code = "1111051500", name = "청운효자동", district = "종로구")))
+)

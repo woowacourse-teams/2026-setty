@@ -28,7 +28,7 @@ public class SyncOrderDeliveryStatusService {
         validateEvent(deliveryId, orderId, changedAt, newStatus);
         final Order order = orderRepository.findByIdForUpdate(orderId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
-        order.syncDeliveryStatus(newStatus);
+        order.syncDeliveryStatus(newStatus, changedAt);
     }
 
     private void validateEvent(

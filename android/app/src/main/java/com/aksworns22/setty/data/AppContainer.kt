@@ -2,8 +2,14 @@ package com.aksworns22.setty.data
 
 import android.content.Context
 import com.aksworns22.setty.BuildConfig
+import com.aksworns22.setty.di.NetworkInterceptorsEntryPoint
 import com.aksworns22.setty.network.AuthInterceptor
+import com.aksworns22.setty.network.BasePathInterceptor
 import com.aksworns22.setty.network.SettyNetworkApi
+import dagger.hilt.android.EntryPointAccessors
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -14,6 +20,11 @@ import retrofit2.converter.kotlinx.serialization.asConverterFactory
 class AppContainer(
     private val context: Context
 ) {
+    private val extraInterceptors =
+        EntryPointAccessors.fromApplication(context, NetworkInterceptorsEntryPoint::class.java)
+            .interceptors()
+    val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
     private val tokenLocalDataSource =
         TokenLocalDataSource(context.applicationContext)
 
@@ -27,7 +38,9 @@ class AppContainer(
                     level = HttpLoggingInterceptor.Level.BODY
                 })
             }
+            addInterceptor(BasePathInterceptor(BuildConfig.BASE_URL))
             addInterceptor(authInterceptor)
+            extraInterceptors.forEach(::addInterceptor)
         }
         .build()
     private val retrofit: Retrofit =
@@ -43,7 +56,36 @@ class AppContainer(
         tokenLocalDataSource = tokenLocalDataSource,
     )
 
-    val listingRepository = ListingRepository(
+    val furnitureRepository = FurnitureRepository(
+        settyNetworkApi = settyNetworkApi,
+        listingImageReader = ListingImageReader(context.applicationContext),
+    )
+
+    val favoriteRepository = FavoriteRepository(
+        settyNetworkApi = settyNetworkApi,
+    )
+
+    val orderRepository = OrderRepository(
+        settyNetworkApi = settyNetworkApi,
+    )
+
+    val paymentRepository = PaymentRepository(
+        settyNetworkApi = settyNetworkApi,
+    )
+
+    val deviceTokenRepository = DeviceTokenRepository(
+        settyNetworkApi = settyNetworkApi,
+    )
+
+    val notificationRepository = NotificationRepository(
+        settyNetworkApi = settyNetworkApi,
+    )
+
+    val dongRepository = DongRepository(
+        settyNetworkApi = settyNetworkApi,
+    )
+
+    val keywordRepository = KeywordRepository(
         settyNetworkApi = settyNetworkApi,
     )
 }

@@ -17,6 +17,9 @@ public final class ListingView {
     public record Image(Long id, String url, Integer displayOrder) {
     }
 
+    public record Dong(String code, String name, String district) {
+    }
+
     public record Summary(
             Long id,
             String title,
@@ -27,8 +30,13 @@ public final class ListingView {
             ListingCategory category,
             ConditionGrade conditionGrade,
             Dimensions dimensions,
-            Instant createdAt
+            boolean hasPurchaseRequest,
+            Instant createdAt,
+            Dong dong
     ) {
+    }
+
+    public record SummaryPage(List<Summary> items, String nextCursor) {
     }
 
     public record Detail(
@@ -42,9 +50,11 @@ public final class ListingView {
             ConditionGrade conditionGrade,
             Dimensions dimensions,
             SaleStatus saleStatus,
+            boolean hasPurchaseRequest,
             List<Image> images,
             Instant createdAt,
-            Instant updatedAt
+            Instant updatedAt,
+            Dong dong
     ) {
     }
 
@@ -62,7 +72,8 @@ public final class ListingView {
             boolean hasPurchaseRequest,
             boolean canUpdate,
             boolean canDelete,
-            Instant createdAt
+            Instant createdAt,
+            Dong dong
     ) {
     }
 

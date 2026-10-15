@@ -1,9 +1,13 @@
 package com.aksworns22.setty.data
 
+import com.aksworns22.setty.model.Member
+import com.aksworns22.setty.network.AboutMeResponse
+import com.aksworns22.setty.network.DongUpdateRequest
 import com.aksworns22.setty.network.LoginRequest
+import com.aksworns22.setty.network.MemberUpdateRequest
 import com.aksworns22.setty.network.SettyNetworkApi
 import com.aksworns22.setty.network.SignUpRequest
-import com.aksworns22.setty.network.toApiException
+import com.aksworns22.setty.network.apiCall
 import retrofit2.HttpException
 import java.io.IOException
 
@@ -12,7 +16,7 @@ class UserRepository(
     private val tokenLocalDataSource: TokenLocalDataSource
 ) {
     suspend fun login(username: String, password: String) {
-        val result = settyNetworkApi.login(LoginRequest(username, password))
+        val result = apiCall { settyNetworkApi.login(LoginRequest(username, password)) }
         tokenLocalDataSource.writeCredentialToken(result.token)
     }
 
@@ -21,18 +25,20 @@ class UserRepository(
         password: String,
         phoneNumber: String,
         address: String,
+        dongCode: String,
     ) {
-        try {
-            settyNetworkApi.signUp(SignUpRequest(loginId, password, phoneNumber, address))
-        } catch (e: HttpException) {
-            throw e.toApiException()
-        }
+        apiCall { settyNetworkApi.signUp(SignUpRequest(loginId, password, phoneNumber, address, dongCode)) }
     }
 
-    suspend fun aboutMe() {
-        settyNetworkApi.aboutMe()
-    }
+    suspend fun getMe(): Member = apiCall { settyNetworkApi.aboutMe() }.toMember()
 
+    suspend fun updateMe(phoneNumber: String, address: String): Member =
+        apiCall { settyNetworkApi.updateMe(MemberUpdateRequest(phoneNumber, address)) }.toMember()
+
+    suspend fun updateDong(dongCode: String): Member =
+        apiCall { settyNetworkApi.updateDong(DongUpdateRequest(dongCode)) }.toMember()
+
+    /** 서버 응답과 상관없이 저장한 토큰을 지운다. */
     suspend fun logout() {
         try {
             settyNetworkApi.logout()
@@ -45,3 +51,11 @@ class UserRepository(
         }
     }
 }
+
+private fun AboutMeResponse.toMember() = Member(
+    id = id.toLong(),
+    loginId = loginId,
+    phoneNumber = phoneNumber,
+    address = address,
+    dongCode = dongCode,
+)

@@ -19,6 +19,7 @@ class ListingTest {
 
         Listing listing = Listing.create(
                 SELLER_ID,
+                "1111053000",
                 "  원목 의자  ",
                 "  가상 판매용 설명입니다.  ",
                 40_000,
@@ -51,6 +52,7 @@ class ListingTest {
         assertBusinessError(
                 () -> Listing.create(
                         null,
+                        "1111053000",
                         "원목 의자",
                         "가상 판매용 설명입니다.",
                         40_000,
@@ -63,6 +65,7 @@ class ListingTest {
         assertBusinessError(
                 () -> Listing.create(
                         SELLER_ID,
+                        "1111053000",
                         "   ",
                         "가상 판매용 설명입니다.",
                         40_000,
@@ -75,6 +78,7 @@ class ListingTest {
         assertBusinessError(
                 () -> Listing.create(
                         SELLER_ID,
+                        "1111053000",
                         "원목 의자",
                         "가상 판매용 설명입니다.",
                         -1,
@@ -242,6 +246,7 @@ class ListingTest {
     private static Listing createListing() {
         return Listing.create(
                 SELLER_ID,
+                "1111053000",
                 "원목 의자",
                 "가상 판매용 설명입니다.",
                 40_000,

@@ -1,5 +1,5 @@
 // 토스페이먼츠 결제위젯 테스트 클라이언트 키(공개 docs 키). 실제 결제는 붙이지 않는다.
-// 서버는 짝이 되는 위젯 시크릿 키(test_gsk_docs_Ovk5rk1…)로 승인을 호출한다. 목 모드에서는 사용되지 않는다.
+// 서버 승인 키의 기본값은 server/src/main/resources/application.yml을 참조한다. 목 모드에서는 사용되지 않는다.
 export const TOSS_CLIENT_KEY = 'test_gck_docs_Ovk5rk1EwkEbP0W43n07xlzm';
 
 /**
@@ -9,8 +9,13 @@ export const TOSS_CLIENT_KEY = 'test_gck_docs_Ovk5rk1EwkEbP0W43n07xlzm';
  *
  * 주의: /payments/** 는 SPA가 아니라 백엔드로 라우팅돼야 한다(배포 리버스 프록시 설정).
  */
-export function paymentReturnUrl(result: 'success' | 'fail'): string {
-    return `${window.location.origin}/payments/${result}`;
+export function paymentReturnUrl(result: 'success' | 'fail', fallbackOrderId?: string): string {
+    const url = new URL(`/payments/${result}`, window.location.origin);
+    if (fallbackOrderId) {
+        // Toss omits orderId when the customer cancels before authentication.
+        url.searchParams.set('fallbackOrderId', fallbackOrderId);
+    }
+    return url.toString();
 }
 
 /** 목 모드: 서버 없이 결제 성공 복귀(SPA ?payment=success)를 흉내낸다. */

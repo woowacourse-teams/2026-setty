@@ -3,6 +3,7 @@ package setty.platform.order.domain;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.time.Duration;
 import java.time.Instant;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -13,6 +14,8 @@ import setty.global.exception.BusinessException;
 import setty.global.exception.ErrorCode;
 
 class OrderTest {
+
+    private static final Instant CHANGED_AT = Instant.parse("2026-10-06T01:00:00Z");
 
     @Test
     void 결제_대기_주문은_PENDING으로_생성된다() {
@@ -78,7 +81,7 @@ class OrderTest {
     void 결제_대기_주문에_배송_이벤트가_오면_거부된다() {
         final Order order = Order.pending(1L, 2L);
 
-        assertThatThrownBy(() -> order.syncDeliveryStatus(DeliveryStatus.ACCEPTED))
+        assertThatThrownBy(() -> order.syncDeliveryStatus(DeliveryStatus.ACCEPTED, CHANGED_AT))
                 .isInstanceOf(BusinessException.class)
                 .extracting(e -> ((BusinessException) e).getErrorCode())
                 .isEqualTo(ErrorCode.ORDER_DELIVERY_STATUS_MISMATCH);
@@ -89,11 +92,11 @@ class OrderTest {
     void 순방향_전이는_순서대로_반영된다() {
         final Order order = new Order(1L, 2L);
 
-        order.syncDeliveryStatus(DeliveryStatus.ACCEPTED);
+        order.syncDeliveryStatus(DeliveryStatus.ACCEPTED, CHANGED_AT);
         assertThat(order.getDeliveryStatus()).isEqualTo(DeliveryStatus.ACCEPTED);
-        order.syncDeliveryStatus(DeliveryStatus.PICKED_UP);
+        order.syncDeliveryStatus(DeliveryStatus.PICKED_UP, CHANGED_AT);
         assertThat(order.getDeliveryStatus()).isEqualTo(DeliveryStatus.PICKED_UP);
-        order.syncDeliveryStatus(DeliveryStatus.DELIVERED);
+        order.syncDeliveryStatus(DeliveryStatus.DELIVERED, CHANGED_AT);
         assertThat(order.getDeliveryStatus()).isEqualTo(DeliveryStatus.DELIVERED);
     }
 
@@ -101,7 +104,7 @@ class OrderTest {
     void 중간_단계를_건너뛴_전이는_거부된다() {
         final Order order = new Order(1L, 2L);
 
-        assertThatThrownBy(() -> order.syncDeliveryStatus(DeliveryStatus.DELIVERED))
+        assertThatThrownBy(() -> order.syncDeliveryStatus(DeliveryStatus.DELIVERED, CHANGED_AT))
                 .isInstanceOf(BusinessException.class)
                 .extracting(e -> ((BusinessException) e).getErrorCode())
                 .isEqualTo(ErrorCode.ORDER_DELIVERY_STATUS_MISMATCH);
@@ -111,9 +114,9 @@ class OrderTest {
     @Test
     void 같은_상태_중복_이벤트는_무시된다() {
         final Order order = new Order(1L, 2L);
-        order.syncDeliveryStatus(DeliveryStatus.ACCEPTED);
+        order.syncDeliveryStatus(DeliveryStatus.ACCEPTED, CHANGED_AT);
 
-        order.syncDeliveryStatus(DeliveryStatus.ACCEPTED);
+        order.syncDeliveryStatus(DeliveryStatus.ACCEPTED, CHANGED_AT);
 
         assertThat(order.getDeliveryStatus()).isEqualTo(DeliveryStatus.ACCEPTED);
     }
@@ -121,10 +124,10 @@ class OrderTest {
     @Test
     void 역행_이벤트는_거부된다() {
         final Order order = new Order(1L, 2L);
-        order.syncDeliveryStatus(DeliveryStatus.ACCEPTED);
-        order.syncDeliveryStatus(DeliveryStatus.PICKED_UP);
+        order.syncDeliveryStatus(DeliveryStatus.ACCEPTED, CHANGED_AT);
+        order.syncDeliveryStatus(DeliveryStatus.PICKED_UP, CHANGED_AT);
 
-        assertThatThrownBy(() -> order.syncDeliveryStatus(DeliveryStatus.ACCEPTED))
+        assertThatThrownBy(() -> order.syncDeliveryStatus(DeliveryStatus.ACCEPTED, CHANGED_AT))
                 .isInstanceOf(BusinessException.class)
                 .extracting(e -> ((BusinessException) e).getErrorCode())
                 .isEqualTo(ErrorCode.ORDER_DELIVERY_STATUS_MISMATCH);
@@ -135,7 +138,7 @@ class OrderTest {
     void null_상태는_거부된다() {
         final Order order = new Order(1L, 2L);
 
-        assertThatThrownBy(() -> order.syncDeliveryStatus(null))
+        assertThatThrownBy(() -> order.syncDeliveryStatus(null, CHANGED_AT))
                 .isInstanceOf(BusinessException.class)
                 .extracting(e -> ((BusinessException) e).getErrorCode())
                 .isEqualTo(ErrorCode.INVALID_REQUEST);
@@ -155,7 +158,7 @@ class OrderTest {
     void 배송이_진행된_결제완료_주문도_중복_배송요청을_무시한다() {
         final Order order = Order.pending(1L, 2L);
         order.requestDelivery();
-        order.syncDeliveryStatus(DeliveryStatus.ACCEPTED);
+        order.syncDeliveryStatus(DeliveryStatus.ACCEPTED, CHANGED_AT);
 
         assertThat(order.requestDelivery()).isFalse();
         assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.CONFIRMED);
@@ -224,5 +227,57 @@ class OrderTest {
                 .extracting(e -> ((BusinessException) e).getErrorCode())
                 .isEqualTo(ErrorCode.INVALID_ORDER_STATUS_TRANSITION);
         assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.PENDING);
+    }
+
+    @Test
+    void 배송_완료_후_3일이_지나면_자동_판매_완료할_수_있다() {
+        final Order order = deliveredOrder();
+
+        assertThat(order.getDeliveryStatusChangedAt()).isEqualTo(CHANGED_AT);
+        assertThat(order.canAutoComplete(CHANGED_AT.plus(Duration.ofDays(3)).minusNanos(1))).isFalse();
+        assertThat(order.canAutoComplete(CHANGED_AT.plus(Duration.ofDays(3)))).isTrue();
+    }
+
+    @Test
+    void 배송_완료된_주문은_판매_완료할_수_있다() {
+        final Order order = deliveredOrder();
+
+        assertThat(order.complete()).isTrue();
+        assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.COMPLETED);
+        assertThat(order.complete()).isFalse();
+        assertThat(order.canAutoComplete(CHANGED_AT.plus(Duration.ofDays(3)))).isFalse();
+    }
+
+    @Test
+    void 배송_완료_전에는_판매_완료할_수_없다() {
+        final Order order = new Order(1L, 2L);
+        order.syncDeliveryStatus(DeliveryStatus.ACCEPTED, CHANGED_AT);
+        order.syncDeliveryStatus(DeliveryStatus.PICKED_UP, CHANGED_AT);
+
+        assertThatThrownBy(() -> order.complete())
+                .isInstanceOf(BusinessException.class)
+                .extracting(e -> ((BusinessException) e).getErrorCode())
+                .isEqualTo(ErrorCode.INVALID_ORDER_STATUS_TRANSITION);
+        assertThat(order.canAutoComplete(CHANGED_AT.plus(Duration.ofDays(3)))).isFalse();
+    }
+
+    @Test
+    void 취소_대기_중인_주문은_판매_완료할_수_없다() {
+        final Order order = deliveredOrder();
+        order.requestCancellation("cancel-request-1");
+
+        assertThatThrownBy(() -> order.complete())
+                .isInstanceOf(BusinessException.class)
+                .extracting(e -> ((BusinessException) e).getErrorCode())
+                .isEqualTo(ErrorCode.INVALID_ORDER_STATUS_TRANSITION);
+        assertThat(order.canAutoComplete(CHANGED_AT.plus(Duration.ofDays(3)))).isFalse();
+    }
+
+    private static Order deliveredOrder() {
+        final Order order = new Order(1L, 2L);
+        order.syncDeliveryStatus(DeliveryStatus.ACCEPTED, CHANGED_AT);
+        order.syncDeliveryStatus(DeliveryStatus.PICKED_UP, CHANGED_AT);
+        order.syncDeliveryStatus(DeliveryStatus.DELIVERED, CHANGED_AT);
+        return order;
     }
 }

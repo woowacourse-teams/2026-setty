@@ -2,7 +2,8 @@ package setty.platform.member.controller.dto;
 
 import setty.platform.member.domain.Member;
 
-public record MemberMeResponse(Long id, String loginId, String role, String phoneNumber, String address) {
+public record MemberMeResponse(Long id, String loginId, String role, String phoneNumber, String address,
+                               String dongCode) {
 
     public static MemberMeResponse from(final Member member) {
         return new MemberMeResponse(
@@ -10,7 +11,8 @@ public record MemberMeResponse(Long id, String loginId, String role, String phon
                 member.getLoginId(),
                 member.getRole().name(),
                 member.getPhoneNumber(),
-                member.getAddress()
+                member.getAddress(),
+                member.getDongCode()
         );
     }
 }

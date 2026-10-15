@@ -1,10 +1,10 @@
 # 주문·매물 정책
 
-구매 시작부터 판매 완료 전까지의 주문 상태와 매물 점유를 정의한다. 결제 승인과 환불은 [결제 정책](payment.md), 배송 요청과 상태는 [배송 정책](delivery.md)을 따른다.
+구매 시작부터 판매 완료까지의 주문 상태와 매물 점유를 정의한다. 결제 승인과 환불은 [결제 정책](payment.md), 배송 요청과 상태는 [배송 정책](delivery.md)을 따른다.
 
 ## 상태 목록
 
-- 주문: `PENDING`, `CONFIRMED`, `CANCEL_PENDING`, `CANCELLED`, `EXPIRED`.
+- 주문: `PENDING`, `CONFIRMED`, `COMPLETED`, `CANCEL_PENDING`, `CANCELLED`, `EXPIRED`.
 - 매물: 구매 가능, 선점, 판매 중단, 판매 완료. 매물의 상태값 이름은 이 정책에서 정의하지 않는다.
 
 ## 목차
@@ -36,7 +36,7 @@ flowchart LR
     P["주문 PENDING<br/>매물 선점"]
     C["주문 CONFIRMED<br/>선점 유지"]
     E["주문 EXPIRED<br/>기록 보존"]
-    S["판매 완료"]
+    S["주문 COMPLETED<br/>판매 완료"]
 
     A -->|"구매 시작"| P
     P -->|"허용된 재결제<br/>주문 ID·만료 시각 유지"| P
@@ -57,9 +57,10 @@ flowchart LR
 | 구매자 | `CONFIRMED` 주문에서 취소 요청을 접수하고, 배송 취소 요청 처리 시 상태가 `REQUESTED`일 때 | 배송 취소 성공 후 주문과 배송 요청을 각각 `CANCELLED`로 보존 | 취소 확정 후 다시 구매 가능 |
 
 - 판매자 취소가 허용 조건에서 먼저 확정되면 뒤늦은 결제 승인 성공으로 주문 취소와 매물 판매 중단을 되돌리지 않는다. 승인된 결제의 처리는 [환불 정책](payment.md#환불)을 따른다.
-- 구매자 취소 요청을 접수하면 주문을 `CONFIRMED`에서 `CANCEL_PENDING`으로 전이하고 **취소 대기 중** 결과를 즉시 반환한다. 이 전이는 주문 상태만 판단하며 배송 상태는 검사하지 않는다. `CANCEL_PENDING`은 결제 전 주문의 `PENDING`과 구별한다. 취소가 확정되기 전까지 매물 선점을 유지한다.
+- 구매자 취소 요청을 접수하면 주문을 `CONFIRMED`에서 `CANCEL_PENDING`으로 전이하고 **취소 대기 중** 결과를 즉시 반환한다. 이 전이는 주문 상태만 판단하며 배송 상태는 검사하지 않는다. 취소 가능 여부는 배송 상태의 진실 공급원인 배송 영역이 판단한다. `CANCEL_PENDING`은 결제 전 주문의 `PENDING`과 구별한다. 취소가 확정되기 전까지 매물 선점을 유지한다.
 - 주문이 `CANCEL_PENDING`인 동안 같은 주문의 취소 요청이 다시 들어오면 새 취소를 시작하지 않고 **취소 대기 중** 결과를 반환한다.
 - 배송 요청이 없으면 주문을 `CANCELLED`로 확정한다. 배송 요청이 `REQUESTED`이면 배송 취소에 성공한 뒤 `CANCELLED`로 확정한다. 배송 요청이 `ACCEPTED` 이후라 취소가 거절되면 주문을 `CONFIRMED`로 되돌리고 매물 선점을 유지한다.
+- 판매 완료(`COMPLETED`)된 주문은 구매자 취소 요청을 접수하지 않는다.
 - 주문 취소가 확정되어 승인된 결제가 있다면 [환불 정책](payment.md#환불)을 따른다. 주문 취소 확정과 환불 완료는 별개의 결과다.
 
 배송 요청이 아직 생성되지 않았거나 생성에 실패한 주문에도 구매자 취소를 허용한다. 배송 요청 생성 실패의 복구와 고객 표시 기준은 [배송 정책의 확인 필요 항목](delivery.md#확인-필요)에 남겨 둔다.
@@ -98,15 +99,18 @@ flowchart LR
 | `CANCEL_PENDING` | 같은 주문의 취소 요청 재접수 | `CANCEL_PENDING` 유지 | 새 취소 없이 취소 대기 중 결과 반환 |
 | `CANCEL_PENDING` | 배송 요청이 없거나 `REQUESTED` 배송 취소 성공 | `CANCELLED` | 주문 보존, 매물 재공개 |
 | `CANCEL_PENDING` | 배송 취소 거절 | `CONFIRMED` | 취소 실패, 매물 선점 유지 |
+| `CONFIRMED` | 배송 `DELIVERED` 후 구매자 확인 | `COMPLETED` | 매물 판매 완료, 판매자·배송기사 정산 확정 |
+| `CONFIRMED` | 배송 `DELIVERED` 후 3일 경과 | `COMPLETED` | 매물 판매 완료, 판매자·배송기사 정산 확정 |
+| `CANCEL_PENDING` | 배송 `DELIVERED` 후 3일 경과 | `CANCEL_PENDING` 유지 | 자동 판매 완료 보류, 취소 거절로 `CONFIRMED`가 되면 확정 대상 |
+| `COMPLETED` | 구매자 취소 요청 | `COMPLETED` 유지 | 취소 요청을 접수하지 않음 |
 | `EXPIRED` | 뒤늦은 승인 성공 확인 | `EXPIRED` 유지 | 승인 결제 전액 환불 |
 | `CANCELLED` | 판매자 취소 확정 후 뒤늦은 승인 성공 확인 | `CANCELLED` 유지 | 승인 결제 전액 환불 |
 
-판매 완료 조건은 [판매 완료·정산 정책](completion-settlement.md)을 따른다. 판매 완료 시 주문 상태값은 [확인 필요](#확인-필요)에 기록한다.
+판매 완료 조건은 [판매 완료·정산 정책](completion-settlement.md)을 따른다.
 
 ## 확인 필요
 
 - 배송 취소에는 성공했지만 주문이 취소 확정 결과를 반영하지 못한 경우의 재처리와 고객 표시 기준을 정해야 한다.
-- 판매 완료 시 주문에 별도 상태값을 둘지 정해야 한다.
 
 ## 후순위 정책
 

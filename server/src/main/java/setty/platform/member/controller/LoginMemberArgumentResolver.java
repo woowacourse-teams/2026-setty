@@ -1,0 +1,37 @@
+package setty.platform.member.controller;
+
+import org.springframework.core.MethodParameter;
+import org.springframework.stereotype.Component;
+import org.springframework.web.bind.support.WebDataBinderFactory;
+import org.springframework.web.context.request.NativeWebRequest;
+import org.springframework.web.context.request.RequestAttributes;
+import org.springframework.web.method.support.HandlerMethodArgumentResolver;
+import org.springframework.web.method.support.ModelAndViewContainer;
+import setty.global.auth.LoginMember;
+import setty.global.exception.BusinessException;
+import setty.global.exception.ErrorCode;
+import setty.platform.member.domain.Member;
+
+@Component
+public class LoginMemberArgumentResolver implements HandlerMethodArgumentResolver {
+
+    @Override
+    public boolean supportsParameter(final MethodParameter parameter) {
+        return parameter.hasParameterAnnotation(LoginMember.class)
+                && (Member.class.isAssignableFrom(parameter.getParameterType())
+                || Long.class.equals(parameter.getParameterType()));
+    }
+
+    @Override
+    public Object resolveArgument(final MethodParameter parameter, final ModelAndViewContainer mavContainer,
+                                  final NativeWebRequest webRequest, final WebDataBinderFactory binderFactory) {
+        final Object member = webRequest.getAttribute(MemberAuthInterceptor.LOGIN_MEMBER, RequestAttributes.SCOPE_REQUEST);
+        if (member == null) {
+            throw new BusinessException(ErrorCode.INVALID_TOKEN);
+        }
+        if (Long.class.equals(parameter.getParameterType())) {
+            return ((Member) member).getId();
+        }
+        return member;
+    }
+}

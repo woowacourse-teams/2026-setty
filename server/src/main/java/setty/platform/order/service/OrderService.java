@@ -71,13 +71,18 @@ public class OrderService {
             throw new BusinessException(ErrorCode.ALREADY_ORDERED);
         }
 
-        listingService.registerPurchaseRequest(request.listingId(), buyer.getId());
+        final ListingView.PurchaseInfo purchase =
+                listingService.registerPurchaseRequest(request.listingId(), buyer.getId(), buyer.getDongCode());
 
         try {
             return orderRepository.saveAndFlush(Order.pending(
                     request.listingId(),
                     buyer.getId(),
-                    clock.instant().plus(pendingOrderExpirationProperties.timeout())
+                    clock.instant().plus(pendingOrderExpirationProperties.timeout()),
+                    purchase.deliveryFee(),
+                    buyer.getDongCode(),
+                    buyer.getAddress(),
+                    buyer.getPhoneNumber()
             ));
         } catch (final DataIntegrityViolationException e) {
             throw new BusinessException(ErrorCode.ALREADY_ORDERED);
@@ -107,15 +112,20 @@ public class OrderService {
         final Member buyer = memberRepository.findById(order.getBuyerId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.INTERNAL_ERROR));
 
+        // 배송지는 주문 시점 값을 쓴다(docs/policy/delivery.md). 도입 전 주문만 지금 회원 정보로 대신한다.
         eventPublisher.publishEvent(new OrderConfirmed(
                 order.getId(),
                 listing.getTitle(),
                 listing.getCategory().name(),
                 seller.getAddress(),
-                buyer.getAddress(),
-                listing.getDeliveryFee(),
+                order.getDeliveryAddress() == null ? buyer.getAddress() : order.getDeliveryAddress(),
+                order.getDeliveryFee() == null ? listing.getDeliveryFee() : order.getDeliveryFee(),
                 seller.getPhoneNumber(),
-                buyer.getPhoneNumber()
+                order.getDeliveryPhoneNumber() == null ? buyer.getPhoneNumber() : order.getDeliveryPhoneNumber(),
+                listing.getId(),
+                listing.getSellerId(),
+                listing.getPrice(),
+                order.getDeliveryDongCode()
         ));
     }
 
@@ -190,7 +200,7 @@ public class OrderService {
     public List<MyOrderResponse> findMyOrders(final Long buyerId) {
         final List<Order> orders = orderRepository.findAllByBuyerIdOrderByIdDesc(buyerId);
         final List<Long> listingIds = orders.stream().map(Order::getListingId).distinct().toList();
-        final Map<Long, ListingView.Summary> listings = listingService.findSummaries(listingIds).stream()
+        final Map<Long, ListingView.Summary> listings = listingService.findSummaries(listingIds, null).stream()
                 .collect(Collectors.toMap(ListingView.Summary::id, Function.identity()));
 
         return orders.stream()
@@ -202,7 +212,7 @@ public class OrderService {
     public MyOrderResponse findMyOrder(final Long orderId, final Long buyerId) {
         final Order order = orderRepository.findByIdAndBuyerId(orderId, buyerId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
-        final ListingView.Summary listing = listingService.findSummaries(List.of(order.getListingId())).stream()
+        final ListingView.Summary listing = listingService.findSummaries(List.of(order.getListingId()), null).stream()
                 .findFirst()
                 .orElse(null);
         return MyOrderResponse.of(order, listing);

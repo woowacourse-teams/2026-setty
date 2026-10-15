@@ -84,6 +84,8 @@ class OrderServiceTest {
         when(buyer.getId()).thenReturn(BUYER_ID);
         when(clock.instant()).thenReturn(createdAt);
         when(pendingOrderExpirationProperties.timeout()).thenReturn(timeout);
+        when(listingService.registerPurchaseRequest(LISTING_ID, BUYER_ID, null)).thenReturn(new ListingView.PurchaseInfo(
+                LISTING_ID, SELLER_ID, "가상 책상", ListingCategory.DESK, 150_000, 10_000, 160_000));
         when(orderRepository.saveAndFlush(any(Order.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -92,7 +94,57 @@ class OrderServiceTest {
         assertThat(order.getDeliveryStatus()).isEqualTo(DeliveryStatus.PENDING);
         assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.PENDING);
         assertThat(order.getPendingExpiresAt()).isEqualTo(createdAt.plus(timeout));
-        verify(listingService).registerPurchaseRequest(LISTING_ID, BUYER_ID);
+        verify(listingService).registerPurchaseRequest(LISTING_ID, BUYER_ID, null);
+    }
+
+    @Test
+    void 결제_대기_주문에_주문_시점_배송비와_배송지를_저장한다() {
+        final Member buyer = mock(Member.class);
+        when(buyer.getId()).thenReturn(BUYER_ID);
+        when(buyer.getDongCode()).thenReturn("1111053000");
+        when(buyer.getAddress()).thenReturn("구매자 주소");
+        when(buyer.getPhoneNumber()).thenReturn("010-0000-0002");
+        when(clock.instant()).thenReturn(Instant.parse("2026-09-02T05:00:00Z"));
+        when(pendingOrderExpirationProperties.timeout()).thenReturn(Duration.ofMinutes(6));
+        when(listingService.registerPurchaseRequest(LISTING_ID, BUYER_ID, "1111053000")).thenReturn(new ListingView.PurchaseInfo(
+                LISTING_ID, SELLER_ID, "가상 책상", ListingCategory.DESK, 150_000, 25_000, 175_000));
+        when(orderRepository.saveAndFlush(any(Order.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        final Order order = orderService.pending(new OrderCreateRequest(LISTING_ID), buyer);
+
+        assertThat(order.getDeliveryFee()).isEqualTo(25_000);
+        assertThat(order.getDeliveryDongCode()).isEqualTo("1111053000");
+        assertThat(order.getDeliveryAddress()).isEqualTo("구매자 주소");
+        assertThat(order.getDeliveryPhoneNumber()).isEqualTo("010-0000-0002");
+    }
+
+    @Test
+    void 주문에_저장한_배송비와_배송지로_배송요청_이벤트를_발행한다() {
+        final Order order = Order.pending(LISTING_ID, BUYER_ID, Instant.now().plusSeconds(60),
+                25_000, "1111053000", "주문 때 주소", "010-1111-2222");
+        ReflectionTestUtils.setField(order, "id", ORDER_ID);
+        final Listing listing = mock(Listing.class);
+        when(listing.getId()).thenReturn(LISTING_ID);
+        when(listing.getSellerId()).thenReturn(SELLER_ID);
+        when(listing.getTitle()).thenReturn("가상 책상");
+        when(listing.getPrice()).thenReturn(150_000);
+        when(listing.getCategory()).thenReturn(ListingCategory.DESK);
+        when(orderRepository.findByIdForUpdate(ORDER_ID)).thenReturn(Optional.of(order));
+        when(listingRepository.findById(LISTING_ID)).thenReturn(Optional.of(listing));
+        final Member seller = member("판매자 주소", "010-0000-0001");
+        // 결제 뒤 구매자가 주소를 바꿨어도 주문 때 값을 쓴다
+        final Member buyer = mock(Member.class);
+        when(memberRepository.findById(SELLER_ID)).thenReturn(Optional.of(seller));
+        when(memberRepository.findById(BUYER_ID)).thenReturn(Optional.of(buyer));
+
+        orderService.publishOrderConfirmed(ORDER_ID);
+
+        final ArgumentCaptor<OrderConfirmed> eventCaptor = ArgumentCaptor.forClass(OrderConfirmed.class);
+        verify(eventPublisher).publishEvent(eventCaptor.capture());
+        assertThat(eventCaptor.getValue()).isEqualTo(new OrderConfirmed(
+                ORDER_ID, "가상 책상", ListingCategory.DESK.name(), "판매자 주소", "주문 때 주소",
+                25_000, "010-0000-0001", "010-1111-2222", LISTING_ID, SELLER_ID, 150_000, "1111053000"));
     }
 
     @Test
@@ -120,7 +172,11 @@ class OrderServiceTest {
                 "구매자 주소",
                 10_000,
                 "010-0000-0001",
-                "010-0000-0002"
+                "010-0000-0002",
+                LISTING_ID,
+                SELLER_ID,
+                150_000,
+                null
         ));
         verify(orderRepository).findByIdForUpdate(ORDER_ID);
     }
@@ -280,10 +336,12 @@ class OrderServiceTest {
                 ListingCategory.DESK,
                 ConditionGrade.A,
                 new ListingView.Dimensions(120, 60, 75),
-                Instant.parse("2026-09-03T00:00:00Z")
+                false,
+                Instant.parse("2026-09-03T00:00:00Z"),
+                null
         );
         when(orderRepository.findAllByBuyerIdOrderByIdDesc(BUYER_ID)).thenReturn(List.of(order));
-        when(listingService.findSummaries(List.of(LISTING_ID))).thenReturn(List.of(listing));
+        when(listingService.findSummaries(List.of(LISTING_ID), null)).thenReturn(List.of(listing));
 
         final List<MyOrderResponse> responses = orderService.findMyOrders(BUYER_ID);
 
@@ -305,11 +363,12 @@ class OrderServiceTest {
         final ListingView.Summary listing = new ListingView.Summary(
                 LISTING_ID, "가상 책상", null, 100_000, 10_000, 110_000,
                 ListingCategory.DESK, ConditionGrade.A,
-                new ListingView.Dimensions(120, 60, 75), Instant.parse("2026-09-03T00:00:00Z")
+                new ListingView.Dimensions(120, 60, 75), false, Instant.parse("2026-09-03T00:00:00Z"),
+                null
         );
         when(orderRepository.findAllByBuyerIdOrderByIdDesc(BUYER_ID))
                 .thenReturn(List.of(nextOrder, cancelledOrder));
-        when(listingService.findSummaries(any())).thenAnswer(invocation -> {
+        when(listingService.findSummaries(any(), any())).thenAnswer(invocation -> {
             final List<Long> ids = invocation.getArgument(0);
             return ids.stream().map(id -> listing).toList();
         });
@@ -338,8 +397,10 @@ class OrderServiceTest {
 
     private static Listing listing() {
         final Listing listing = mock(Listing.class);
+        when(listing.getId()).thenReturn(LISTING_ID);
         when(listing.getSellerId()).thenReturn(SELLER_ID);
         when(listing.getTitle()).thenReturn("가상 책상");
+        when(listing.getPrice()).thenReturn(150_000);
         when(listing.getCategory()).thenReturn(ListingCategory.DESK);
         when(listing.getDeliveryFee()).thenReturn(10_000);
         return listing;

@@ -1,0 +1,757 @@
+{
+  "scope": "Historical local experiment on 2026-10-13 original checkout. Not latest develop or dev measurements. Raw samples remain outside Git.",
+  "metadata": {
+    "mysql": "8.4.11",
+    "java": "21.0.12.1",
+    "inventory": 5000,
+    "due_counts": [
+      500,
+      1000
+    ],
+    "load_basis": "500 is the existing synthetic cohort, not a production maximum. 1000 doubles that cohort to test sensitivity to more than one 500-row chunk, not a forecast of real traffic.",
+    "sizes": [
+      50,
+      100,
+      200,
+      300,
+      400,
+      500
+    ],
+    "runs_per_cell": 12,
+    "warmups": "3 per size at N=500 with HTTP; same long-lived JVM and DB for all measured conditions",
+    "timing": "System.nanoTime around actual JDBC execute and commit. For each locked row, acquisition is within SELECT FOR UPDATE start/end and release within commit start/end. Report conservative hold brackets [commitStart-selectEnd, commitEnd-selectStart], not exact server-side row lock timestamps. Connection/transaction setup excluded from brackets, included in chunk duration.",
+    "natural_http": "Exactly two real POST /api/orders per job, launched asynchronously after order lock SELECT returns in first/last chunk, aimed at distinct first/last candidate listings. No forced pause. Capture the actual HTTP existence-check SQL interval relative to the relevant expiry commit. Retry rejections after job completion.",
+    "controlled_probes": "Hold after actual listing UPDATE and before commit; assert same-listing HTTP 400 completes while locks remain held, other-listing HTTP 201, and post-commit same-listing retry 201. Artificial duration excluded from performance results.",
+    "scope": "Local temporary MySQL, no payment call, no scheduled one-minute wait, no throughput or production latency guarantee. Candidate lookup and real proxied service match scheduler; test loop varies batch size, no fallback expected."
+  },
+  "groups": [
+    {
+      "due": 500,
+      "size": 50,
+      "with_http": true,
+      "sql": 41,
+      "transactions": 10,
+      "metrics": {
+        "job_ms": {
+          "n": 12,
+          "median": 72.95183349999999,
+          "q25": 68.31919775,
+          "q75": 77.25249975,
+          "min": 60.04625,
+          "max": 85.802958
+        },
+        "first_release_ms": {
+          "n": 12,
+          "median": 8.957208000000001,
+          "q25": 8.432052,
+          "q75": 9.903093499999999,
+          "min": 7.194333,
+          "max": 20.074459
+        },
+        "max_lock_order_lower_ms": {
+          "n": 12,
+          "median": 5.0830205,
+          "q25": 4.4496255,
+          "q75": 6.3117605,
+          "min": 3.74675,
+          "max": 8.89875
+        },
+        "max_lock_order_upper_ms": {
+          "n": 12,
+          "median": 7.5800415,
+          "q25": 7.00841625,
+          "q75": 10.09753075,
+          "min": 5.802167,
+          "max": 17.348542
+        },
+        "max_lock_listing_lower_ms": {
+          "n": 12,
+          "median": 1.7291875,
+          "q25": 1.5647077500000002,
+          "q75": 2.64564575,
+          "min": 1.270458,
+          "max": 4.332166
+        },
+        "max_lock_listing_upper_ms": {
+          "n": 12,
+          "median": 4.608750000000001,
+          "q25": 4.107792,
+          "q75": 6.044323,
+          "min": 3.536,
+          "max": 13.265958
+        }
+      },
+      "http_counts": {
+        "before_commit:400": 20,
+        "commit_boundary:400": 4
+      }
+    },
+    {
+      "due": 500,
+      "size": 100,
+      "with_http": true,
+      "sql": 21,
+      "transactions": 5,
+      "metrics": {
+        "job_ms": {
+          "n": 12,
+          "median": 46.027313,
+          "q25": 42.889469000000005,
+          "q75": 48.403083,
+          "min": 40.814292,
+          "max": 66.683083
+        },
+        "first_release_ms": {
+          "n": 12,
+          "median": 10.796438,
+          "q25": 9.63434425,
+          "q75": 11.565874999999998,
+          "min": 9.135708,
+          "max": 14.085292
+        },
+        "max_lock_order_lower_ms": {
+          "n": 12,
+          "median": 6.1032495,
+          "q25": 5.916573,
+          "q75": 6.3735522499999995,
+          "min": 5.567542,
+          "max": 9.5125
+        },
+        "max_lock_order_upper_ms": {
+          "n": 12,
+          "median": 8.898729,
+          "q25": 8.3402915,
+          "q75": 9.3700415,
+          "min": 7.576291,
+          "max": 22.834083
+        },
+        "max_lock_listing_lower_ms": {
+          "n": 12,
+          "median": 2.1164375,
+          "q25": 2.07786475,
+          "q75": 2.38752125,
+          "min": 1.901125,
+          "max": 4.292209
+        },
+        "max_lock_listing_upper_ms": {
+          "n": 12,
+          "median": 5.1447915,
+          "q25": 4.593635,
+          "q75": 5.580083,
+          "min": 4.365833,
+          "max": 18.225166
+        }
+      },
+      "http_counts": {
+        "before_commit:400": 24
+      }
+    },
+    {
+      "due": 500,
+      "size": 200,
+      "with_http": true,
+      "sql": 13,
+      "transactions": 3,
+      "metrics": {
+        "job_ms": {
+          "n": 12,
+          "median": 37.862729,
+          "q25": 34.429479,
+          "q75": 41.85601025,
+          "min": 31.493875,
+          "max": 60.958417
+        },
+        "first_release_ms": {
+          "n": 12,
+          "median": 13.663979000000001,
+          "q25": 13.216135249999999,
+          "q75": 15.07406275,
+          "min": 12.981875,
+          "max": 20.363292
+        },
+        "max_lock_order_lower_ms": {
+          "n": 12,
+          "median": 9.316396000000001,
+          "q25": 8.722218750000001,
+          "q75": 13.89440625,
+          "min": 8.333917,
+          "max": 31.007709
+        },
+        "max_lock_order_upper_ms": {
+          "n": 12,
+          "median": 12.5558335,
+          "q25": 11.29678075,
+          "q75": 17.25065625,
+          "min": 10.582041,
+          "max": 33.267333
+        },
+        "max_lock_listing_lower_ms": {
+          "n": 12,
+          "median": 3.187833,
+          "q25": 3.0445935000000004,
+          "q75": 3.3412397499999997,
+          "min": 2.699417,
+          "max": 6.438792
+        },
+        "max_lock_listing_upper_ms": {
+          "n": 12,
+          "median": 6.597353999999999,
+          "q25": 5.71839575,
+          "q75": 6.83493775,
+          "min": 5.075583,
+          "max": 9.355917
+        }
+      },
+      "http_counts": {
+        "before_commit:400": 24
+      }
+    },
+    {
+      "due": 500,
+      "size": 300,
+      "with_http": true,
+      "sql": 9,
+      "transactions": 2,
+      "metrics": {
+        "job_ms": {
+          "n": 12,
+          "median": 31.121125,
+          "q25": 29.20618775,
+          "q75": 35.51673975,
+          "min": 27.686,
+          "max": 37.824209
+        },
+        "first_release_ms": {
+          "n": 12,
+          "median": 18.001937499999997,
+          "q25": 16.876072750000002,
+          "q75": 19.087771,
+          "min": 15.647959,
+          "max": 23.533334
+        },
+        "max_lock_order_lower_ms": {
+          "n": 12,
+          "median": 12.3184375,
+          "q25": 11.411802250000001,
+          "q75": 13.454687,
+          "min": 10.983083,
+          "max": 17.414041
+        },
+        "max_lock_order_upper_ms": {
+          "n": 12,
+          "median": 15.1462085,
+          "q25": 14.7331775,
+          "q75": 17.02555225,
+          "min": 13.266417,
+          "max": 19.749125
+        },
+        "max_lock_listing_lower_ms": {
+          "n": 12,
+          "median": 4.3202704999999995,
+          "q25": 3.7972395,
+          "q75": 4.82111475,
+          "min": 3.737958,
+          "max": 6.097125
+        },
+        "max_lock_listing_upper_ms": {
+          "n": 12,
+          "median": 7.7034165,
+          "q25": 7.099302499999999,
+          "q75": 8.149229250000001,
+          "min": 6.154459,
+          "max": 9.719458
+        }
+      },
+      "http_counts": {
+        "before_commit:400": 24
+      }
+    },
+    {
+      "due": 500,
+      "size": 400,
+      "with_http": true,
+      "sql": 9,
+      "transactions": 2,
+      "metrics": {
+        "job_ms": {
+          "n": 12,
+          "median": 29.040667,
+          "q25": 27.727427,
+          "q75": 31.99449,
+          "min": 26.351208,
+          "max": 40.083125
+        },
+        "first_release_ms": {
+          "n": 12,
+          "median": 20.1795205,
+          "q25": 19.82844775,
+          "q75": 22.659438,
+          "min": 18.761167,
+          "max": 27.159042
+        },
+        "max_lock_order_lower_ms": {
+          "n": 12,
+          "median": 14.525854500000001,
+          "q25": 14.257624499999999,
+          "q75": 15.9095415,
+          "min": 13.857917,
+          "max": 18.752167
+        },
+        "max_lock_order_upper_ms": {
+          "n": 12,
+          "median": 17.52375,
+          "q25": 17.073885750000002,
+          "q75": 20.1387605,
+          "min": 16.576,
+          "max": 23.956833
+        },
+        "max_lock_listing_lower_ms": {
+          "n": 12,
+          "median": 5.0293125,
+          "q25": 4.8370315,
+          "q75": 5.1160415,
+          "min": 4.799333,
+          "max": 7.833
+        },
+        "max_lock_listing_upper_ms": {
+          "n": 12,
+          "median": 8.2915835,
+          "q25": 7.997509999999999,
+          "q75": 8.57985375,
+          "min": 7.71025,
+          "max": 15.158958
+        }
+      },
+      "http_counts": {
+        "before_commit:400": 24
+      }
+    },
+    {
+      "due": 500,
+      "size": 500,
+      "with_http": true,
+      "sql": 5,
+      "transactions": 1,
+      "metrics": {
+        "job_ms": {
+          "n": 12,
+          "median": 23.3362085,
+          "q25": 22.84528075,
+          "q75": 23.58081225,
+          "min": 20.887583,
+          "max": 25.735291
+        },
+        "first_release_ms": {
+          "n": 12,
+          "median": 23.314332999999998,
+          "q25": 22.824374749999997,
+          "q75": 23.553416499999997,
+          "min": 20.8685,
+          "max": 25.705083
+        },
+        "max_lock_order_lower_ms": {
+          "n": 12,
+          "median": 17.8357915,
+          "q25": 17.322416500000003,
+          "q75": 18.0024475,
+          "min": 16.2765,
+          "max": 19.46
+        },
+        "max_lock_order_upper_ms": {
+          "n": 12,
+          "median": 20.816395999999997,
+          "q25": 20.413176749999998,
+          "q75": 21.15001025,
+          "min": 18.843208,
+          "max": 22.970833
+        },
+        "max_lock_listing_lower_ms": {
+          "n": 12,
+          "median": 6.101333,
+          "q25": 5.889927,
+          "q75": 6.217886,
+          "min": 5.552125,
+          "max": 8.118042
+        },
+        "max_lock_listing_upper_ms": {
+          "n": 12,
+          "median": 9.442625,
+          "q25": 9.124563,
+          "q75": 9.865426499999998,
+          "min": 8.541583,
+          "max": 11.903166
+        }
+      },
+      "http_counts": {
+        "before_commit:400": 24
+      }
+    },
+    {
+      "due": 1000,
+      "size": 50,
+      "with_http": true,
+      "sql": 81,
+      "transactions": 20,
+      "metrics": {
+        "job_ms": {
+          "n": 12,
+          "median": 145.57127100000002,
+          "q25": 126.00162550000002,
+          "q75": 149.90709375,
+          "min": 124.694959,
+          "max": 165.038083
+        },
+        "first_release_ms": {
+          "n": 12,
+          "median": 9.7021045,
+          "q25": 8.97828175,
+          "q75": 12.720968749999999,
+          "min": 7.702917,
+          "max": 16.470166
+        },
+        "max_lock_order_lower_ms": {
+          "n": 12,
+          "median": 5.672833499999999,
+          "q25": 5.206062,
+          "q75": 8.576228749999999,
+          "min": 4.343375,
+          "max": 10.261334
+        },
+        "max_lock_order_upper_ms": {
+          "n": 12,
+          "median": 8.501583499999999,
+          "q25": 7.65358375,
+          "q75": 11.83269825,
+          "min": 6.708542,
+          "max": 13.020917
+        },
+        "max_lock_listing_lower_ms": {
+          "n": 12,
+          "median": 2.0377505,
+          "q25": 1.56900025,
+          "q75": 2.6143847499999997,
+          "min": 1.353625,
+          "max": 4.440041
+        },
+        "max_lock_listing_upper_ms": {
+          "n": 12,
+          "median": 4.9739795,
+          "q25": 3.9408020000000006,
+          "q75": 5.6330100000000005,
+          "min": 3.658792,
+          "max": 10.229834
+        }
+      },
+      "http_counts": {
+        "before_commit:400": 21,
+        "commit_boundary:400": 3
+      }
+    },
+    {
+      "due": 1000,
+      "size": 100,
+      "with_http": true,
+      "sql": 41,
+      "transactions": 10,
+      "metrics": {
+        "job_ms": {
+          "n": 12,
+          "median": 93.1657915,
+          "q25": 89.14087549999999,
+          "q75": 98.047636,
+          "min": 78.192125,
+          "max": 171.9885
+        },
+        "first_release_ms": {
+          "n": 12,
+          "median": 11.140063000000001,
+          "q25": 10.3469485,
+          "q75": 11.38059375,
+          "min": 10.12675,
+          "max": 13.366
+        },
+        "max_lock_order_lower_ms": {
+          "n": 12,
+          "median": 7.927479,
+          "q25": 6.6506355,
+          "q75": 10.6812605,
+          "min": 5.868917,
+          "max": 18.753
+        },
+        "max_lock_order_upper_ms": {
+          "n": 12,
+          "median": 10.6031665,
+          "q25": 8.9902185,
+          "q75": 13.3659375,
+          "min": 7.914625,
+          "max": 25.284917
+        },
+        "max_lock_listing_lower_ms": {
+          "n": 12,
+          "median": 2.730292,
+          "q25": 2.08514525,
+          "q75": 4.53143775,
+          "min": 1.935292,
+          "max": 7.304292
+        },
+        "max_lock_listing_upper_ms": {
+          "n": 12,
+          "median": 5.6473960000000005,
+          "q25": 4.737833,
+          "q75": 7.60058375,
+          "min": 4.080416,
+          "max": 15.988292
+        }
+      },
+      "http_counts": {
+        "before_commit:400": 24
+      }
+    },
+    {
+      "due": 1000,
+      "size": 200,
+      "with_http": true,
+      "sql": 21,
+      "transactions": 5,
+      "metrics": {
+        "job_ms": {
+          "n": 12,
+          "median": 64.2491045,
+          "q25": 63.0989895,
+          "q75": 68.000375,
+          "min": 58.139208,
+          "max": 72.665166
+        },
+        "first_release_ms": {
+          "n": 12,
+          "median": 13.564687500000002,
+          "q25": 13.149635499999999,
+          "q75": 13.94239625,
+          "min": 12.085583,
+          "max": 17.175083
+        },
+        "max_lock_order_lower_ms": {
+          "n": 12,
+          "median": 10.412687,
+          "q25": 9.608531750000001,
+          "q75": 10.81390575,
+          "min": 9.000833,
+          "max": 11.740333
+        },
+        "max_lock_order_upper_ms": {
+          "n": 12,
+          "median": 13.066021,
+          "q25": 12.6787505,
+          "q75": 13.99032275,
+          "min": 11.251083,
+          "max": 15.2915
+        },
+        "max_lock_listing_lower_ms": {
+          "n": 12,
+          "median": 3.6030835,
+          "q25": 3.3789170000000004,
+          "q75": 4.0920105,
+          "min": 2.939334,
+          "max": 5.223583
+        },
+        "max_lock_listing_upper_ms": {
+          "n": 12,
+          "median": 7.043458,
+          "q25": 6.26238575,
+          "q75": 7.68563475,
+          "min": 5.511791,
+          "max": 7.909458
+        }
+      },
+      "http_counts": {
+        "before_commit:400": 24
+      }
+    },
+    {
+      "due": 1000,
+      "size": 300,
+      "with_http": true,
+      "sql": 17,
+      "transactions": 4,
+      "metrics": {
+        "job_ms": {
+          "n": 12,
+          "median": 59.733979000000005,
+          "q25": 57.6212395,
+          "q75": 62.321968999999996,
+          "min": 53.016666,
+          "max": 79.253
+        },
+        "first_release_ms": {
+          "n": 12,
+          "median": 17.320875,
+          "q25": 16.65402125,
+          "q75": 20.852614250000002,
+          "min": 15.764708,
+          "max": 30.631167
+        },
+        "max_lock_order_lower_ms": {
+          "n": 12,
+          "median": 12.824604,
+          "q25": 11.668239499999999,
+          "q75": 14.681510249999999,
+          "min": 10.886833,
+          "max": 23.41475
+        },
+        "max_lock_order_upper_ms": {
+          "n": 12,
+          "median": 16.154229,
+          "q25": 14.895072749999999,
+          "q75": 18.110052500000002,
+          "min": 13.667958,
+          "max": 27.604458
+        },
+        "max_lock_listing_lower_ms": {
+          "n": 12,
+          "median": 4.241312499999999,
+          "q25": 4.1923639999999995,
+          "q75": 4.34570825,
+          "min": 3.993333,
+          "max": 7.222542
+        },
+        "max_lock_listing_upper_ms": {
+          "n": 12,
+          "median": 7.762541499999999,
+          "q25": 7.425708,
+          "q75": 8.035573,
+          "min": 7.0745,
+          "max": 9.962917
+        }
+      },
+      "http_counts": {
+        "before_commit:400": 24
+      }
+    },
+    {
+      "due": 1000,
+      "size": 400,
+      "with_http": true,
+      "sql": 13,
+      "transactions": 3,
+      "metrics": {
+        "job_ms": {
+          "n": 12,
+          "median": 52.3990835,
+          "q25": 48.932072999999995,
+          "q75": 53.955177,
+          "min": 46.400458,
+          "max": 56.638875
+        },
+        "first_release_ms": {
+          "n": 12,
+          "median": 20.021208,
+          "q25": 19.34034425,
+          "q75": 20.870552,
+          "min": 18.168416,
+          "max": 22.722708
+        },
+        "max_lock_order_lower_ms": {
+          "n": 12,
+          "median": 14.449021,
+          "q25": 13.965010750000001,
+          "q75": 14.95015675,
+          "min": 13.221958,
+          "max": 17.768833
+        },
+        "max_lock_order_upper_ms": {
+          "n": 12,
+          "median": 17.390604500000002,
+          "q25": 16.630978749999997,
+          "q75": 18.1402715,
+          "min": 16.122917,
+          "max": 20.821292
+        },
+        "max_lock_listing_lower_ms": {
+          "n": 12,
+          "median": 5.038582999999999,
+          "q25": 4.8599375,
+          "q75": 5.503938,
+          "min": 4.773958,
+          "max": 6.551875
+        },
+        "max_lock_listing_upper_ms": {
+          "n": 12,
+          "median": 8.0433545,
+          "q25": 7.8073025000000005,
+          "q75": 8.860603999999999,
+          "min": 7.531792,
+          "max": 9.772292
+        }
+      },
+      "http_counts": {
+        "before_commit:400": 24
+      }
+    },
+    {
+      "due": 1000,
+      "size": 500,
+      "with_http": true,
+      "sql": 9,
+      "transactions": 2,
+      "metrics": {
+        "job_ms": {
+          "n": 12,
+          "median": 48.205229,
+          "q25": 44.7204475,
+          "q75": 50.345156,
+          "min": 41.475042,
+          "max": 85.650708
+        },
+        "first_release_ms": {
+          "n": 12,
+          "median": 24.732895499999998,
+          "q25": 23.11235425,
+          "q75": 25.118396,
+          "min": 21.758084,
+          "max": 26.193083
+        },
+        "max_lock_order_lower_ms": {
+          "n": 12,
+          "median": 18.7087495,
+          "q25": 17.536802,
+          "q75": 19.98205225,
+          "min": 15.914916,
+          "max": 55.422417
+        },
+        "max_lock_order_upper_ms": {
+          "n": 12,
+          "median": 22.2281245,
+          "q25": 20.805999999999997,
+          "q75": 23.45960425,
+          "min": 18.748333,
+          "max": 59.317292
+        },
+        "max_lock_listing_lower_ms": {
+          "n": 12,
+          "median": 6.375625,
+          "q25": 6.098541,
+          "q75": 6.975552,
+          "min": 5.718958,
+          "max": 28.648667
+        },
+        "max_lock_listing_upper_ms": {
+          "n": 12,
+          "median": 10.441583,
+          "q25": 9.53496925,
+          "q75": 11.840688,
+          "min": 8.86525,
+          "max": 45.344208
+        }
+      },
+      "http_counts": {
+        "before_commit:400": 24
+      }
+    }
+  ],
+  "http_counts": {
+    "before_commit:400": 281,
+    "commit_boundary:400": 7
+  },
+  "successful_retries": 288,
+  "controlled_probes_passed": 6
+}

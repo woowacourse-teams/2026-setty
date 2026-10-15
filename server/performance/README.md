@@ -1,0 +1,385 @@
+# 매물 목록 부하 테스트 준비
+
+Gatling Java SDK의 **단건 스모크·매물 수 증가 탐색 시나리오**와 **매물 100개 생성·1,000/5,000개 확장 SQL**이다. SQL은 수동 실행용이며 앱 시작·CI·스키마 마이그레이션에 포함되지 않는다.
+
+## 스모크 실행
+
+Java 21을 준비하고 `server/`에서 실행한다. IntelliJ에서는 Gradle 프로젝트를 다시 불러온다.
+
+```bash
+./gradlew compileGatlingJava
+./gradlew gatlingRun --simulation setty.performance.ListingSmokeSimulation
+```
+
+- 대상: `GET https://www.setty.cloud/dev/api/listings`. 인증·특수 Host·SSM 터널·로컬 DB 불필요.
+- 성공: 요청 1건, HTTP 200, `items` 필드 존재, 실패 0건. **매물 개수는 별도 확인**한다.
+- 보고서: `server/build/reports/gatling/`. Git에서 제외되며 `clean` 전에 필요한 결과를 보존한다.
+
+## 매물 수 증가 탐색
+
+데이터 준비 후 `server/`에서 실행한다. `LISTING_COUNT`는 **이미 DB에 준비된 예상 매물 수**이며 100·1000·5000·5020·5138을 지원한다. 이 값만 바꿔도 DB 데이터가 늘어나는 것은 아니다.
+
+```bash
+LISTING_COUNT=100 ./gradlew gatlingRun \
+  --simulation setty.performance.ListingCountSimulation \
+  --run-description listings-100-run-1
+```
+
+- 사용자 1명, **워밍업 20회 → 본 측정 100회**, 매 응답 뒤 1초 대기. 1회 실행은 약 2분 + 응답 시간이며 고정 1 RPS가 아니다.
+- HTTP 200과 `items` 개수를 매번 검사한다. 실패하면 중단하며, 총 120건·실패 0건이어야 유효한 실행이다.
+- HTML 보고서의 **`listings-measurement` 행**에서 중앙값·p95·실패 건수를 본다. 전체 합계에는 워밍업이 포함된다.
+- 요청별 시각·응답 시간·본문 크기는 `build/reports/listing-count/`의 CSV에 저장한다. `phase=listings-measurement`만 비교하며, 크기는 Gatling이 읽은 본문 바이트 수로 헤더·전송 압축 크기와 구분한다.
+- CSV의 `request_id`로 서버의 전체·내부 구간 시간을 연결한다. [계측 범위·로컬 검증·dev 로그 조회](request-timing.md)를 참고한다. ID가 비어 있으면 해당 요청의 로그 연결은 확인할 수 없다.
+- 첫 실행을 확인한 뒤 같은 조건으로 총 3회 실행하고 `run-1`을 `run-2`, `run-3`으로 바꾼다. HTML·CSV와 같은 시간대의 서버·DB 지표를 함께 보존한다.
+
+기본 대상은 dev다. 시나리오 자체를 로컬에서 검증할 때만 `LISTING_BASE_URL=http://127.0.0.1:포트`로 바꿀 수 있다. 이 로컬 결과는 dev 성능 결과로 사용하지 않는다. 워밍업과 본 측정의 구분은 [요청별 통계 범위](https://docs.gatling.io/concepts/assertions/)를 사용한다.
+
+## 대표 사진 쿼리 비교와 선별 결과
+
+[로컬 쿼리 비교](local-thumbnail-query/README.md)는 같은 합성 입력으로 MIN 서브쿼리와 순서 1 조회를 교차 실행한다. 과거 로컬·최종 dev 측정의 선별 결과와 오프라인 검증기도 함께 제공한다. [사진 수 비교 절차](listing-images.md)는 전용 매물의 사진을 1→5→1개로 변경·복원하는 방법을 설명한다. `ListingCountSimulation`의 5,020·5,138건 조건은 해당 실험의 전체 목록 수다.
+
+## 데이터 준비와 정리
+
+**dev EC2의 SSM 셸**에서 실행한다. MySQL 8.0.16 이상·InnoDB와 조회·삽입·삭제·임시 테이블 생성 권한이 필요하다. `fixtures/`를 서버에 복사하고 그 상위 디렉터리에서 실행한다.
+
+데이터는 로그인 불가 전용 판매자 `s2-listing-001`, 판매 가능 매물 100개, 매물당 사진 메타데이터 1개다. 필드와 생성 시각 규칙은 [생성 SQL](fixtures/seed-listings-100.sql)에 고정했다. **S3 파일은 없으므로 이미지 표시 테스트에는 사용할 수 없다.** 데이터는 dev 목록에 노출되므로 팀의 기능 테스트·배포와 측정 시간을 조율한다.
+
+### 1 대상 확인
+
+`DEV_DB_USER`, `DEV_DB_NAME`을 실제 dev 값으로 바꾸고 비밀번호는 프롬프트에 입력한다.
+
+```bash
+mysql --batch --skip-reconnect -u DEV_DB_USER -p DEV_DB_NAME < fixtures/preflight.sql
+```
+
+신규 생성 조건은 **판매 가능 매물 0개·실험 판매자 0명·모두 InnoDB**다. 이미 준비됐으면 재생성하지 않고, 다른 매물은 지우지 않는다. 접속한 EC2와 앱의 DB 대상도 확인한다.
+
+### 2 시험 실행
+
+아래 두 확인값을 앞선 결과의 `database_name`, `mysql_hostname`으로 바꾼다. 호스트 값은 **접속 주소가 아니라 연결된 DB의 `@@hostname` 검사값**이며, 누락·불일치 시 중단한다.
+
+```bash
+fixture_init="SET @fixture_expected_database='DEV_DB_NAME', @fixture_expected_hostname='DEV_MYSQL_HOSTNAME';"
+run_fixture_sql() {
+  mysql --batch --skip-reconnect --skip-force --init-command="$fixture_init" \
+    -u DEV_DB_USER -p DEV_DB_NAME < "$1"
+}
+run_fixture_sql fixtures/seed-listings-100.sql
+```
+
+매물·사진 100개씩 생성한 뒤 **기본값인 `ROLLBACK`으로 되돌린다.** 마지막 `*_after_run`은 매물 0·판매자 0이어야 한다. ID는 롤백해도 소모될 수 있다.
+
+### 3 실제 저장
+
+시험 통과 후 **같은 셸**에서 실행한다. 원본은 유지하고 임시 실행본만 `COMMIT`으로 바꾼다.
+
+```bash
+fixture_commit_sql=$(mktemp /tmp/setty-s2-seed-100.XXXXXX)
+sed 's/^ROLLBACK;$/COMMIT;/' fixtures/seed-listings-100.sql > "$fixture_commit_sql"
+run_fixture_sql "$fixture_commit_sql"
+```
+
+마지막 건수는 **매물 100·판매자 1**이다. API에서도 `items` 100개·중복 ID 없음·대표 사진 URL 100개를 확인한다.
+
+각 조건 측정 후 아래 SQL을 같은 실행 함수로 시험한다. 기존 판매자·매물 필드·사진을 검사하며, 각 매물에 사진 메타데이터 1개를 유지한다.
+
+| 확장 SQL (`fixtures/`) | 추가 매물/사진 | 롤백 전 매물/사진 | 롤백 후 마지막 세 건수 |
+| --- | --- | --- | --- |
+| `expand-listings-100-to-1000.sql` | 900/900 | 1,000/1,000 | 모두 100 |
+| `expand-listings-1000-to-5000.sql` | 4,000/4,000 | 5,000/5,000 | 모두 1,000 |
+
+시험 통과 후 위 명령의 입력 파일을 해당 확장 SQL로 바꿔 임시 COMMIT 실행본을 만든다. 저장 후 마지막 세 건수는 모두 목표 개수여야 한다. 정리는 4단계의 `cleanup-listings-s2.sql` 하나로 어느 단계든 지운다.
+
+### 4 실험 종료 후 정리
+
+결과를 보존한 뒤 같은 셸에서 `run_fixture_sql fixtures/cleanup-listings-s2.sql`로 시험한다. 100·1,000·5,000개 어느 단계에서든 쓸 수 있다. 출력의 `fixture_listings_before_delete`가 지금 매물 수이고, 삭제 시도 건수는 사진·매물이 그 수, 판매자 1이다. 롤백 후 남은 건수는 **매물 그 수·판매자 1**이다. 실제 삭제는 3단계에서 입력 파일을 `fixtures/cleanup-listings-s2.sql`로 바꿔 실행한다. 삭제 후 남은 건수는 **0·0**이어야 한다.
+
+- 생성·정리는 **새 연결의 배치 모드**로 실행한다. 오류 시 멈추고 원인을 확인하며, 대화형 `SOURCE`나 `--force`는 사용하지 않는다. 오류 후 연결 종료로 미커밋 변경을 롤백하는 절차다.
+- 정리는 이 목록 측정 데이터셋(100·1,000·5,000개) 전용이다. 표식·상태·건수가 다르거나, 매물 번호가 1부터 이어지지 않거나, 주문·찜·정산이 있으면 중단한다. SQL 임시 파일 삭제만으로 DB 데이터가 지워지지는 않는다.
+
+## 배송비 필터 측정 데이터
+
+`GET /api/listings?maxDeliveryFee=...`를 잴 때 쓴다. 목록 측정 시드는 행정동이 없고 부피가 한 구간이라 필터 결과가 늘 0건이 된다.
+
+| SQL (`fixtures/`) | 내용 |
+| --- | --- |
+| `seed-delivery-fee-5000.sql` | 행정동마다 판매자 1명(`s4-fee-000`~`426`, 427명), 판매 가능 매물 5,000개(`[S4-F001]`), 매물당 사진 메타데이터 1개, 측정용 구매자 `s4-fee-buyer` 1명(토큰은 실행 시 전달) |
+| `seed-delivery-fee-5000-skewed.sql` | 위와 같은 판매자·구매자·표식이고, 매물 절반(2,500개)을 강남·서초·송파 67개 동에 몰아 둔다(쏠림 분포). 두 시드는 동시에 넣을 수 없다 |
+| `cleanup-delivery-fee-5000.sql` | 위 데이터만 지운다(두 분포 공용). 표식·건수·상태가 다르거나 주문·찜이 있으면 중단 |
+
+분포와 이유
+- **행정동:** 427개 동에 고르게 11~12개씩 둔다. 실제 매물 분포 자료가 없어서, 특정 구에 몰아 두면 구매자 위치에 따라 결과가 크게 갈린다. 고르게 두면 결과 비율이 구매자 위치와 예산만으로 정해진다.
+- **부피:** SMALL 50%·MEDIUM 30%·LARGE 20%로 둔다. 중고 가구는 작은 것이 많다고 가정했다. 큰 가구는 예산을 빨리 넘으므로 좁은 결과 경로도 함께 잰다.
+- **판매자:** 동마다 한 명이고, 매물 행정동은 판매자 행정동과 같다(앱의 등록 규칙과 같음).
+- **쏠림 분포(선택):** 실제 중고 가구 거래는 인구와 이사가 많은 일부 구에 몰린다고 보고, 매물 절반을 강남·서초·송파에 둔다(나머지 절반은 그 밖의 360개 동). 같은 예산이라도 구매자가 몰린 지역에 가까운지 먼지에 따라 결과 수와 색인을 훑는 거리가 고른 분포보다 크게 갈리는지 본다. 부피 비율은 고른 분포와 같다.
+- 로컬 확인(Testcontainers MySQL 8.4.11): 예산 1만~4만 원에서 결과가 전체의 0.2~76.5%로 나뉜다.
+
+  | 구매자 행정동 | 1만 원 | 2만 원 | 3만 원 |
+  | --- | --- | --- | --- |
+  | 종로구 사직동 | 1.4% | 15.3% | 46.1% |
+  | 송파구 잠실3동 | 1.1% | 10.7% | 29.4% |
+  | 도봉구 도봉1동 | 0.2% | 4.3% | 11.5% |
+
+  필터 조회는 `idx_listings_delivery_filter`를 색인만 읽고 탄다(EXPLAIN `Using index`).
+- 두 분포 비교(로컬, 매물 5,000개, 페이지 20개, 쿼리 1건당 읽은 행 수. 노트북 수치라 dev와 비교하지 않는다):
+
+  | 구매자·예산 | 고른 분포: 맞는 매물 / 1페이지 읽은 행 | 쏠림 분포: 맞는 매물 / 1페이지 읽은 행 |
+  | --- | --- | --- |
+  | 사직동·1만 원 | 69개 / 1,618행 | 35개 / 3,090행 |
+  | 잠실3동(송파)·1만 원 | 56개 / 1,660행 | 193개 / 558행 |
+  | 도봉1동·1만 원 | 11개 / 5,022행(전체) | 9개 / 5,018행(전체) |
+  | 도봉1동·2만 원 | 214개 / 209행 | 127개 / 929행 |
+
+  쏠림 분포에서는 강남3구 근처 구매자는 맞는 매물이 늘고 읽는 행이 줄며, 먼 구매자는 그 반대다. 예산이 좁아 맞는 매물이 한 페이지도 안 되면 색인을 끝까지 훑는다(약 5,000행). 응답 시간은 두 분포 모두 쿼리 1건당 1~3.5ms였고, 뒤쪽 페이지(2~5페이지)도 첫 페이지와 비슷했다.
+
+순서
+- **시드 → 필터 측정 → 바로 정리**로 짧게 끝낸다. 웹 클라이언트는 목록을 파라미터 없이 불러 매물 전체를 한 번에 받으므로, 이 데이터가 있는 동안 dev 홈 목록이 5,000개를 받는다.
+- 그래서 이 데이터가 있는 동안에는 k6 결제 시나리오(세션 시간과 PostHog 응답 시간이 왜곡됨), Gatling 목록 측정(`ListingCountSimulation`이 실패함), 팀원의 dev 사용과 겹치지 않게 한다. k6는 시드 전이나 정리 후에 실행하고, 시작과 끝을 팀에 알린다.
+- 실행 방법은 위 "데이터 준비와 정리"와 같다(`run_fixture_sql`로 시험 → 임시 COMMIT 실행본). 시드에는 확인값에 구매자 토큰을 더한다. `uuidgen`으로 만든 36자 값을 Gatling의 `BUYER_TOKEN`에도 같은 값으로 쓴다. 토큰이 없거나 이미 쓰이는 값이면 중단한다.
+
+  ```bash
+  fixture_init="SET @fixture_expected_database='DEV_DB_NAME', @fixture_expected_hostname='DEV_MYSQL_HOSTNAME', @fixture_buyer_token='BUYER_TOKEN_UUID';"
+  ```
+
+  저장 후 마지막 건수는 판매자 427·매물 5,000·구매자 1이다. 정리 SQL에는 구매자 토큰이 필요 없다.
+- 이 시드는 다른 매물 수를 검사하지 않는다. 목록 측정 시드(`seed-listings-100.sql`, `expand-*.sql`)는 "판매 가능 매물 0개" 같은 건수를 요구하므로, 이 데이터가 있는 동안에는 실행하지 않는다. 먼저 이 데이터를 정리한다.
+
+### 필터 측정 (PC)
+
+`DeliveryFeeFilterSimulation`은 측정용 구매자의 행정동을 `PUT /api/auth/me/dong`으로 바꾼 뒤, 필터 목록(`GET /api/listings?maxDeliveryFee=…&size=20`)을 워밍업 20회·본 측정 100회 부른다. 기본은 1명이 첫 페이지만 부르고 응답 후 1초 쉰다. `MAX_DELIVERY_FEE=none`이면 같은 페이지 크기로 필터 없이 불러 비교 기준을 잰다.
+
+```bash
+cd server
+BUYER_TOKEN='BUYER_TOKEN_UUID' BUYER_DONG=1111053000 MAX_DELIVERY_FEE=20000 \
+  ./gradlew gatlingRun --simulation setty.performance.DeliveryFeeFilterSimulation
+```
+
+| 환경 변수 | 기본값 | 설명 |
+| --- | --- | --- |
+| `BUYER_TOKEN` | 없음(필수) | 시드에 넘긴 구매자 토큰 |
+| `BUYER_DONG` | `1111053000` | 구매자 행정동(10자리) |
+| `MAX_DELIVERY_FEE` | `20000` | 배송비 예산(원). `none`이면 필터 없음 |
+| `PAGE_SIZE` | `20` | 페이지 크기(1~100) |
+| `PAGES` | `1` | 한 번의 반복에서 `nextCursor`로 이어 받을 페이지 수(1~20). 다음 페이지가 없으면 거기서 멈춘다 |
+| `USERS` | `1` | 동시에 도는 가상 사용자 수(1~100). 모두 같은 구매자 토큰을 쓴다 |
+| `PAUSE_SECONDS` | `1` | 반복 사이 쉬는 시간(0~10초). 동시 요청 측정은 0으로 둔다 |
+| `LISTING_BASE_URL` | dev | 로컬 검증 때만 `http://127.0.0.1:포트` |
+
+조건은 구매자 위치(도심·중간·외곽) × 예산으로 나눈다. 결과가 넓은 경로와 좁은 경로를 함께 보려는 구성이다.
+
+| 구매자 행정동 | 예산 |
+| --- | --- |
+| 종로구 사직동 `1111053000` | `none`, 10000, 20000, 30000 |
+| 송파구 잠실3동 `1171068000` | 10000, 20000, 30000 |
+| 도봉구 도봉1동 `1132052100` | 10000, 20000, 30000 |
+
+- HTML 보고서의 `filter-measurement` 행에서 중앙값·p95(응답 100건 중 느린 쪽 5%를 뺀 가장 느린 값)·실패 건수를 본다.
+- 요청별 시각·응답 시간·받은 매물 수·다음 페이지 여부·`request_id`는 `build/reports/delivery-fee-filter/`의 CSV에 남는다.
+- 한 조건이 약 2분 걸리므로 10개 조건은 약 25분이다. 끝나면 바로 정리 SQL을 실행한다.
+- `MAX_DELIVERY_FEE=none` 기준선은 비로그인 경로라 토큰 조회가 빠진다. 필터와 비교할 때는 `request_id`로 서버 `ListingRequestTiming`의 `listings` 단계 시간을 함께 본다.
+
+#### 뒤쪽 페이지
+
+`PAGES=5`이면 반복마다 첫 페이지부터 5페이지까지 이어 받는다. 보고서에서 첫 페이지는 `filter-measurement`, 뒤쪽은 `filter-measurement-p2`~`-p5` 행으로 따로 집계되고, CSV의 `page`·`items` 열로 페이지별 응답 시간과 받은 매물 수를 본다. 예산이 좁은 조건(도봉1동·1만 원 등)은 맞는 매물이 드물어 뒤쪽 페이지일수록 색인을 더 멀리 훑는지 확인하는 용도다.
+
+```bash
+BUYER_TOKEN='BUYER_TOKEN_UUID' BUYER_DONG=1132052100 MAX_DELIVERY_FEE=10000 PAGES=5 \
+  ./gradlew gatlingRun --simulation setty.performance.DeliveryFeeFilterSimulation
+```
+
+#### 동시 요청
+
+`USERS=10`(또는 30)과 `PAUSE_SECONDS=0`으로 같은 조건을 여러 명이 쉬지 않고 부른다. 사용자마다 워밍업 20회·측정 100회라 전체 측정 요청은 `USERS × 100`건이다.
+
+```bash
+BUYER_TOKEN='BUYER_TOKEN_UUID' BUYER_DONG=1111053000 MAX_DELIVERY_FEE=20000 USERS=30 PAUSE_SECONDS=0 \
+  ./gradlew gatlingRun --simulation setty.performance.DeliveryFeeFilterSimulation
+```
+
+같은 시간대의 서버 커넥션 풀 상태를 함께 본다. dev 앱은 OTLP로 1분 간격(`management.otlp.metrics.export.step: 1m`)으로 지표를 보낸다.
+- `hikaricp.connections.active`(쓰는 중), `hikaricp.connections.pending`(커넥션을 기다리는 요청), `hikaricp.connections.acquire`(커넥션을 얻는 데 걸린 시간, 히스토그램)를 측정 시작·끝 시각으로 좁혀 본다.
+- 1분 간격이라 한 조건을 3분 이상 유지해야 값이 2~3개 찍힌다. 측정 100회가 너무 빨리 끝나면 같은 조건을 연달아 두세 번 실행한다.
+- dev 커넥션 대기 상한은 5초(`spring.datasource.hikari.connection-timeout: 5000`)다. 넘으면 요청이 실패하므로 실패 건수와 pending을 같이 본다.
+- 같은 시간대의 `process.cpu.usage`(앱 프로세스 CPU), `system.cpu.usage`(서버 전체 CPU), `jvm.gc.pause`(GC로 멈춘 시간)도 함께 본다. 커넥션 대기가 없는데 느리면 CPU나 GC 쪽을 의심한다.
+- 요청별로는 CSV `request_id`로 `ListingRequestTiming` 로그(`request-timing.md`)의 `buyer_ms`·`listings_ms`·`images_ms`를 찾는다. Gatling 응답 시간에서 이 DB 단계 합을 빼면 나머지(커넥션 대기, 매핑·직렬화 CPU, 네트워크)가 남아, 느린 요청이 DB 때문인지 그 밖 때문인지 나눌 수 있다.
+
+## dev 행정동 채우기(1회성)
+
+**부하 측정 중에는 실행하지 않는다.** 채우는 동안 읽은 매물·회원 행을 COMMIT까지 잠가, 로그인 토큰 회전과 매물 잠금이 잠깐 막힌다.
+
+행정동 도입 전 데이터는 `dong_code`가 비어 있어 필터에서 빠진다. 알림 측정 판매자 `s3-seller-001`은 행정동이 없어 매물 등록이 400이 된다.
+
+| SQL (`fixtures/`) | 내용 |
+| --- | --- |
+| `backfill-dong-codes.sql` | `s3-seller-001`에 행정동 `1111053000`(비어 있을 때만). 판매자 회원에 행정동이 있는 매물의 `dong_code`를 그 값으로 채운다. 판매자 행정동이 없으면 그대로 둔다 |
+| `revert-dong-backfill.sql` | 채운 매물과 `s3-seller-001`을 다시 NULL로 되돌린다 |
+
+1. `run_fixture_sql fixtures/backfill-dong-codes.sql`로 시험한다. 출력의 실행 전 값(`listings_without_dong_before`, `s3_seller_dong_before`)과 커밋 전 값(`*_after`)을 확인한다. 롤백 후 `*_after_run`은 실행 전 값과 같아야 한다.
+2. 임시 COMMIT 실행본으로 실제 실행하고 **출력 전체를 파일로 보관한다.** `updated_s3_seller`와 `backfilled_listing_ids`가 되돌릴 때 필요하다.
+3. 되돌릴 때는 보관한 값을 확인값과 함께 넘긴다. 값은 반드시 같은 채우기 실행의 출력에서 복사하고, 시험 출력의 `revert_listings`가 그 실행의 `backfill_listings`와 같은지 확인한다. 시험 후 같은 방식으로 COMMIT 실행본을 만든다.
+
+```bash
+fixture_init="SET @fixture_expected_database='DEV_DB_NAME', @fixture_expected_hostname='DEV_MYSQL_HOSTNAME', @backfilled_listing_ids='출력값', @revert_s3_seller=출력값;"
+run_fixture_sql fixtures/revert-dong-backfill.sql
+```
+
+되돌리기는 넘긴 id의 매물을 모두 NULL로 돌린다. 매물 행정동은 등록 뒤 바뀌지 않으므로 그 값은 모두 채우기가 넣은 것이다. 값을 넘기지 않으면 중단한다.
+
+## 배송비 PR 배포 후 dev 확인 (#476 → #478 → #481)
+
+세 PR을 순서대로 머지해 dev에 배포한 뒤 한 번 실행한다. 스키마 변경은 앱이 부팅할 때 Flyway의 `db/migration/V*__*.sql`로 적용되므로, 배포된 앱이 새 커밋으로 다시 떴는지 먼저 확인한다. 기존 DB를 Flyway로 처음 편입할 때만 `SETTY_FLYWAY_ADOPT_EXISTING=true`를 사용하고, 편입 완료 후에는 해제한다.
+
+### 1 스키마 (dev EC2 SSM 셸, 읽기 전용)
+
+```bash
+mysql --batch -u DEV_DB_USER -p DEV_DB_NAME -e "
+SELECT column_name, column_type, is_nullable FROM information_schema.columns
+WHERE table_schema = DATABASE() AND table_name = 'orders'
+  AND column_name IN ('delivery_fee', 'delivery_dong_code', 'delivery_address', 'delivery_phone_number')
+ORDER BY ordinal_position;
+SELECT DISTINCT index_name FROM information_schema.statistics
+WHERE table_schema = DATABASE() AND table_name = 'listings'
+  AND index_name IN ('idx_listings_public', 'idx_listings_delivery_filter');"
+```
+
+- 첫 결과는 4행이고 모두 `is_nullable = YES`다(`delivery_fee`는 `int`).
+- 두 번째 결과는 `idx_listings_delivery_filter` 1행뿐이다. `idx_listings_public`이 남아 있으면 부팅 때 삭제 DDL이 실행되지 않은 것이다.
+
+### 2 금액 일치 (PC)
+
+실제 팀원 계정 말고 테스트 회원을 쓴다. 확인용 주문이 결제 없이 `EXPIRED`로 남고, 그 회원의 주소·연락처 스냅샷을 가진다. 행정동이 있는 테스트 회원 1명과, 그 회원과 다른 동(3km 넘게 떨어진 곳이면 더 좋다)의 판매 가능 매물 1개를 고른다. 판매자는 구매자와 달라야 한다.
+
+```bash
+BASE=https://www.setty.cloud/dev
+TOKEN=$(curl -s -X POST "$BASE/api/auth/login" -H 'Content-Type: application/json' \
+  -d '{"loginId":"LOGIN_ID","password":"PASSWORD"}' | python3 -c 'import json,sys; print(json.load(sys.stdin)["token"])')
+curl -s -H "Authorization: Bearer $TOKEN" "$BASE/api/auth/me"            # dongCode가 있어야 한다
+LISTING_ID=매물_ID
+curl -s -H "Authorization: Bearer $TOKEN" "$BASE/api/listings/$LISTING_ID" \
+  | python3 -c 'import json,sys; d=json.load(sys.stdin); print("상세", d["deliveryFee"], d["totalPrice"], d["dong"])'
+curl -s -X POST -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
+  -d "{\"listingId\":$LISTING_ID}" "$BASE/api/orders" \
+  | python3 -c 'import json,sys; d=json.load(sys.stdin); print("주문", d["id"], d["deliveryFee"], d["totalPrice"])'
+```
+
+- 토큰을 붙인 상세의 `deliveryFee`·`totalPrice`와 주문 응답의 `deliveryFee`·`totalPrice`가 같아야 한다. 동이 다르면 고정 금액(1만·2만·3만 원)과 달라질 수 있다.
+- 토스 승인 금액은 서버가 주문 응답 `totalPrice`와 같은 메서드(`PaymentOrderReader.payableAmount`)로 검증한다. 실제 승인까지 보려면 이 주문으로 토스 테스트 결제를 하거나 k6 `PURCHASE_SMOKE`를 실행한다(테스트 주문·결제가 남는다).
+- DB에서도 확인할 수 있다: `SELECT delivery_fee, delivery_dong_code FROM orders WHERE id = 주문_ID;`
+- 결제하지 않은 주문은 6분 뒤 만료되고 매물 선점이 풀린다. 그동안 같은 매물로는 다시 주문할 수 없으므로 테스트용 매물을 쓴다.
+
+## 검증 범위
+
+2026-10-08 dev MySQL 8.4.11에서 최초 SQL의 생성·롤백·저장과 API 200·매물/고유 ID/대표 사진 URL 각 100개를 확인했다. **확인값을 실행 시 전달하도록 변경한 SQL과 실제 정리 작업은 실행 검증 전**이다.
+
+시나리오는 컴파일과 임시 로컬 서버 검증을 통과했다: 워밍업 20건·본 측정 100건, 동시 요청 1건, 응답 후 1초 대기, CSV 기록 및 워밍업·본 측정에서 개수 불일치 시 중단을 확인했다. 2026-10-09 dev 1,000개 확장 SQL의 롤백·저장 출력을 확인했고, 5,000개 확장은 롤백 출력과 사용자 저장 완료 보고 이후 API 개수 검사로 확인했다. 100개·1,000개·5,000개 조건 각각 3회 측정에서 실행당 120건·실패 0건을 확인했다. 확장 데이터 정리는 `cleanup-listings-s2.sql`로 한다(로컬 MySQL에서 100·1,000·5,000개 단계 정리 확인). 요청 ID·구간 계측 보완 후 dev 재측정은 아직 진행 전이다.
+
+## 키워드 알림 발송 측정
+
+매물 등록 1건이 구독자 전원에게 알림을 보내는 구조(설계: [server/docs/notification/keyword-notification.md](../docs/notification/keyword-notification.md))를 분리 전·후로 측정한다. 등록은 Gatling이 PC에서 dev로 보내고, 외부 푸시는 dev EC2 안에서 띄운 모의 서버가 받는다.
+
+### 1 모의 푸시 서버 (dev EC2 SSM 셸)
+
+`performance/mock-push/mock-push.mjs`를 서버에 복사하고 Node 20+로 실행한다. `DELAY_MS`는 FCM에 알림 500건을 한 번에 보낼 때 걸리는 시간(아래 dry run의 p50)을 넣는다.
+
+```bash
+PORT=9000 DELAY_MS=874 OUT=/var/tmp/mock-push-received.csv node mock-push.mjs
+```
+
+FCM dry run(실제로 보내지 않고 검사만 하는 모드)으로 500건 × 10회를 보내 시간을 잰다(#472). 토큰은 앱이 설치된 폰의 FCM 토큰이며, 키와 토큰은 저장소·로그에 남기지 않는다. 결과는 `build/reports/fcm-dry-run/`의 CSV와 출력의 p50·p95·max로 본다.
+
+```bash
+FCM_DRY_RUN_TOKEN='FCM_TOKEN' SETTY_NOTIFICATION_FCM_CREDENTIALS_PATH='/path/to/firebase-service-account.json' \
+  ./gradlew test --rerun --tests 'setty.notification.send.fcm.FcmDryRunMeasurementTest'
+```
+
+두 환경 변수가 없으면 이 테스트는 건너뛴다. `--rerun`이 없으면 Gradle이 앞선 건너뛴 결과를 재사용한다.
+
+- `POST /send`: 지연 뒤 200과 `failedNotificationIds`를 돌려준다. `FAIL_RATE=0.1`이면 10%를 실패로 돌려준다.
+- `GET /stats`: 요청 수·메시지 수·첫/마지막 수신 시각·차이(ms). `POST /reset`으로 비운다.
+- CSV에 요청마다 수신 시각(서버 시계)·건수를 남긴다.
+
+앱은 `setty.env`에 아래를 넣고 재시작해야 모의 서버로 보낸다. 측정이 끝나면 되돌린다.
+
+```
+SETTY_NOTIFICATION_SENDER=mock
+SETTY_NOTIFICATION_MOCK_PUSH_URL=http://127.0.0.1:9000
+SETTY_NOTIFICATION_SEND_CONCURRENCY=4
+```
+
+분리 전 구조(등록 트랜잭션 안에서 한 명씩 동기 발송)를 재현하던 `SYNC_SEND` 플래그는 알림 생성을 등록 트랜잭션 밖으로 옮기면서(#446) 없앴다. 분리 전 측정값은 설계 문서에 남아 있다.
+
+### 2 구독자 데이터 (dev EC2 SSM 셸)
+
+매물 목록 실험과 같은 규칙이다. 판매자 토큰은 저장소에 두지 않고 실행 시 전달한다. `uuidgen`으로 만든 36자 값을 Gatling의 `SELLER_TOKEN`에도 같은 값으로 쓴다.
+
+```bash
+fixture_init="SET @fixture_expected_database='DEV_DB_NAME', @fixture_expected_hostname='DEV_MYSQL_HOSTNAME', @fixture_seller_token='SELLER_TOKEN_UUID';"
+run_fixture_sql fixtures/seed-subscribers-1000.sql
+```
+
+| SQL (`fixtures/`) | 결과 |
+| --- | --- |
+| `seed-subscribers-1000.sql` | 판매자 `s3-seller-001` 1명(행정동 `1111053000`, 매물 등록에 필요), 구독자 `s3-sub-000001`~`001000`, 키워드 `s3-notify` 구독 1,000건 |
+| `expand-subscribers-1000-to-10000.sql` | 구독자·구독 10,000 |
+| `expand-subscribers-10000-to-100000.sql` | 구독자·구독 100,000 |
+| `cleanup-subscribers.sql` | 측정 중 등록된 매물·사진 행·알림, 구독, 전용 회원 삭제. S3 객체는 남는다 |
+
+기본은 ROLLBACK 시험이고, 저장은 임시 COMMIT 실행본으로 한다(위 "실제 저장" 참고). 구독자가 `s3-notify`를 구독하므로 Gatling이 등록하는 제목 `[S3-N001] s3-notify desk NNNNNN`에 전원이 매칭된다.
+
+### 3 등록 부하 (PC, `server/`)
+
+```bash
+export SELLER_TOKEN='SELLER_TOKEN_UUID'
+STRUCTURE=async SUBSCRIBERS=1000 REGISTER_MODE=single REGISTER_REPEATS=30 \
+  ./gradlew gatlingRun --simulation setty.performance.ListingRegisterSimulation
+STRUCTURE=async SUBSCRIBERS=1000 REGISTER_MODE=burst BURST_USERS=10 \
+  ./gradlew gatlingRun --simulation setty.performance.ListingRegisterSimulation
+STRUCTURE=async SUBSCRIBERS=10000 REGISTER_MODE=rate RATE_PER_MINUTE=5 RATE_DURATION_MINUTES=10 RATE_SEED=470 \
+  ./gradlew gatlingRun --simulation setty.performance.ListingRegisterSimulation
+```
+
+- `single`: 사용자 1명이 워밍업 5회 → 측정 30회 등록. 요청 사이 `REGISTER_PAUSE_SECONDS`(기본 3초)를 쉬어 앞 등록의 발송이 겹치지 않게 한다. 구독자가 많으면 늘린다.
+- `burst`: `BURST_USERS`명이 동시에 1건씩 등록.
+- `rate`: 예상 트래픽(#470). 워밍업 5회 뒤, 판매자들이 각자 등록하듯 평균 `RATE_PER_MINUTE`건의 무작위 간격으로 `RATE_DURATION_MINUTES`분 동안 응답을 기다리지 않고 1건씩 등록한다. 간격은 `RATE_SEED`로 고정해 고치기 전·후에 같은 시각표를 쓴다. 기본값(분당 5건, 10분, 시드 470)이면 55건이고, 건수와 첫 시각은 실행 시작 로그 `Rate schedule`에 나온다.
+- `STRUCTURE`·`SUBSCRIBERS`는 CSV 라벨이다. 분리 전은 `sync`, 분리 후는 `async`로 적는다.
+- 사진은 `src/gatling/resources/notification-tiny.png`(1×1, 69바이트)로 고정해 업로드 시간을 최소화한다. dev S3에 실제 올라간다.
+- 보고서 `build/reports/gatling/`의 `register-measurement`(`rate`는 `register-rate`) 행에서 등록 P95를 본다. 요청별 응답 시간·매물 ID·`request_id`는 `build/reports/listing-register/`의 CSV에 남는다.
+
+### 4 발송 시간 집계 (dev EC2 SSM 셸)
+
+```bash
+mysql --batch -u DEV_DB_USER -p DEV_DB_NAME < notification-metrics.sql
+```
+
+매물마다 알림 수, 상태별 건수, 커밋부터 마지막 발송까지(`commit_to_last_sent_s`), 첫 발송부터 마지막 발송까지(`first_to_last_sent_s`)를 초 단위로 낸다. 모의 서버의 `GET /stats`와 CSV로 교차 확인한다. DB 커넥션 대기·타임아웃은 CloudWatch의 HikariCP 지표(#331)를 같은 시간대로 본다.
+
+### 5 실기기 수신 측정 (FCM)
+
+설계 3번. 모의 서버 대신 실제 FCM으로 보내고, 앱이 수신 즉시 보내는 ack 시각(서버 시계)과 발송 시각의 차이를 본다.
+
+```
+SETTY_NOTIFICATION_SENDER=fcm
+SETTY_NOTIFICATION_FCM_CREDENTIALS_PATH=/opt/setty/firebase-service-account.json
+```
+
+- 서비스 계정 키는 저장소에 두지 않는다. dev EC2에 파일로 두고 소유자 `setty`, 권한 600.
+- 폰에서 로그인한 계정으로 키워드 `s3-notify`를 구독한 뒤 3절의 `single`을 돌린다. 구독자가 폰 1대뿐이라 `SUBSCRIBERS=1`, `REGISTER_PAUSE_SECONDS=5`.
+- 4절 집계의 `acked`, `sent_to_ack_avg_s`, `sent_to_ack_max_s`가 FCM 구간이다. 표본이 기기 1대라 기준으로 쓰지 않고 참고값으로 남긴다.
+
+### 6 구독자 1만 명 발송 중 실기기 수신 (#472)
+
+측정용 구독자 1만 명과 실제 폰 1대가 같은 매물 알림을 받게 해, 1만 명에게 보내는 동안 폰에 제때 도착하는지 본다. 측정 전용이며 설정값으로 켤 때만 동작한다.
+
+```
+SETTY_NOTIFICATION_SENDER=mixed
+SETTY_NOTIFICATION_MOCK_PUSH_URL=http://127.0.0.1:9000
+SETTY_NOTIFICATION_FCM_CREDENTIALS_PATH=/opt/setty/firebase-service-account.json
+```
+
+- 폰 토큰이 있는 회원(실제 폰)은 FCM으로, 측정용 구독자처럼 토큰이 없는 회원은 1절의 모의 푸시 서버로 보낸다. 같은 500건 묶음 안에서는 모의 서버 쪽을 먼저 보내고 폰을 나중에 보내, 폰이 묶음에서 가장 늦게 받는 경우를 잰다.
+- 2절로 구독자를 만들고, 폰에서 로그인한 계정으로 키워드 `s3-notify`를 구독한 뒤 3절의 `rate`를 돌린다.
+- 폰 도착은 4절 집계의 `acked`, `sent_to_ack_avg_s`, `sent_to_ack_max_s`로 본다.
+
+### 순서
+
+구독자 1,000 → `sync` single/burst → `async` single/burst → 10,000으로 확장 → 반복 → 100,000(시간 보고 `sync`는 생략 가능) → `async`에서 `SEND_CONCURRENCY` 4/8/16으로 재측정 → cleanup.

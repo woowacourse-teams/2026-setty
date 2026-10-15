@@ -1,0 +1,84 @@
+{
+  "base_commit": "4caec1b0",
+  "implementation_commit": "b93d7e09",
+  "scope": "Latest develop integration verification; baseline and after run the same WorkloadTest in separate local processes. Does not replace historical size comparison or dev measurement.",
+  "runs": {
+    "before": [
+      {
+        "due": 50,
+        "run_count": 18,
+        "median_job_ms": 205.93237499999998,
+        "sql_counts": [
+          201
+        ],
+        "transactions": [
+          50
+        ]
+      },
+      {
+        "due": 300,
+        "run_count": 3,
+        "median_job_ms": 1855.704,
+        "sql_counts": [
+          1201
+        ],
+        "transactions": [
+          300
+        ]
+      },
+      {
+        "due": 500,
+        "run_count": 3,
+        "median_job_ms": 2884.472375,
+        "sql_counts": [
+          2001
+        ],
+        "transactions": [
+          500
+        ]
+      }
+    ],
+    "after": [
+      {
+        "due": 50,
+        "run_count": 18,
+        "median_job_ms": 10.744729,
+        "sql_counts": [
+          5
+        ],
+        "transactions": [
+          1
+        ]
+      },
+      {
+        "due": 300,
+        "run_count": 3,
+        "median_job_ms": 37.768625,
+        "sql_counts": [
+          9
+        ],
+        "transactions": [
+          2
+        ]
+      },
+      {
+        "due": 500,
+        "run_count": 3,
+        "median_job_ms": 65.501125,
+        "sql_counts": [
+          13
+        ],
+        "transactions": [
+          3
+        ]
+      }
+    ]
+  },
+  "implementation_regression": {
+    "tests": 407,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "controlled_probes_passed": 6
+}

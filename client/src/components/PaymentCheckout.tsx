@@ -1,5 +1,6 @@
 import { ANONYMOUS, loadTossPayments, type TossPaymentsWidgets } from '@tosspayments/tosspayments-sdk';
 import { useEffect, useRef, useState } from 'react';
+import { trackEvent } from '../analytics/posthog';
 import { createOrder } from '../api/orders';
 import { TOSS_CLIENT_KEY, mockReturn, paymentReturnUrl } from '../payment/tossPayment';
 import paymentStyles from '../styles/modules/Payment.module.css';
@@ -45,8 +46,7 @@ export function PaymentCheckout({ listingId, amount, orderName, onClose }: Payme
         setRequesting(true);
         setError(null);
 
-        // 데스크톱 오버레이 결제창은 취소 시 failUrl로 리다이렉트하지 않고 requestPayment를 reject한다.
-        // 주문 생성 이후의 취소·실패는 서버 실패 복귀로 보내 PENDING 주문 정리(선점 해제)를 태운다.
+        // 결제창 취소가 failUrl 리다이렉트 대신 requestPayment reject로 전달되는 경우도 서버에 알린다.
         let tossOrderId: string | null = null;
         try {
             // 결제 전에 PENDING 주문을 만들고, 그 내부 주문 id를 토스 orderId로 쓴다(서버가 이 id로 조회·승인).
@@ -63,15 +63,18 @@ export function PaymentCheckout({ listingId, amount, orderName, onClose }: Payme
             await widgetsRef.current?.requestPayment({
                 orderId: tossOrderId,
                 orderName,
+                // 데스크톱 기본값인 iframe은 successUrl/failUrl로 이동할 수 없어 현재 탭으로 결제창을 연다.
+                windowTarget: 'self',
                 successUrl: paymentReturnUrl('success'),
-                failUrl: paymentReturnUrl('fail')
+                failUrl: paymentReturnUrl('fail', tossOrderId)
             });
         } catch (reason) {
             if (tossOrderId) {
                 const code = typeof reason === 'object' && reason !== null && 'code' in reason && typeof reason.code === 'string'
                     ? reason.code
                     : 'PAY_PROCESS_CANCELED';
-                // 페이지 이동 없이 서버 실패 복귀만 호출해 PENDING 주문 정리(선점 해제)를 태운다.
+                trackEvent('payment_failed', { order_id: tossOrderId.split('_')[0], code });
+                // 페이지 이동 없이 서버 실패 복귀만 호출한다. 주문은 기존 만료 시각까지 PENDING으로 유지된다.
                 void fetch(`${paymentReturnUrl('fail')}?orderId=${tossOrderId}&code=${encodeURIComponent(code)}`);
                 if (code === 'PAY_PROCESS_CANCELED') {
                     // 사용자가 직접 닫은 취소 — 모달을 닫고 매물 상세로 조용히 복귀한다.

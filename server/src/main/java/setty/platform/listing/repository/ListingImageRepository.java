@@ -12,7 +12,12 @@ public interface ListingImageRepository extends JpaRepository<ListingImage, Long
 
     List<ListingImage> findAllByListingIdOrderByDisplayOrderAsc(Long listingId);
 
-    List<ListingImage> findAllByListingIdInOrderByListingIdAscDisplayOrderAsc(Collection<Long> listingIds);
+    @Query("""
+            select image from ListingImage image
+            where image.listingId in :listingIds
+              and image.displayOrder = 1
+            """)
+    List<ListingImage> findThumbnailsByListingIdIn(@Param("listingIds") Collection<Long> listingIds);
 
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query("""

@@ -1,0 +1,24 @@
+// Opt-in experiments; excluded from the regular CI test source set.
+def experimentDirectory = gradle.startParameter.initScripts
+        .find { it.name == 'benchmark.gradle' }.parentFile
+allprojects {
+    plugins.withId('java') {
+        sourceSets.test.java.srcDir(new File(experimentDirectory, 'src/test/java'))
+        // Baseline experiments compile before the separate batch implementation is merged.
+        if (gradle.startParameter.systemPropertiesArgs.getOrDefault('expiration.benchmark.batch', 'false') != 'true') {
+            sourceSets.test.java.exclude('setty/performance/PendingExpirationBatchSizeTest.java',
+                    'setty/performance/PendingExpirationContentionTest.java')
+        }
+        tasks.named('test') {
+            useJUnitPlatform { includeTags 'local-pending-expiration' }
+            systemProperty 'expiration.benchmark.output',
+                    gradle.startParameter.systemPropertiesArgs.getOrDefault('expiration.benchmark.output',
+                            'build/reports/pending-expiration-baseline')
+            systemProperty 'expiration.benchmark.extended',
+                    gradle.startParameter.systemPropertiesArgs.getOrDefault('expiration.benchmark.extended', 'false')
+            systemProperty 'expiration.benchmark.probesOnly',
+                    gradle.startParameter.systemPropertiesArgs.getOrDefault('expiration.benchmark.probesOnly', 'false')
+            testLogging { events 'passed', 'failed', 'standardOut'; exceptionFormat 'full' }
+        }
+    }
+}
