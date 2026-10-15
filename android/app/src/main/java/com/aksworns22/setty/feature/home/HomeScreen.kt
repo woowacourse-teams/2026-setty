@@ -82,6 +82,7 @@ import com.aksworns22.setty.model.categoryLabel
 import com.aksworns22.setty.model.formatWon
 import com.aksworns22.setty.model.label
 import com.aksworns22.setty.model.registeredDateLabel
+import com.aksworns22.setty.ui.component.PAYMENT_IN_PROGRESS_LABEL
 import com.aksworns22.setty.ui.theme.Paperlogy
 import com.aksworns22.setty.ui.theme.SettyTheme
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -699,6 +700,13 @@ private fun ListingItem(
                     text = "배송비 ${formatWon(furniture.deliveryFee)} 포함",
                     style = MaterialTheme.typography.labelMedium,
                 )
+                if (furniture.hasPurchaseRequest) {
+                    Text(
+                        text = PAYMENT_IN_PROGRESS_LABEL,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.tertiary,
+                    )
+                }
             }
         },
         trailingContent = {
@@ -804,6 +812,7 @@ private val previewFurnitures = listOf(
         category = FurnitureCategory.SOFA,
         conditionGrade = "S",
         createdAt = "2026-09-28T05:03:41Z",
+        hasPurchaseRequest = true,
     ),
     FurnitureSummary(
         id = 3,

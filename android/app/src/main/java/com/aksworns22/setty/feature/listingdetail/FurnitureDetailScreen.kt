@@ -78,6 +78,7 @@ import com.aksworns22.setty.core.model.FurnitureDetail
 import com.aksworns22.setty.core.model.SaleStatus
 import com.aksworns22.setty.model.categoryLabel
 import com.aksworns22.setty.model.formatWon
+import com.aksworns22.setty.model.isPaymentInProgress
 import com.aksworns22.setty.model.isPurchasable
 import com.aksworns22.setty.model.label
 import com.aksworns22.setty.ui.component.SaleStatusBadge
@@ -179,7 +180,10 @@ private fun ListingDetailContent(
                             modifier = Modifier.weight(1f, fill = false),
                         )
                         if (listing != null) {
-                            SaleStatusBadge(saleStatus = listing.saleStatus)
+                            SaleStatusBadge(
+                                saleStatus = listing.saleStatus,
+                                isPaymentInProgress = listing.isPaymentInProgress,
+                            )
                         }
                     }
                 },
@@ -594,7 +598,11 @@ private fun PurchaseBar(
             .height(ButtonDefaults.MediumContainerHeight),
     ) {
         Text(
-            text = if (listing.isPurchasable) "결제하고 주문하기" else "구매할 수 없는 매물입니다",
+            text = when {
+                listing.isPurchasable -> "결제하고 주문하기"
+                listing.isPaymentInProgress -> "다른 구매자가 결제 중이에요"
+                else -> "구매할 수 없는 매물입니다"
+            },
             style = MaterialTheme.typography.bodyLargeEmphasized,
         )
     }
@@ -691,6 +699,21 @@ private fun ListingDetailSoldPreview() {
     SettyTheme {
         ListingDetailContent(
             uiState = ListingDetailUiState.Success(PreviewListing.copy(saleStatus = SaleStatus.SOLD)),
+            favorite = FavoriteUiState(isFavorited = false),
+            onFavoriteToggle = {},
+            onBack = {},
+            onRetry = {},
+            onPurchaseClick = {},
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun ListingDetailPaymentInProgressPreview() {
+    SettyTheme {
+        ListingDetailContent(
+            uiState = ListingDetailUiState.Success(PreviewListing.copy(hasPurchaseRequest = true)),
             favorite = FavoriteUiState(isFavorited = false),
             onFavoriteToggle = {},
             onBack = {},

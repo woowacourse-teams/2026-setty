@@ -15,15 +15,19 @@ import com.aksworns22.setty.model.label
 fun SaleStatusBadge(
     saleStatus: SaleStatus,
     modifier: Modifier = Modifier,
+    isPaymentInProgress: Boolean = false,
 ) {
-    val (containerColor, contentColor) = when (saleStatus) {
-        SaleStatus.AVAILABLE -> MaterialTheme.colorScheme.primaryContainer to
-                MaterialTheme.colorScheme.onPrimaryContainer
-
-        SaleStatus.RESERVED -> MaterialTheme.colorScheme.tertiaryContainer to
+    val (containerColor, contentColor) = when {
+        isPaymentInProgress -> MaterialTheme.colorScheme.tertiaryContainer to
                 MaterialTheme.colorScheme.onTertiaryContainer
 
-        SaleStatus.SOLD -> MaterialTheme.colorScheme.surfaceContainerHighest to
+        saleStatus == SaleStatus.AVAILABLE -> MaterialTheme.colorScheme.primaryContainer to
+                MaterialTheme.colorScheme.onPrimaryContainer
+
+        saleStatus == SaleStatus.RESERVED -> MaterialTheme.colorScheme.tertiaryContainer to
+                MaterialTheme.colorScheme.onTertiaryContainer
+
+        else -> MaterialTheme.colorScheme.surfaceContainerHighest to
                 MaterialTheme.colorScheme.onSurfaceVariant
     }
     Surface(
@@ -33,9 +37,11 @@ fun SaleStatusBadge(
         modifier = modifier,
     ) {
         Text(
-            text = saleStatus.label,
+            text = if (isPaymentInProgress) PAYMENT_IN_PROGRESS_LABEL else saleStatus.label,
             style = MaterialTheme.typography.labelLarge,
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
         )
     }
 }
+
+const val PAYMENT_IN_PROGRESS_LABEL = "결제 진행 중"
