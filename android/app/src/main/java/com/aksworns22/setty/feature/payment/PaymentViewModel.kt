@@ -34,6 +34,8 @@ enum class PaymentStep {
 }
 
 data class PaymentUiState(
+    // 결제할 금액. 주문을 만들기 전에는 매물 상세의 총액, 만든 뒤에는 주문 생성 응답의 총액이다
+    val amount: Int = 0,
     val isWidgetLoaded: Boolean = false,
     // 약관 위젯이 아직 동의 상태를 알려주지 않았으면 null
     val isAgreed: Boolean? = null,
@@ -48,7 +50,7 @@ data class PaymentUiState(
 }
 
 sealed interface PaymentEvent {
-    data class RequestPayment(val tossOrderId: String) : PaymentEvent
+    data class RequestPayment(val tossOrderId: String, val amount: Int) : PaymentEvent
 
     data object Completed : PaymentEvent
 
@@ -59,10 +61,11 @@ sealed interface PaymentEvent {
 
 class PaymentViewModel(
     private val listingId: Long,
+    amount: Int,
     private val paymentRepository: PaymentRepository,
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(PaymentUiState())
+    private val _uiState = MutableStateFlow(PaymentUiState(amount = amount))
     val uiState = _uiState.asStateFlow()
 
     private val _event = Channel<PaymentEvent>(Channel.BUFFERED)
@@ -70,6 +73,9 @@ class PaymentViewModel(
 
     // 결제 요청이 실패했을 때 정리할 주문
     private var requestedTossOrderId: String? = null
+
+    // 서버 승인 요청에 보낼 금액. 주문 생성 응답의 총액이다
+    private var requestedAmount: Int? = null
 
     fun onWidgetLoaded() {
         _uiState.update { it.copy(isWidgetLoaded = true) }
@@ -89,11 +95,12 @@ class PaymentViewModel(
         viewModelScope.launch {
             runCatching {
                 paymentRepository.createOrder(listingId)
-            }.onSuccess { orderId ->
-                val tossOrderId = tossOrderIdOf(orderId)
+            }.onSuccess { order ->
+                val tossOrderId = tossOrderIdOf(order.id)
                 requestedTossOrderId = tossOrderId
-                updateStep(PaymentStep.REQUESTING)
-                _event.send(PaymentEvent.RequestPayment(tossOrderId))
+                requestedAmount = order.totalPrice
+                _uiState.update { it.copy(amount = order.totalPrice, step = PaymentStep.REQUESTING) }
+                _event.send(PaymentEvent.RequestPayment(tossOrderId, order.totalPrice))
             }.onFailure { throwable ->
                 updateStep(PaymentStep.IDLE)
                 // 결제가 끝나지 않은 PENDING 주문이 매물을 선점 중이면 만료 후 다시 구매할 수 있음을 안내한다
@@ -112,7 +119,7 @@ class PaymentViewModel(
             is TossPaymentResult.Success -> confirm(
                 paymentKey = result.paymentKey,
                 tossOrderId = result.orderId,
-                amount = result.amount.toInt(),
+                amount = requestedAmount ?: result.amount.toInt(),
             )
 
             is TossPaymentResult.Fail -> fail(
@@ -121,12 +128,17 @@ class PaymentViewModel(
                 errorMessage = result.errorMessage,
             )
         }
-        requestedTossOrderId = null
+        clearRequestedPayment()
     }
 
     fun onRequestPaymentFailed(message: String) {
         fail(tossOrderId = requestedTossOrderId, errorCode = REQUEST_FAILED, errorMessage = message)
+        clearRequestedPayment()
+    }
+
+    private fun clearRequestedPayment() {
         requestedTossOrderId = null
+        requestedAmount = null
     }
 
     private fun confirm(paymentKey: String, tossOrderId: String, amount: Int) {
@@ -205,10 +217,10 @@ class PaymentViewModel(
         /** 토스 orderId는 매 시도마다 유일해야 하므로 `<주문id>_<랜덤>`으로 만든다. 서버는 앞부분에서 주문 id를 읽는다. */
         fun tossOrderIdOf(orderId: Long): String = "${orderId}_${UUID.randomUUID()}"
 
-        fun factory(listingId: Long) = viewModelFactory {
+        fun factory(listingId: Long, amount: Int) = viewModelFactory {
             initializer {
                 val appContainer = (this[APPLICATION_KEY] as SettyApp).appContainer
-                PaymentViewModel(listingId, appContainer.paymentRepository)
+                PaymentViewModel(listingId, amount, appContainer.paymentRepository)
             }
         }
     }

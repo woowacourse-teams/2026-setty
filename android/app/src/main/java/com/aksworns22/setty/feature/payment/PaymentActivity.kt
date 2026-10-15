@@ -30,7 +30,7 @@ class PaymentActivity : AppCompatActivity() {
     private val orderName by lazy { intent.getStringExtra(EXTRA_ORDER_NAME).orEmpty() }
     private val amount by lazy { intent.getIntExtra(EXTRA_AMOUNT, 0) }
 
-    private val viewModel: PaymentViewModel by viewModels { PaymentViewModel.factory(listingId) }
+    private val viewModel: PaymentViewModel by viewModels { PaymentViewModel.factory(listingId, amount) }
 
     private lateinit var paymentWidget: PaymentWidget
 
@@ -47,7 +47,6 @@ class PaymentActivity : AppCompatActivity() {
             SettyTheme {
                 PaymentScreen(
                     viewModel = viewModel,
-                    amount = amount,
                     onPaymentMethodCreated = ::renderPaymentMethods,
                     onAgreementCreated = ::renderAgreement,
                     onRequestPayment = ::requestPayment,
@@ -91,8 +90,10 @@ class PaymentActivity : AppCompatActivity() {
         )
     }
 
-    private fun requestPayment(tossOrderId: String) {
+    private fun requestPayment(tossOrderId: String, amount: Int) {
         try {
+            // 위젯은 매물 상세의 총액으로 렌더링됐으므로 서버가 검증할 주문 총액으로 맞춘 뒤 결제창을 연다
+            paymentWidget.updateAmount(amount)
             paymentWidget.requestPayment(
                 paymentInfo = PaymentMethod.PaymentInfo(orderId = tossOrderId, orderName = orderName),
                 paymentCallback = object : PaymentCallback {

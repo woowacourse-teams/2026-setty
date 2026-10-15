@@ -42,10 +42,9 @@ import com.tosspayments.paymentsdk.view.PaymentMethod
 @Composable
 fun PaymentScreen(
     viewModel: PaymentViewModel,
-    amount: Int,
     onPaymentMethodCreated: (PaymentMethod) -> Unit,
     onAgreementCreated: (Agreement) -> Unit,
-    onRequestPayment: (tossOrderId: String) -> Unit,
+    onRequestPayment: (tossOrderId: String, amount: Int) -> Unit,
     onBack: () -> Unit,
     onComplete: () -> Unit,
 ) {
@@ -58,7 +57,7 @@ fun PaymentScreen(
     LaunchedEffect(Unit) {
         viewModel.event.collect { event ->
             when (event) {
-                is PaymentEvent.RequestPayment -> currentOnRequestPayment(event.tossOrderId)
+                is PaymentEvent.RequestPayment -> currentOnRequestPayment(event.tossOrderId, event.amount)
                 PaymentEvent.Completed -> currentOnComplete()
                 is PaymentEvent.Failed -> snackbarHostState.showSnackbar(event.message)
                 is PaymentEvent.Notice ->
@@ -68,7 +67,6 @@ fun PaymentScreen(
     }
     PaymentContent(
         uiState = uiState,
-        amount = amount,
         snackbarHostState = snackbarHostState,
         onPaymentMethodCreated = onPaymentMethodCreated,
         onAgreementCreated = onAgreementCreated,
@@ -81,7 +79,6 @@ fun PaymentScreen(
 @Composable
 private fun PaymentContent(
     uiState: PaymentUiState,
-    amount: Int,
     snackbarHostState: SnackbarHostState,
     onPaymentMethodCreated: (PaymentMethod) -> Unit,
     onAgreementCreated: (Agreement) -> Unit,
@@ -122,7 +119,7 @@ private fun PaymentContent(
             ) {
                 Text(
                     text = when (uiState.step) {
-                        PaymentStep.IDLE -> "${formatWon(amount)} 결제하기"
+                        PaymentStep.IDLE -> "${formatWon(uiState.amount)} 결제하기"
                         PaymentStep.CONFIRMING -> "결제 확인 중"
                         else -> "결제 진행 중"
                     },
