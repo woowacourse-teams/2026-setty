@@ -1,5 +1,6 @@
 package com.aksworns22.setty.data
 
+import com.aksworns22.setty.model.PendingOrder
 import com.aksworns22.setty.network.OrderCreateRequest
 import com.aksworns22.setty.network.PaymentConfirmRequest
 import com.aksworns22.setty.network.PaymentFailRequest
@@ -10,10 +11,11 @@ import retrofit2.HttpException
 class PaymentRepository(
     private val settyNetworkApi: SettyNetworkApi,
 ) {
-    /** 결제 전에 PENDING 주문을 만들고 서버 내부 주문 id를 돌려준다. */
-    suspend fun createOrder(listingId: Long): Long {
+    /** 결제 전에 PENDING 주문을 만들고 서버 내부 주문 id와 결제할 총액을 돌려준다. */
+    suspend fun createOrder(listingId: Long): PendingOrder {
         try {
-            return settyNetworkApi.createOrder(OrderCreateRequest(listingId)).id
+            val response = settyNetworkApi.createOrder(OrderCreateRequest(listingId))
+            return PendingOrder(id = response.id, totalPrice = response.totalPrice)
         } catch (e: HttpException) {
             throw e.toApiException()
         }
