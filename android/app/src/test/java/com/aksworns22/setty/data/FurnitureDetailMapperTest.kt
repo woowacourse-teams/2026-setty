@@ -3,6 +3,7 @@ package com.aksworns22.setty.data
 import com.aksworns22.setty.core.model.FurnitureCategory
 import com.aksworns22.setty.core.model.SaleStatus
 import com.aksworns22.setty.model.categoryLabel
+import com.aksworns22.setty.model.isPaymentInProgress
 import com.aksworns22.setty.model.isPurchasable
 import com.aksworns22.setty.network.DimensionsResponse
 import com.aksworns22.setty.network.FurnitureDetailResponse
@@ -68,6 +69,38 @@ class FurnitureDetailMapperTest {
 
         assertEquals(SaleStatus.SOLD, listing.saleStatus)
         assertFalse(listing.isPurchasable)
+    }
+
+    @Test
+    fun `결제 진행 중인 매물은 판매중이어도 구매할 수 없다`() {
+        val listing = response.copy(hasPurchaseRequest = true).toFurnitureDetail()
+
+        assertTrue(listing.isPaymentInProgress)
+        assertFalse(listing.isPurchasable)
+    }
+
+    @Test
+    fun `판매중이 아닌 매물은 결제 진행 중보다 판매 상태를 보여준다`() {
+        val listing = response.copy(saleStatus = "SOLD", hasPurchaseRequest = true).toFurnitureDetail()
+
+        assertFalse(listing.isPaymentInProgress)
+    }
+
+    @Test
+    fun `목록 항목에 결제 진행 중 여부를 담는다`() {
+        val summary = FurnitureSummaryResponse(
+            id = 1,
+            title = "원목 4인 식탁",
+            price = 120_000,
+            deliveryFee = 20_000,
+            totalPrice = 140_000,
+            category = "TABLE",
+            conditionGrade = "A",
+            createdAt = "2026-09-30T00:00:00Z",
+        )
+
+        assertTrue(summary.copy(hasPurchaseRequest = true).toFurniture().hasPurchaseRequest)
+        assertFalse(summary.toFurniture().hasPurchaseRequest)
     }
 
     @Test

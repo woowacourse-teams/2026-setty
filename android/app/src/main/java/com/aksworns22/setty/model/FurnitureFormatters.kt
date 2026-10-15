@@ -40,8 +40,12 @@ val FurnitureSummary.registeredDateLabel: String
 val FurnitureDetail.categoryLabel: String
     get() = category.label
 
+/** 판매중이지만 결제 대기 주문이 선점한 매물인지. 판매중이 아니면 판매 상태를 우선한다. */
+val FurnitureDetail.isPaymentInProgress: Boolean
+    get() = saleStatus == SaleStatus.AVAILABLE && hasPurchaseRequest
+
 val FurnitureDetail.isPurchasable: Boolean
-    get() = saleStatus == SaleStatus.AVAILABLE
+    get() = saleStatus == SaleStatus.AVAILABLE && !hasPurchaseRequest
 
 val MyFurniture.categoryLabel: String
     get() = category.label

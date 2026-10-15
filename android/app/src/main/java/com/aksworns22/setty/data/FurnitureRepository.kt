@@ -121,6 +121,7 @@ internal fun FurnitureSummaryResponse.toFurniture() = FurnitureSummary(
     conditionGrade = conditionGrade,
     createdAt = createdAt,
     dongName = dong?.toDisplayName(),
+    hasPurchaseRequest = hasPurchaseRequest,
 )
 
 private fun ListingDongResponse.toDisplayName(): String =
@@ -141,6 +142,7 @@ internal fun FurnitureDetailResponse.toFurnitureDetail() = FurnitureDetail(
     saleStatus = saleStatusOrNull(saleStatus) ?: SaleStatus.SOLD,
     imageUrls = images.sortedBy { it.displayOrder }.map { it.url },
     dongName = dong?.toDisplayName(),
+    hasPurchaseRequest = hasPurchaseRequest,
 )
 
 internal fun FurnitureDetailResponse.toEditableListing() = EditableListing(

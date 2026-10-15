@@ -22,6 +22,7 @@ data class FurnitureSummaryResponse(
     val createdAt: String,
     // 행정동 도입 전에 등록한 매물은 null
     val dong: ListingDongResponse? = null,
+    val hasPurchaseRequest: Boolean = false,
 )
 
 @Serializable
