@@ -14,6 +14,8 @@ import com.aksworns22.setty.devtools.model.AppBuildInfo
 import com.aksworns22.setty.devtools.scenario.MockScenarioStore
 import com.aksworns22.setty.devtools.ui.DevToolsScreen
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -25,6 +27,9 @@ class DevToolsActivity : ComponentActivity() {
 
     @Inject
     lateinit var buildInfo: AppBuildInfo
+
+    private val scenarioWriteJobs = mutableListOf<Job>()
+    private var isRestarting = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -38,9 +43,21 @@ class DevToolsActivity : ComponentActivity() {
                     buildInfo = buildInfo,
                     enabledScenarios = enabledScenarios,
                     onScenarioToggle = { scenario, enabled ->
-                        lifecycleScope.launch { scenarioStore.setEnabled(scenario, enabled) }
+                        if (!isRestarting) {
+                            scenarioWriteJobs += lifecycleScope.launch {
+                                scenarioStore.setEnabled(scenario, enabled)
+                            }
+                        }
                     },
-                    onRestartClick = { restartSettyApp() }
+                    onRestartClick = {
+                        if (!isRestarting) {
+                            isRestarting = true
+                            lifecycleScope.launch {
+                                scenarioWriteJobs.joinAll()
+                                restartSettyApp()
+                            }
+                        }
+                    }
                 )
             }
         }
