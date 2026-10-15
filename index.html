@@ -285,6 +285,20 @@
     .note svg { flex: none; width: 22px; height: 22px; fill: var(--primary); margin-top: 2px; }
     .note b { color: var(--on-surface); font-weight: 800; }
 
+    /* 실제 서비스 화면: 클릭하면 원본 크기로 확인할 수 있다. */
+    .screenshots { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; margin-top: 32px; }
+    .screen { margin: 0; min-width: 0; }
+    .screen a { display: block; overflow: hidden; border: 1px solid var(--outline-variant); border-radius: 20px; background: #fff; }
+    .screen a:focus-visible { outline: 3px solid var(--primary); outline-offset: 4px; }
+    .screen img { display: block; width: 100%; height: auto; }
+    .screen figcaption { padding: 14px 4px 0; color: var(--on-surface-variant); font-size: .9375rem; }
+    .screen figcaption b { display: block; color: var(--on-surface); margin-bottom: 4px; }
+    .capture-note { margin: 16px 0 0; color: var(--on-surface-variant); font-size: .8125rem; }
+    .upcoming { margin-top: 24px; padding: 24px; border-radius: 24px; background: var(--primary-container); color: var(--on-primary-container); }
+    .upcoming h3 { margin: 0 0 8px; font-size: 1.125rem; }
+    .upcoming p { margin: 0; }
+    @media (max-width: 720px) { .screenshots { grid-template-columns: 1fr; } }
+
     /* ---------- 배송비 정책 ---------- */
     .fee-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
     .fee {
@@ -554,9 +568,24 @@
           </li>
         </ol>
 
+        <div class="screenshots" aria-label="실제 웹 서비스 화면">
+          <figure class="screen reveal">
+            <a href="assets/screenshots/listing-search.jpg" target="_blank" rel="noopener" aria-label="가구 검색 화면 크게 보기 (새 탭)">
+              <img src="assets/screenshots/listing-search.jpg" width="1265" height="712" loading="lazy" alt="원목으로 검색한 가구 목록. 상품 가격, 배송비와 총액을 함께 표시한다." />
+            </a>
+            <figcaption><b>1. 원하는 가구 찾기</b>이름으로 검색하고, 목록에서 배송비를 포함한 총액을 비교해요.</figcaption>
+          </figure>
+          <figure class="screen reveal">
+            <a href="assets/screenshots/listing-detail.jpg" target="_blank" rel="noopener" aria-label="가구 상세 화면 크게 보기 (새 탭)">
+              <img src="assets/screenshots/listing-detail.jpg" width="1265" height="712" loading="lazy" alt="원목 책장 상세 화면. 상품 105,000원과 배송비 20,000원, 총액 125,000원 및 결제하고 주문하기 버튼." />
+            </a>
+            <figcaption><b>2. 총액 확인 후 주문하기</b>사진과 크기를 확인한 뒤 ‘결제하고 주문하기’로 이어가요. 결제에는 로그인이 필요해요.</figcaption>
+          </figure>
+        </div>
+        <p class="capture-note">2026.10.15 운영 웹 서비스 화면 · 매물과 금액은 촬영 시점의 예시예요. 화면을 누르면 크게 볼 수 있어요.</p>
         <div class="note reveal">
           <svg aria-hidden="true"><use href="#i-bell" /></svg>
-          <span><b>키워드 알림</b>을 등록해 두면, 원하는 가구가 올라올 때 바로 알려드려요. 찾는 가구가 지금 없어도 기다릴 필요가 없어요.</span>
+          <span><b>이번 업데이트 예정 · Android 키워드 알림</b><br />찾는 가구의 키워드를 등록하면, 해당 키워드가 제목에 들어간 새 매물을 알려드려요.</span>
         </div>
       </div>
     </section>
@@ -564,9 +593,9 @@
     <!-- 배송비 -->
     <section id="fee">
       <div class="wrap">
-        <p class="eyebrow reveal">배송비는 이렇게 정해져요</p>
-        <h2 class="reveal">가구 크기만 보면<br />배송비가 보여요</h2>
-        <p class="section-lead reveal">가로 × 세로 × 높이로 구한 부피에 따라 정해진 금액이 매겨져요. 그래서 결제 전에 최종 금액을 미리 알 수 있어요.</p>
+        <p class="eyebrow reveal">현재 제공 중인 배송비 안내</p>
+        <h2 class="reveal">결제 전에,<br />배송비까지 확인해요</h2>
+        <p class="section-lead reveal">현재는 가로 × 세로 × 높이로 구한 부피에 따라 아래 정액을 적용해요. 목록과 상세 화면에서 상품값에 배송비를 더한 총액을 먼저 확인하세요.</p>
         <div class="fee-grid">
           <div class="fee reveal">
             <svg class="fee-shape" viewBox="0 0 100 100" aria-hidden="true"><use href="#s-cookie6" /></svg>
@@ -587,9 +616,9 @@
             <p class="fee-desc">부피 1㎥ 초과<br />3인용 소파, 침대, 큰 옷장</p>
           </div>
         </div>
-        <div class="note reveal">
-          <svg aria-hidden="true"><use href="#i-info" /></svg>
-          <span>지금은 주소 기반 용달 견적이 아니라 <b>가구 크기에 따른 정액</b>으로 배송비를 계산해요. 주소 기반 견적과 자동 차량 매칭은 준비 중이에요.</span>
+        <div class="upcoming reveal">
+          <h3>다음 업데이트 · 거리도 함께 반영할 예정이에요</h3>
+          <p>서울의 출발·도착 동 사이 도로 거리와 가구 부피를 함께 고려해 예상 배송비를 계산해요. 배송비를 포함한 총액으로 예산에 맞는 가구도 찾을 수 있게 준비했어요. 동 단위의 예상 거리이므로 개별 주소 사이의 정확한 운송 견적과는 차이가 있어요.</p>
         </div>
       </div>
     </section>
