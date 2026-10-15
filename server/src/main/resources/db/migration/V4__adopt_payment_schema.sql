@@ -1,4 +1,4 @@
--- 매 부팅 시 실행되므로 모든 문장은 멱등이어야 한다. 실행 순서는 application.yml의 spring.sql.init.schema-locations를 따른다.
+-- Flyway 최초 편입용: 빈 DB와 기존 DB 모두 지원한다. 적용 후에는 수정하지 말고 새 버전을 추가한다.
 
 -- 결제 (payment 계층). 토스페이먼츠 결제 결과(성공 DONE / 실패 ABORTED)를 1주문 1행으로 저장한다.
 -- 주문은 결제 이전에 PENDING으로 먼저 생성되므로 payments.order_id는 항상 존재하는 주문을 가리킨다.

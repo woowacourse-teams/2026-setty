@@ -1,4 +1,4 @@
--- 매 부팅 시 실행되므로 모든 문장은 멱등이어야 한다. 실행 순서는 application.yml의 spring.sql.init.schema-locations를 따른다.
+-- Flyway 최초 편입용: 빈 DB와 기존 DB 모두 지원한다. 적용 후에는 수정하지 말고 새 버전을 추가한다.
 
 -- 키워드 구독 (notification 모듈). members FK가 있어 platform.sql 뒤에 실행한다.
 -- category·min_price·max_price·exclude_keyword는 다음 스프린트 조건용. 이번에는 항상 NULL.

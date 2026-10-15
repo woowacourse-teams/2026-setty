@@ -223,7 +223,7 @@ run_fixture_sql fixtures/revert-dong-backfill.sql
 
 ## 배송비 PR 배포 후 dev 확인 (#476 → #478 → #481)
 
-세 PR을 순서대로 머지해 dev에 배포한 뒤 한 번 실행한다. 스키마 변경은 앱이 부팅할 때 `schema/*.sql`로 적용되므로, 배포된 앱이 새 커밋으로 다시 떴는지 먼저 확인한다.
+세 PR을 순서대로 머지해 dev에 배포한 뒤 한 번 실행한다. 스키마 변경은 앱이 부팅할 때 Flyway의 `db/migration/V*__*.sql`로 적용되므로, 배포된 앱이 새 커밋으로 다시 떴는지 먼저 확인한다. 기존 DB를 Flyway로 처음 편입할 때만 `SETTY_FLYWAY_ADOPT_EXISTING=true`를 사용하고, 편입 완료 후에는 해제한다.
 
 ### 1 스키마 (dev EC2 SSM 셸, 읽기 전용)
 

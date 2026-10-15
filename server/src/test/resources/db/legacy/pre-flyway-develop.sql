@@ -1,3 +1,5 @@
+-- Frozen pre-Flyway schema from develop b8f87e21cbec1c41003735ac00fd02bc4972238a; do not update with new migrations.
+
 -- 플랫폼 모듈(회원·매물·주문·찜) 스키마. 다른 모듈 파일보다 먼저 실행한다(테이블 간 FK가 이 파일 안에 있음).
 -- 매 부팅 시 실행되므로 모든 문장은 멱등이어야 한다. 실행 순서는 application.yml의 spring.sql.init.schema-locations를 따른다.
 
@@ -373,4 +375,209 @@ CREATE TABLE IF NOT EXISTS favorites (
     CONSTRAINT uk_favorites_member_listing UNIQUE (member_id, listing_id),
     CONSTRAINT fk_favorites_member  FOREIGN KEY (member_id)  REFERENCES members (id),
     CONSTRAINT fk_favorites_listing FOREIGN KEY (listing_id) REFERENCES listings (id)
+);
+
+
+-- 매 부팅 시 실행되므로 모든 문장은 멱등이어야 한다. 실행 순서는 application.yml의 spring.sql.init.schema-locations를 따른다.
+
+-- 키워드 구독 (notification 모듈). members FK가 있어 platform.sql 뒤에 실행한다.
+-- category·min_price·max_price·exclude_keyword는 다음 스프린트 조건용. 이번에는 항상 NULL.
+CREATE TABLE IF NOT EXISTS keyword_subscriptions (
+    id              BIGINT       NOT NULL AUTO_INCREMENT,
+    member_id       BIGINT       NOT NULL,
+    keyword         VARCHAR(20)  NOT NULL,          -- 양쪽 공백 제거 후 1~20자. 매칭은 콜레이션으로 대소문자 무시
+    category        VARCHAR(20)  NULL,
+    min_price       INT          NULL,
+    max_price       INT          NULL,
+    exclude_keyword VARCHAR(20)  NULL,
+    created_at      TIMESTAMP(6) NOT NULL,
+    PRIMARY KEY (id),
+    CONSTRAINT uk_keyword_subscriptions_member_keyword UNIQUE (member_id, keyword),
+    CONSTRAINT fk_keyword_subscriptions_member FOREIGN KEY (member_id) REFERENCES members (id),
+    INDEX idx_keyword_subscriptions_keyword (keyword)
+);
+
+-- 매물 등록 알림. 매물·사용자 조합당 1건.
+CREATE TABLE IF NOT EXISTS listing_notifications (
+    id         BIGINT       NOT NULL AUTO_INCREMENT,
+    listing_id BIGINT       NOT NULL,
+    member_id  BIGINT       NOT NULL,
+    status     VARCHAR(10)  NOT NULL,              -- PENDING / SENT / FAILED
+    attempts   INT          NOT NULL DEFAULT 0,    -- 발송 시도 횟수. 3회 실패 시 FAILED
+    created_at TIMESTAMP(6) NOT NULL,
+    sent_at    TIMESTAMP(6) NULL,                  -- 서버(DB) 시계 기준 발송 시각
+    PRIMARY KEY (id),
+    CONSTRAINT uk_listing_notifications_listing_member UNIQUE (listing_id, member_id),
+    CONSTRAINT fk_listing_notifications_listing FOREIGN KEY (listing_id) REFERENCES listings (id),
+    CONSTRAINT fk_listing_notifications_member  FOREIGN KEY (member_id)  REFERENCES members (id),
+    INDEX idx_listing_notifications_pending (listing_id, status, id),
+    INDEX idx_listing_notifications_member (member_id, created_at, id)
+);
+
+-- 앱이 수신 즉시 보내는 ack를 받은 시각(서버 시계). 기기 도착 측정용. 기존 테이블이라 멱등 ALTER로 추가한다.
+SET @listing_notifications_acked_at_exists = (
+    SELECT COUNT(*)
+    FROM information_schema.columns
+    WHERE table_schema = DATABASE()
+      AND table_name = 'listing_notifications'
+      AND column_name = 'acked_at'
+);
+SET @add_listing_notifications_acked_at = IF(
+    @listing_notifications_acked_at_exists = 0,
+    'ALTER TABLE listing_notifications ADD COLUMN acked_at TIMESTAMP(6) NULL AFTER sent_at',
+    'SELECT 1'
+);
+PREPARE add_listing_notifications_acked_at_statement FROM @add_listing_notifications_acked_at;
+EXECUTE add_listing_notifications_acked_at_statement;
+DEALLOCATE PREPARE add_listing_notifications_acked_at_statement;
+
+-- 앱이 받은 FCM 등록 토큰. 토큰 하나는 기기 하나이며, 사용자 1명이 기기 여러 대를 가질 수 있다.
+-- 같은 토큰이 다른 사용자로 다시 오면 기기 주인이 바뀐 것으로 보고 member_id를 갱신한다.
+CREATE TABLE IF NOT EXISTS device_tokens (
+    id         BIGINT       NOT NULL AUTO_INCREMENT,
+    member_id  BIGINT       NOT NULL,
+    token      VARCHAR(255) NOT NULL,
+    platform   VARCHAR(10)  NOT NULL,              -- ANDROID / IOS
+    updated_at TIMESTAMP(6) NOT NULL,
+    PRIMARY KEY (id),
+    CONSTRAINT uk_device_tokens_token UNIQUE (token),
+    CONSTRAINT fk_device_tokens_member FOREIGN KEY (member_id) REFERENCES members (id),
+    INDEX idx_device_tokens_member (member_id)
+);
+
+
+-- 배송 모듈(배송 요청·판정·기사 계정) 스키마.
+-- 매 부팅 시 실행되므로 모든 문장은 멱등이어야 한다. 실행 순서는 application.yml의 spring.sql.init.schema-locations를 따른다.
+
+CREATE TABLE IF NOT EXISTS delivery (
+    id                    BIGINT       NOT NULL AUTO_INCREMENT,
+    order_id              BIGINT       NOT NULL,
+    driver_id             BIGINT       NULL,
+    item_name             VARCHAR(100) NOT NULL,
+    category              VARCHAR(50)  NOT NULL,
+    pickup_address        VARCHAR(255) NOT NULL,
+    delivery_address      VARCHAR(255) NOT NULL,
+    pickup_phone_number   VARCHAR(30)  NOT NULL,
+    delivery_phone_number VARCHAR(30)  NOT NULL,
+    estimated_fee         INT          NOT NULL,
+    status                VARCHAR(20)  NOT NULL,
+    requested_at          TIMESTAMP(6) NOT NULL,
+    accepted_at           TIMESTAMP(6) NULL,
+    picked_up_at          TIMESTAMP(6) NULL,
+    delivered_at          TIMESTAMP(6) NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_delivery_order_id (order_id),
+    CONSTRAINT chk_delivery_estimated_fee CHECK (estimated_fee >= 0)
+);
+
+-- 주문별 배송 판정. 배송 요청 등록과 구매자 취소 중 먼저 INSERT한 쪽이 결론을 정한다.
+-- 취소가 먼저 판정된 주문은 재발행된 OrderConfirmed가 와도 배송 요청을 만들지 않는다.
+CREATE TABLE IF NOT EXISTS delivery_order_decision (
+    order_id   BIGINT       NOT NULL,
+    outcome    VARCHAR(20)  NOT NULL,   -- REQUESTED / CANCELLED
+    decided_at TIMESTAMP(6) NOT NULL,
+    PRIMARY KEY (order_id)
+);
+
+-- 판정 테이블 도입 전에 만들어진 배송 요청을 REQUESTED 판정으로 채운다. 이미 있는 판정은 건너뛴다.
+INSERT IGNORE INTO delivery_order_decision (order_id, outcome, decided_at)
+SELECT order_id, 'REQUESTED', requested_at FROM delivery;
+
+CREATE TABLE IF NOT EXISTS delivery_member (
+    id                           BIGINT       NOT NULL AUTO_INCREMENT,
+    login_id                     VARCHAR(20)  NOT NULL,
+    password                     VARCHAR(60)  NOT NULL,   -- BCrypt 해시 고정 60자
+    phone_number                 VARCHAR(13)  NOT NULL,   -- 010-0000-0000
+    license_plate_number         VARCHAR(20)  NOT NULL,   -- 00가0000
+    car_type                     VARCHAR(30)  NOT NULL,   -- 다마스 등
+    business_registration_number VARCHAR(12)  NOT NULL,   -- 000-00-00000
+    token                        VARCHAR(36)  NULL,       -- 로그인 시 회전하는 UUID. 로그인 전 NULL
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_delivery_member_login_id (login_id),
+    UNIQUE KEY uk_delivery_member_token (token)
+);
+
+
+-- 매 부팅 시 실행되므로 모든 문장은 멱등이어야 한다. 실행 순서는 application.yml의 spring.sql.init.schema-locations를 따른다.
+
+-- 결제 (payment 계층). 토스페이먼츠 결제 결과(성공 DONE / 실패 ABORTED)를 1주문 1행으로 저장한다.
+-- 주문은 결제 이전에 PENDING으로 먼저 생성되므로 payments.order_id는 항상 존재하는 주문을 가리킨다.
+-- 실패 저장을 위해 payment_key·approved_at은 NULL 허용. 실패 후 재승인 시 같은 행을 DONE으로 전이한다.
+-- 주문은 만료 후에도 보존한다. 기존 DB의 fk_payments_order는 아래에서 제거한다.
+CREATE TABLE IF NOT EXISTS payments (
+    id            BIGINT       NOT NULL AUTO_INCREMENT,
+    order_id      BIGINT       NOT NULL,                  -- 결제 이전에 PENDING으로 존재하는 주문 (1주문 1행)
+    payment_key   VARCHAR(200) NULL,                      -- 토스가 발급한 결제 키 (실패/ABORTED 시 NULL)
+    toss_order_id VARCHAR(64)  NOT NULL,                  -- 토스 결제창 orderId (= 내부 주문 id)
+    amount        INT          NOT NULL,                  -- 결제 금액 (매물 totalPrice와 일치)
+    status        VARCHAR(20)  NOT NULL,                  -- 결제 상태 (DONE / ABORTED)
+    approved_at   DATETIME     NULL,                      -- 토스 승인 시각 (실패/ABORTED 시 NULL)
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_payments_order_id (order_id),
+    UNIQUE KEY uk_payments_toss_order_id (toss_order_id)
+);
+
+SET @payments_order_fk_exists = (
+    SELECT COUNT(*) FROM information_schema.table_constraints
+    WHERE table_schema = DATABASE() AND table_name = 'payments'
+      AND constraint_name = 'fk_payments_order' AND constraint_type = 'FOREIGN KEY'
+);
+SET @drop_payments_order_fk = IF(
+    @payments_order_fk_exists > 0,
+    'ALTER TABLE payments DROP FOREIGN KEY fk_payments_order',
+    'SELECT 1'
+);
+PREPARE drop_payments_order_fk_statement FROM @drop_payments_order_fk;
+EXECUTE drop_payments_order_fk_statement;
+DEALLOCATE PREPARE drop_payments_order_fk_statement;
+
+
+-- 매 부팅 시 실행되므로 모든 문장은 멱등이어야 한다. 실행 순서는 application.yml의 spring.sql.init.schema-locations를 따른다.
+
+-- 정산 (settlement 계층). 주문별 판매자(물품대금)·기사(배송비) 정산을 받는 사람마다 1행으로 기록한다.
+-- 다른 모듈의 ID는 이벤트로 받은 값만 저장하고 FK를 두지 않는다. 실제 지급은 하지 않으며 출금 가능 금액은 CONFIRMED 합계다.
+CREATE TABLE IF NOT EXISTS settlements (
+    id           BIGINT       NOT NULL AUTO_INCREMENT,
+    order_id     BIGINT       NOT NULL,
+    payee_type   VARCHAR(20)  NOT NULL,   -- SELLER(members.id) / DRIVER(delivery_member.id)
+    payee_id     BIGINT       NOT NULL,
+    listing_id   BIGINT       NULL,       -- 판매자 정산만
+    amount       INT          NOT NULL,
+    status       VARCHAR(20)  NOT NULL,   -- PENDING / CONFIRMED / CANCELLED
+    created_at   TIMESTAMP(6) NOT NULL,
+    confirmed_at TIMESTAMP(6) NULL,
+    cancelled_at TIMESTAMP(6) NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_settlements_order_payee (order_id, payee_type),
+    INDEX idx_settlements_payee (payee_type, payee_id, status),
+    CONSTRAINT chk_settlements_amount CHECK (amount >= 0)
+);
+
+-- 주문별 정산 결론. 결론 이벤트가 정산 행보다 먼저 와도 잃지 않도록 따로 기록한다.
+-- 같은 주문의 정산 처리를 이 행의 잠금으로 직렬화하므로 결론 전에도 행을 만든다.
+CREATE TABLE IF NOT EXISTS settlement_order (
+    order_id   BIGINT       NOT NULL,
+    outcome    VARCHAR(20)  NULL,         -- CONFIRMED(판매 완료) / CANCELLED. 결론 전 NULL
+    decided_at TIMESTAMP(6) NULL,
+    PRIMARY KEY (order_id)
+);
+
+
+-- 매 부팅 시 실행되므로 모든 문장은 멱등이어야 한다. 실행 순서는 application.yml의 spring.sql.init.schema-locations를 따른다.
+
+-- Spring Modulith 이벤트 발행 기록(spring-modulith-events-jdbc v2 MySQL 스키마).
+-- 모듈 간 이벤트를 리스너별로 기록하고, 처리에 실패하거나 남은 건을 재발행한다.
+-- Modulith가 대문자 테이블명으로 조회하므로 이름을 바꾸지 않는다.
+CREATE TABLE IF NOT EXISTS EVENT_PUBLICATION (
+    ID                     VARCHAR(36)   NOT NULL,
+    LISTENER_ID            VARCHAR(512)  NOT NULL,
+    EVENT_TYPE             VARCHAR(512)  NOT NULL,
+    SERIALIZED_EVENT       VARCHAR(4000) NOT NULL,
+    PUBLICATION_DATE       TIMESTAMP(6)  NOT NULL,
+    COMPLETION_DATE        TIMESTAMP(6)  DEFAULT NULL NULL,
+    STATUS                 VARCHAR(20),
+    COMPLETION_ATTEMPTS    INT,
+    LAST_RESUBMISSION_DATE TIMESTAMP(6)  DEFAULT NULL NULL,
+    PRIMARY KEY (ID),
+    INDEX EVENT_PUBLICATION_BY_COMPLETION_DATE_IDX (COMPLETION_DATE)
 );
