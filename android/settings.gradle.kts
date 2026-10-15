@@ -27,3 +27,4 @@ dependencyResolutionManagement {
 rootProject.name = "setty"
 include(":app")
 include(":core:common", ":core:model", ":core:network")
+include(":devtools")

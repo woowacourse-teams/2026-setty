@@ -2,9 +2,11 @@ package com.aksworns22.setty.data
 
 import android.content.Context
 import com.aksworns22.setty.BuildConfig
+import com.aksworns22.setty.di.NetworkInterceptorsEntryPoint
 import com.aksworns22.setty.network.AuthInterceptor
 import com.aksworns22.setty.network.BasePathInterceptor
 import com.aksworns22.setty.network.SettyNetworkApi
+import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -18,6 +20,9 @@ import retrofit2.converter.kotlinx.serialization.asConverterFactory
 class AppContainer(
     private val context: Context
 ) {
+    private val extraInterceptors =
+        EntryPointAccessors.fromApplication(context, NetworkInterceptorsEntryPoint::class.java)
+            .interceptors()
     val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     private val tokenLocalDataSource =
@@ -35,6 +40,7 @@ class AppContainer(
             }
             addInterceptor(BasePathInterceptor(BuildConfig.BASE_URL))
             addInterceptor(authInterceptor)
+            extraInterceptors.forEach(::addInterceptor)
         }
         .build()
     private val retrofit: Retrofit =

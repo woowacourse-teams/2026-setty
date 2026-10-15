@@ -26,8 +26,12 @@ gradlePlugin {
             implementationClass = "JvmLibraryConventionPlugin"
         }
         register("androidLibrary") {
-            id = libs.plugins.setty.android.library.get().pluginId
+            id = libs.plugins.setty.android.library.asProvider().get().pluginId
             implementationClass = "AndroidLibraryConventionPlugin"
+        }
+        register("androidLibraryCompose") {
+            id = libs.plugins.setty.android.library.compose.get().pluginId
+            implementationClass = "AndroidLibraryComposeConventionPlugin"
         }
     }
 }
