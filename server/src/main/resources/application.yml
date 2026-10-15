@@ -9,25 +9,28 @@ spring:
 
   jpa:
     hibernate:
-      # 스키마는 schema/*.sql로만 변경한다. 엔티티와 스키마가 어긋나면 부팅이 실패한다.
+      # Flyway가 스키마를 변경하고, JPA는 엔티티와의 일치 여부만 검사한다.
       ddl-auto: validate
 
   sql:
     init:
-      mode: always
-      # 모듈별 스키마. FK가 있는 플랫폼을 먼저 실행한다.
-      schema-locations:
-        - classpath:schema/platform.sql
-        - classpath:schema/notification.sql
-        - classpath:schema/delivery.sql
-        - classpath:schema/payment.sql
-        - classpath:schema/settlement.sql
-        - classpath:schema/event.sql
+      mode: never
+
+  flyway:
+    locations: classpath:db/migration
+    # 기존 DB 최초 편입 때만 켠다. 0으로 등록하여 V1부터 실제 실행한다.
+    # 기본값 1을 사용하면 플랫폼 변경(V1)이 건너뛰어지므로 바꾸지 않는다.
+    baseline-version: "0"
+    baseline-description: Before Flyway adoption
+    baseline-on-migrate: ${SETTY_FLYWAY_ADOPT_EXISTING:false}
+    clean-disabled: true
+    validate-on-migrate: true
+    validate-migration-naming: true
 
   modulith:
     events:
       jdbc:
-        # EVENT_PUBLICATION도 schema/event.sql로만 관리한다.
+        # EVENT_PUBLICATION도 Flyway로만 관리한다.
         schema-initialization:
           enabled: false
       # 처리 완료된 발행 기록은 지워 테이블이 계속 쌓이지 않게 한다. 미완료·실패 건만 남는다.

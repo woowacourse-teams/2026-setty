@@ -1,5 +1,5 @@
 -- 배송 모듈(배송 요청·판정·기사 계정) 스키마.
--- 매 부팅 시 실행되므로 모든 문장은 멱등이어야 한다. 실행 순서는 application.yml의 spring.sql.init.schema-locations를 따른다.
+-- Flyway 최초 편입용: 빈 DB와 기존 DB 모두 지원한다. 적용 후에는 수정하지 말고 새 버전을 추가한다.
 
 CREATE TABLE IF NOT EXISTS delivery (
     id                    BIGINT       NOT NULL AUTO_INCREMENT,
