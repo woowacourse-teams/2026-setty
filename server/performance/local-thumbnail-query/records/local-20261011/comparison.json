@@ -1,0 +1,284 @@
+{
+  "verified": true,
+  "http_requests": 1284,
+  "measured_requests": 1200,
+  "unique_request_ids": 1284,
+  "body_sha256": "d1256a4c48f23fad27bd4d8a7f005c474adc6bd9169f815179894f37d7bd4ac2",
+  "response_bytes": 1585224,
+  "comparison": [
+    {
+      "photos": 1,
+      "variants": {
+        "min-order": {
+          "images_ms": {
+            "median": 22.7839375,
+            "p95": 27.738042,
+            "max": 163.599083
+          },
+          "filter_ms": {
+            "median": 56.456959,
+            "p95": 68.19125,
+            "max": 257.089625
+          },
+          "client_ms": {
+            "median": 58.964750499999994,
+            "p95": 70.591209,
+            "max": 262.056583
+          }
+        },
+        "order-one": {
+          "images_ms": {
+            "median": 18.271375,
+            "p95": 22.352458,
+            "max": 48.397208
+          },
+          "filter_ms": {
+            "median": 52.4233335,
+            "p95": 60.602667,
+            "max": 125.452333
+          },
+          "client_ms": {
+            "median": 54.9429375,
+            "p95": 64.190083,
+            "max": 137.155166
+          }
+        }
+      },
+      "median_reduction_percent": {
+        "images_ms": 19.80589395489696,
+        "filter_ms": 7.144602846922732,
+        "client_ms": 6.820707229143618
+      },
+      "paired_images_ms_saved_median": 4.4322295,
+      "pairs_candidate_faster": 292
+    },
+    {
+      "photos": 5,
+      "variants": {
+        "min-order": {
+          "images_ms": {
+            "median": 52.425063,
+            "p95": 57.192625,
+            "max": 167.260292
+          },
+          "filter_ms": {
+            "median": 85.034104,
+            "p95": 91.538958,
+            "max": 201.471625
+          },
+          "client_ms": {
+            "median": 87.40954199999999,
+            "p95": 94.793334,
+            "max": 205.079
+          }
+        },
+        "order-one": {
+          "images_ms": {
+            "median": 19.994083000000003,
+            "p95": 23.01,
+            "max": 71.65575
+          },
+          "filter_ms": {
+            "median": 51.6779375,
+            "p95": 59.004375,
+            "max": 190.528834
+          },
+          "client_ms": {
+            "median": 53.5709375,
+            "p95": 61.061458,
+            "max": 199.812375
+          }
+        }
+      },
+      "median_reduction_percent": {
+        "images_ms": 61.86159471091146,
+        "filter_ms": 39.22681010433179,
+        "client_ms": 38.71271228031373
+      },
+      "paired_images_ms_saved_median": 32.5542705,
+      "pairs_candidate_faster": 298
+    }
+  ],
+  "per_run": [
+    {
+      "photos": 1,
+      "run": 1,
+      "variant": "min-order",
+      "count": 100,
+      "images_ms_median": 22.919103999999997,
+      "images_ms_p95": 26.949667,
+      "images_ms_max": 45.015291,
+      "filter_ms_median": 56.344187500000004,
+      "filter_ms_p95": 67.458209,
+      "filter_ms_max": 100.529958,
+      "client_ms_median": 59.0975415,
+      "client_ms_p95": 70.591209,
+      "client_ms_max": 125.314458
+    },
+    {
+      "photos": 1,
+      "run": 1,
+      "variant": "order-one",
+      "count": 100,
+      "images_ms_median": 19.22025,
+      "images_ms_p95": 21.683041,
+      "images_ms_max": 35.797875,
+      "filter_ms_median": 52.7069795,
+      "filter_ms_p95": 57.859792,
+      "filter_ms_max": 110.601875,
+      "client_ms_median": 55.71675,
+      "client_ms_p95": 60.855833,
+      "client_ms_max": 113.512583
+    },
+    {
+      "photos": 1,
+      "run": 2,
+      "variant": "min-order",
+      "count": 100,
+      "images_ms_median": 23.988396,
+      "images_ms_p95": 29.346958,
+      "images_ms_max": 163.599083,
+      "filter_ms_median": 57.067021,
+      "filter_ms_p95": 75.305166,
+      "filter_ms_max": 257.089625,
+      "client_ms_median": 59.4976045,
+      "client_ms_p95": 79.539209,
+      "client_ms_max": 262.056583
+    },
+    {
+      "photos": 1,
+      "run": 2,
+      "variant": "order-one",
+      "count": 100,
+      "images_ms_median": 18.149646,
+      "images_ms_p95": 22.829791,
+      "images_ms_max": 48.397208,
+      "filter_ms_median": 52.709791499999994,
+      "filter_ms_p95": 65.669042,
+      "filter_ms_max": 125.452333,
+      "client_ms_median": 54.671958000000004,
+      "client_ms_p95": 67.77575,
+      "client_ms_max": 137.155166
+    },
+    {
+      "photos": 1,
+      "run": 3,
+      "variant": "min-order",
+      "count": 100,
+      "images_ms_median": 22.232771,
+      "images_ms_p95": 26.899458,
+      "images_ms_max": 30.666209,
+      "filter_ms_median": 56.253874999999994,
+      "filter_ms_p95": 63.343458,
+      "filter_ms_max": 71.54675,
+      "client_ms_median": 58.1366455,
+      "client_ms_p95": 65.969125,
+      "client_ms_max": 73.369
+    },
+    {
+      "photos": 1,
+      "run": 3,
+      "variant": "order-one",
+      "count": 100,
+      "images_ms_median": 17.6986875,
+      "images_ms_p95": 20.702458,
+      "images_ms_max": 33.399833,
+      "filter_ms_median": 50.074917,
+      "filter_ms_p95": 59.351041,
+      "filter_ms_max": 90.343542,
+      "client_ms_median": 53.137,
+      "client_ms_p95": 61.261041,
+      "client_ms_max": 92.035291
+    },
+    {
+      "photos": 5,
+      "run": 1,
+      "variant": "min-order",
+      "count": 100,
+      "images_ms_median": 52.4257085,
+      "images_ms_p95": 57.192625,
+      "images_ms_max": 58.710417,
+      "filter_ms_median": 84.71312499999999,
+      "filter_ms_p95": 92.787625,
+      "filter_ms_max": 138.869375,
+      "client_ms_median": 87.4528125,
+      "client_ms_p95": 96.161833,
+      "client_ms_max": 154.23525
+    },
+    {
+      "photos": 5,
+      "run": 1,
+      "variant": "order-one",
+      "count": 100,
+      "images_ms_median": 20.0811875,
+      "images_ms_p95": 23.01,
+      "images_ms_max": 52.481917,
+      "filter_ms_median": 51.740271,
+      "filter_ms_p95": 59.128,
+      "filter_ms_max": 190.528834,
+      "client_ms_median": 53.9563545,
+      "client_ms_p95": 60.933083,
+      "client_ms_max": 199.812375
+    },
+    {
+      "photos": 5,
+      "run": 2,
+      "variant": "min-order",
+      "count": 100,
+      "images_ms_median": 52.300895499999996,
+      "images_ms_p95": 54.79225,
+      "images_ms_max": 167.260292,
+      "filter_ms_median": 84.7237085,
+      "filter_ms_p95": 89.339458,
+      "filter_ms_max": 201.471625,
+      "client_ms_median": 86.811417,
+      "client_ms_p95": 92.426583,
+      "client_ms_max": 205.079
+    },
+    {
+      "photos": 5,
+      "run": 2,
+      "variant": "order-one",
+      "count": 100,
+      "images_ms_median": 19.9193335,
+      "images_ms_p95": 23.892125,
+      "images_ms_max": 71.65575,
+      "filter_ms_median": 51.7927705,
+      "filter_ms_p95": 63.886459,
+      "filter_ms_max": 105.721583,
+      "client_ms_median": 53.398208499999996,
+      "client_ms_p95": 66.664667,
+      "client_ms_max": 108.888417
+    },
+    {
+      "photos": 5,
+      "run": 3,
+      "variant": "min-order",
+      "count": 100,
+      "images_ms_median": 52.471625,
+      "images_ms_p95": 57.594083,
+      "images_ms_max": 93.392,
+      "filter_ms_median": 85.6671045,
+      "filter_ms_p95": 91.538958,
+      "filter_ms_max": 125.235125,
+      "client_ms_median": 87.9468335,
+      "client_ms_p95": 94.793334,
+      "client_ms_max": 128.339292
+    },
+    {
+      "photos": 5,
+      "run": 3,
+      "variant": "order-one",
+      "count": 100,
+      "images_ms_median": 19.941979,
+      "images_ms_p95": 22.414458,
+      "images_ms_max": 60.988,
+      "filter_ms_median": 51.4941875,
+      "filter_ms_p95": 57.312292,
+      "filter_ms_max": 98.903041,
+      "client_ms_median": 53.4290415,
+      "client_ms_p95": 58.758,
+      "client_ms_max": 100.296666
+    }
+  ]
+}

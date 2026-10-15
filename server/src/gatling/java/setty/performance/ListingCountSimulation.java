@@ -39,8 +39,8 @@ public class ListingCountSimulation extends Simulation {
     private int requestNumber;
 
     public ListingCountSimulation() {
-        if (!Set.of(100, 1000, 5000).contains(expectedItems)) {
-            throw new IllegalArgumentException("LISTING_COUNT must be 100, 1000, or 5000");
+        if (!Set.of(100, 1000, 5000, 5020, 5138).contains(expectedItems)) {
+            throw new IllegalArgumentException("LISTING_COUNT must be 100, 1000, 5000, 5020, or 5138");
         }
         if (!DEV_BASE_URL.equals(baseUrl)
                 && !baseUrl.matches("http://(127\\.0\\.0\\.1|localhost):[0-9]{1,5}")) {
@@ -76,6 +76,13 @@ public class ListingCountSimulation extends Simulation {
                                 bodyLength().saveAs("responseBodyBytes"),
                                 header("X-Request-Id").optional().saveAs("requestId")))
                 .exec(session -> {
+                    // 사진 수 비교에서 로그 연결 실패와 탐색 중단선을 검사한다.
+                    if ((expectedItems == 5020 || expectedItems == 5138) && (!session.contains("requestId")
+                            || session.getString("requestId").isBlank()
+                            || !session.contains("responseTimeMs")
+                            || session.getInt("responseTimeMs") >= 5000)) {
+                        session = session.markAsFailed();
+                    }
                     samples.append(expectedItems).append(',').append(baseUrl).append(',')
                             .append(phase).append(',').append(++requestNumber).append(',')
                             .append(Instant.now()).append(',')

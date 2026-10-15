@@ -1,0 +1,169 @@
+{
+  "validation_passed": true,
+  "experiment_completed": false,
+  "comparison_scope": "Completed normal runs only; interrupted run excluded",
+  "before_requests": 840,
+  "after_completed_comparison_requests": 600,
+  "after_total_requests_including_interruption": 668,
+  "after_failed": 1,
+  "limitation": "Different deployment stopped service during photos-5 run-3; remaining planned comparison stopped",
+  "groups": [
+    {
+      "photos_per_fixture_listing": 1,
+      "metrics": {
+        "images_ms": {
+          "before_runs": 3,
+          "after_runs": 3,
+          "before_run_medians": [
+            36.444489000000004,
+            41.586833999999996,
+            42.6067865
+          ],
+          "after_run_medians": [
+            47.667593,
+            48.361070999999995,
+            46.3802545
+          ],
+          "before_range": [
+            36.444489000000004,
+            42.6067865
+          ],
+          "after_range": [
+            46.3802545,
+            48.361070999999995
+          ],
+          "median_of_run_medians_before": 41.586833999999996,
+          "median_of_run_medians_after": 47.667593,
+          "descriptive_difference_ms_before_minus_after": -6.0807590000000005
+        },
+        "filter_ms": {
+          "before_runs": 3,
+          "after_runs": 3,
+          "before_run_medians": [
+            110.70745249999999,
+            111.112962,
+            109.87468150000001
+          ],
+          "after_run_medians": [
+            124.826961,
+            123.10065850000001,
+            119.106638
+          ],
+          "before_range": [
+            109.87468150000001,
+            111.112962
+          ],
+          "after_range": [
+            119.106638,
+            124.826961
+          ],
+          "median_of_run_medians_before": 110.70745249999999,
+          "median_of_run_medians_after": 123.10065850000001,
+          "descriptive_difference_ms_before_minus_after": -12.39320600000002
+        },
+        "client_ms": {
+          "before_runs": 3,
+          "after_runs": 3,
+          "before_run_medians": [
+            190.0,
+            203.5,
+            186.0
+          ],
+          "after_run_medians": [
+            201.0,
+            200.5,
+            191.5
+          ],
+          "before_range": [
+            186.0,
+            203.5
+          ],
+          "after_range": [
+            191.5,
+            201.0
+          ],
+          "median_of_run_medians_before": 190.0,
+          "median_of_run_medians_after": 200.5,
+          "descriptive_difference_ms_before_minus_after": -10.5
+        }
+      }
+    },
+    {
+      "photos_per_fixture_listing": 5,
+      "metrics": {
+        "images_ms": {
+          "before_runs": 3,
+          "after_runs": 2,
+          "before_run_medians": [
+            130.4884615,
+            131.7854145,
+            129.9021215
+          ],
+          "after_run_medians": [
+            130.46460150000001,
+            130.75453399999998
+          ],
+          "before_range": [
+            129.9021215,
+            131.7854145
+          ],
+          "after_range": [
+            130.46460150000001,
+            130.75453399999998
+          ],
+          "median_of_run_medians_before": 130.4884615,
+          "median_of_run_medians_after": 130.60956775,
+          "descriptive_difference_ms_before_minus_after": -0.12110624999999686
+        },
+        "filter_ms": {
+          "before_runs": 3,
+          "after_runs": 2,
+          "before_run_medians": [
+            205.597779,
+            207.4961095,
+            204.95904000000002
+          ],
+          "after_run_medians": [
+            195.615968,
+            194.60265850000002
+          ],
+          "before_range": [
+            204.95904000000002,
+            207.4961095
+          ],
+          "after_range": [
+            194.60265850000002,
+            195.615968
+          ],
+          "median_of_run_medians_before": 205.597779,
+          "median_of_run_medians_after": 195.10931325,
+          "descriptive_difference_ms_before_minus_after": 10.488465749999989
+        },
+        "client_ms": {
+          "before_runs": 3,
+          "after_runs": 2,
+          "before_run_medians": [
+            275.0,
+            276.5,
+            274.0
+          ],
+          "after_run_medians": [
+            266.0,
+            268.5
+          ],
+          "before_range": [
+            274.0,
+            276.5
+          ],
+          "after_range": [
+            266.0,
+            268.5
+          ],
+          "median_of_run_medians_before": 275.0,
+          "median_of_run_medians_after": 267.25,
+          "descriptive_difference_ms_before_minus_after": 7.75
+        }
+      }
+    }
+  ]
+}

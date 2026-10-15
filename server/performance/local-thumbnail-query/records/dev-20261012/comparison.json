@@ -1,0 +1,786 @@
+{
+  "complete": true,
+  "available_listings": 5138,
+  "fixture_listings": 5000,
+  "other_available_listings": 138,
+  "exported_log_rows": 0,
+  "matched_requests": 840,
+  "measurement_requests": 700,
+  "original_data_restored": true,
+  "server_evidence": "Console journald summaries with ordered request ID hashes",
+  "export_sha256": null,
+  "runs": [
+    {
+      "condition": "photos-1",
+      "run": 1,
+      "client_ms": {
+        "min": 156,
+        "median": 175.0,
+        "p95_nearest_rank": 193,
+        "max": 278,
+        "mean": 177.65
+      },
+      "server_ms": {
+        "filter_ms": {
+          "median": 110.7946665,
+          "p95_nearest_rank": 125.708031,
+          "min": 103.620606,
+          "max": 133.212901
+        },
+        "listings_ms": {
+          "median": 49.723415,
+          "p95_nearest_rank": 62.232488,
+          "min": 47.586245,
+          "max": 71.01333
+        },
+        "images_ms": {
+          "median": 35.1555915,
+          "p95_nearest_rank": 46.868986,
+          "min": 32.674469,
+          "max": 53.524174
+        },
+        "mapping_ms": {
+          "median": 1.9746585,
+          "p95_nearest_rank": 2.208098,
+          "min": 0.819323,
+          "max": 17.927942
+        }
+      },
+      "journal_summary": {
+        "requests": 120,
+        "unique_ids": 120,
+        "measurement": 100,
+        "valid": 120,
+        "ids_ordered_sha256": "a4cfc81dfc5bd61875aaa082b91e9bab29087418cc80223874cf8cfecb096dee",
+        "measurement_ms": {
+          "filter_ms": {
+            "median": 110.7946665,
+            "p95_nearest_rank": 125.708031,
+            "min": 103.620606,
+            "max": 133.212901
+          },
+          "listings_ms": {
+            "median": 49.723415,
+            "p95_nearest_rank": 62.232488,
+            "min": 47.586245,
+            "max": 71.01333
+          },
+          "images_ms": {
+            "median": 35.1555915,
+            "p95_nearest_rank": 46.868986,
+            "min": 32.674469,
+            "max": 53.524174
+          },
+          "mapping_ms": {
+            "median": 1.9746585,
+            "p95_nearest_rank": 2.208098,
+            "min": 0.819323,
+            "max": 17.927942
+          }
+        },
+        "passed": true,
+        "at_utc": "2026-10-11T15:59:00.725587+00:00"
+      },
+      "client_summary": {
+        "run": 1,
+        "passed": true,
+        "gradle_exit_code": 0,
+        "requests": 120,
+        "warmup": 20,
+        "measurement": 100,
+        "failed": 0,
+        "missing_ids": 0,
+        "unique_ids": 120,
+        "measurement_ms": {
+          "min": 156,
+          "median": 175.0,
+          "p95_nearest_rank": 193,
+          "max": 278,
+          "mean": 177.65
+        },
+        "measurement_body_bytes": [
+          1858801
+        ],
+        "pre_api": {
+          "at_utc": "2026-10-11T15:55:59.267671+00:00",
+          "status": 200,
+          "item_count": 5138,
+          "body_bytes": 1858801,
+          "body_sha256": "564f2f2834139ac6a56fcb375c84a3b1921927f425d8d259c94d36287a426f18",
+          "request_id": "f7d75720-9d79-4fb0-b1b5-682978b59fa9"
+        },
+        "post_api": {
+          "at_utc": "2026-10-11T15:58:28.321463+00:00",
+          "status": 200,
+          "item_count": 5138,
+          "body_bytes": 1858801,
+          "body_sha256": "564f2f2834139ac6a56fcb375c84a3b1921927f425d8d259c94d36287a426f18",
+          "request_id": "0c64f8c2-bc51-4999-9cfa-40ac05ebd55b"
+        },
+        "finished_at_utc": "2026-10-11T15:58:28.324766+00:00"
+      }
+    },
+    {
+      "condition": "photos-1",
+      "run": 2,
+      "client_ms": {
+        "min": 162,
+        "median": 176.5,
+        "p95_nearest_rank": 196,
+        "max": 259,
+        "mean": 179.79
+      },
+      "server_ms": {
+        "filter_ms": {
+          "median": 109.7109865,
+          "p95_nearest_rank": 129.78233,
+          "min": 100.970597,
+          "max": 192.733794
+        },
+        "listings_ms": {
+          "median": 49.3693445,
+          "p95_nearest_rank": 61.94038,
+          "min": 46.785705,
+          "max": 111.498827
+        },
+        "images_ms": {
+          "median": 34.816926,
+          "p95_nearest_rank": 48.988716,
+          "min": 32.932347,
+          "max": 55.021881
+        },
+        "mapping_ms": {
+          "median": 1.995655,
+          "p95_nearest_rank": 2.164685,
+          "min": 0.78185,
+          "max": 15.678489
+        }
+      },
+      "journal_summary": {
+        "requests": 120,
+        "unique_ids": 120,
+        "measurement": 100,
+        "valid": 120,
+        "ids_ordered_sha256": "0ffe6e732ca0881928de338327cb2676f82351e5cb40f4eaa9a996871ffdecca",
+        "measurement_ms": {
+          "filter_ms": {
+            "median": 109.7109865,
+            "p95_nearest_rank": 129.78233,
+            "min": 100.970597,
+            "max": 192.733794
+          },
+          "listings_ms": {
+            "median": 49.3693445,
+            "p95_nearest_rank": 61.94038,
+            "min": 46.785705,
+            "max": 111.498827
+          },
+          "images_ms": {
+            "median": 34.816926,
+            "p95_nearest_rank": 48.988716,
+            "min": 32.932347,
+            "max": 55.021881
+          },
+          "mapping_ms": {
+            "median": 1.995655,
+            "p95_nearest_rank": 2.164685,
+            "min": 0.78185,
+            "max": 15.678489
+          }
+        },
+        "passed": true,
+        "at_utc": "2026-10-11T16:03:38.570549+00:00"
+      },
+      "client_summary": {
+        "run": 2,
+        "passed": true,
+        "gradle_exit_code": 0,
+        "requests": 120,
+        "warmup": 20,
+        "measurement": 100,
+        "failed": 0,
+        "missing_ids": 0,
+        "unique_ids": 120,
+        "measurement_ms": {
+          "min": 162,
+          "median": 176.5,
+          "p95_nearest_rank": 196,
+          "max": 259,
+          "mean": 179.79
+        },
+        "measurement_body_bytes": [
+          1858801
+        ],
+        "pre_api": {
+          "at_utc": "2026-10-11T16:00:29.987116+00:00",
+          "status": 200,
+          "item_count": 5138,
+          "body_bytes": 1858801,
+          "body_sha256": "564f2f2834139ac6a56fcb375c84a3b1921927f425d8d259c94d36287a426f18",
+          "request_id": "3f77cdf5-ab3a-4e34-98b4-4c4c87515e2e"
+        },
+        "post_api": {
+          "at_utc": "2026-10-11T16:02:59.061377+00:00",
+          "status": 200,
+          "item_count": 5138,
+          "body_bytes": 1858801,
+          "body_sha256": "564f2f2834139ac6a56fcb375c84a3b1921927f425d8d259c94d36287a426f18",
+          "request_id": "ae122240-c5da-450f-b7d6-33952b669b49"
+        },
+        "finished_at_utc": "2026-10-11T16:02:59.065462+00:00"
+      }
+    },
+    {
+      "condition": "photos-1",
+      "run": 3,
+      "client_ms": {
+        "min": 157,
+        "median": 176.0,
+        "p95_nearest_rank": 207,
+        "max": 337,
+        "mean": 182.14
+      },
+      "server_ms": {
+        "filter_ms": {
+          "median": 109.926453,
+          "p95_nearest_rank": 149.957511,
+          "min": 100.084306,
+          "max": 270.726673
+        },
+        "listings_ms": {
+          "median": 53.2664605,
+          "p95_nearest_rank": 69.505329,
+          "min": 47.418576,
+          "max": 156.94389
+        },
+        "images_ms": {
+          "median": 34.186686,
+          "p95_nearest_rank": 44.987773,
+          "min": 32.299839,
+          "max": 71.193828
+        },
+        "mapping_ms": {
+          "median": 1.9503425,
+          "p95_nearest_rank": 2.212635,
+          "min": 1.693563,
+          "max": 4.238638
+        }
+      },
+      "journal_summary": {
+        "requests": 120,
+        "unique_ids": 120,
+        "measurement": 100,
+        "valid": 120,
+        "ids_ordered_sha256": "bd2b2051b95b72707bfd37f5e2649b6d17e9cf6e73dce15fed452f8e4c2a09ef",
+        "measurement_ms": {
+          "filter_ms": {
+            "median": 109.926453,
+            "p95_nearest_rank": 149.957511,
+            "min": 100.084306,
+            "max": 270.726673
+          },
+          "listings_ms": {
+            "median": 53.2664605,
+            "p95_nearest_rank": 69.505329,
+            "min": 47.418576,
+            "max": 156.94389
+          },
+          "images_ms": {
+            "median": 34.186686,
+            "p95_nearest_rank": 44.987773,
+            "min": 32.299839,
+            "max": 71.193828
+          },
+          "mapping_ms": {
+            "median": 1.9503425,
+            "p95_nearest_rank": 2.212635,
+            "min": 1.693563,
+            "max": 4.238638
+          }
+        },
+        "passed": true,
+        "at_utc": "2026-10-11T16:17:04.767129+00:00"
+      },
+      "client_summary": {
+        "run": 3,
+        "passed": true,
+        "gradle_exit_code": 0,
+        "requests": 120,
+        "warmup": 20,
+        "measurement": 100,
+        "failed": 0,
+        "missing_ids": 0,
+        "unique_ids": 120,
+        "measurement_ms": {
+          "min": 157,
+          "median": 176.0,
+          "p95_nearest_rank": 207,
+          "max": 337,
+          "mean": 182.14
+        },
+        "measurement_body_bytes": [
+          1858801
+        ],
+        "pre_api": {
+          "at_utc": "2026-10-11T16:04:24.115977+00:00",
+          "status": 200,
+          "item_count": 5138,
+          "body_bytes": 1858801,
+          "body_sha256": "564f2f2834139ac6a56fcb375c84a3b1921927f425d8d259c94d36287a426f18",
+          "request_id": "2f026aa6-57bb-4c67-8e47-a94638d5d1a6"
+        },
+        "post_api": {
+          "at_utc": "2026-10-11T16:06:53.122928+00:00",
+          "status": 200,
+          "item_count": 5138,
+          "body_bytes": 1858801,
+          "body_sha256": "564f2f2834139ac6a56fcb375c84a3b1921927f425d8d259c94d36287a426f18",
+          "request_id": "555a7da3-1ca4-42cb-9781-963587af0458"
+        },
+        "finished_at_utc": "2026-10-11T16:06:53.125750+00:00"
+      }
+    },
+    {
+      "condition": "photos-5",
+      "run": 1,
+      "client_ms": {
+        "min": 162,
+        "median": 180.0,
+        "p95_nearest_rank": 214,
+        "max": 306,
+        "mean": 185.55
+      },
+      "server_ms": {
+        "filter_ms": {
+          "median": 113.71909,
+          "p95_nearest_rank": 136.458106,
+          "min": 105.987461,
+          "max": 224.471069
+        },
+        "listings_ms": {
+          "median": 51.98647,
+          "p95_nearest_rank": 68.016598,
+          "min": 46.767952,
+          "max": 147.22881
+        },
+        "images_ms": {
+          "median": 39.823315,
+          "p95_nearest_rank": 48.406111,
+          "min": 37.979618,
+          "max": 54.984598
+        },
+        "mapping_ms": {
+          "median": 1.928619,
+          "p95_nearest_rank": 2.149834,
+          "min": 0.8816,
+          "max": 2.369394
+        }
+      },
+      "journal_summary": {
+        "requests": 120,
+        "unique_ids": 120,
+        "measurement": 100,
+        "valid": 120,
+        "ids_ordered_sha256": "091ca2268837d170692b9176e88a40e63da664195895ff13706ec8fdf99e7f16",
+        "measurement_ms": {
+          "filter_ms": {
+            "median": 113.71909,
+            "p95_nearest_rank": 136.458106,
+            "min": 105.987461,
+            "max": 224.471069
+          },
+          "listings_ms": {
+            "median": 51.98647,
+            "p95_nearest_rank": 68.016598,
+            "min": 46.767952,
+            "max": 147.22881
+          },
+          "images_ms": {
+            "median": 39.823315,
+            "p95_nearest_rank": 48.406111,
+            "min": 37.979618,
+            "max": 54.984598
+          },
+          "mapping_ms": {
+            "median": 1.928619,
+            "p95_nearest_rank": 2.149834,
+            "min": 0.8816,
+            "max": 2.369394
+          }
+        },
+        "passed": true,
+        "at_utc": "2026-10-11T16:22:48.818127+00:00"
+      },
+      "client_summary": {
+        "run": 1,
+        "passed": true,
+        "gradle_exit_code": 0,
+        "requests": 120,
+        "warmup": 20,
+        "measurement": 100,
+        "failed": 0,
+        "missing_ids": 0,
+        "unique_ids": 120,
+        "measurement_ms": {
+          "min": 162,
+          "median": 180.0,
+          "p95_nearest_rank": 214,
+          "max": 306,
+          "mean": 185.55
+        },
+        "measurement_body_bytes": [
+          1858801
+        ],
+        "pre_api": {
+          "at_utc": "2026-10-11T16:19:37.017036+00:00",
+          "status": 200,
+          "item_count": 5138,
+          "body_bytes": 1858801,
+          "body_sha256": "564f2f2834139ac6a56fcb375c84a3b1921927f425d8d259c94d36287a426f18",
+          "request_id": "bf118b2b-8cb0-4d4f-8ae9-b5b0b9fe62c7"
+        },
+        "post_api": {
+          "at_utc": "2026-10-11T16:22:06.952362+00:00",
+          "status": 200,
+          "item_count": 5138,
+          "body_bytes": 1858801,
+          "body_sha256": "564f2f2834139ac6a56fcb375c84a3b1921927f425d8d259c94d36287a426f18",
+          "request_id": "e9c3914e-73a4-4450-b479-89bbc22ac6eb"
+        },
+        "finished_at_utc": "2026-10-11T16:22:06.955720+00:00"
+      }
+    },
+    {
+      "condition": "photos-5",
+      "run": 2,
+      "client_ms": {
+        "min": 156,
+        "median": 177.5,
+        "p95_nearest_rank": 210,
+        "max": 316,
+        "mean": 182.21
+      },
+      "server_ms": {
+        "filter_ms": {
+          "median": 112.804814,
+          "p95_nearest_rank": 121.793435,
+          "min": 104.255081,
+          "max": 197.026655
+        },
+        "listings_ms": {
+          "median": 52.207668999999996,
+          "p95_nearest_rank": 59.671114,
+          "min": 46.71648,
+          "max": 124.930859
+        },
+        "images_ms": {
+          "median": 39.125780000000006,
+          "p95_nearest_rank": 43.173119,
+          "min": 37.55319,
+          "max": 66.012841
+        },
+        "mapping_ms": {
+          "median": 1.928336,
+          "p95_nearest_rank": 2.23707,
+          "min": 1.696894,
+          "max": 2.782548
+        }
+      },
+      "journal_summary": {
+        "requests": 120,
+        "unique_ids": 120,
+        "measurement": 100,
+        "valid": 120,
+        "ids_ordered_sha256": "47db6f55f85be80e7d6f9d79bce0954db835a77ed1314b5846ce16d9026c88da",
+        "measurement_ms": {
+          "filter_ms": {
+            "median": 112.804814,
+            "p95_nearest_rank": 121.793435,
+            "min": 104.255081,
+            "max": 197.026655
+          },
+          "listings_ms": {
+            "median": 52.207668999999996,
+            "p95_nearest_rank": 59.671114,
+            "min": 46.71648,
+            "max": 124.930859
+          },
+          "images_ms": {
+            "median": 39.125780000000006,
+            "p95_nearest_rank": 43.173119,
+            "min": 37.55319,
+            "max": 66.012841
+          },
+          "mapping_ms": {
+            "median": 1.928336,
+            "p95_nearest_rank": 2.23707,
+            "min": 1.696894,
+            "max": 2.782548
+          }
+        },
+        "passed": true,
+        "at_utc": "2026-10-11T16:29:22.759140+00:00"
+      },
+      "client_summary": {
+        "run": 2,
+        "passed": true,
+        "gradle_exit_code": 0,
+        "requests": 120,
+        "warmup": 20,
+        "measurement": 100,
+        "failed": 0,
+        "missing_ids": 0,
+        "unique_ids": 120,
+        "measurement_ms": {
+          "min": 156,
+          "median": 177.5,
+          "p95_nearest_rank": 210,
+          "max": 316,
+          "mean": 182.21
+        },
+        "measurement_body_bytes": [
+          1858801
+        ],
+        "pre_api": {
+          "at_utc": "2026-10-11T16:24:32.111770+00:00",
+          "status": 200,
+          "item_count": 5138,
+          "body_bytes": 1858801,
+          "body_sha256": "564f2f2834139ac6a56fcb375c84a3b1921927f425d8d259c94d36287a426f18",
+          "request_id": "18a62a65-3dab-4a56-987b-6a0be97b753e"
+        },
+        "post_api": {
+          "at_utc": "2026-10-11T16:27:01.117375+00:00",
+          "status": 200,
+          "item_count": 5138,
+          "body_bytes": 1858801,
+          "body_sha256": "564f2f2834139ac6a56fcb375c84a3b1921927f425d8d259c94d36287a426f18",
+          "request_id": "fd030845-527a-44cc-9128-02676b5e6c23"
+        },
+        "finished_at_utc": "2026-10-11T16:27:01.120192+00:00"
+      }
+    },
+    {
+      "condition": "photos-5",
+      "run": 3,
+      "client_ms": {
+        "min": 157,
+        "median": 177.0,
+        "p95_nearest_rank": 188,
+        "max": 310,
+        "mean": 179.63
+      },
+      "server_ms": {
+        "filter_ms": {
+          "median": 113.463273,
+          "p95_nearest_rank": 122.387296,
+          "min": 105.514624,
+          "max": 223.486488
+        },
+        "listings_ms": {
+          "median": 52.665903,
+          "p95_nearest_rank": 57.947971,
+          "min": 47.252389,
+          "max": 136.880261
+        },
+        "images_ms": {
+          "median": 39.4025795,
+          "p95_nearest_rank": 43.858863,
+          "min": 37.48018,
+          "max": 65.960565
+        },
+        "mapping_ms": {
+          "median": 1.9400165,
+          "p95_nearest_rank": 2.098068,
+          "min": 1.687401,
+          "max": 2.360484
+        }
+      },
+      "journal_summary": {
+        "requests": 120,
+        "unique_ids": 120,
+        "measurement": 100,
+        "valid": 120,
+        "ids_ordered_sha256": "95dbaf0ad1ab1dfec52792d37d75a37fc4605a2c65c82a9fccf41593db9084f3",
+        "measurement_ms": {
+          "filter_ms": {
+            "median": 113.463273,
+            "p95_nearest_rank": 122.387296,
+            "min": 105.514624,
+            "max": 223.486488
+          },
+          "listings_ms": {
+            "median": 52.665903,
+            "p95_nearest_rank": 57.947971,
+            "min": 47.252389,
+            "max": 136.880261
+          },
+          "images_ms": {
+            "median": 39.4025795,
+            "p95_nearest_rank": 43.858863,
+            "min": 37.48018,
+            "max": 65.960565
+          },
+          "mapping_ms": {
+            "median": 1.9400165,
+            "p95_nearest_rank": 2.098068,
+            "min": 1.687401,
+            "max": 2.360484
+          }
+        },
+        "passed": true,
+        "at_utc": "2026-10-11T16:33:33.455399+00:00"
+      },
+      "client_summary": {
+        "run": 3,
+        "passed": true,
+        "gradle_exit_code": 0,
+        "requests": 120,
+        "warmup": 20,
+        "measurement": 100,
+        "failed": 0,
+        "missing_ids": 0,
+        "unique_ids": 120,
+        "measurement_ms": {
+          "min": 157,
+          "median": 177.0,
+          "p95_nearest_rank": 188,
+          "max": 310,
+          "mean": 179.63
+        },
+        "measurement_body_bytes": [
+          1858801
+        ],
+        "pre_api": {
+          "at_utc": "2026-10-11T16:30:36.208361+00:00",
+          "status": 200,
+          "item_count": 5138,
+          "body_bytes": 1858801,
+          "body_sha256": "564f2f2834139ac6a56fcb375c84a3b1921927f425d8d259c94d36287a426f18",
+          "request_id": "65496245-56fc-484f-aef0-c5e9b89be068"
+        },
+        "post_api": {
+          "at_utc": "2026-10-11T16:33:05.204777+00:00",
+          "status": 200,
+          "item_count": 5138,
+          "body_bytes": 1858801,
+          "body_sha256": "564f2f2834139ac6a56fcb375c84a3b1921927f425d8d259c94d36287a426f18",
+          "request_id": "7d978947-87e0-42ed-a732-535587dfff8e"
+        },
+        "finished_at_utc": "2026-10-11T16:33:05.208504+00:00"
+      }
+    },
+    {
+      "condition": "restored",
+      "run": 1,
+      "client_ms": {
+        "min": 142,
+        "median": 171.0,
+        "p95_nearest_rank": 184,
+        "max": 254,
+        "mean": 171.66
+      },
+      "server_ms": {
+        "filter_ms": {
+          "median": 105.9852325,
+          "p95_nearest_rank": 119.570155,
+          "min": 99.500001,
+          "max": 199.686199
+        },
+        "listings_ms": {
+          "median": 52.733032,
+          "p95_nearest_rank": 62.605061,
+          "min": 47.538551,
+          "max": 110.414283
+        },
+        "images_ms": {
+          "median": 33.1489265,
+          "p95_nearest_rank": 36.175621,
+          "min": 31.972216,
+          "max": 57.291519
+        },
+        "mapping_ms": {
+          "median": 1.9484065,
+          "p95_nearest_rank": 2.074002,
+          "min": 1.697534,
+          "max": 2.258544
+        }
+      },
+      "journal_summary": {
+        "requests": 120,
+        "unique_ids": 120,
+        "measurement": 100,
+        "valid": 120,
+        "ids_ordered_sha256": "7705afd643814679802fa818733a8eba36319cad1ec6d3b93983a72c85f24a42",
+        "measurement_ms": {
+          "filter_ms": {
+            "median": 105.9852325,
+            "p95_nearest_rank": 119.570155,
+            "min": 99.500001,
+            "max": 199.686199
+          },
+          "listings_ms": {
+            "median": 52.733032,
+            "p95_nearest_rank": 62.605061,
+            "min": 47.538551,
+            "max": 110.414283
+          },
+          "images_ms": {
+            "median": 33.1489265,
+            "p95_nearest_rank": 36.175621,
+            "min": 31.972216,
+            "max": 57.291519
+          },
+          "mapping_ms": {
+            "median": 1.9484065,
+            "p95_nearest_rank": 2.074002,
+            "min": 1.697534,
+            "max": 2.258544
+          }
+        },
+        "passed": true,
+        "at_utc": "2026-10-11T16:38:37.531450+00:00"
+      },
+      "client_summary": {
+        "run": 1,
+        "passed": true,
+        "gradle_exit_code": 0,
+        "requests": 120,
+        "warmup": 20,
+        "measurement": 100,
+        "failed": 0,
+        "missing_ids": 0,
+        "unique_ids": 120,
+        "measurement_ms": {
+          "min": 142,
+          "median": 171.0,
+          "p95_nearest_rank": 184,
+          "max": 254,
+          "mean": 171.66
+        },
+        "measurement_body_bytes": [
+          1858801
+        ],
+        "pre_api": {
+          "at_utc": "2026-10-11T16:35:50.224282+00:00",
+          "status": 200,
+          "item_count": 5138,
+          "body_bytes": 1858801,
+          "body_sha256": "564f2f2834139ac6a56fcb375c84a3b1921927f425d8d259c94d36287a426f18",
+          "request_id": "69834ee5-3b31-41dd-989c-9456d54e86bb"
+        },
+        "post_api": {
+          "at_utc": "2026-10-11T16:38:18.141542+00:00",
+          "status": 200,
+          "item_count": 5138,
+          "body_bytes": 1858801,
+          "body_sha256": "564f2f2834139ac6a56fcb375c84a3b1921927f425d8d259c94d36287a426f18",
+          "request_id": "9edf24b0-dcf8-4739-994b-02ee419b065f"
+        },
+        "finished_at_utc": "2026-10-11T16:38:18.144155+00:00"
+      }
+    }
+  ],
+  "source_comparison_sha256": "b1107750c764066b3d829a2f1d36848c0a7ee816c3b0b73388fcc9c782d7542f",
+  "scope": "Historical dev observations, server aggregate evidence only; no raw server rows or response bodies published."
+}
