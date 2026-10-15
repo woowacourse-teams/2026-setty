@@ -1,0 +1,54 @@
+{
+  "local-20261011/samples.csv": {
+    "original_path": "performance-results/listing-images/local-order-one-20261011/samples.csv",
+    "sha256": "c26405fd8112c844045a637becc3a072b8c283287d5470da18e2c7daa6998cfd"
+  },
+  "local-20261011/comparison.json": {
+    "original_path": "performance-results/listing-images/local-order-one-20261011/comparison.json",
+    "sha256": "558759791779c913ca737474fc198ecd2d11964752e85f21db455f11369c2cf9"
+  },
+  "local-20261011/metadata.json": {
+    "original_path": "performance-results/listing-images/local-order-one-20261011/metadata.json",
+    "sha256": "ed22adb0f10ffac5e44d50262b2b6efaab1ddc453a6e2d1db4536338f45aae73"
+  },
+  "dev-20261012/photos-1/run-1/samples.csv": {
+    "original_path": "performance-results/listing-images/order-one-dev-20261012/photos-1/run-1/samples.csv",
+    "sha256": "f6ae3ce8f00be8ea2900951665294e10cdd7f3c345725dc86f3fab499b990739"
+  },
+  "dev-20261012/photos-1/run-2/samples.csv": {
+    "original_path": "performance-results/listing-images/order-one-dev-20261012/photos-1/run-2/samples.csv",
+    "sha256": "867d72cc0d5d9a3e351e508aaab69b3e33e30ad6454480adee1556aa5d52131d"
+  },
+  "dev-20261012/photos-1/run-3/samples.csv": {
+    "original_path": "performance-results/listing-images/order-one-dev-20261012/photos-1/run-3/samples.csv",
+    "sha256": "697f1f71c6dfbb19beb9f8de0ee433e6f98c36e35fd316c57ae34f9de87c34f9"
+  },
+  "dev-20261012/photos-5/run-1/samples.csv": {
+    "original_path": "performance-results/listing-images/order-one-dev-20261012/photos-5/run-1/samples.csv",
+    "sha256": "e018904542e0da3207487e7976b4c29ab99ffed86b966ce414117278a17b5810"
+  },
+  "dev-20261012/photos-5/run-2/samples.csv": {
+    "original_path": "performance-results/listing-images/order-one-dev-20261012/photos-5/run-2/samples.csv",
+    "sha256": "606fce508ffe60f1a74e983c7de52bf104d5d02dec4ac28edc887aeb46ec8b0d"
+  },
+  "dev-20261012/photos-5/run-3/samples.csv": {
+    "original_path": "performance-results/listing-images/order-one-dev-20261012/photos-5/run-3/samples.csv",
+    "sha256": "ab47dcae0fe433f9240a70e80f592e0a0c85d117949179419ade193de5b4b079"
+  },
+  "dev-20261012/restored/run-1/samples.csv": {
+    "original_path": "performance-results/listing-images/order-one-dev-20261012/restored/run-1/samples.csv",
+    "sha256": "2b8c8364244dd7fac45188f5a91e4f3569a95e954b6ffae611445149757d45a4"
+  },
+  "min-attempt-20261011.json": {
+    "original_path": "performance-results/listing-images/before-after-optimized-20261011.json",
+    "sha256": "96416603be0ce60b6182035dc25a54878919e812d6326b4848d03489f7ab4a71"
+  },
+  "local-20261011/photos-5-min-order-explain.json": {
+    "original_path": "performance-results/listing-images/local-order-one-20261011/photos-5-min-order-explain.json",
+    "sha256": "b436b8925d7d8167b81946948008cde2e5f9e2c78020933f4d800314e4450165"
+  },
+  "local-20261011/photos-5-order-one-explain.json": {
+    "original_path": "performance-results/listing-images/local-order-one-20261011/photos-5-order-one-explain.json",
+    "sha256": "dd3600dc570bca283fc6325fd09c12dbe9a324de0ce281bfde8816045bf59a4b"
+  }
+}

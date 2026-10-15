@@ -17,7 +17,7 @@ Java 21을 준비하고 `server/`에서 실행한다. IntelliJ에서는 Gradle �
 
 ## 매물 수 증가 탐색
 
-데이터 준비 후 `server/`에서 실행한다. `LISTING_COUNT`는 **이미 DB에 준비된 예상 매물 수**이며 100·1000·5000을 지원한다. 이 값만 바꿔도 DB 데이터가 늘어나는 것은 아니다.
+데이터 준비 후 `server/`에서 실행한다. `LISTING_COUNT`는 **이미 DB에 준비된 예상 매물 수**이며 100·1000·5000·5020·5138을 지원한다. 이 값만 바꿔도 DB 데이터가 늘어나는 것은 아니다.
 
 ```bash
 LISTING_COUNT=100 ./gradlew gatlingRun \
@@ -33,6 +33,10 @@ LISTING_COUNT=100 ./gradlew gatlingRun \
 - 첫 실행을 확인한 뒤 같은 조건으로 총 3회 실행하고 `run-1`을 `run-2`, `run-3`으로 바꾼다. HTML·CSV와 같은 시간대의 서버·DB 지표를 함께 보존한다.
 
 기본 대상은 dev다. 시나리오 자체를 로컬에서 검증할 때만 `LISTING_BASE_URL=http://127.0.0.1:포트`로 바꿀 수 있다. 이 로컬 결과는 dev 성능 결과로 사용하지 않는다. 워밍업과 본 측정의 구분은 [요청별 통계 범위](https://docs.gatling.io/concepts/assertions/)를 사용한다.
+
+## 대표 사진 쿼리 비교와 선별 결과
+
+[로컬 쿼리 비교](local-thumbnail-query/README.md)는 같은 합성 입력으로 MIN 서브쿼리와 순서 1 조회를 교차 실행한다. 과거 로컬·최종 dev 측정의 선별 결과와 오프라인 검증기도 함께 제공한다. [사진 수 비교 절차](listing-images.md)는 전용 매물의 사진을 1→5→1개로 변경·복원하는 방법을 설명한다. `ListingCountSimulation`의 5,020·5,138건 조건은 해당 실험의 전체 목록 수다.
 
 ## 데이터 준비와 정리
 
