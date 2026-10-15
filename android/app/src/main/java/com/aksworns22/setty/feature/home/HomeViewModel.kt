@@ -1,7 +1,9 @@
 package com.aksworns22.setty.feature.home
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
+import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
@@ -17,6 +19,8 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -64,9 +68,16 @@ enum class HomeEvent {
 class HomeViewModel(
     private val furnitureRepository: FurnitureRepository,
     private val userRepository: UserRepository,
+    private val savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(HomeUiState())
+    // 필터 조건은 서버에서 복구할 수 없으므로 프로세스가 종료돼도 복원한다. 목록은 복원한 조건으로 다시 받는다
+    private val _uiState = MutableStateFlow(
+        HomeUiState(
+            selectedCategory = savedStateHandle.get<String>(KEY_CATEGORY)?.let(FurnitureCategory::valueOf),
+            maxDeliveryFee = savedStateHandle[KEY_MAX_DELIVERY_FEE],
+        )
+    )
     val uiState = _uiState.asStateFlow()
 
     private val _event = Channel<HomeEvent>(Channel.BUFFERED)
@@ -77,6 +88,18 @@ class HomeViewModel(
 
     // 지금 보여주는 목록을 받은 배송비 예산. 다른 예산으로 받다 실패하면 필터를 이 값으로 되돌린다
     private var shownMaxDeliveryFee: Int? = null
+
+    init {
+        viewModelScope.launch {
+            uiState
+                .map { it.selectedCategory to it.maxDeliveryFee }
+                .distinctUntilChanged()
+                .collect { (category, maxDeliveryFee) ->
+                    savedStateHandle[KEY_CATEGORY] = category?.name
+                    savedStateHandle[KEY_MAX_DELIVERY_FEE] = maxDeliveryFee
+                }
+        }
+    }
 
     /**
      * 홈에 들어올 때마다 부른다. ViewModel이 Activity 범위라 다른 화면에서 가구를 등록·수정·삭제하고
@@ -205,10 +228,13 @@ class HomeViewModel(
     }
 
     companion object {
+        private const val KEY_CATEGORY = "home_category"
+        private const val KEY_MAX_DELIVERY_FEE = "home_max_delivery_fee"
+
         val Factory = viewModelFactory {
             initializer {
                 val appContainer = (this[APPLICATION_KEY] as SettyApp).appContainer
-                HomeViewModel(appContainer.furnitureRepository, appContainer.userRepository)
+                HomeViewModel(appContainer.furnitureRepository, appContainer.userRepository, createSavedStateHandle())
             }
         }
     }
