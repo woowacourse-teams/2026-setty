@@ -30,6 +30,7 @@ public final class ListingView {
             ListingCategory category,
             ConditionGrade conditionGrade,
             Dimensions dimensions,
+            boolean hasPurchaseRequest,
             Instant createdAt,
             Dong dong
     ) {
@@ -49,6 +50,7 @@ public final class ListingView {
             ConditionGrade conditionGrade,
             Dimensions dimensions,
             SaleStatus saleStatus,
+            boolean hasPurchaseRequest,
             List<Image> images,
             Instant createdAt,
             Instant updatedAt,

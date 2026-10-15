@@ -360,6 +360,7 @@ public class ListingService {
                 row.category(),
                 row.conditionGrade(),
                 new ListingView.Dimensions(row.widthCm(), row.depthCm(), row.heightCm()),
+                row.hasPurchaseRequest(),
                 row.createdAt(),
                 dongOf(row.dongCode())
         );
@@ -377,6 +378,7 @@ public class ListingService {
                 listing.getCategory(),
                 listing.getConditionGrade(),
                 dimensionsOf(listing),
+                listing.hasPurchaseRequest(),
                 listing.getCreatedAt(),
                 dongOf(listing.getDongCode())
         );
@@ -395,6 +397,7 @@ public class ListingService {
                 listing.getConditionGrade(),
                 dimensionsOf(listing),
                 listing.getSaleStatus(),
+                listing.hasPurchaseRequest(),
                 images,
                 listing.getCreatedAt(),
                 listing.getUpdatedAt(),
