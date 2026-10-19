@@ -1,0 +1,186 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2400" height="1690" viewBox="0 0 2400 1690" role="img" aria-labelledby="title desc">
+<title id="title">SETTY 시스템 인프라 아키텍처와 배포 파이프라인</title>
+<desc id="desc">웹과 모바일 클라이언트, CloudFront, S3, ALB, EC2의 Spring Boot, MySQL, 외부 연동 및 CloudWatch를 표현한다. GitHub Actions CI와 첨부 그림 기준 AWS CodePipeline, CodeBuild, S3 배포 아티팩트, CodeDeploy 및 EC2 Agent의 배포 경로를 구분한다. 확인되지 않은 콘솔 설정과 DB 배치 위치는 별도로 표시한다.</desc>
+<defs>
+  <marker id="arrow-runtime" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0L10 5L0 10Z" fill="#356caa"/></marker>
+  <marker id="arrow-deploy" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0L10 5L0 10Z" fill="#8850aa"/></marker>
+  <marker id="arrow-muted" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0L10 5L0 10Z" fill="#59677b"/></marker>
+</defs>
+<style>
+  text {font-family: 'Apple SD Gothic Neo','Noto Sans CJK KR','Noto Sans KR',Arial,sans-serif;fill:#172437;}
+  .title {font-size:44px;font-weight:700;letter-spacing:-1px;}
+  .subtitle {font-size:23px;fill:#59677b;}
+  .section {font-size:26px;font-weight:700;}
+  .node-title {font-size:26px;font-weight:700;}
+  .node-detail {font-size:21px;fill:#59677b;}
+  .small {font-size:19px;fill:#59677b;}
+  .edge-label {font-size:20px;fill:#356caa;paint-order:stroke;stroke:white;stroke-width:9px;stroke-linejoin:round;}
+  .deploy-label {font-size:20px;fill:#8850aa;paint-order:stroke;stroke:white;stroke-width:9px;stroke-linejoin:round;}
+  .footnote {font-size:21px;fill:#59677b;}
+  .unknown {fill:#9b6420;}
+</style>
+<rect width="2400" height="1690" fill="#ffffff"/>
+
+<text x="65" y="70" class="title" text-anchor="start">SETTY  시스템 인프라 아키텍처</text>
+<text x="67" y="111" class="subtitle" text-anchor="start">서비스 요청 · 데이터 저장 · 배포 파이프라인  |  저장소와 첨부 그림 기준</text>
+<path d="M1580 65 H1650" fill="none" stroke="#356caa" stroke-width="2.8" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow-runtime)"/>
+<text x="1665" y="72" class="edge-label" text-anchor="start">요청·데이터</text>
+<path d="M1845 65 H1915" fill="none" stroke="#8850aa" stroke-width="2.8" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow-deploy)" stroke-dasharray="9 7"/>
+<text x="1930" y="72" class="deploy-label" text-anchor="start">빌드·배포</text>
+<text x="2140" y="72" class="small unknown" text-anchor="start">* 콘솔 확인 필요</text>
+<rect x="55" y="158" width="2290" height="760" rx="18" fill="#f8fafc" stroke="#dbe3eb" stroke-width="1.6"/>
+<text x="82" y="203" class="section" text-anchor="start">01  서비스 요청과 데이터 흐름</text>
+<text x="2310" y="201" class="small" text-anchor="end">논리 구성도 · 네트워크 경계 아님</text>
+<rect x="95" y="280" width="270" height="150" rx="14" fill="#ffffff" stroke="#ccd5df" stroke-width="1.6"/>
+<rect x="95" y="294" width="5" height="122" rx="2.5" fill="#356caa"/>
+<text x="118" y="309" class="small" text-anchor="start">CLIENT</text>
+<text x="118" y="342" class="node-title" text-anchor="start">웹 브라우저</text>
+<text x="118" y="375" class="node-detail" text-anchor="start">React · TypeScript</text>
+<text x="118" y="404" class="node-detail" text-anchor="start">구매자 · 판매자</text>
+<rect x="95" y="515" width="270" height="170" rx="14" fill="#ffffff" stroke="#ccd5df" stroke-width="1.6"/>
+<rect x="95" y="529" width="5" height="142" rx="2.5" fill="#356caa"/>
+<text x="118" y="544" class="small" text-anchor="start">CLIENT</text>
+<text x="118" y="577" class="node-title" text-anchor="start">모바일 앱</text>
+<text x="118" y="610" class="node-detail" text-anchor="start">Android · Kotlin</text>
+<text x="118" y="639" class="node-detail" text-anchor="start">기사 앱 · Expo / React Native</text>
+<text x="118" y="668" class="node-detail" text-anchor="start">API URL 설정 시 서버 연결</text>
+<rect x="460" y="280" width="270" height="150" rx="14" fill="#ffffff" stroke="#ccd5df" stroke-width="1.6"/>
+<rect x="460" y="294" width="5" height="122" rx="2.5" fill="#356caa"/>
+<text x="483" y="309" class="small" text-anchor="start">AWS · CDN</text>
+<text x="483" y="342" class="node-title" text-anchor="start">CloudFront</text>
+<text x="483" y="375" class="node-detail" text-anchor="start">웹 정적 콘텐츠 제공</text>
+<text x="483" y="404" class="node-detail" text-anchor="start">API 오리진 설정 확인 필요</text>
+<rect x="845" y="240" width="300" height="150" rx="14" fill="#ffffff" stroke="#ccd5df" stroke-width="1.6"/>
+<rect x="845" y="254" width="5" height="122" rx="2.5" fill="#548146"/>
+<text x="868" y="269" class="small" text-anchor="start">AWS · STORAGE</text>
+<text x="868" y="302" class="node-title" text-anchor="start">S3 · 웹 정적 파일</text>
+<text x="868" y="335" class="node-detail" text-anchor="start">setty/build/</text>
+<text x="868" y="364" class="node-detail" text-anchor="start">HTML · JS · CSS</text>
+<rect x="845" y="485" width="300" height="150" rx="14" fill="#ffffff" stroke="#ccd5df" stroke-width="1.6"/>
+<rect x="845" y="499" width="5" height="122" rx="2.5" fill="#356caa"/>
+<text x="868" y="514" class="small" text-anchor="start">AWS · LOAD BALANCER</text>
+<text x="868" y="547" class="node-title" text-anchor="start">ALB</text>
+<text x="868" y="580" class="node-detail" text-anchor="start">백엔드 요청 전달</text>
+<text x="868" y="609" class="node-detail" text-anchor="start">/dev 접두사 제거 문서 확인</text>
+<rect x="1245" y="240" width="440" height="150" rx="14" fill="#ffffff" stroke="#ccd5df" stroke-width="1.6"/>
+<rect x="1245" y="254" width="5" height="122" rx="2.5" fill="#548146"/>
+<text x="1268" y="269" class="small" text-anchor="start">AWS · STORAGE</text>
+<text x="1268" y="302" class="node-title" text-anchor="start">S3 · 매물 이미지</text>
+<text x="1268" y="335" class="node-detail" text-anchor="start">setty/images/listings/</text>
+<text x="1268" y="364" class="node-detail" text-anchor="start">업로드·삭제 / 공개 URL 조회</text>
+<rect x="1235" y="445" width="470" height="420" rx="16" fill="#fffaf3" stroke="#dda45a" stroke-width="1.6"/>
+<text x="1260" y="482" class="section" text-anchor="start">EC2 · BACKEND</text>
+<rect x="1270" y="515" width="400" height="150" rx="14" fill="#ffffff" stroke="#ccd5df" stroke-width="1.6"/>
+<rect x="1270" y="529" width="5" height="122" rx="2.5" fill="#c57923"/>
+<text x="1293" y="554" class="node-title" text-anchor="start">Spring Boot · app.jar</text>
+<text x="1293" y="587" class="node-detail" text-anchor="start">Java 21 · systemd 실행</text>
+<text x="1293" y="616" class="node-detail" text-anchor="start">회원 · 매물 · 주문 · 결제 · 배송</text>
+<text x="1293" y="645" class="node-detail" text-anchor="start">Spring Modulith · 내부 이벤트</text>
+<text x="1275" y="698" class="small" text-anchor="start">/opt/setty/app/app.jar  ·  /opt/setty/setty.env</text>
+<rect x="1270" y="740" width="180" height="84" rx="14" fill="#ffffff" stroke="#ccd5df" stroke-width="1.6"/>
+<rect x="1270" y="754" width="5" height="56" rx="2.5" fill="#8850aa"/>
+<text x="1293" y="779" class="node-title" text-anchor="start">배포 Agent</text>
+<text x="1293" y="812" class="node-detail" text-anchor="start">CodeDeploy</text>
+<rect x="1480" y="740" width="190" height="84" rx="14" fill="#ffffff" stroke="#ccd5df" stroke-width="1.6"/>
+<rect x="1480" y="754" width="5" height="56" rx="2.5" fill="#c57923"/>
+<text x="1503" y="779" class="node-title" text-anchor="start">로그 · 메트릭</text>
+<text x="1503" y="812" class="node-detail" text-anchor="start">journald · OTLP</text>
+<rect x="1850" y="270" width="430" height="150" rx="14" fill="#ffffff" stroke="#ccd5df" stroke-width="1.6"/>
+<rect x="1850" y="284" width="5" height="122" rx="2.5" fill="#548146"/>
+<text x="1873" y="299" class="small" text-anchor="start">DATABASE</text>
+<text x="1873" y="332" class="node-title" text-anchor="start">MySQL</text>
+<text x="1873" y="365" class="node-detail" text-anchor="start">JPA · Flyway</text>
+<text x="1873" y="394" class="node-detail" text-anchor="start">호스팅·배치 위치 확인 필요</text>
+<rect x="1850" y="515" width="430" height="150" rx="14" fill="#ffffff" stroke="#ccd5df" stroke-width="1.6"/>
+<rect x="1850" y="529" width="5" height="122" rx="2.5" fill="#356caa"/>
+<text x="1873" y="544" class="small" text-anchor="start">EXTERNAL SERVICES</text>
+<text x="1873" y="577" class="node-title" text-anchor="start">Toss Payments · FCM</text>
+<text x="1873" y="610" class="node-detail" text-anchor="start">테스트 결제 승인</text>
+<text x="1873" y="639" class="node-detail" text-anchor="start">키워드 푸시 · FCM 설정 시 활성</text>
+<rect x="1850" y="740" width="430" height="112" rx="14" fill="#ffffff" stroke="#ccd5df" stroke-width="1.6"/>
+<rect x="1850" y="754" width="5" height="84" rx="2.5" fill="#356caa"/>
+<text x="1873" y="779" class="node-title" text-anchor="start">CloudWatch</text>
+<text x="1873" y="812" class="node-detail" text-anchor="start">dev 로그 수집 문서 · 메트릭 설정</text>
+<path d="M365 355 H460" fill="none" stroke="#356caa" stroke-width="2.8" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow-runtime)"/>
+<text x="379" y="336" class="edge-label" text-anchor="start">HTTPS</text>
+<path d="M730 340 H790 V315 H845" fill="none" stroke="#356caa" stroke-width="2.8" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow-runtime)"/>
+<text x="747" y="285" class="edge-label" text-anchor="start">정적 파일</text>
+<path d="M595 430 V560 H845" fill="none" stroke="#356caa" stroke-width="2.8" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow-runtime)" stroke-dasharray="3 6"/>
+<text x="600" y="540" class="edge-label" text-anchor="start">API · 결제 복귀 경로 *</text>
+<path d="M365 600 H520 V650 H790 V605 H845" fill="none" stroke="#356caa" stroke-width="2.8" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow-runtime)"/>
+<text x="535" y="675" class="edge-label" text-anchor="start">REST · SSE</text>
+<path d="M1145 565 H1270" fill="none" stroke="#356caa" stroke-width="2.8" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow-runtime)"/>
+<text x="1149" y="545" class="edge-label" text-anchor="start">HTTP :8080</text>
+<path d="M1470 515 V390" fill="none" stroke="#356caa" stroke-width="2.8" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow-runtime)"/>
+<text x="1486" y="454" class="edge-label" text-anchor="start">S3 SDK · 업로드/삭제</text>
+<path d="M1670 548 H1770 V345 H1850" fill="none" stroke="#356caa" stroke-width="2.8" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow-runtime)"/>
+<text x="1785" y="325" class="edge-label" text-anchor="start">JDBC</text>
+<path d="M1670 610 H1850" fill="none" stroke="#356caa" stroke-width="2.8" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow-runtime)"/>
+<text x="1727" y="590" class="edge-label" text-anchor="start">HTTPS</text>
+<path d="M1575 665 V683 H1725 V715 H1575 V740" fill="none" stroke="#59677b" stroke-width="2.8" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow-muted)"/>
+<path d="M1670 782 H1850" fill="none" stroke="#356caa" stroke-width="2.8" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow-runtime)"/>
+<text x="1730" y="763" class="edge-label" text-anchor="start">수집 *</text>
+<path d="M1360 740 V665" fill="none" stroke="#8850aa" stroke-width="2.8" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow-deploy)" stroke-dasharray="9 7"/>
+<text x="1380" y="728" class="deploy-label" text-anchor="start">재시작</text>
+<text x="90" y="883" class="small" text-anchor="start">S3는 용도별 경로를 구분해 표현했습니다. 웹·이미지는 설정상 동일 버킷이며, 아티팩트 버킷 구성은 확인이 필요합니다.</text>
+<rect x="55" y="985" width="2290" height="490" rx="18" fill="#fcf9fd" stroke="#e5d7ed" stroke-width="1.6"/>
+<text x="82" y="1031" class="section" text-anchor="start">02  배포 파이프라인</text>
+<text x="2310" y="1029" class="small" text-anchor="end">점선: 배포 지시 · 아티팩트 전달</text>
+<rect x="95" y="1190" width="235" height="130" rx="14" fill="#ffffff" stroke="#ccd5df" stroke-width="1.6"/>
+<rect x="95" y="1204" width="5" height="102" rx="2.5" fill="#8850aa"/>
+<text x="118" y="1229" class="node-title" text-anchor="start">GitHub</text>
+<text x="118" y="1262" class="node-detail" text-anchor="start">소스 저장소</text>
+<text x="118" y="1291" class="node-detail" text-anchor="start">변경 감지 *</text>
+<rect x="430" y="1065" width="335" height="130" rx="14" fill="#ffffff" stroke="#ccd5df" stroke-width="1.6"/>
+<rect x="430" y="1079" width="5" height="102" rx="2.5" fill="#8850aa"/>
+<text x="453" y="1104" class="node-title" text-anchor="start">GitHub Actions · CI</text>
+<text x="453" y="1137" class="node-detail" text-anchor="start">서버 테스트 · 웹 타입 검사</text>
+<text x="453" y="1166" class="node-detail" text-anchor="start">PR / push → develop · main</text>
+<text x="440" y="1232" class="small unknown" text-anchor="start">CI 결과와 AWS 배포의 연결은 확인 필요</text>
+<rect x="845" y="1065" width="1460" height="260" rx="12" fill="#ffffff" stroke="#bd96d0" stroke-width="1.6" stroke-dasharray="8 6"/>
+<text x="865" y="1103" class="section" text-anchor="start">AWS CodePipeline *  ·  첨부 그림의 서버 배포 흐름</text>
+<rect x="880" y="1180" width="235" height="130" rx="14" fill="#ffffff" stroke="#ccd5df" stroke-width="1.6"/>
+<rect x="880" y="1194" width="5" height="102" rx="2.5" fill="#8850aa"/>
+<text x="903" y="1219" class="node-title" text-anchor="start">Source *</text>
+<text x="903" y="1252" class="node-detail" text-anchor="start">소스 체크아웃</text>
+<text x="903" y="1281" class="node-detail" text-anchor="start">S3 Source Artifacts *</text>
+<rect x="1190" y="1150" width="290" height="150" rx="14" fill="#ffffff" stroke="#ccd5df" stroke-width="1.6"/>
+<rect x="1190" y="1164" width="5" height="122" rx="2.5" fill="#8850aa"/>
+<text x="1213" y="1189" class="node-title" text-anchor="start">CodeBuild · 서버 *</text>
+<text x="1213" y="1222" class="node-detail" text-anchor="start">Java 21 · Gradle bootJar</text>
+<text x="1213" y="1251" class="node-detail" text-anchor="start">app.jar + appspec + scripts</text>
+<rect x="1560" y="1150" width="290" height="150" rx="14" fill="#ffffff" stroke="#ccd5df" stroke-width="1.6"/>
+<rect x="1560" y="1164" width="5" height="122" rx="2.5" fill="#548146"/>
+<text x="1583" y="1189" class="node-title" text-anchor="start">S3 · Build Artifacts *</text>
+<text x="1583" y="1222" class="node-detail" text-anchor="start">서버 배포 번들</text>
+<text x="1583" y="1251" class="node-detail" text-anchor="start">EC2 Agent가 다운로드</text>
+<rect x="1930" y="1150" width="335" height="150" rx="14" fill="#ffffff" stroke="#ccd5df" stroke-width="1.6"/>
+<rect x="1930" y="1164" width="5" height="122" rx="2.5" fill="#8850aa"/>
+<text x="1953" y="1189" class="node-title" text-anchor="start">AWS CodeDeploy</text>
+<text x="1953" y="1222" class="node-detail" text-anchor="start">appspec.yml · 배포 훅</text>
+<text x="1953" y="1251" class="node-detail" text-anchor="start">중지 → 설치 → 재시작 → 검증</text>
+<rect x="1190" y="1350" width="660" height="92" rx="14" fill="#ffffff" stroke="#ccd5df" stroke-width="1.6"/>
+<rect x="1190" y="1364" width="5" height="64" rx="2.5" fill="#8850aa"/>
+<text x="1213" y="1389" class="node-title" text-anchor="start">CodeBuild · 웹</text>
+<text x="1213" y="1422" class="node-detail" text-anchor="start">Node 22 · 타입 검사 → Webpack → S3 sync → CloudFront 캐시 무효화</text>
+<path d="M210 1190 V1130 H430" fill="none" stroke="#8850aa" stroke-width="2.8" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow-deploy)" stroke-dasharray="9 7"/>
+<text x="240" y="1110" class="deploy-label" text-anchor="start">PR · push</text>
+<path d="M330 1275 H880" fill="none" stroke="#8850aa" stroke-width="2.8" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow-deploy)" stroke-dasharray="9 7"/>
+<text x="566" y="1315" class="deploy-label" text-anchor="start">소스 변경 *</text>
+<path d="M1115 1225 H1190" fill="none" stroke="#8850aa" stroke-width="2.8" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow-deploy)" stroke-dasharray="9 7"/>
+<path d="M1480 1225 H1560" fill="none" stroke="#8850aa" stroke-width="2.8" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow-deploy)" stroke-dasharray="9 7"/>
+<path d="M1850 1225 H1930" fill="none" stroke="#8850aa" stroke-width="2.8" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow-deploy)" stroke-dasharray="9 7"/>
+<path d="M210 1320 V1420 H1115 V1396 H1190" fill="none" stroke="#8850aa" stroke-width="2.8" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow-deploy)" stroke-dasharray="9 7"/>
+<text x="430" y="1400" class="deploy-label" text-anchor="start">웹 배포 트리거 *</text>
+<path d="M2098 1150 V950 H1320 V824" fill="none" stroke="#8850aa" stroke-width="2.8" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow-deploy)" stroke-dasharray="9 7"/>
+<text x="1755" y="942" class="deploy-label" text-anchor="start">배포 지시 · Agent에서 훅 실행</text>
+<path d="M1705 1150 V972 H1405 V824" fill="none" stroke="#8850aa" stroke-width="2.8" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow-deploy)" stroke-dasharray="9 7"/>
+<text x="1435" y="963" class="deploy-label" text-anchor="start">번들 다운로드</text>
+<path d="M1320 1350 V1337 H800 V410 H995 V390" fill="none" stroke="#8850aa" stroke-width="2.8" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow-deploy)" stroke-dasharray="9 7"/>
+<text x="815" y="1375" class="deploy-label" text-anchor="start">웹 정적 파일 배포</text>
+<path d="M65 1510 H2335" stroke="#dbe3eb" stroke-width="1.5"/>
+<text x="70" y="1550" class="footnote" text-anchor="start">* 확인 필요: CodePipeline 트리거·서버 빌드 명령·아티팩트 버킷·웹 배포 트리거. 서버 파이프라인은 첨부 기준입니다.</text>
+<text x="70" y="1586" class="footnote" text-anchor="start">확인 필요: CloudFront API 오리진·ALB 대상 그룹·DB 호스팅·로그/메트릭 수집 Agent. prod OTLP 메트릭은 기본 비활성입니다.</text>
+<text x="70" y="1622" class="footnote" text-anchor="start">근거: client/buildspec.yml · appspec.yml · server/deploy/ · application*.yml · .github/workflows/ci.yml · server/performance/request-timing.md</text>
+<text x="2330" y="1660" class="small" text-anchor="end">2026-10-19  ·  SETTY</text>
+</svg>

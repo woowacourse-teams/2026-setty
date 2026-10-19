@@ -64,6 +64,13 @@ SETTY는 구매자가 판매자와 운송 서비스를 오가며 직접 조율�
 | --- | --- |
 | <img width="670" height="392" alt="image" src="https://github.com/user-attachments/assets/704b5a54-5a89-402b-938f-9c99bf8351ef" /> | <img width="876" height="547" alt="image" src="https://github.com/user-attachments/assets/5f72bb87-5bae-4bdd-9d34-856a185f59a0" /> |
 
+## 시스템 인프라와 배포 파이프라인
+
+실선은 요청·데이터, 점선은 빌드·배포 흐름입니다. 확인이 필요한 설정은 그림에 표시했습니다.
+
+![SETTY 시스템 인프라 아키텍처와 배포 파이프라인](docs/images/system-infrastructure.png)
+
+[확대 가능한 SVG 원본](docs/images/system-infrastructure.svg)
 
 ---
 
