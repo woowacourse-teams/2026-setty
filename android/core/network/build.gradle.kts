@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "com.aksworns22.setty.core.network"
+    namespace = "cloud.setty.setty.core.network"
 
     buildFeatures {
         buildConfig = true

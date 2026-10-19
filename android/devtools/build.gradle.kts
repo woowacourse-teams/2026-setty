@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "com.aksworns22.setty.devtools"
+    namespace = "cloud.setty.setty.devtools"
 }
 
 dependencies {

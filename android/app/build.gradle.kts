@@ -15,10 +15,10 @@ localProperties.load(
 )
 
 android {
-    namespace = "com.aksworns22.setty"
+    namespace = "cloud.setty.setty"
 
     defaultConfig {
-        applicationId = "com.aksworns22.setty"
+        applicationId = "cloud.setty.setty"
         versionCode = 1
         versionName = "1.0"
 
