@@ -1,4 +1,4 @@
-import cloud.setty.setty.configureAndroidCompose
+import com.setty.android.configureAndroidCompose
 import com.android.build.api.dsl.ApplicationExtension
 import org.gradle.api.Plugin
 import org.gradle.api.Project

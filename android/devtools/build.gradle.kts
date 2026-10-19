@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "cloud.setty.setty.devtools"
+    namespace = "com.setty.android.devtools"
 }
 
 dependencies {

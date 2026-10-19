@@ -3,10 +3,10 @@
 
     <application>
         <activity
-            android:name="cloud.setty.setty.devtools.DevToolsActivity"
+            android:name="com.setty.android.devtools.DevToolsActivity"
             android:exported="true"
             android:label="Setty DevTools"
-            android:taskAffinity="cloud.setty.setty.devtools">
+            android:taskAffinity="com.setty.android.devtools">
 
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

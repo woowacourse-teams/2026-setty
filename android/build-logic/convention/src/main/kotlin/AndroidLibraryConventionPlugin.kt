@@ -1,4 +1,4 @@
-import cloud.setty.setty.configureKotlinAndroid
+import com.setty.android.configureKotlinAndroid
 import com.android.build.api.dsl.LibraryExtension
 import org.gradle.api.Plugin
 import org.gradle.api.Project
