@@ -7,6 +7,17 @@ on:
     branches: [develop, main]
 
 jobs:
+  deployment-scripts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check deployment shell syntax
+        run: find server/deploy -name '*.sh' -print0 | xargs -0 -n 1 bash -n
+
+      - name: Verify slot deployment and rollback
+        run: python3 -m unittest discover -s server/deploy/tests -v
+
   server-test:
     runs-on: ubuntu-latest
     steps:
