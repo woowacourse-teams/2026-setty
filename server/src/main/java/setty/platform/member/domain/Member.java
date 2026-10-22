@@ -1,6 +1,7 @@
 package setty.platform.member.domain;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -38,6 +39,9 @@ public class Member {
 
     @Column(name = "dong_code", length = 10)
     private String dongCode;
+
+    @Embedded
+    private ResolvedAddress resolvedAddress;
 
     @Column(length = 36)
     private String token;
@@ -89,6 +93,10 @@ public class Member {
         return dongCode;
     }
 
+    public ResolvedAddress getResolvedAddress() {
+        return resolvedAddress;
+    }
+
     public String getToken() {
         return token;
     }
@@ -108,6 +116,10 @@ public class Member {
 
     public void changeDong(final String dongCode) {
         this.dongCode = dongCode;
+    }
+
+    public void changeResolvedAddress(final ResolvedAddress resolvedAddress) {
+        this.resolvedAddress = resolvedAddress;
     }
 
     public boolean matchPassword(final org.springframework.security.crypto.password.PasswordEncoder encoder, final String rawPassword) {
