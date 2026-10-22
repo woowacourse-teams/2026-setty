@@ -87,7 +87,7 @@ root 셸(`sudo -i`)에서 진행한다.
 
 백업이 끝까지 성공하면 스크립트가 CloudWatch `Setty/Prod` 이름공간에 `BackupSucceeded = 1`을 보낸다. CloudWatch 알람이 하루 동안 이 값의 합이 1보다 작으면 prod 알림 경로로 알린다. 백업이 중간에 실패한 경우뿐 아니라 timer가 멈추거나 서버가 꺼져 백업이 아예 돌지 않은 경우도 잡는다.
 
-binlog 백업은 성공할 때마다 `BinlogBackupSucceeded = 1`을 보낸다. 15분 동안 이 값이 없으면 알린다.
+binlog 백업은 성공할 때마다 `BinlogBackupSucceeded = 1`을 보낸다. 1시간 동안 이 값이 한 번도 없으면 알린다.
 
 시험용으로 다른 경로에 백업을 돌릴 때는 `METRIC_NAMESPACE=` 를 비워 성공 지표를 보내지 않는다.
 
