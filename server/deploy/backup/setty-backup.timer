@@ -1,0 +1,10 @@
+[Unit]
+Description=Run SETTY DB backup daily at 04:00 KST
+
+[Timer]
+OnCalendar=*-*-* 04:00:00 Asia/Seoul
+Persistent=true
+RandomizedDelaySec=0
+
+[Install]
+WantedBy=timers.target
