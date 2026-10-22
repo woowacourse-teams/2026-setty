@@ -5,7 +5,7 @@ prod MySQL `setty` 스키마를 매일 04:00 KST에 덤프해 암호화한 뒤 S
 | 파일 | 서버 위치 | 역할 |
 | --- | --- | --- |
 | `setty-backup.sh` | `/opt/setty/backup/` | 덤프 → gzip → 암호화 → S3 업로드 → 30일 지난 백업 삭제 |
-| `setty-restore.sh` | `/opt/setty/backup/` | S3 객체 또는 로컬 파일을 복호화해 지정한 DB로 복원 |
+| `setty-restore.sh` | `/opt/setty/backup/` | S3 객체 또는 로컬 파일을 복호화해 새 DB로 복원 |
 | `setty-backup.service` | `/etc/systemd/system/` | 백업 스크립트를 1회 실행 |
 | `setty-backup.timer` | `/etc/systemd/system/` | 매일 04:00 Asia/Seoul에 서비스 실행 |
 
@@ -48,6 +48,9 @@ root 셸(`sudo -i`)에서 진행한다.
 
 - 백업이 돌았는지: `aws s3 ls s3://techcourse-project-2026/setty/backup/db/daily/`
 - 실패 원인: `journalctl -u setty-backup.service --no-pager -n 30`
-- 다른 DB로 복원: `/opt/setty/backup/setty-restore.sh setty/backup/db/daily/<파일 이름> <대상 DB>`
+- 새 DB로 복원: `sudo /opt/setty/backup/setty-restore.sh setty/backup/db/daily/<파일 이름> <새 DB 이름>`
+  - 실행하면 MySQL root 비밀번호를 묻는다. 백업 계정은 읽기 전용이라 복원에 쓸 수 없다.
+  - 운영 DB(`setty`)와 이미 있는 DB에는 복원하지 않는다.
+  - 키나 파일이 잘못되면 DB를 만들기 전에 멈춘다. 내려받은 파일은 끝나면 지운다.
 
 prod DB 자체를 백업으로 덮어쓰는 절차는 아직 검증하지 않았다. 필요하면 혼자 진행하지 말고 팀과 먼저 상의한다.
