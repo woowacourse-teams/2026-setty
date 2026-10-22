@@ -22,7 +22,7 @@ log() { printf '%s %s\n' "$(date +%FT%T%z)" "$*"; }
 
 start=$(date +%s)
 mysqldump --defaults-file=/root/.my.cnf \
-  --single-transaction --no-tablespaces --routines --triggers --events --set-gtid-purged=OFF "$DB" \
+  --single-transaction --no-tablespaces --routines --triggers --events --set-gtid-purged=OFF --source-data=2 "$DB" \
   | gzip -9 \
   | openssl enc -aes-256-cbc -pbkdf2 -salt -pass "file:$KEY_FILE" -out "$WORK_DIR/$FILE"
 end=$(date +%s)

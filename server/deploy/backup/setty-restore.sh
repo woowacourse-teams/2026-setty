@@ -58,6 +58,6 @@ start=$(date +%s)
 {
   printf 'CREATE DATABASE `%s` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;\nUSE `%s`;\n' "$TARGET_DB" "$TARGET_DB"
   openssl enc -d -aes-256-cbc -pbkdf2 -pass "file:$KEY_FILE" -in "$LOCAL" | gunzip
-} | mysql --defaults-file="$ADMIN_DEFAULTS_FILE"
+} | mysql --defaults-file="$ADMIN_DEFAULTS_FILE" --init-command="SET sql_log_bin=0"
 end=$(date +%s)
 printf '복원 완료: %s → %s (%s초)\n' "$SRC" "$TARGET_DB" "$((end-start))"
