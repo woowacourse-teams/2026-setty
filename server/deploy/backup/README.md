@@ -4,20 +4,16 @@ prod MySQL `setty` 스키마를 매일 04:00 KST에 덤프해 암호화한 뒤 S
 
 | 파일 | 서버 위치 | 역할 |
 | --- | --- | --- |
-| `setty-backup.sh` | `/opt/setty/backup/` | 덤프 → gzip → 암호화 → S3 업로드 → 기한 지난 백업 삭제 |
+| `setty-backup.sh` | `/opt/setty/backup/` | 덤프 → gzip → 암호화 → S3 업로드 → 30일 지난 백업 삭제 |
 | `setty-restore.sh` | `/opt/setty/backup/` | S3 객체 또는 로컬 파일을 복호화해 지정한 DB로 복원 |
 | `setty-backup.service` | `/etc/systemd/system/` | 백업 스크립트를 1회 실행 |
 | `setty-backup.timer` | `/etc/systemd/system/` | 매일 04:00 Asia/Seoul에 서비스 실행 |
 
 ## 백업 위치와 보관 기간
 
-| 경로 | 언제 올라가나 | 보관 |
-| --- | --- | --- |
-| `s3://techcourse-project-2026/setty/backup/db/daily/` | 매일 | 30일 |
-| `s3://techcourse-project-2026/setty/backup/db/monthly/` | 매월 1일 | 365일 |
-| `s3://techcourse-project-2026/setty/backup/db/yearly/` | 매년 1월 1일 | 1825일 |
+매일 한 부를 `s3://techcourse-project-2026/setty/backup/db/daily/`에 올리고 30일 동안 보관한다. 버킷 버전 관리가 켜져 있어, 스크립트는 30일 지난 객체의 이전 버전과 삭제 마커까지 지운다.
 
-버킷 버전 관리가 켜져 있어, 스크립트는 기한 지난 객체의 이전 버전과 삭제 마커까지 지운다.
+보관 기간을 30일로 둔 것은 탈퇴한 회원의 정보가 백업에 오래 남지 않게 하기 위해서다. 거래·결제 기록의 법정 보존은 백업이 아니라 운영 DB에서 다룬다.
 
 ## 서버 설치
 
