@@ -96,17 +96,20 @@ if [ "${#FILES[@]}" -eq 0 ] || [ "${FILES[0]}" != "$START_FILE" ]; then
   exit 1
 fi
 
-if [ "$MODE" = "events" ]; then
-  printf '%-15s %-10s %-19s %s\n' "binlog 파일" "위치" "시각" "내용"
-  first=1
-  for name in "${FILES[@]}"; do
-    start_opt=(); [ "$first" -eq 1 ] && start_opt=(--start-position="$START_POS"); first=0
-    mysqlbinlog --base64-output=DECODE-ROWS -v "${start_opt[@]}" "$BINLOG_DIR/$name" \
+# 덤프 이후 setty의 행 삭제·수정과 DDL을 "종류<TAB>파일<TAB>위치<TAB>시각<TAB>내용"으로 뽑는다.
+# DDL은 내용 앞에 DB 이름을 붙여 썼는지(1/0)를 덧붙인다. 마지막 파일에는 SCAN_STOP_POS를 적용한다.
+scan() {
+  local first=1 last="${*: -1}" opts name
+  for name in "$@"; do
+    opts=()
+    [ "$first" -eq 1 ] && opts+=(--start-position="$START_POS"); first=0
+    [ -n "${SCAN_STOP_POS:-}" ] && [ "$name" = "$last" ] && opts+=(--stop-position="$SCAN_STOP_POS")
+    mysqlbinlog --base64-output=DECODE-ROWS -v "${opts[@]}" "$BINLOG_DIR/$name" \
     | awk -v file="$name" -v db="$SOURCE_DB" '
-        function flush(  k) {
-          for (k in cnt) printf "%-15s %-10s %-19s %s rows=%d\n", file, txpos, txtime, k, cnt[k]
-          for (k in ddl) printf "%-15s %-10s %-19s %s\n", file, txpos, txtime, ddl[k]
-          delete cnt; delete ddl; nddl = 0
+        function flush(  k, i) {
+          for (k in cnt) printf "ROW\t%s\t%s\t%s\t%s rows=%d\n", file, txpos, txtime, k, cnt[k]
+          for (i = 1; i <= nddl; i++) printf "DDL\t%s\t%s\t%s\t%s\t%s\n", file, txpos, txtime, ddlq[i], ddl[i]
+          delete cnt; delete ddl; delete ddlq; nddl = 0
         }
         /^# at [0-9]+/ { pos = $3 }
         /GTID/ && /last_committed/ {
@@ -116,21 +119,42 @@ if [ "$MODE" = "events" ]; then
         /^use `/ { cur = $2; gsub(/`|\/\*!\*\/;/, "", cur) }
         /^### DELETE FROM `/ { split($4, t, "`"); if (t[2] == db) cnt["DELETE " t[2] "." t[4]]++ }
         /^### UPDATE `/ { split($3, t, "`"); if (t[2] == db) cnt["UPDATE " t[2] "." t[4]]++ }
-        toupper($0) ~ /^(DROP|TRUNCATE|ALTER|RENAME) / { if (cur == db) ddl[++nddl] = $0 }
+        toupper($0) ~ /^(CREATE|DROP|TRUNCATE|ALTER|RENAME) / {
+          q = ($0 ~ ("`" db "`\\.") || $0 ~ ("(^|[^A-Za-z0-9_`])" db "\\.")) ? 1 : 0
+          if (q || cur == db) { ddl[++nddl] = $0; ddlq[nddl] = q }
+        }
         END { flush() }'
   done
+}
+
+if [ "$MODE" = "events" ]; then
+  printf '%-15s %-10s %-19s %s\n' "binlog 파일" "위치" "시각" "내용"
+  scan "${FILES[@]}" | awk -F'\t' '{
+    if ($1 == "ROW") printf "%-15s %-10s %-19s %s\n", $2, $3, $4, $5
+    else printf "%-15s %-10s %-19s %s%s\n", $2, $3, $4, $6, ($5 == 1 ? "  ← DB 이름을 붙여 실행함" : "")
+  }'
   echo
   echo "되돌릴 묶음의 파일과 위치를 restore에 넣으면 그 묶음 직전까지 복원합니다."
+  echo "\"DB 이름을 붙여 실행함\" 표시가 있는 DDL은 자동으로 재생하지 못해, 그 직전까지만 복원할 수 있습니다."
   exit 0
 fi
 
 replay=()
 for name in "${FILES[@]}"; do
-  replay+=("$BINLOG_DIR/$name")
+  replay+=("$name")
   [ "$name" = "$STOP_FILE" ] && break
 done
-if [ "$(basename "${replay[-1]}")" != "$STOP_FILE" ]; then
+if [ "${replay[-1]}" != "$STOP_FILE" ]; then
   echo "멈출 binlog($STOP_FILE)가 덤프 이후 binlog 목록에 없습니다." >&2
+  exit 1
+fi
+
+# DB 이름을 붙인 DDL은 --rewrite-db가 바꾸지 못해 운영 DB에 적용되거나 --database에 걸러져 빠진다.
+qualified="$(SCAN_STOP_POS="$STOP_POS" scan "${replay[@]}" | awk -F'\t' '$1 == "DDL" && $5 == 1')"
+if [ -n "$qualified" ]; then
+  echo "멈출 위치 전에 DB 이름을 붙여 실행한 DDL이 있어 자동으로 재생하지 않습니다." >&2
+  awk -F'\t' '{printf "  %s %s %s %s\n", $2, $3, $4, $6}' <<<"$qualified" >&2
+  echo "첫 DDL의 파일과 위치로 그 직전까지 복원한 뒤, 나머지는 팀과 손으로 처리하세요. DB는 만들지 않았습니다." >&2
   exit 1
 fi
 
@@ -148,7 +172,7 @@ ADMIN_DEFAULTS_FILE="$ADMIN_DEFAULTS_FILE" KEY_FILE="$KEY_FILE" PROTECTED_DB="$S
 
 start=$(date +%s)
 mysqlbinlog --start-position="$START_POS" --stop-position="$STOP_POS" \
-  --rewrite-db="$SOURCE_DB->$TARGET_DB" --database="$TARGET_DB" "${replay[@]}" \
+  --rewrite-db="$SOURCE_DB->$TARGET_DB" --database="$TARGET_DB" "${replay[@]/#/$BINLOG_DIR/}" \
 | mysql --defaults-file="$ADMIN_DEFAULTS_FILE" --init-command="SET sql_log_bin=0"
 end=$(date +%s)
 printf 'binlog 재생 완료: %s %s → %s %s 직전 (파일 %s개, %s초)\n' \
