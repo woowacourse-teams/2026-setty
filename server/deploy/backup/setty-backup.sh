@@ -32,7 +32,7 @@ log "uploaded $PREFIX/$FILE"
 # 보관 기간이 지난 객체는 이전 버전과 삭제 마커까지 지운다(버킷 버전 관리 켜짐).
 cutoff="$(date -u -d "-${KEEP_DAYS} days" +%Y-%m-%dT%H:%M:%S)"
 aws s3api list-object-versions --bucket "$BUCKET" --prefix "$PREFIX/" \
-  --query "[Versions,DeleteMarkers][][?LastModified<'${cutoff}'].[Key,VersionId]" --output text 2>/dev/null \
+  --query "[Versions,DeleteMarkers][] | [?LastModified<'${cutoff}'].[Key,VersionId]" --output text \
 | while read -r key vid; do
     [ -z "${key:-}" ] && continue
     aws s3api delete-object --bucket "$BUCKET" --key "$key" --version-id "$vid" >/dev/null
