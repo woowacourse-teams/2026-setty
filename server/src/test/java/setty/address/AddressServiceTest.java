@@ -115,6 +115,20 @@ class AddressServiceTest extends MySqlIntegrationTestSupport {
     }
 
     @Test
+    void 숫자로_시작하는_도로명도_읽는다() {
+        assertThat(addressService.resolve("서울특별시 강북구 4.19로 25").address().managementNumber())
+                .isEqualTo("1130510300105680102004138");
+        assertThat(addressService.resolve("서울시 63로 10").address().managementNumber())
+                .isEqualTo("1156011000100620000031477");
+    }
+
+    @Test
+    void 한글이_붙은_길_번호를_띄어_써도_붙여_읽는다() {
+        assertThat(addressService.resolve("구로구 고척로 52마길 52-14").address().roadAddress())
+                .isEqualTo("서울특별시 구로구 고척로52마길 52-14");
+    }
+
+    @Test
     void 같은_도로명이_여러_구에_있으면_구_이름으로_고르고_없으면_모호하다() {
         assertThat(addressService.resolve("서대문구 홍지문2길 6").address().managementNumber())
                 .isEqualTo("1141011800100050052031388");

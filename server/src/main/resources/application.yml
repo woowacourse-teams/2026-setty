@@ -77,6 +77,12 @@ setty:
       region: ${AWS_REGION:ap-northeast-2}
       bucket: ${SETTY_S3_BUCKET:techcourse-project-2026}
       public-base-url: ${SETTY_S3_PUBLIC_BASE_URL:https://techcourse-project-2026.s3.ap-northeast-2.amazonaws.com}
+  address:
+    backfill:
+      # 표준 주소가 빈 기존 회원을 시작할 때 한 번 채운다. 운영에서 켤지는 따로 정한다.
+      enabled: ${SETTY_ADDRESS_BACKFILL_ENABLED:false}
+      batch-size: ${SETTY_ADDRESS_BACKFILL_BATCH_SIZE:500}
+      pause: ${SETTY_ADDRESS_BACKFILL_PAUSE:PT0.1S}
   delivery-fee:
     # 배송비 = 기본 요금 + (부피 구간 × 구간당 단계 + 거리 단계) × 단계당 금액.
     # 거리 단계는 무료 거리까지 0, 이후 단계 거리마다 1. 기본값은 거리 0일 때 기존 부피 요금(1만/2만/3만 원)과 같아지도록 잡았다.
