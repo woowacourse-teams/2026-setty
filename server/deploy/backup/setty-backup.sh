@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# SETTY DB 백업: mysqldump → gzip → openssl 암호화 → S3 업로드 → 보관 기간 지난 백업 정리.
+# SETTY DB 백업: mysqldump → gzip → openssl 암호화 → S3 업로드 → 보관 기간 지난 백업 정리 → 성공 지표 전송.
 # systemd timer가 매일 04:00 KST에 부른다. 수동 실행: sudo /opt/setty/backup/setty-backup.sh
 set -euo pipefail
 
@@ -9,6 +9,8 @@ PREFIX="${PREFIX:-setty/backup/db/daily}"
 KEY_FILE="${KEY_FILE:-/root/setty-backup.key}"
 WORK_DIR="${WORK_DIR:-/var/tmp/setty-backup}"
 KEEP_DAYS="${KEEP_DAYS:-30}"
+METRIC_NAMESPACE="${METRIC_NAMESPACE-Setty/Prod}"
+METRIC_REGION="${METRIC_REGION:-ap-northeast-2}"
 
 export TZ=Asia/Seoul
 FILE="$DB-$(date +%Y%m%d-%H%M%S).sql.gz.enc"
@@ -38,4 +40,9 @@ aws s3api list-object-versions --bucket "$BUCKET" --prefix "$PREFIX/" \
     aws s3api delete-object --bucket "$BUCKET" --key "$key" --version-id "$vid" >/dev/null
     log "pruned $key ($vid)"
   done
+if [ -n "$METRIC_NAMESPACE" ]; then
+  aws cloudwatch put-metric-data --region "$METRIC_REGION" --namespace "$METRIC_NAMESPACE" \
+    --metric-name BackupSucceeded --value 1 --unit Count
+  log "reported BackupSucceeded to $METRIC_NAMESPACE"
+fi
 log "backup finished"
