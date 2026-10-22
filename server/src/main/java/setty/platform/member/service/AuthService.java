@@ -6,9 +6,6 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import setty.address.AddressResolution;
-import setty.address.AddressService;
-import setty.address.StandardAddress;
 import setty.deliveryfee.DeliveryFeeService;
 import setty.global.exception.BusinessException;
 import setty.global.exception.ErrorCode;
@@ -20,7 +17,6 @@ import setty.platform.member.controller.dto.UpdateDongRequest;
 import setty.platform.member.controller.dto.UpdateProfileRequest;
 import setty.platform.member.domain.Member;
 import setty.platform.member.domain.MemberRole;
-import setty.platform.member.domain.ResolvedAddress;
 import setty.platform.member.repository.MemberRepository;
 
 @Service
@@ -28,17 +24,17 @@ public class AuthService {
 
     private final MemberRepository memberRepository;
     private final DeliveryFeeService deliveryFeeService;
-    private final AddressService addressService;
+    private final MemberAddressResolver memberAddressResolver;
     private final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     public AuthService(
             final MemberRepository memberRepository,
             final DeliveryFeeService deliveryFeeService,
-            final AddressService addressService
+            final MemberAddressResolver memberAddressResolver
     ) {
         this.memberRepository = memberRepository;
         this.deliveryFeeService = deliveryFeeService;
-        this.addressService = addressService;
+        this.memberAddressResolver = memberAddressResolver;
     }
 
     @Transactional
@@ -57,7 +53,7 @@ public class AuthService {
                 request.address(),
                 request.dongCode()
         );
-        resolveAddress(member);
+        memberAddressResolver.resolve(member);
         try {
             return memberRepository.saveAndFlush(member);
         } catch (final DataIntegrityViolationException e) {
@@ -97,7 +93,7 @@ public class AuthService {
         final Member member = memberRepository.findById(memberId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_TOKEN));
         member.updateContact(request.phoneNumber(), request.address());
-        resolveAddress(member);
+        memberAddressResolver.resolve(member);
         return MemberMeResponse.from(member);
     }
 
@@ -108,17 +104,6 @@ public class AuthService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_TOKEN));
         member.changeDong(request.dongCode());
         return MemberMeResponse.from(member);
-    }
-
-    // 해석에 실패해도 가입·수정은 그대로 진행하고 상태만 남긴다. 회원이 고른 행정동은 덮어쓰지 않는다.
-    private void resolveAddress(final Member member) {
-        final AddressResolution resolution = addressService.resolve(member.getAddress());
-        member.changeResolvedAddress(ResolvedAddress.from(resolution));
-        final StandardAddress address = resolution.address();
-        if (member.getDongCode() == null && address != null && address.dongCode() != null
-                && deliveryFeeService.findDong(address.dongCode()).isPresent()) {
-            member.changeDong(address.dongCode());
-        }
     }
 
     private void validateDong(final String dongCode) {

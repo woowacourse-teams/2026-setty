@@ -37,3 +37,18 @@ cd ~/addressdb/out && mysql --local-infile=1 -h127.0.0.1 -usetty -psetty setty <
 
 - `--with-coords`를 빼면 위도·경도는 NULL로 들어간다. 해석(맞춤·모호·못 맞춤)에는 좌표가 필요 없다.
 - 주소DB를 새 기준일로 바꾸면 관리번호가 바뀐 주소가 생길 수 있다. 회원에 저장한 관리번호는 다시 해석해야 맞춰진다.
+
+## 채우기 배치 측정용 더미 회원
+
+`make_members.py`는 기준 데이터에서 주소를 뽑아 회원 N명(기본 10만)을 만든다. 표기 차이(서울 표기, 구 없음, 붙여쓰기, 상세주소, 지번, 오타, 서울 밖)를 섞고, 고른 동은 60% 실제 동, 10% 다른 동, 30% 비움으로 둔다. 결과(`members.tsv`, 정답 `truth.tsv`)도 레포 밖에 둔다.
+
+```bash
+python3 make_members.py ~/addressdb/out/address_reference.tsv ../../src/main/resources/deliveryfee/seoul-dongs.csv ~/addressdb/members
+```
+
+로컬 DB에 넣고 배치를 켠 서버를 띄우면, 시작할 때 표준 주소가 빈 회원을 채운다.
+
+```bash
+mysql --local-infile=1 -h127.0.0.1 -usetty -psetty setty -e "LOAD DATA LOCAL INFILE '$HOME/addressdb/members/members.tsv' INTO TABLE members CHARACTER SET utf8mb4 FIELDS TERMINATED BY '\t' (id, login_id, password, role, phone_number, address, dong_code)"
+SETTY_ADDRESS_BACKFILL_ENABLED=true SETTY_ADDRESS_BACKFILL_BATCH_SIZE=500 ./gradlew bootRun
+```

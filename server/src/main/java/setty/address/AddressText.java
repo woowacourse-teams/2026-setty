@@ -25,10 +25,10 @@ final class AddressText {
     private static final Pattern PARENTHESES = Pattern.compile("\\([^)]*(\\)|$)");
     private static final Pattern DASHES = Pattern.compile("[‐‑‒–—―−]");
     private static final Pattern SEOUL_PREFIX = Pattern.compile("^서울(?:특별시|시)?(?:\\s+|$|(?=[가-힣]+구(?:\\s|$)))");
-    // "논현로 12길"처럼 띄어 쓴 길 번호를 도로명 하나로 붙인다.
-    private static final Pattern SPACED_ROAD_NUMBER = Pattern.compile("([가-힣][가-힣0-9.]*(?:로|길))\\s*(\\d+)\\s*(번?길)(?=\\s|$)");
+    // "논현로 12길", "고척로 52마길"처럼 띄어 쓴 길 번호를 도로명 하나로 붙인다.
+    private static final Pattern SPACED_ROAD_NUMBER = Pattern.compile("([가-힣0-9][가-힣0-9.]*(?:로|길))\\s*(\\d+)\\s*([가-힣]?길)(?=\\s|$)");
     private static final Pattern ROAD = Pattern.compile(
-            "(?<![가-힣0-9.])([가-힣][가-힣0-9.]*(?:로|길))\\s*(지하\\s*)?(\\d{1,5})(?:\\s*-\\s*(\\d{1,5}))?(?:번(?![지길]))?(?![0-9가-힣.-])");
+            "(?<![가-힣0-9.])([가-힣0-9][가-힣0-9.]*(?:로|길))\\s*(지하\\s*)?(\\d{1,5})(?:\\s*-\\s*(\\d{1,5}))?(?:번(?![지길]))?(?![0-9가-힣.-])");
     private static final Pattern JIBUN = Pattern.compile(
             "(?<![가-힣0-9.])([가-힣][가-힣0-9.]*(?:동|가|로))\\s*(산\\s*)?(\\d{1,4})(?:\\s*-\\s*(\\d{1,4}))?(?:\\s*번지?)?(?![0-9가-힣.-])");
 
