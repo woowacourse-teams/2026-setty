@@ -27,6 +27,9 @@ import org.testcontainers.mysql.MySQLContainer;
 @Testcontainers
 class FlywayMigrationTest {
 
+    private static final List<String> STANDARD_ADDRESS_COLUMNS = List.of("address_mgmt_no", "road_address",
+            "address_detail", "zip_code", "latitude", "longitude", "address_status");
+
     @Container
     static final MySQLContainer MYSQL = new MySQLContainer("mysql:8.4.11");
 
@@ -59,10 +62,10 @@ class FlywayMigrationTest {
     void emptyDatabaseMigratesAndRestartDoesNotRerunScripts() {
         var flyway = flyway(false);
 
-        assertThat(flyway.migrate().migrationsExecuted).isEqualTo(6);
+        assertThat(flyway.migrate().migrationsExecuted).isEqualTo(7);
         assertCurrentSchema();
         assertThat(count("SELECT COUNT(*) FROM flyway_schema_history WHERE type='SQL' AND success=1"))
-                .isEqualTo(6);
+                .isEqualTo(7);
         assertThat(flyway.migrate().migrationsExecuted).isZero();
         assertThat(flyway.validateWithResult().validationSuccessful).isTrue();
     }
@@ -84,7 +87,7 @@ class FlywayMigrationTest {
         legacy("pre-dong-main.sql");
         seedExistingRows();
 
-        assertThat(flyway(true).migrate().migrationsExecuted).isEqualTo(6);
+        assertThat(flyway(true).migrate().migrationsExecuted).isEqualTo(7);
 
         assertCurrentSchema();
         assertThat(jdbc.queryForObject("SELECT title FROM listings WHERE id=1", String.class))
@@ -114,9 +117,11 @@ class FlywayMigrationTest {
         var schemaBefore = schemaSnapshot();
         var orderBefore = jdbc.queryForMap("SELECT * FROM orders WHERE id=1");
 
-        assertThat(flyway(true).migrate().migrationsExecuted).isEqualTo(6);
+        assertThat(flyway(true).migrate().migrationsExecuted).isEqualTo(7);
 
-        assertThat(schemaSnapshot()).isEqualTo(schemaBefore);
+        assertThat(schemaSnapshot().stream().filter(column -> !addedByStandardAddress(column)).toList())
+                .isEqualTo(schemaBefore);
+        assertCurrentSchema();
         assertThat(jdbc.queryForMap("SELECT * FROM orders WHERE id=1")).isEqualTo(orderBefore);
         assertThat(jdbc.queryForObject("SELECT dong_code FROM listings WHERE id=1", String.class))
                 .isEqualTo("1111053000");
@@ -154,7 +159,7 @@ class FlywayMigrationTest {
                 .isInstanceOf(FlywayException.class)
                 .hasMessageContaining("checksum mismatch");
         assertThat(count("SELECT COUNT(*) FROM flyway_schema_history WHERE type='SQL' AND success=1"))
-                .isEqualTo(6);
+                .isEqualTo(7);
     }
 
     private Flyway flyway(final boolean adoptExisting) {
@@ -190,15 +195,20 @@ class FlywayMigrationTest {
 
     private void assertCurrentSchema() {
         assertThat(columnCount("members", "dong_code")).isOne();
+        for (var column : STANDARD_ADDRESS_COLUMNS) {
+            assertThat(columnCount("members", column)).as("members.%s", column).isOne();
+        }
+        assertThat(indexColumns("address_reference", "idx_address_reference_road"))
+                .isEqualTo("road_name,building_main,building_sub");
+        assertThat(indexColumns("address_reference", "idx_address_reference_jibun"))
+                .isEqualTo("legal_dong,jibun_main,jibun_sub");
         assertThat(columnCount("listings", "dong_code")).isOne();
         assertThat(columnCount("listings", "volume_tier")).isOne();
         for (var column : List.of("delivery_fee", "delivery_dong_code", "delivery_address", "delivery_phone_number")) {
             assertThat(columnCount("orders", column)).as("orders.%s", column).isOne();
         }
-        assertThat(jdbc.queryForObject("""
-                SELECT GROUP_CONCAT(column_name ORDER BY seq_in_index) FROM information_schema.statistics
-                WHERE table_schema=DATABASE() AND table_name='listings' AND index_name='idx_listings_delivery_filter'
-                """, String.class)).isEqualTo("deleted_at,sale_status,created_at,id,dong_code,volume_tier");
+        assertThat(indexColumns("listings", "idx_listings_delivery_filter"))
+                .isEqualTo("deleted_at,sale_status,created_at,id,dong_code,volume_tier");
         assertThat(count("""
                 SELECT COUNT(*) FROM information_schema.statistics WHERE table_schema=DATABASE()
                 AND table_name='listings' AND index_name='idx_listings_public'
@@ -213,6 +223,18 @@ class FlywayMigrationTest {
     private int columnCount(final String table, final String column) {
         return jdbc.queryForObject("SELECT COUNT(*) FROM information_schema.columns "
                 + "WHERE table_schema=DATABASE() AND table_name=? AND column_name=?", Integer.class, table, column);
+    }
+
+    private String indexColumns(final String table, final String index) {
+        return jdbc.queryForObject("SELECT GROUP_CONCAT(column_name ORDER BY seq_in_index) "
+                + "FROM information_schema.statistics WHERE table_schema=DATABASE() AND table_name=? AND index_name=?",
+                String.class, table, index);
+    }
+
+    private boolean addedByStandardAddress(final Map<String, Object> column) {
+        var table = (String) column.get("table_name");
+        return table.equals("address_reference")
+                || table.equals("members") && STANDARD_ADDRESS_COLUMNS.contains((String) column.get("column_name"));
     }
 
     private int count(final String sql) {
