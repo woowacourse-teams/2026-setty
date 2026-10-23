@@ -84,7 +84,9 @@ public final class ListingView {
             ListingCategory category,
             Integer price,
             Integer deliveryFee,
-            Integer totalPrice
+            Integer totalPrice,
+            String dongCode,
+            String zipCode
     ) {
     }
 

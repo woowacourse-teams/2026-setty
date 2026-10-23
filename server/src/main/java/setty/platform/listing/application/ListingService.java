@@ -265,7 +265,9 @@ public class ListingService {
                 listing.getCategory(),
                 listing.getPrice(),
                 deliveryFee,
-                listing.getPrice() + deliveryFee
+                listing.getPrice() + deliveryFee,
+                listing.getDongCode(),
+                null
         );
     }
 
