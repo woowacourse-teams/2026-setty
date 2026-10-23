@@ -71,7 +71,7 @@ class ListingImageRepositoryTest extends MySqlIntegrationTestSupport {
 
     private long createListing(String title) {
         return listingRepository.saveAndFlush(Listing.create(
-                SELLER_ID, "1111053000", title, "대표 사진 조회 테스트", 100_000,
+                SELLER_ID, "1111053000", null, title, "대표 사진 조회 테스트", 100_000,
                 ListingCategory.DESK, ConditionGrade.A, Dimensions.of(100, 50, 40))).getId();
     }
 }

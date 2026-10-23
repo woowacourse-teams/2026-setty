@@ -62,10 +62,10 @@ class FlywayMigrationTest {
     void emptyDatabaseMigratesAndRestartDoesNotRerunScripts() {
         var flyway = flyway(false);
 
-        assertThat(flyway.migrate().migrationsExecuted).isEqualTo(7);
+        assertThat(flyway.migrate().migrationsExecuted).isEqualTo(8);
         assertCurrentSchema();
         assertThat(count("SELECT COUNT(*) FROM flyway_schema_history WHERE type='SQL' AND success=1"))
-                .isEqualTo(7);
+                .isEqualTo(8);
         assertThat(flyway.migrate().migrationsExecuted).isZero();
         assertThat(flyway.validateWithResult().validationSuccessful).isTrue();
     }
@@ -87,7 +87,7 @@ class FlywayMigrationTest {
         legacy("pre-dong-main.sql");
         seedExistingRows();
 
-        assertThat(flyway(true).migrate().migrationsExecuted).isEqualTo(7);
+        assertThat(flyway(true).migrate().migrationsExecuted).isEqualTo(8);
 
         assertCurrentSchema();
         assertThat(jdbc.queryForObject("SELECT title FROM listings WHERE id=1", String.class))
@@ -117,9 +117,10 @@ class FlywayMigrationTest {
         var schemaBefore = schemaSnapshot();
         var orderBefore = jdbc.queryForMap("SELECT * FROM orders WHERE id=1");
 
-        assertThat(flyway(true).migrate().migrationsExecuted).isEqualTo(7);
+        assertThat(flyway(true).migrate().migrationsExecuted).isEqualTo(8);
 
-        assertThat(schemaSnapshot().stream().filter(column -> !addedByStandardAddress(column)).toList())
+        assertThat(schemaSnapshot().stream().filter(column -> !addedByStandardAddress(column))
+                .filter(column -> !addedByZipZone(column)).toList())
                 .isEqualTo(schemaBefore);
         assertCurrentSchema();
         assertThat(jdbc.queryForMap("SELECT * FROM orders WHERE id=1")).isEqualTo(orderBefore);
@@ -159,7 +160,7 @@ class FlywayMigrationTest {
                 .isInstanceOf(FlywayException.class)
                 .hasMessageContaining("checksum mismatch");
         assertThat(count("SELECT COUNT(*) FROM flyway_schema_history WHERE type='SQL' AND success=1"))
-                .isEqualTo(7);
+                .isEqualTo(8);
     }
 
     private Flyway flyway(final boolean adoptExisting) {
@@ -209,6 +210,9 @@ class FlywayMigrationTest {
         }
         assertThat(indexColumns("listings", "idx_listings_delivery_filter"))
                 .isEqualTo("deleted_at,sale_status,created_at,id,dong_code,volume_tier");
+        assertThat(columnCount("listings", "zip_zone")).isOne();
+        assertThat(indexColumns("listings", "idx_listings_zip_zone_filter"))
+                .isEqualTo("deleted_at,sale_status,created_at,id,zip_zone,volume_tier");
         assertThat(count("""
                 SELECT COUNT(*) FROM information_schema.statistics WHERE table_schema=DATABASE()
                 AND table_name='listings' AND index_name='idx_listings_public'
@@ -229,6 +233,10 @@ class FlywayMigrationTest {
         return jdbc.queryForObject("SELECT GROUP_CONCAT(column_name ORDER BY seq_in_index) "
                 + "FROM information_schema.statistics WHERE table_schema=DATABASE() AND table_name=? AND index_name=?",
                 String.class, table, index);
+    }
+
+    private boolean addedByZipZone(final Map<String, Object> column) {
+        return column.get("table_name").equals("listings") && column.get("column_name").equals("zip_zone");
     }
 
     private boolean addedByStandardAddress(final Map<String, Object> column) {

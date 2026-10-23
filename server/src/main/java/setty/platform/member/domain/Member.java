@@ -97,6 +97,10 @@ public class Member {
         return resolvedAddress;
     }
 
+    public String getZipCode() {
+        return resolvedAddress == null ? null : resolvedAddress.getZipCode();
+    }
+
     public String getToken() {
         return token;
     }

@@ -25,6 +25,7 @@ import org.springframework.web.multipart.MultipartFile;
 import setty.deliveryfee.DeliveryFeeService;
 import setty.deliveryfee.Dong;
 import setty.deliveryfee.VolumeTier;
+import setty.deliveryfee.ZoneRange;
 import setty.global.exception.BusinessException;
 import setty.global.logging.ListingRequestTiming;
 import setty.platform.listing.domain.DeliveryFeePolicy;
@@ -74,15 +75,17 @@ public class ListingService {
         this.deliveryFeeService = deliveryFeeService;
     }
 
-    public ListingView.Created create(Long sellerId, String sellerDongCode, ListingCreateCommand command) {
+    // 판매자 우편번호 구역은 표준 주소가 맞춰진 서울 주소일 때만 있다. 없어도 등록은 막지 않고 행정동으로 계산한다.
+    public ListingView.Created create(Long sellerId, String sellerDongCode, String sellerZipCode, ListingCreateCommand command) {
         if (sellerDongCode == null) {
             throw new BusinessException(MEMBER_DONG_REQUIRED);
         }
+        Integer sellerZipZone = deliveryFeeService.zipZoneOf(sellerZipCode).orElse(null);
         List<MultipartFile> images = normalizeImages(command.images());
         ListingRecorder.validateImageCount(images.size());
         List<String> objectKeys = listingImageStorage.upload(images);
         try {
-            return listingRecorder.create(sellerId, sellerDongCode, command, objectKeys);
+            return listingRecorder.create(sellerId, sellerDongCode, sellerZipZone, command, objectKeys);
         } catch (RuntimeException exception) {
             safelyDeleteImages(objectKeys, "등록 실패 보상 삭제");
             throw exception;
@@ -92,7 +95,7 @@ public class ListingService {
     // 트랜잭션을 걸지 않는다. JPA 트랜잭션을 열면 조회 내내 커넥션을 붙잡으므로 쿼리마다 바로 반납하는 JDBC 조회만 쓴다.
     public List<ListingView.Summary> findAvailableListings(String buyerToken) {
         return listingQueryRepository.inOneConnection(reader ->
-                findAvailable(reader, null, null, null, buyerOf(reader, buyerToken).dong()).items());
+                findAvailable(reader, null, null, null, null, buyerOf(reader, buyerToken)).items());
     }
 
     public ListingView.SummaryPage findAvailableListings(
@@ -106,10 +109,18 @@ public class ListingService {
         }
         return listingQueryRepository.inOneConnection(reader -> {
             Buyer buyer = buyerOf(reader, buyerToken);
-            Map<VolumeTier, List<String>> sellerDongCodes = maxDeliveryFee == null
-                    ? null
-                    : sellerDongCodesWithin(buyer, maxDeliveryFee);
-            return findAvailable(reader, cursor, size, sellerDongCodes, buyer.dong());
+            if (maxDeliveryFee == null) {
+                return findAvailable(reader, cursor, size, null, null, buyer);
+            }
+            if (!buyer.member()) {
+                throw new BusinessException(INVALID_TOKEN);
+            }
+            // 우편번호 구역이 있는 구매자에게는 구역이 있는 매물만 거른다. 동 필터가 동 없는 매물을 빼는 것과 같은 규칙이다.
+            if (deliveryFeeService.zipEnabled() && buyer.zipZone() != null) {
+                return findAvailable(reader, cursor, size, null,
+                        deliveryFeeService.sellerZipZonesWithinFee(buyer.zipZone(), maxDeliveryFee), buyer);
+            }
+            return findAvailable(reader, cursor, size, sellerDongCodesWithin(buyer, maxDeliveryFee), null, buyer);
         });
     }
 
@@ -119,16 +130,18 @@ public class ListingService {
         if (token == null) {
             return Buyer.ANONYMOUS;
         }
-        return ListingRequestTiming.measure("buyer", () -> reader.findMemberDongByToken(token))
-                .map(member -> new Buyer(true, member.dongCode(),
-                        member.dongCode() == null ? null : deliveryFeeService.findDong(member.dongCode()).orElse(null)))
+        return ListingRequestTiming.measure("buyer", () -> reader.findMemberAreaByToken(token))
+                .map(member -> buyerOf(member.dongCode(), member.zipCode()))
                 .orElse(Buyer.ANONYMOUS);
     }
 
+    private Buyer buyerOf(String dongCode, String zipCode) {
+        return new Buyer(true, dongCode,
+                dongCode == null ? null : deliveryFeeService.findDong(dongCode).orElse(null),
+                deliveryFeeService.zipZoneOf(zipCode).orElse(null));
+    }
+
     private Map<VolumeTier, List<String>> sellerDongCodesWithin(Buyer buyer, int maxDeliveryFee) {
-        if (!buyer.member()) {
-            throw new BusinessException(INVALID_TOKEN);
-        }
         if (buyer.dongCode() == null) {
             throw new BusinessException(MEMBER_DONG_REQUIRED);
         }
@@ -146,10 +159,12 @@ public class ListingService {
             ListingCursor cursor,
             Integer size,
             Map<VolumeTier, List<String>> sellerDongCodes,
-            Dong buyerDong
+            Map<VolumeTier, List<ZoneRange>> sellerZipZones,
+            Buyer buyer
     ) {
-        // 예산 안에 드는 판매자 동이 하나도 없으면 DB에 묻지 않는다
-        if (sellerDongCodes != null && sellerDongCodes.isEmpty()) {
+        // 예산 안에 드는 판매자 동·구역이 하나도 없으면 DB에 묻지 않는다
+        if ((sellerDongCodes != null && sellerDongCodes.isEmpty())
+                || (sellerZipZones != null && sellerZipZones.isEmpty())) {
             return new ListingView.SummaryPage(List.of(), null);
         }
         // 다음 페이지가 있는지 알려고 한 개를 더 읽는다
@@ -157,7 +172,8 @@ public class ListingService {
                 cursor == null ? null : cursor.createdAt(),
                 cursor == null ? null : cursor.id(),
                 size == null ? null : size + 1,
-                sellerDongCodes
+                sellerDongCodes,
+                sellerZipZones
         ));
         boolean hasNext = size != null && rows.size() > size;
         List<ListingQueryRepository.Row> page = hasNext ? rows.subList(0, size) : rows;
@@ -170,7 +186,7 @@ public class ListingService {
         ListingRequestTiming.count("image_count", thumbnails.size());
 
         List<ListingView.Summary> summaries = ListingRequestTiming.measure("mapping", () -> page.stream()
-                .map(row -> toSummary(row, thumbnails.get(row.id()), buyerDong))
+                .map(row -> toSummary(row, thumbnails.get(row.id()), buyer))
                 .toList());
         ListingRequestTiming.count("summary_count", summaries.size());
 
@@ -188,7 +204,7 @@ public class ListingService {
                 .map(this::toImageView)
                 .toList();
 
-        return toDetail(listing, images, buyerOf(listingQueryRepository, buyerToken).dong());
+        return toDetail(listing, images, buyerOf(listingQueryRepository, buyerToken));
     }
 
     @Transactional(readOnly = true)
@@ -202,13 +218,13 @@ public class ListingService {
                 .toList();
     }
 
-    // buyerDongCode가 null이면 등록 때 정한 배송비를 보여 준다. 내 주문은 주문에 저장한 금액을 쓰고, 저장값이 없는 예전 주문만 이 금액을 쓴다.
+    // 구매자 동·우편번호가 모두 null이면 등록 때 정한 배송비를 보여 준다. 내 주문은 주문에 저장한 금액을 쓰고, 저장값이 없는 예전 주문만 이 금액을 쓴다.
     @Transactional(readOnly = true)
-    public List<ListingView.Summary> findSummaries(List<Long> listingIds, String buyerDongCode) {
+    public List<ListingView.Summary> findSummaries(List<Long> listingIds, String buyerDongCode, String buyerZipCode) {
         if (listingIds.isEmpty()) {
             return List.of();
         }
-        Dong buyerDong = buyerDongCode == null ? null : deliveryFeeService.findDong(buyerDongCode).orElse(null);
+        Buyer buyer = buyerOf(buyerDongCode, buyerZipCode);
         List<Listing> listings = listingRepository.findAllByIdInAndDeletedAtIsNull(listingIds);
         Map<Long, Listing> listingById = listings.stream()
                 .collect(Collectors.toMap(Listing::getId, Function.identity()));
@@ -217,7 +233,7 @@ public class ListingService {
         return listingIds.stream()
                 .map(listingById::get)
                 .filter(Objects::nonNull)
-                .map(listing -> toSummary(listing, thumbnails.get(listing.getId()), buyerDong))
+                .map(listing -> toSummary(listing, thumbnails.get(listing.getId()), buyer))
                 .toList();
     }
 
@@ -249,15 +265,19 @@ public class ListingService {
     }
 
     @Transactional
-    public ListingView.PurchaseInfo registerPurchaseRequest(Long listingId, Long buyerId, String buyerDongCode) {
+    public ListingView.PurchaseInfo registerPurchaseRequest(
+            Long listingId,
+            Long buyerId,
+            String buyerDongCode,
+            String buyerZipCode
+    ) {
         Listing listing = findActiveForUpdate(listingId);
         if (listing.isOwnedBy(buyerId)) {
             throw new BusinessException(CANNOT_ORDER_OWN_LISTING);
         }
 
         listing.registerPurchaseRequest();
-        Dong buyerDong = buyerDongCode == null ? null : deliveryFeeService.findDong(buyerDongCode).orElse(null);
-        int deliveryFee = deliveryFeeFor(listing, buyerDong);
+        int deliveryFee = deliveryFeeFor(listing, buyerOf(buyerDongCode, buyerZipCode));
         return new ListingView.PurchaseInfo(
                 listing.getId(),
                 listing.getSellerId(),
@@ -348,8 +368,8 @@ public class ListingService {
         return images == null ? List.of() : List.copyOf(images);
     }
 
-    private ListingView.Summary toSummary(ListingQueryRepository.Row row, String thumbnailObjectKey, Dong buyerDong) {
-        int deliveryFee = deliveryFeeFor(row.dongCode(), row.volumeTier(), row.deliveryFee(), buyerDong);
+    private ListingView.Summary toSummary(ListingQueryRepository.Row row, String thumbnailObjectKey, Buyer buyer) {
+        int deliveryFee = deliveryFeeFor(row.dongCode(), row.zipZone(), row.volumeTier(), row.deliveryFee(), buyer);
         return new ListingView.Summary(
                 row.id(),
                 row.title(),
@@ -366,8 +386,8 @@ public class ListingService {
         );
     }
 
-    private ListingView.Summary toSummary(Listing listing, ListingImage thumbnail, Dong buyerDong) {
-        int deliveryFee = deliveryFeeFor(listing, buyerDong);
+    private ListingView.Summary toSummary(Listing listing, ListingImage thumbnail, Buyer buyer) {
+        int deliveryFee = deliveryFeeFor(listing, buyer);
         return new ListingView.Summary(
                 listing.getId(),
                 listing.getTitle(),
@@ -384,8 +404,8 @@ public class ListingService {
         );
     }
 
-    private ListingView.Detail toDetail(Listing listing, List<ListingView.Image> images, Dong buyerDong) {
-        int deliveryFee = deliveryFeeFor(listing, buyerDong);
+    private ListingView.Detail toDetail(Listing listing, List<ListingView.Image> images, Buyer buyer) {
+        int deliveryFee = deliveryFeeFor(listing, buyer);
         return new ListingView.Detail(
                 listing.getId(),
                 listing.getTitle(),
@@ -405,13 +425,19 @@ public class ListingService {
         );
     }
 
-    private int deliveryFeeFor(Listing listing, Dong buyerDong) {
-        return deliveryFeeFor(listing.getDongCode(), DeliveryFeePolicy.volumeTier(listing.getDimensions()),
-                listing.getDeliveryFee(), buyerDong);
+    private int deliveryFeeFor(Listing listing, Buyer buyer) {
+        return deliveryFeeFor(listing.getDongCode(), listing.getZipZone(),
+                DeliveryFeePolicy.volumeTier(listing.getDimensions()), listing.getDeliveryFee(), buyer);
     }
 
-    // 구매자나 매물의 행정동을 모르면 거리를 잴 수 없어 등록 때 정한 부피 배송비를 그대로 쓴다
-    private int deliveryFeeFor(String sellerDongCode, VolumeTier volumeTier, int fixedFee, Dong buyerDong) {
+    // 우편번호 구역을 둘 다 알면 우편번호 표, 아니면 행정동 표로 계산한다.
+    // 행정동도 모르면 거리를 잴 수 없어 등록 때 정한 부피 배송비를 그대로 쓴다.
+    private int deliveryFeeFor(String sellerDongCode, Integer sellerZipZone, VolumeTier volumeTier, int fixedFee, Buyer buyer) {
+        return deliveryFeeService.zipFee(sellerZipZone, buyer.zipZone(), volumeTier)
+                .orElseGet(() -> dongFee(sellerDongCode, volumeTier, fixedFee, buyer.dong()));
+    }
+
+    private int dongFee(String sellerDongCode, VolumeTier volumeTier, int fixedFee, Dong buyerDong) {
         if (buyerDong == null || sellerDongCode == null) {
             return fixedFee;
         }
@@ -487,8 +513,8 @@ public class ListingService {
         }
     }
 
-    private record Buyer(boolean member, String dongCode, Dong dong) {
+    private record Buyer(boolean member, String dongCode, Dong dong, Integer zipZone) {
 
-        static final Buyer ANONYMOUS = new Buyer(false, null, null);
+        static final Buyer ANONYMOUS = new Buyer(false, null, null, null);
     }
 }

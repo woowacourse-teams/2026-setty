@@ -25,7 +25,7 @@ public class MyFavoriteController {
 
     @GetMapping
     public ResponseEntity<ListingListResponse<ListingView.Summary>> findMine(@LoginMember final Member member) {
-        return ResponseEntity.ok(new ListingListResponse<>(favoriteService.findMine(member.getId(), member.getDongCode())));
+        return ResponseEntity.ok(new ListingListResponse<>(favoriteService.findMine(member.getId(), member.getDongCode(), member.getZipCode())));
     }
 
     @GetMapping("/{listingId}")

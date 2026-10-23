@@ -84,7 +84,7 @@ class OrderServiceTest {
         when(buyer.getId()).thenReturn(BUYER_ID);
         when(clock.instant()).thenReturn(createdAt);
         when(pendingOrderExpirationProperties.timeout()).thenReturn(timeout);
-        when(listingService.registerPurchaseRequest(LISTING_ID, BUYER_ID, null)).thenReturn(new ListingView.PurchaseInfo(
+        when(listingService.registerPurchaseRequest(LISTING_ID, BUYER_ID, null, null)).thenReturn(new ListingView.PurchaseInfo(
                 LISTING_ID, SELLER_ID, "가상 책상", ListingCategory.DESK, 150_000, 10_000, 160_000));
         when(orderRepository.saveAndFlush(any(Order.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
@@ -94,7 +94,7 @@ class OrderServiceTest {
         assertThat(order.getDeliveryStatus()).isEqualTo(DeliveryStatus.PENDING);
         assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.PENDING);
         assertThat(order.getPendingExpiresAt()).isEqualTo(createdAt.plus(timeout));
-        verify(listingService).registerPurchaseRequest(LISTING_ID, BUYER_ID, null);
+        verify(listingService).registerPurchaseRequest(LISTING_ID, BUYER_ID, null, null);
     }
 
     @Test
@@ -106,7 +106,7 @@ class OrderServiceTest {
         when(buyer.getPhoneNumber()).thenReturn("010-0000-0002");
         when(clock.instant()).thenReturn(Instant.parse("2026-09-02T05:00:00Z"));
         when(pendingOrderExpirationProperties.timeout()).thenReturn(Duration.ofMinutes(6));
-        when(listingService.registerPurchaseRequest(LISTING_ID, BUYER_ID, "1111053000")).thenReturn(new ListingView.PurchaseInfo(
+        when(listingService.registerPurchaseRequest(LISTING_ID, BUYER_ID, "1111053000", null)).thenReturn(new ListingView.PurchaseInfo(
                 LISTING_ID, SELLER_ID, "가상 책상", ListingCategory.DESK, 150_000, 25_000, 175_000));
         when(orderRepository.saveAndFlush(any(Order.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
@@ -341,7 +341,7 @@ class OrderServiceTest {
                 null
         );
         when(orderRepository.findAllByBuyerIdOrderByIdDesc(BUYER_ID)).thenReturn(List.of(order));
-        when(listingService.findSummaries(List.of(LISTING_ID), null)).thenReturn(List.of(listing));
+        when(listingService.findSummaries(List.of(LISTING_ID), null, null)).thenReturn(List.of(listing));
 
         final List<MyOrderResponse> responses = orderService.findMyOrders(BUYER_ID);
 
@@ -368,7 +368,7 @@ class OrderServiceTest {
         );
         when(orderRepository.findAllByBuyerIdOrderByIdDesc(BUYER_ID))
                 .thenReturn(List.of(nextOrder, cancelledOrder));
-        when(listingService.findSummaries(any(), any())).thenAnswer(invocation -> {
+        when(listingService.findSummaries(any(), any(), any())).thenAnswer(invocation -> {
             final List<Long> ids = invocation.getArgument(0);
             return ids.stream().map(id -> listing).toList();
         });
