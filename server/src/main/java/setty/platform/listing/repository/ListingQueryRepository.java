@@ -16,6 +16,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.SingleConnectionDataSource;
 import org.springframework.stereotype.Repository;
 import setty.deliveryfee.VolumeTier;
+import setty.deliveryfee.ZoneRange;
 import setty.platform.listing.domain.ConditionGrade;
 import setty.platform.listing.domain.ListingCategory;
 
@@ -26,7 +27,7 @@ public class ListingQueryRepository {
 
     private static final String SELECT_COLUMNS = """
             SELECT id, title, price, delivery_fee, category, condition_grade,
-                   width_cm, depth_cm, height_cm, has_purchase_request, created_at, dong_code, volume_tier""";
+                   width_cm, depth_cm, height_cm, has_purchase_request, created_at, dong_code, zip_zone, volume_tier""";
     private static final String ORDER_BY_LATEST = " ORDER BY created_at DESC, id DESC";
 
     private final JdbcTemplate jdbcTemplate;
@@ -46,7 +47,8 @@ public class ListingQueryRepository {
             Instant cursorCreatedAt,
             Long cursorId,
             Integer limit,
-            Map<VolumeTier, List<String>> sellerDongCodes
+            Map<VolumeTier, List<String>> sellerDongCodes,
+            Map<VolumeTier, List<ZoneRange>> sellerZipZones
     ) {
         StringBuilder where = new StringBuilder(" WHERE deleted_at IS NULL AND sale_status = 'AVAILABLE'");
         List<Object> args = new ArrayList<>();
@@ -67,12 +69,19 @@ public class ListingQueryRepository {
             });
             where.append(" AND (").append(String.join(" OR ", conditions)).append(")");
         }
+        if (sellerZipZones != null) {
+            List<String> conditions = new ArrayList<>();
+            sellerZipZones.forEach((volumeTier, ranges) -> {
+                conditions.add("(volume_tier = ? AND (" + zipZoneCondition(ranges, args, volumeTier) + "))");
+            });
+            where.append(" AND (").append(String.join(" OR ", conditions)).append(")");
+        }
         String page = ORDER_BY_LATEST;
         if (limit != null) {
             page += " LIMIT ?";
             args.add(limit);
         }
-        if (sellerDongCodes == null) {
+        if (sellerDongCodes == null && sellerZipZones == null) {
             return jdbcTemplate.query(SELECT_COLUMNS + " FROM listings" + where + page,
                     ListingQueryRepository::mapRow, args.toArray());
         }
@@ -86,9 +95,33 @@ public class ListingQueryRepository {
         );
     }
 
-    public Optional<MemberDong> findMemberDongByToken(String token) {
-        return jdbcTemplate.query("SELECT dong_code FROM members WHERE token = ?",
-                (resultSet, rowNum) -> new MemberDong(resultSet.getString("dong_code")), token)
+    // 이어진 번호가 셋 이상이면 BETWEEN 하나로, 짧은 조각은 IN 하나로 모은다. 요청당 조건 수가 줄어 DB가 덜 일한다.
+    private static String zipZoneCondition(List<ZoneRange> ranges, List<Object> args, VolumeTier volumeTier) {
+        args.add(volumeTier.name());
+        List<String> parts = new ArrayList<>();
+        List<Integer> singles = new ArrayList<>();
+        for (ZoneRange range : ranges) {
+            if (range.to() - range.from() >= 2) {
+                parts.add("zip_zone BETWEEN ? AND ?");
+                args.add(range.from());
+                args.add(range.to());
+            } else {
+                for (int zone = range.from(); zone <= range.to(); zone++) {
+                    singles.add(zone);
+                }
+            }
+        }
+        if (!singles.isEmpty()) {
+            parts.add("zip_zone IN (" + String.join(",", Collections.nCopies(singles.size(), "?")) + ")");
+            args.addAll(singles);
+        }
+        return String.join(" OR ", parts);
+    }
+
+    public Optional<MemberArea> findMemberAreaByToken(String token) {
+        return jdbcTemplate.query("SELECT dong_code, zip_code FROM members WHERE token = ?",
+                (resultSet, rowNum) -> new MemberArea(resultSet.getString("dong_code"), resultSet.getString("zip_code")),
+                token)
                 .stream().findFirst();
     }
 
@@ -120,6 +153,7 @@ public class ListingQueryRepository {
                 resultSet.getBoolean("has_purchase_request"),
                 resultSet.getTimestamp("created_at").toInstant(),
                 resultSet.getString("dong_code"),
+                resultSet.getObject("zip_zone", Integer.class),
                 VolumeTier.valueOf(resultSet.getString("volume_tier"))
         );
     }
@@ -137,10 +171,11 @@ public class ListingQueryRepository {
             boolean hasPurchaseRequest,
             Instant createdAt,
             String dongCode,
+            Integer zipZone,
             VolumeTier volumeTier
     ) {
     }
 
-    public record MemberDong(String dongCode) {
+    public record MemberArea(String dongCode, String zipCode) {
     }
 }
