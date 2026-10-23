@@ -1,228 +1,380 @@
 import { delay, http, HttpResponse } from 'msw';
-import { authHandlers } from './auth';
-import { mockListings } from './listings';
-import { getListingMockScenario } from './scenario';
-import type { ListingDetail, ListingItem, ListingPayload, MyListing } from '../api/listings';
-import type { MyOrder, Order, OrderStatus } from '../api/orders';
+import {
+    deliveryFeeOf,
+    dongs,
+    favorites,
+    listings,
+    members,
+    newImageId,
+    orders,
+    type MockListing,
+    type MockMember
+} from './data';
 
-let nextListingId = 3;
-let nextImageId = 30;
-type MockOrder = Order & { orderStatus: OrderStatus };
-const orderStorageKey = 'setty:mock-orders';
-const orderStore = JSON.parse(window.sessionStorage.getItem(orderStorageKey) ?? '[]') as MockOrder[];
-let nextOrderId = Math.max(0, ...orderStore.map((order) => order.id)) + 1;
-const favoriteStore = new Set<number>();
-let listingStore: ListingDetail[] = mockListings.map((listing, index) => ({
-    ...listing,
-    description: index === 0 ? '사용감이 적은 원목 가구입니다.' : '깨끗하게 관리한 가구입니다.',
-    saleStatus: __ENABLE_SOLD_LISTING_SCENARIO__ && index === 0 ? 'SOLD' : 'AVAILABLE',
-    images: [{ id: index + 10, url: listing.thumbnailUrl ?? '', displayOrder: 1 }],
-    updatedAt: listing.createdAt
-}));
+const TOKEN_PREFIX = 'mock-token-';
 
-function saveOrders() {
-    window.sessionStorage.setItem(orderStorageKey, JSON.stringify(orderStore));
+function error(status: number, code: string, message: string) {
+    return HttpResponse.json({ code, message }, { status });
 }
 
-function isAuthenticated(request: Request) {
-    return request.headers.get('Authorization')?.startsWith('Bearer ') ?? false;
+function currentMember(request: Request): MockMember | null {
+    const token = request.headers.get('Authorization')?.replace('Bearer ', '') ?? '';
+    if (!token.startsWith(TOKEN_PREFIX)) return null;
+    return members.find((member) => member.loginId === token.slice(TOKEN_PREFIX.length)) ?? null;
 }
 
-function unauthorized() {
-    return HttpResponse.json({ code: 'INVALID_TOKEN', message: '로그인이 필요합니다.' }, { status: 401 });
+const unauthorized = () => error(401, 'INVALID_TOKEN', '로그인이 필요합니다');
+
+function dongOf(code: string | null) {
+    return dongs.find((dong) => dong.code === code) ?? null;
 }
 
-function summaryOf(listing: ListingDetail): ListingItem {
-    const { description, saleStatus, images, updatedAt, ...summary } = listing;
-    return { ...summary, thumbnailUrl: images[0]?.url ?? null };
+function hasPurchaseRequest(listing: MockListing): boolean {
+    return orders.some((order) => order.listingId === listing.id && order.orderStatus === 'PENDING');
 }
 
-function mineOf(listing: ListingDetail): MyListing {
+function summaryOf(listing: MockListing) {
+    const deliveryFee = deliveryFeeOf(listing);
+    return {
+        id: listing.id,
+        title: listing.title,
+        thumbnailUrl: listing.images[0]?.url ?? null,
+        price: listing.price,
+        deliveryFee,
+        totalPrice: listing.price + deliveryFee,
+        category: listing.category,
+        conditionGrade: listing.conditionGrade,
+        createdAt: listing.createdAt,
+        dong: dongOf(listing.dongCode),
+        hasPurchaseRequest: hasPurchaseRequest(listing)
+    };
+}
+
+function detailOf(listing: MockListing) {
     return {
         ...summaryOf(listing),
+        description: listing.description,
+        dimensions: listing.dimensions,
         saleStatus: listing.saleStatus,
-        hasPurchaseRequest: false,
-        canUpdate: listing.saleStatus === 'AVAILABLE',
-        canDelete: listing.saleStatus === 'AVAILABLE'
+        images: listing.images,
+        updatedAt: listing.updatedAt
     };
 }
 
-async function readPayload(request: Request): Promise<{ payload: ListingPayload & { retainedImageIds?: number[] }; imageCount: number }> {
-    const formData = await request.formData();
-    const rawRequest = formData.get('request');
-    const text = rawRequest instanceof File ? await rawRequest.text() : rawRequest;
+function aboutMe(member: MockMember) {
     return {
-        payload: JSON.parse(String(text)) as ListingPayload & { retainedImageIds?: number[] },
-        imageCount: formData.getAll('images').filter((image) => image instanceof File).length
+        id: member.id,
+        loginId: member.loginId,
+        phoneNumber: member.phoneNumber,
+        address: member.address,
+        role: 'MEMBER',
+        dongCode: member.dongCode
     };
 }
 
-function invalidRequest(message: string) {
-    return HttpResponse.json({ code: 'INVALID_REQUEST', message }, { status: 400 });
+function orderOf(orderId: number) {
+    const order = orders.find((item) => item.id === orderId);
+    if (!order) return null;
+    const listing = listings.find((item) => item.id === order.listingId);
+    return {
+        id: order.id,
+        listing: listing
+            ? { id: listing.id, name: listing.title, thumbnailUrl: listing.images[0]?.url ?? null, price: listing.price, deliveryFee: order.deliveryFee }
+            : null,
+        orderStatus: order.orderStatus,
+        deliveryStatus: order.deliveryStatus
+    };
+}
+
+function activeListing(id: number) {
+    return listings.find((listing) => listing.id === id && !listing.deleted) ?? null;
+}
+
+async function readListingForm(request: Request) {
+    const formData = await request.formData();
+    const requestPart = formData.get('request');
+    const payload = JSON.parse(requestPart instanceof Blob ? await requestPart.text() : String(requestPart)) as {
+        title: string;
+        description: string;
+        price: number;
+        category: string;
+        conditionGrade: string;
+        dimensions: MockListing['dimensions'];
+        retainedImageIds?: number[];
+    };
+    const files = formData.getAll('images').filter((value): value is File => value instanceof File);
+    return { payload, files };
 }
 
 export const handlers = [
-    ...authHandlers,
-    http.get('/api/listings', async () => {
-        if (getListingMockScenario() === 'slow') {
-            await delay(1500);
+    http.post('/api/auth/login', async ({ request }) => {
+        await delay(400);
+        const { loginId, password } = await request.json() as { loginId: string; password: string };
+        const member = members.find((item) => item.loginId === loginId && item.password === password);
+        if (!member) return error(401, 'LOGIN_FAILED', '아이디 또는 비밀번호가 올바르지 않습니다');
+        return HttpResponse.json({ token: TOKEN_PREFIX + member.loginId, role: 'MEMBER' });
+    }),
+
+    http.post('/api/auth/signup', async ({ request }) => {
+        await delay(400);
+        const body = await request.json() as Omit<MockMember, 'id'>;
+        if (members.some((member) => member.loginId === body.loginId)) {
+            return error(409, 'DUPLICATE_LOGIN_ID', '이미 사용 중인 아이디입니다');
         }
-
-        return HttpResponse.json({
-            items: listingStore.filter((listing) => listing.saleStatus === 'AVAILABLE').map(summaryOf)
-        });
+        const member = { ...body, id: members.length + 1 };
+        members.push(member);
+        return HttpResponse.json({ id: member.id, loginId: member.loginId, role: 'MEMBER' }, { status: 201 });
     }),
 
-    http.get('/api/listings/:listingId', ({ params }) => {
-        const listing = listingStore.find((item) => item.id === Number(params.listingId));
-        return listing
-            ? HttpResponse.json(listing)
-            : HttpResponse.json({ code: 'LISTING_NOT_FOUND', message: '매물을 찾을 수 없습니다.' }, { status: 404 });
+    http.get('/api/auth/me', async ({ request }) => {
+        await delay(200);
+        const member = currentMember(request);
+        return member ? HttpResponse.json(aboutMe(member)) : unauthorized();
     }),
 
-    http.get('/api/me/listings', ({ request }) => {
-        if (!isAuthenticated(request)) return unauthorized();
-        return HttpResponse.json({ items: listingStore.map(mineOf) });
+    http.put('/api/auth/me', async ({ request }) => {
+        await delay(300);
+        const member = currentMember(request);
+        if (!member) return unauthorized();
+        const { phoneNumber, address } = await request.json() as { phoneNumber: string; address: string };
+        member.phoneNumber = phoneNumber;
+        member.address = address;
+        return HttpResponse.json(aboutMe(member));
+    }),
+
+    http.put('/api/auth/me/dong', async ({ request }) => {
+        await delay(200);
+        const member = currentMember(request);
+        if (!member) return unauthorized();
+        const { dongCode } = await request.json() as { dongCode: string };
+        if (!dongOf(dongCode)) return error(400, 'DELIVERY_AREA_NOT_SUPPORTED', '배송 가능 지역이 아닙니다');
+        member.dongCode = dongCode;
+        return HttpResponse.json(aboutMe(member));
+    }),
+
+    http.post('/api/auth/logout', () => new HttpResponse(null, { status: 204 })),
+
+    http.get('/api/dongs', async () => {
+        await delay(300);
+        return HttpResponse.json({ items: dongs });
+    }),
+
+    http.get('/api/listings', async ({ request }) => {
+        await delay(500);
+        const url = new URL(request.url);
+        const available = listings
+            .filter((listing) => !listing.deleted && listing.saleStatus === 'AVAILABLE')
+            .sort((left, right) => right.createdAt.localeCompare(left.createdAt));
+        const maxDeliveryFee = url.searchParams.get('maxDeliveryFee');
+        if (maxDeliveryFee === null) return HttpResponse.json({ items: available.map(summaryOf) });
+
+        // 배송비 예산으로 거르려면 로그인과 회원 행정동이 필요하다
+        const member = currentMember(request);
+        if (!member) return unauthorized();
+        if (!member.dongCode) return error(400, 'MEMBER_DONG_REQUIRED', '행정동을 먼저 설정해 주세요');
+        const size = Number(url.searchParams.get('size') ?? 20);
+        const cursor = Number(url.searchParams.get('cursor') ?? 0);
+        const filtered = available.filter((listing) => deliveryFeeOf(listing) <= Number(maxDeliveryFee));
+        const page = filtered.slice(cursor, cursor + size);
+        const nextCursor = cursor + size < filtered.length ? String(cursor + size) : null;
+        return HttpResponse.json({ items: page.map(summaryOf), nextCursor });
+    }),
+
+    http.get('/api/listings/:listingId', async ({ params }) => {
+        await delay(300);
+        const listing = activeListing(Number(params.listingId));
+        return listing ? HttpResponse.json(detailOf(listing)) : error(404, 'LISTING_NOT_FOUND', '매물을 찾을 수 없습니다');
     }),
 
     http.post('/api/listings', async ({ request }) => {
-        if (!isAuthenticated(request)) return unauthorized();
-        try {
-            const { payload, imageCount } = await readPayload(request);
-            if (!payload.title.trim() || !payload.description.trim() || imageCount < 1) return invalidRequest('필수 입력값을 확인해 주세요.');
-            const createdAt = new Date().toISOString();
-            const listingId = nextListingId++;
-            const images = Array.from({ length: imageCount }, (_, index) => ({
-                id: nextImageId++, url: '/images/listings/console-desk.png', displayOrder: index + 1
-            }));
-            listingStore = [{
-                id: listingId,
-                ...payload,
-                deliveryFee: 10000,
-                totalPrice: payload.price + 10000,
-                saleStatus: 'AVAILABLE',
-                images,
-                createdAt,
-                updatedAt: createdAt
-            }, ...listingStore];
-            return HttpResponse.json({ listingId, createdAt }, { status: 201, headers: { Location: `/api/listings/${listingId}` } });
-        } catch {
-            return invalidRequest('잘못된 등록 요청입니다.');
-        }
+        await delay(700);
+        const member = currentMember(request);
+        if (!member) return unauthorized();
+        if (!member.dongCode) return error(400, 'MEMBER_DONG_REQUIRED', '행정동을 먼저 설정해 주세요');
+        const { payload, files } = await readListingForm(request);
+        const createdAt = new Date().toISOString();
+        const listing: MockListing = {
+            id: Math.max(...listings.map((item) => item.id)) + 1,
+            sellerId: member.id,
+            title: payload.title,
+            description: payload.description,
+            price: payload.price,
+            category: payload.category,
+            conditionGrade: payload.conditionGrade,
+            dimensions: payload.dimensions,
+            saleStatus: 'AVAILABLE',
+            images: files.map((file, index) => ({ id: newImageId(), url: URL.createObjectURL(file), displayOrder: index })),
+            dongCode: member.dongCode,
+            createdAt,
+            updatedAt: createdAt,
+            deleted: false
+        };
+        listings.push(listing);
+        return HttpResponse.json({ listingId: listing.id, createdAt }, { status: 201 });
     }),
 
-    http.put('/api/listings/:listingId', async ({ params, request }) => {
-        if (!isAuthenticated(request)) return unauthorized();
-        const index = listingStore.findIndex((item) => item.id === Number(params.listingId));
-        if (index < 0) return HttpResponse.json({ code: 'LISTING_NOT_FOUND', message: '매물을 찾을 수 없습니다.' }, { status: 404 });
-        try {
-            const { payload, imageCount } = await readPayload(request);
-            const current = listingStore[index];
-            const retained = (payload.retainedImageIds ?? []).map((id) => current.images.find((image) => image.id === id)).filter(Boolean) as ListingDetail['images'];
-            const images = [...retained, ...Array.from({ length: imageCount }, (_, order) => ({ id: nextImageId++, url: '/images/listings/console-desk.png', displayOrder: retained.length + order + 1 }))];
-            if (!payload.title.trim() || !payload.description.trim() || images.length < 1 || images.length > 5) return invalidRequest('필수 입력값을 확인해 주세요.');
-            listingStore[index] = { ...current, ...payload, images: images.map((image, order) => ({ ...image, displayOrder: order + 1 })), deliveryFee: 10000, totalPrice: payload.price + 10000, updatedAt: new Date().toISOString() };
-            return new HttpResponse(null, { status: 204 });
-        } catch {
-            return invalidRequest('잘못된 수정 요청입니다.');
-        }
+    http.put('/api/listings/:listingId', async ({ request, params }) => {
+        await delay(700);
+        const member = currentMember(request);
+        if (!member) return unauthorized();
+        const listing = activeListing(Number(params.listingId));
+        if (!listing || listing.sellerId !== member.id) return error(404, 'LISTING_NOT_FOUND', '매물을 찾을 수 없습니다');
+        const { payload, files } = await readListingForm(request);
+        const retained = (payload.retainedImageIds ?? [])
+            .map((id) => listing.images.find((image) => image.id === id))
+            .filter((image): image is MockListing['images'][number] => image !== undefined);
+        const added = files.map((file) => ({ id: newImageId(), url: URL.createObjectURL(file), displayOrder: 0 }));
+        Object.assign(listing, {
+            title: payload.title,
+            description: payload.description,
+            price: payload.price,
+            category: payload.category,
+            conditionGrade: payload.conditionGrade,
+            dimensions: payload.dimensions,
+            images: [...retained, ...added].map((image, index) => ({ ...image, displayOrder: index })),
+            updatedAt: new Date().toISOString()
+        });
+        return new HttpResponse(null, { status: 204 });
     }),
 
-    http.delete('/api/listings/:listingId', ({ params, request }) => {
-        if (!isAuthenticated(request)) return unauthorized();
-        const index = listingStore.findIndex((item) => item.id === Number(params.listingId));
-        if (index < 0) return HttpResponse.json({ code: 'LISTING_NOT_FOUND', message: '매물을 찾을 수 없습니다.' }, { status: 404 });
-        listingStore = listingStore.filter((_, listingIndex) => listingIndex !== index);
+    http.delete('/api/listings/:listingId', async ({ request, params }) => {
+        await delay(500);
+        const member = currentMember(request);
+        if (!member) return unauthorized();
+        const listing = activeListing(Number(params.listingId));
+        if (!listing || listing.sellerId !== member.id) return error(404, 'LISTING_NOT_FOUND', '매물을 찾을 수 없습니다');
+        listing.deleted = true;
+        return new HttpResponse(null, { status: 204 });
+    }),
+
+    http.get('/api/me/listings', async ({ request }) => {
+        await delay(300);
+        const member = currentMember(request);
+        if (!member) return unauthorized();
+        const mine = listings
+            .filter((listing) => !listing.deleted && listing.sellerId === member.id)
+            .sort((left, right) => right.createdAt.localeCompare(left.createdAt))
+            .map((listing) => {
+                const purchaseRequested = hasPurchaseRequest(listing);
+                const isEditable = listing.saleStatus === 'AVAILABLE' && !purchaseRequested;
+                return {
+                    ...summaryOf(listing),
+                    saleStatus: listing.saleStatus,
+                    hasPurchaseRequest: purchaseRequested,
+                    canUpdate: isEditable,
+                    canDelete: isEditable
+                };
+            });
+        return HttpResponse.json({ items: mine });
+    }),
+
+    http.get('/api/me/favorites', async ({ request }) => {
+        await delay(300);
+        const member = currentMember(request);
+        if (!member) return unauthorized();
+        const ids = favorites.get(member.id) ?? new Set<number>();
+        const items = [...ids].map(activeListing).filter((listing): listing is MockListing => listing !== null).map(summaryOf);
+        return HttpResponse.json({ items });
+    }),
+
+    http.get('/api/me/favorites/:listingId', ({ request, params }) => {
+        const member = currentMember(request);
+        if (!member) return unauthorized();
+        return HttpResponse.json({ favorited: favorites.get(member.id)?.has(Number(params.listingId)) ?? false });
+    }),
+
+    http.put('/api/me/favorites/:listingId', async ({ request, params }) => {
+        await delay(200);
+        const member = currentMember(request);
+        if (!member) return unauthorized();
+        const ids = favorites.get(member.id) ?? new Set<number>();
+        ids.add(Number(params.listingId));
+        favorites.set(member.id, ids);
+        return new HttpResponse(null, { status: 204 });
+    }),
+
+    http.delete('/api/me/favorites/:listingId', async ({ request, params }) => {
+        await delay(200);
+        const member = currentMember(request);
+        if (!member) return unauthorized();
+        favorites.get(member.id)?.delete(Number(params.listingId));
         return new HttpResponse(null, { status: 204 });
     }),
 
     http.post('/api/orders', async ({ request }) => {
-        if (!isAuthenticated(request)) return unauthorized();
-
-        try {
-            const body = await request.json() as { listingId?: unknown };
-            const listingId = body.listingId;
-            if (typeof listingId !== 'number') return invalidRequest('매물 정보를 확인해 주세요.');
-            if (orderStore.some((order) => order.listingId === listingId && order.orderStatus !== 'CANCELLED')) {
-                return HttpResponse.json({ code: 'ALREADY_ORDERED', message: '이미 주문한 매물입니다.' }, { status: 400 });
-            }
-
-            const order: MockOrder = { id: nextOrderId++, listingId, buyerId: 1, orderStatus: 'CONFIRMED', deliveryStatus: 'REQUESTED' };
-            orderStore.unshift(order);
-            saveOrders();
-            return HttpResponse.json(order, { status: 201 });
-        } catch {
-            return invalidRequest('잘못된 주문 요청입니다.');
-        }
+        await delay(400);
+        const member = currentMember(request);
+        if (!member) return unauthorized();
+        const { listingId } = await request.json() as { listingId: number };
+        const listing = activeListing(listingId);
+        if (!listing || listing.saleStatus !== 'AVAILABLE') return error(409, 'LISTING_NOT_AVAILABLE', '구매할 수 없는 매물입니다');
+        if (hasPurchaseRequest(listing)) return error(409, 'ALREADY_ORDERED', '이미 결제가 진행 중인 매물입니다');
+        const deliveryFee = deliveryFeeOf(listing);
+        const order = {
+            id: Math.max(...orders.map((item) => item.id)) + 1,
+            listingId,
+            buyerId: member.id,
+            orderStatus: 'PENDING' as const,
+            deliveryStatus: 'PENDING' as const,
+            deliveryFee,
+            totalPrice: listing.price + deliveryFee
+        };
+        orders.push(order);
+        return HttpResponse.json({ ...order, deliveryStatus: 'PENDING' }, { status: 201 });
     }),
 
-    http.post('/api/orders/:orderId/cancellations', ({ params, request }) => {
-        if (!isAuthenticated(request)) return unauthorized();
-        const order = orderStore.find((item) => item.id === Number(params.orderId));
-        if (!order) return HttpResponse.json({ code: 'ORDER_NOT_FOUND', message: '존재하지 않는 주문입니다.' }, { status: 404 });
-        if (order.orderStatus !== 'CONFIRMED' && order.orderStatus !== 'CANCEL_PENDING') {
-            return HttpResponse.json({ code: 'INVALID_ORDER_STATUS_TRANSITION', message: '잘못된 주문 상태 변경입니다.' }, { status: 409 });
-        }
-
-        if (order.orderStatus === 'CONFIRMED') {
-            order.orderStatus = 'CANCEL_PENDING';
-            saveOrders();
-            setTimeout(() => {
-                order.orderStatus = 'CANCELLED';
-                saveOrders();
-            }, 1500);
-        }
-        return HttpResponse.json({ orderId: order.id, orderStatus: 'CANCEL_PENDING', message: '취소 대기 중' }, { status: 202 });
+    http.get('/api/me/orders', async ({ request }) => {
+        await delay(300);
+        const member = currentMember(request);
+        if (!member) return unauthorized();
+        return HttpResponse.json(
+            orders.filter((order) => order.buyerId === member.id).sort((left, right) => right.id - left.id).map((order) => orderOf(order.id))
+        );
     }),
 
-    http.get('/api/me/favorites', ({ request }) => {
-        if (!isAuthenticated(request)) return unauthorized();
-        const items = [...favoriteStore].reverse()
-            .map((listingId) => listingStore.find((listing) => listing.id === listingId))
-            .filter((listing): listing is ListingDetail => Boolean(listing))
-            .map(summaryOf);
-        return HttpResponse.json({ items });
+    http.get('/api/orders/:orderId', async ({ request, params }) => {
+        await delay(300);
+        if (!currentMember(request)) return unauthorized();
+        const order = orderOf(Number(params.orderId));
+        return order ? HttpResponse.json(order) : error(404, 'ORDER_NOT_FOUND', '주문을 찾을 수 없습니다');
     }),
 
-    http.get('/api/me/favorites/:listingId', ({ params, request }) => {
-        if (!isAuthenticated(request)) return unauthorized();
-        return HttpResponse.json({ favorited: favoriteStore.has(Number(params.listingId)) });
-    }),
-
-    http.put('/api/me/favorites/:listingId', ({ params, request }) => {
-        if (!isAuthenticated(request)) return unauthorized();
-        const listingId = Number(params.listingId);
-        if (!listingStore.some((listing) => listing.id === listingId)) {
-            return HttpResponse.json({ code: 'LISTING_NOT_FOUND', message: '매물을 찾을 수 없습니다.' }, { status: 404 });
+    http.post('/api/orders/:orderId/cancellations', async ({ request, params }) => {
+        await delay(400);
+        if (!currentMember(request)) return unauthorized();
+        const order = orders.find((item) => item.id === Number(params.orderId));
+        if (!order) return error(404, 'ORDER_NOT_FOUND', '주문을 찾을 수 없습니다');
+        if (order.orderStatus !== 'CONFIRMED' || order.deliveryStatus !== 'REQUESTED') {
+            return error(409, 'ORDER_NOT_CANCELLABLE', '배송이 시작된 주문은 취소할 수 없습니다');
         }
-        favoriteStore.add(listingId);
+        // 배송 쪽이 취소를 처리하는 동안은 취소 대기로 두었다가 잠시 뒤 취소를 확정한다
+        order.orderStatus = 'CANCEL_PENDING';
+        setTimeout(() => {
+            order.orderStatus = 'CANCELLED';
+            const listing = listings.find((item) => item.id === order.listingId);
+            if (listing) listing.saleStatus = 'AVAILABLE';
+        }, 2_000);
+        return HttpResponse.json({ orderId: order.id, orderStatus: order.orderStatus, message: '취소 요청을 접수했습니다' }, { status: 202 });
+    }),
+
+    http.post('/api/payments/confirm', async ({ request }) => {
+        await delay(800);
+        if (!currentMember(request)) return unauthorized();
+        const { orderId, amount } = await request.json() as { orderId: string; amount: number };
+        const order = orders.find((item) => item.id === Number(orderId.split('_')[0]));
+        if (!order) return error(404, 'ORDER_NOT_FOUND', '주문을 찾을 수 없습니다');
+        if (order.totalPrice !== amount) return error(400, 'PAYMENT_AMOUNT_MISMATCH', '결제 금액이 주문 금액과 다릅니다');
+        order.orderStatus = 'CONFIRMED';
+        order.deliveryStatus = 'REQUESTED';
+        const listing = listings.find((item) => item.id === order.listingId);
+        if (listing) listing.saleStatus = 'SOLD';
+        return HttpResponse.json({ orderId: order.id, status: 'DONE', amount });
+    }),
+
+    http.post('/api/payments/fail', async ({ request }) => {
+        const { orderId } = await request.json() as { orderId: string };
+        const order = orders.find((item) => item.id === Number(orderId.split('_')[0]));
+        if (order?.orderStatus === 'PENDING') order.orderStatus = 'EXPIRED';
         return new HttpResponse(null, { status: 204 });
-    }),
-
-    http.delete('/api/me/favorites/:listingId', ({ params, request }) => {
-        if (!isAuthenticated(request)) return unauthorized();
-        favoriteStore.delete(Number(params.listingId));
-        return new HttpResponse(null, { status: 204 });
-    }),
-
-    http.get('/api/me/orders', ({ request }) => {
-        if (!isAuthenticated(request)) return unauthorized();
-
-        const orders: MyOrder[] = orderStore.map((order) => {
-            const listing = listingStore.find((item) => item.id === order.listingId);
-            return {
-                id: order.id,
-                listing: {
-                    id: order.listingId,
-                    name: listing?.title ?? '판매가 종료된 매물',
-                    thumbnailUrl: listing?.images[0]?.url ?? null,
-                    price: listing?.price ?? 0,
-                    deliveryFee: listing?.deliveryFee ?? 0
-                },
-                orderStatus: order.orderStatus,
-                deliveryStatus: order.deliveryStatus
-            };
-        });
-        return HttpResponse.json(orders);
     })
 ];

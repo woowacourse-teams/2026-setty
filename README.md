@@ -36,7 +36,7 @@ SETTY는 구매자가 판매자와 운송 서비스를 오가며 직접 조율�
 
 | 경로 | 역할 | 기술 |
 | :-- | :-- | :-- |
-| [`client/`](client/) | 구매자·판매자 웹, 매물 탐색과 결제 | React · TypeScript · Webpack |
+| [`client/`](client/) | 구매자·판매자 모바일 웹, 매물 탐색과 결제 | React · TypeScript · Webpack |
 | [`android/`](android/) | Android 앱, 매물 탐색과 판매자 화면 | Kotlin · Jetpack Compose |
 | [`apps/driver/`](apps/driver/) | 기사 앱, 요청 수락부터 배송 완료까지 | Expo · React Native · TypeScript |
 | [`server/`](server/) | 회원·매물·주문·결제·배송 API | Java 21 · Spring Boot · MySQL |
@@ -45,8 +45,8 @@ SETTY는 구매자가 판매자와 운송 서비스를 오가며 직접 조율�
 ### 코드에서 확인하는 핵심 흐름
 
 - [배송비 정책](server/src/main/java/setty/platform/listing/domain/DeliveryFeePolicy.java): 가구 부피에 따라 예상 배송비를 계산합니다.
-- [매물 상세](client/src/components/ProductDetail.tsx): 매물 가격, 배송비, 총액을 함께 표시합니다.
-- [결제 화면](client/src/components/PaymentCheckout.tsx): 주문을 생성하고 결제 위젯을 엽니다. 목 모드에서는 결제 성공을 모의합니다.
+- [매물 상세](client/src/features/listingdetail/FurnitureDetailScreen.tsx): 매물 가격, 배송비, 총액을 함께 표시합니다.
+- [결제 화면](client/src/features/payment/PaymentScreen.tsx): 주문을 생성하고 결제 위젯을 엽니다. 목 모드에서는 결제 성공을 모의합니다.
 - [배송 정책](docs/policy/delivery.md): 결제 확정 이후 배송 요청과 상태 전이를 정의합니다.
 
 ## 📚 문서와 협업
