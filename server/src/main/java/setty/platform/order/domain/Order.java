@@ -1,6 +1,8 @@
 package setty.platform.order.domain;
 
+import jakarta.persistence.AttributeOverride;
 import jakarta.persistence.Column;
+import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -56,14 +58,31 @@ public class Order {
     @Column(name = "delivery_fee", updatable = false)
     private Integer deliveryFee;
 
-    @Column(name = "delivery_dong_code", length = 10, updatable = false)
-    private String deliveryDongCode;
+    @Embedded
+    @AttributeOverride(name = "address",
+            column = @Column(name = "pickup_address", length = 200, updatable = false))
+    @AttributeOverride(name = "phoneNumber",
+            column = @Column(name = "pickup_phone_number", length = 13, updatable = false))
+    @AttributeOverride(name = "dongCode",
+            column = @Column(name = "pickup_dong_code", length = 10, updatable = false))
+    @AttributeOverride(name = "zipCode",
+            column = @Column(name = "pickup_zip_code", length = 5, updatable = false))
+    @AttributeOverride(name = "managementNumber",
+            column = @Column(name = "pickup_address_mgmt_no", length = 25, updatable = false))
+    private OrderPlace pickup;
 
-    @Column(name = "delivery_address", length = 200, updatable = false)
-    private String deliveryAddress;
-
-    @Column(name = "delivery_phone_number", length = 13, updatable = false)
-    private String deliveryPhoneNumber;
+    @Embedded
+    @AttributeOverride(name = "address",
+            column = @Column(name = "delivery_address", length = 200, updatable = false))
+    @AttributeOverride(name = "phoneNumber",
+            column = @Column(name = "delivery_phone_number", length = 13, updatable = false))
+    @AttributeOverride(name = "dongCode",
+            column = @Column(name = "delivery_dong_code", length = 10, updatable = false))
+    @AttributeOverride(name = "zipCode",
+            column = @Column(name = "delivery_zip_code", length = 5, updatable = false))
+    @AttributeOverride(name = "managementNumber",
+            column = @Column(name = "delivery_address_mgmt_no", length = 25, updatable = false))
+    private OrderPlace destination;
 
     protected Order() {
     }
@@ -146,15 +165,13 @@ public class Order {
             final Long buyerId,
             final Instant pendingExpiresAt,
             final int deliveryFee,
-            final String deliveryDongCode,
-            final String deliveryAddress,
-            final String deliveryPhoneNumber
+            final OrderPlace pickup,
+            final OrderPlace destination
     ) {
         final Order order = pending(listingId, buyerId, pendingExpiresAt);
         order.deliveryFee = deliveryFee;
-        order.deliveryDongCode = deliveryDongCode;
-        order.deliveryAddress = deliveryAddress;
-        order.deliveryPhoneNumber = deliveryPhoneNumber;
+        order.pickup = pickup;
+        order.destination = destination;
         return order;
     }
 
@@ -266,15 +283,12 @@ public class Order {
         return deliveryFee;
     }
 
-    public String getDeliveryDongCode() {
-        return deliveryDongCode;
+    // 모든 칸이 NULL인 도입 전 주문은 null이다.
+    public OrderPlace getPickup() {
+        return pickup;
     }
 
-    public String getDeliveryAddress() {
-        return deliveryAddress;
-    }
-
-    public String getDeliveryPhoneNumber() {
-        return deliveryPhoneNumber;
+    public OrderPlace getDestination() {
+        return destination;
     }
 }

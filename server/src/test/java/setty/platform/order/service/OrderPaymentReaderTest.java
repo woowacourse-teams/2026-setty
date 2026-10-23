@@ -19,6 +19,7 @@ import setty.global.exception.ErrorCode;
 import setty.platform.listing.domain.Listing;
 import setty.platform.listing.repository.ListingRepository;
 import setty.platform.order.domain.Order;
+import setty.platform.order.domain.OrderPlace;
 import setty.platform.order.repository.OrderRepository;
 
 @ExtendWith(MockitoExtension.class)
@@ -53,7 +54,9 @@ class OrderPaymentReaderTest {
 
     @Test
     void 주문에_저장한_배송비로_결제_금액을_계산한다() {
-        final Order order = Order.pending(11L, 22L, NOW.plusSeconds(60), 25_000, "1111053000", "가상 주소", "010-0000-0000");
+        final Order order = Order.pending(11L, 22L, NOW.plusSeconds(60), 25_000,
+                new OrderPlace("판매자 주소", "010-0000-0001", null, null, null),
+                new OrderPlace("가상 주소", "010-0000-0000", "1111053000", null, null));
         final Listing listing = mock(Listing.class);
         when(orderRepository.findById(33L)).thenReturn(Optional.of(order));
         when(listingRepository.findByIdAndDeletedAtIsNull(11L)).thenReturn(Optional.of(listing));
