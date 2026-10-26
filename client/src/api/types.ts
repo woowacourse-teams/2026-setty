@@ -68,6 +68,7 @@ export type FurnitureDetailResponse = {
     updatedAt: string;
     dong?: ListingDongResponse | null;
     hasPurchaseRequest?: boolean;
+    purchaseRequestedByMe?: boolean;
 };
 
 export type MyFurnitureResponse = {

@@ -41,7 +41,7 @@ type PaymentLocationState = {
 
 const ALREADY_ORDERED = 'ALREADY_ORDERED';
 // 서버는 PENDING 주문을 6분 뒤 만료시키고 1분 주기로 정리한다
-const ALREADY_ORDERED_NOTICE = '결제가 진행 중인 매물입니다. 결제가 완료되지 않으면 7분 이내에 다시 구매할 수 있습니다';
+const ALREADY_ORDERED_NOTICE = '다른 구매자가 결제 중인 매물입니다. 결제가 완료되지 않으면 7분 이내에 다시 구매할 수 있습니다';
 
 function orderErrorMessage(error: unknown): string {
     if (error instanceof ApiError) return error.message;
@@ -177,7 +177,7 @@ function PaymentContent({ listingId, orderName, amount: initialAmount, onBack }:
             totalPrice = pendingOrder.totalPrice;
         } catch (error) {
             setStep('IDLE');
-            // 결제가 끝나지 않은 PENDING 주문이 매물을 선점 중이면 만료 후 다시 구매할 수 있음을 안내한다
+            // 다른 구매자의 PENDING 주문이 매물을 선점 중이면 만료 후 다시 구매할 수 있음을 안내한다. 내 PENDING 주문은 서버가 그대로 돌려준다
             if (error instanceof ApiError && error.code === ALREADY_ORDERED) {
                 showSnackbar(ALREADY_ORDERED_NOTICE, { long: true });
             } else {

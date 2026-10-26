@@ -6,6 +6,7 @@ import { isUnauthorized, toUserMessage } from '../../api/errors';
 import { ApiError, NetworkError } from '../../api/http';
 import { favoriteRepository, furnitureRepository } from '../../api/repositories';
 import {
+    canResumePayment,
     categoryLabel,
     formatWon,
     isPaymentInProgress,
@@ -55,6 +56,13 @@ const detailErrorMessages: Record<DetailError, string> = {
     NETWORK_ERROR: '네트워크 에러가 발생했습니다',
     UNKNOWN_ERROR: '알 수 없는 에러가 발생했습니다'
 };
+
+function purchaseButtonLabel(listing: FurnitureDetail): string {
+    if (isPurchasable(listing)) return '결제하고 주문하기';
+    if (canResumePayment(listing)) return '결제 이어서 하기';
+    if (isPaymentInProgress(listing)) return '다른 구매자가 결제 중이에요';
+    return '구매할 수 없는 매물입니다';
+}
 
 export function FurnitureDetailScreen() {
     const { listingId } = useParams();
@@ -135,14 +143,12 @@ export function FurnitureDetailScreen() {
             bottomBar={listing && (
                 <BottomBar>
                     <Button
-                        disabled={!isPurchasable(listing)}
+                        disabled={!isPurchasable(listing) && !canResumePayment(listing)}
                         fullWidth
                         onClick={() => navigate(routes.payment(listing.id), { state: { orderName: listing.title, amount: listing.totalPrice } })}
                         size="medium"
                     >
-                        {isPurchasable(listing)
-                            ? '결제하고 주문하기'
-                            : isPaymentInProgress(listing) ? '다른 구매자가 결제 중이에요' : '구매할 수 없는 매물입니다'}
+                        {purchaseButtonLabel(listing)}
                     </Button>
                 </BottomBar>
             )}

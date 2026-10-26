@@ -8,7 +8,8 @@ import {
     newImageId,
     orders,
     type MockListing,
-    type MockMember
+    type MockMember,
+    type MockOrder
 } from './data';
 
 const TOKEN_PREFIX = 'mock-token-';
@@ -50,14 +51,20 @@ function summaryOf(listing: MockListing) {
     };
 }
 
-function detailOf(listing: MockListing) {
+function pendingOrderOf(listing: MockListing, member: MockMember | null): MockOrder | undefined {
+    if (!member) return undefined;
+    return orders.find((order) => order.listingId === listing.id && order.buyerId === member.id && order.orderStatus === 'PENDING');
+}
+
+function detailOf(listing: MockListing, member: MockMember | null) {
     return {
         ...summaryOf(listing),
         description: listing.description,
         dimensions: listing.dimensions,
         saleStatus: listing.saleStatus,
         images: listing.images,
-        updatedAt: listing.updatedAt
+        updatedAt: listing.updatedAt,
+        purchaseRequestedByMe: pendingOrderOf(listing, member) !== undefined
     };
 }
 
@@ -180,10 +187,11 @@ export const handlers = [
         return HttpResponse.json({ items: page.map(summaryOf), nextCursor });
     }),
 
-    http.get('/api/listings/:listingId', async ({ params }) => {
+    http.get('/api/listings/:listingId', async ({ params, request }) => {
         await delay(300);
         const listing = activeListing(Number(params.listingId));
-        return listing ? HttpResponse.json(detailOf(listing)) : error(404, 'LISTING_NOT_FOUND', '매물을 찾을 수 없습니다');
+        if (!listing) return error(404, 'LISTING_NOT_FOUND', '매물을 찾을 수 없습니다');
+        return HttpResponse.json(detailOf(listing, currentMember(request)));
     }),
 
     http.post('/api/listings', async ({ request }) => {
@@ -308,6 +316,9 @@ export const handlers = [
         const { listingId } = await request.json() as { listingId: number };
         const listing = activeListing(listingId);
         if (!listing || listing.saleStatus !== 'AVAILABLE') return error(409, 'LISTING_NOT_AVAILABLE', '구매할 수 없는 매물입니다');
+        // 서버처럼 같은 구매자의 결제 대기 주문은 새로 만들지 않고 그대로 돌려준다
+        const mine = pendingOrderOf(listing, member);
+        if (mine) return HttpResponse.json({ ...mine, deliveryStatus: 'PENDING' }, { status: 201 });
         if (hasPurchaseRequest(listing)) return error(409, 'ALREADY_ORDERED', '이미 결제가 진행 중인 매물입니다');
         const deliveryFee = deliveryFeeOf(listing);
         const order = {

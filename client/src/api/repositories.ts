@@ -135,7 +135,8 @@ function toFurnitureDetail(response: FurnitureDetailResponse): FurnitureDetail {
         saleStatus: saleStatusOf(response.saleStatus),
         imageUrls: sortedImages(response).map((image) => image.url),
         dongName: response.dong ? dongDisplayName(response.dong) : null,
-        hasPurchaseRequest: response.hasPurchaseRequest ?? false
+        hasPurchaseRequest: response.hasPurchaseRequest ?? false,
+        purchaseRequestedByMe: response.purchaseRequestedByMe ?? false
     };
 }
 

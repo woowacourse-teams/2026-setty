@@ -77,11 +77,18 @@ export type FurnitureDetail = {
     imageUrls: string[];
     dongName: string | null;
     hasPurchaseRequest: boolean;
+    // 선점한 결제 대기 주문이 내 것인지. 결제창을 닫고 돌아온 구매자가 결제를 이어서 할 수 있다
+    purchaseRequestedByMe: boolean;
 };
 
 /** 판매중이지만 결제 대기 주문이 선점한 매물인지. 판매중이 아니면 판매 상태를 우선한다. */
 export function isPaymentInProgress(listing: FurnitureDetail): boolean {
     return listing.saleStatus === 'AVAILABLE' && listing.hasPurchaseRequest;
+}
+
+/** 내 결제 대기 주문이 선점한 매물인지. 새 주문 없이 결제 화면으로 다시 들어갈 수 있다. */
+export function canResumePayment(listing: FurnitureDetail): boolean {
+    return isPaymentInProgress(listing) && listing.purchaseRequestedByMe;
 }
 
 export function isPurchasable(listing: FurnitureDetail): boolean {
