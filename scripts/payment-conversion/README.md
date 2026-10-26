@@ -72,7 +72,7 @@
 - 실패 로그: `.local/k6-run.*`에 보존한다. 성공 실행의 임시 로그는 삭제하므로 보고서용 요약은 따로 보관한다.
 - 로컬 회귀: 실제 dev·토스·PostHog에 요청하지 않고 loopback 서버와 합성 토큰을 사용한다. 결제 복귀 7개와 모달 닫기 5개 사례다.
 
-서버 승인 키 기본값은 [application.yml](../../server/src/main/resources/application.yml), 공개 테스트 클라이언트 키는 [tossPayment.ts](../../client/src/payment/tossPayment.ts)를 참조한다. 키 값을 이 문서에 중복 기록하지 않는다. `TOSS_SECRET_KEY` 환경변수는 서버 기본값보다 우선한다.
+서버 승인 키 기본값은 [application.yml](../../server/src/main/resources/application.yml), 공개 테스트 클라이언트 키는 [webpack.config.js](../../client/webpack.config.js)를 참조한다. 키 값을 이 문서에 중복 기록하지 않는다. `TOSS_SECRET_KEY` 환경변수는 서버 기본값보다 우선한다.
 
 ## PostHog 필터와 관측 결과
 

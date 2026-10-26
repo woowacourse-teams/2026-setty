@@ -1,8 +1,8 @@
 {
   "name": "client",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "private": true,
+  "description": "SETTY 구매자·판매자 웹. Android 앱과 같은 화면 흐름을 모바일 화면으로 제공한다.",
   "scripts": {
     "dev": "webpack serve --mode development",
     "dev:msw": "ENABLE_MSW=true npm run dev",
@@ -10,13 +10,8 @@
     "type-check": "tsc --noEmit",
     "test": "node --test tests/*.test.cjs"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
   "dependencies": {
-    "@phosphor-icons/react": "^2.1.10",
-    "@tosspayments/tosspayments-sdk": "^2.3.0",
+    "@tosspayments/tosspayments-sdk": "^2.8.1",
     "posthog-js": "^1.435.6",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",

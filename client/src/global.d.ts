@@ -5,6 +5,7 @@ declare module '*.module.css' {
 }
 
 declare const __ENABLE_MSW__: boolean;
+declare const __TOSS_CLIENT_KEY__: string;
 declare const __ENABLE_SOLD_LISTING_SCENARIO__: boolean;
 declare const __ENABLE_PRICE_SCENARIO__: boolean;
 declare const __POSTHOG_KEY__: string;
