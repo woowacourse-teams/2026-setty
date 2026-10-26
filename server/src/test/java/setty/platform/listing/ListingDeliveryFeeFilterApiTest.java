@@ -21,6 +21,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.ApplicationContext;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -31,6 +32,7 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 import setty.deliveryfee.DeliveryFeeService;
 import setty.deliveryfee.Dong;
 import setty.deliveryfee.VolumeTier;
+import setty.deliveryfee.region.ZipDistanceTable;
 import setty.platform.PaymentOrderReader;
 import setty.platform.listing.storage.ListingImageStorage;
 import setty.support.MySqlIntegrationTestSupport;
@@ -67,6 +69,9 @@ class ListingDeliveryFeeFilterApiTest extends MySqlIntegrationTestSupport {
 
     @Autowired
     private MeterRegistry meterRegistry;
+
+    @Autowired
+    private ApplicationContext context;
 
     @MockitoBean
     private ListingImageStorage listingImageStorage;
@@ -302,6 +307,12 @@ class ListingDeliveryFeeFilterApiTest extends MySqlIntegrationTestSupport {
                         .header(HttpHeaders.AUTHORIZATION, "Bearer token-" + NO_DONG_BUYER_ID))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("MEMBER_DONG_REQUIRED"));
+    }
+
+    @Test
+    void 구역_방식_기본값이면_우편번호_거리표를_만들지_않는다() {
+        assertThat(context.getBeanProvider(ZipDistanceTable.class).getIfAvailable()).isNull();
+        assertThat(deliveryFeeService.zipEnabled()).isFalse();
     }
 
     @Test

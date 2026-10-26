@@ -273,7 +273,7 @@ class ListingNotificationIntegrationTest extends MySqlIntegrationTestSupport {
     }
 
     private long createListing(final String title) {
-        return listingService.create(SELLER_ID, "1111053000", new ListingCreateCommand(
+        return listingService.create(SELLER_ID, "1111053000", null, new ListingCreateCommand(
                 title, "테스트 설명", 1_000_000, ListingCategory.DESK, ConditionGrade.A, Dimensions.of(10, 10, 10),
                 List.of(new MockMultipartFile("images", "test.jpg", "image/jpeg", new byte[]{1}))
         )).listingId();

@@ -34,7 +34,7 @@ class FlywayMigrationTest {
             "delivery_address_mgmt_no");
     private static final List<String> DELIVERY_ZONE_COLUMNS = List.of("pickup_dong_code", "pickup_zip_code",
             "delivery_dong_code", "delivery_zip_code");
-    private static final int MIGRATION_COUNT = 8;
+    private static final int MIGRATION_COUNT = 9;
 
     @Container
     static final MySQLContainer MYSQL = new MySQLContainer("mysql:8.4.11");
@@ -234,6 +234,9 @@ class FlywayMigrationTest {
         }
         assertThat(indexColumns("listings", "idx_listings_delivery_filter"))
                 .isEqualTo("deleted_at,sale_status,created_at,id,dong_code,volume_tier");
+        assertThat(columnCount("listings", "zip_zone")).isOne();
+        assertThat(indexColumns("listings", "idx_listings_zip_zone_filter"))
+                .isEqualTo("deleted_at,sale_status,created_at,id,zip_zone,volume_tier");
         assertThat(count("""
                 SELECT COUNT(*) FROM information_schema.statistics WHERE table_schema=DATABASE()
                 AND table_name='listings' AND index_name='idx_listings_public'
@@ -261,6 +264,7 @@ class FlywayMigrationTest {
         var name = (String) column.get("column_name");
         return table.equals("address_reference")
                 || table.equals("members") && STANDARD_ADDRESS_COLUMNS.contains(name)
+                || table.equals("listings") && name.equals("zip_zone")
                 || table.equals("orders") && ORDER_PICKUP_SNAPSHOT_COLUMNS.contains(name)
                 || table.equals("delivery") && DELIVERY_ZONE_COLUMNS.contains(name);
     }

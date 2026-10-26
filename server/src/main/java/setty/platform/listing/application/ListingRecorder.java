@@ -61,12 +61,14 @@ public class ListingRecorder {
     public ListingView.Created create(
             Long sellerId,
             String sellerDongCode,
+            Integer sellerZipZone,
             ListingCreateCommand command,
             List<String> objectKeys
     ) {
         Listing listing = listingRepository.save(Listing.create(
                 sellerId,
                 sellerDongCode,
+                sellerZipZone,
                 command.title(),
                 command.description(),
                 command.price(),

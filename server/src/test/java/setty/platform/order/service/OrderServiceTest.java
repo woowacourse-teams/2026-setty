@@ -88,7 +88,7 @@ class OrderServiceTest {
         when(buyer.getId()).thenReturn(BUYER_ID);
         when(clock.instant()).thenReturn(createdAt);
         when(pendingOrderExpirationProperties.timeout()).thenReturn(timeout);
-        when(listingService.registerPurchaseRequest(LISTING_ID, BUYER_ID, null)).thenReturn(new ListingView.PurchaseInfo(
+        when(listingService.registerPurchaseRequest(LISTING_ID, BUYER_ID, null, null)).thenReturn(new ListingView.PurchaseInfo(
                 LISTING_ID, SELLER_ID, "가상 책상", ListingCategory.DESK, 150_000, 10_000, 160_000, null, null));
         when(memberRepository.findById(SELLER_ID)).thenReturn(Optional.of(mock(Member.class)));
         when(orderRepository.saveAndFlush(any(Order.class)))
@@ -99,7 +99,7 @@ class OrderServiceTest {
         assertThat(order.getDeliveryStatus()).isEqualTo(DeliveryStatus.PENDING);
         assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.PENDING);
         assertThat(order.getPendingExpiresAt()).isEqualTo(createdAt.plus(timeout));
-        verify(listingService).registerPurchaseRequest(LISTING_ID, BUYER_ID, null);
+        verify(listingService).registerPurchaseRequest(LISTING_ID, BUYER_ID, null, null);
     }
 
     @Test
@@ -107,13 +107,14 @@ class OrderServiceTest {
         final Member buyer = member("구매자 주소", "010-0000-0002");
         when(buyer.getId()).thenReturn(BUYER_ID);
         when(buyer.getDongCode()).thenReturn("1111053000");
+        when(buyer.getZipCode()).thenReturn("06236");
         when(buyer.getResolvedAddress()).thenReturn(matched("BUYER-MGMT", "06236"));
         final Member seller = member("판매자 주소", "010-0000-0001");
         // 판매자의 지금 우편번호가 아니라 매물 구역의 우편번호를 쓴다
         when(seller.getResolvedAddress()).thenReturn(matched("SELLER-MGMT", "99999"));
         when(clock.instant()).thenReturn(Instant.parse("2026-09-02T05:00:00Z"));
         when(pendingOrderExpirationProperties.timeout()).thenReturn(Duration.ofMinutes(6));
-        when(listingService.registerPurchaseRequest(LISTING_ID, BUYER_ID, "1111053000")).thenReturn(new ListingView.PurchaseInfo(
+        when(listingService.registerPurchaseRequest(LISTING_ID, BUYER_ID, "1111053000", "06236")).thenReturn(new ListingView.PurchaseInfo(
                 LISTING_ID, SELLER_ID, "가상 책상", ListingCategory.DESK, 150_000, 25_000, 175_000,
                 "1111060000", "04524"));
         when(memberRepository.findById(SELLER_ID)).thenReturn(Optional.of(seller));
@@ -139,7 +140,7 @@ class OrderServiceTest {
                 ResolvedAddress.from(new AddressResolution(AddressResolution.Status.UNMATCHED, null)));
         when(clock.instant()).thenReturn(Instant.parse("2026-09-02T05:00:00Z"));
         when(pendingOrderExpirationProperties.timeout()).thenReturn(Duration.ofMinutes(6));
-        when(listingService.registerPurchaseRequest(LISTING_ID, BUYER_ID, "1111053000")).thenReturn(new ListingView.PurchaseInfo(
+        when(listingService.registerPurchaseRequest(LISTING_ID, BUYER_ID, "1111053000", null)).thenReturn(new ListingView.PurchaseInfo(
                 LISTING_ID, SELLER_ID, "가상 책상", ListingCategory.DESK, 150_000, 25_000, 175_000,
                 "1111060000", null));
         when(memberRepository.findById(SELLER_ID)).thenReturn(Optional.of(seller));
@@ -379,7 +380,7 @@ class OrderServiceTest {
                 null
         );
         when(orderRepository.findAllByBuyerIdOrderByIdDesc(BUYER_ID)).thenReturn(List.of(order));
-        when(listingService.findSummaries(List.of(LISTING_ID), null)).thenReturn(List.of(listing));
+        when(listingService.findSummaries(List.of(LISTING_ID), null, null)).thenReturn(List.of(listing));
 
         final List<MyOrderResponse> responses = orderService.findMyOrders(BUYER_ID);
 
@@ -406,7 +407,7 @@ class OrderServiceTest {
         );
         when(orderRepository.findAllByBuyerIdOrderByIdDesc(BUYER_ID))
                 .thenReturn(List.of(nextOrder, cancelledOrder));
-        when(listingService.findSummaries(any(), any())).thenAnswer(invocation -> {
+        when(listingService.findSummaries(any(), any(), any())).thenAnswer(invocation -> {
             final List<Long> ids = invocation.getArgument(0);
             return ids.stream().map(id -> listing).toList();
         });

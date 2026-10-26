@@ -73,7 +73,8 @@ public class OrderService {
         }
 
         final ListingView.PurchaseInfo purchase =
-                listingService.registerPurchaseRequest(request.listingId(), buyer.getId(), buyer.getDongCode());
+                listingService.registerPurchaseRequest(
+                        request.listingId(), buyer.getId(), buyer.getDongCode(), buyer.getZipCode());
         final Member seller = memberRepository.findById(purchase.sellerId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.INTERNAL_ERROR));
 
@@ -86,18 +87,14 @@ public class OrderService {
                     new OrderPlace(seller.getAddress(), seller.getPhoneNumber(), purchase.dongCode(),
                             purchase.zipCode(), managementNumberOf(seller)),
                     new OrderPlace(buyer.getAddress(), buyer.getPhoneNumber(), buyer.getDongCode(),
-                            zipCodeOf(buyer), managementNumberOf(buyer))
+                            buyer.getZipCode(), managementNumberOf(buyer))
             ));
         } catch (final DataIntegrityViolationException e) {
             throw new BusinessException(ErrorCode.ALREADY_ORDERED);
         }
     }
 
-    // 표준 주소는 해석에 성공한 회원만 값이 있다. 출발지 우편번호는 회원이 아니라 매물 구역에서 온다.
-    private static String zipCodeOf(final Member member) {
-        return member.getResolvedAddress() == null ? null : member.getResolvedAddress().getZipCode();
-    }
-
+    // 표준 주소는 해석에 성공한 회원만 값이 있다. 출발지 우편번호는 회원이 아니라 매물 구역(PurchaseInfo)에서 온다.
     private static String managementNumberOf(final Member member) {
         return member.getResolvedAddress() == null ? null : member.getResolvedAddress().getManagementNumber();
     }
@@ -227,7 +224,7 @@ public class OrderService {
     public List<MyOrderResponse> findMyOrders(final Long buyerId) {
         final List<Order> orders = orderRepository.findAllByBuyerIdOrderByIdDesc(buyerId);
         final List<Long> listingIds = orders.stream().map(Order::getListingId).distinct().toList();
-        final Map<Long, ListingView.Summary> listings = listingService.findSummaries(listingIds, null).stream()
+        final Map<Long, ListingView.Summary> listings = listingService.findSummaries(listingIds, null, null).stream()
                 .collect(Collectors.toMap(ListingView.Summary::id, Function.identity()));
 
         return orders.stream()
@@ -239,7 +236,7 @@ public class OrderService {
     public MyOrderResponse findMyOrder(final Long orderId, final Long buyerId) {
         final Order order = orderRepository.findByIdAndBuyerId(orderId, buyerId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
-        final ListingView.Summary listing = listingService.findSummaries(List.of(order.getListingId()), null).stream()
+        final ListingView.Summary listing = listingService.findSummaries(List.of(order.getListingId()), null, null).stream()
                 .findFirst()
                 .orElse(null);
         return MyOrderResponse.of(order, listing);
