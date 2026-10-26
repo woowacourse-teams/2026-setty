@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# SETTY binlog 백업: 지금 binlog를 닫고, 닫힌 파일 중 아직 올리지 않은 것을 gzip → 암호화 → S3에 올린 뒤 성공 지표를 보낸다.
+# SETTY binlog 백업: 지금 binlog를 새 파일로 교체하고, 다 쓴 파일 중 아직 올리지 않은 것을 gzip → 암호화 → S3에 올린 뒤 성공 지표를 보낸다.
 # systemd timer가 5분마다 부른다. 보관 기간 지난 binlog 정리는 하루 한 번만 한다.
 set -euo pipefail
 
