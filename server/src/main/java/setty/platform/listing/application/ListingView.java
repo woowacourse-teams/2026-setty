@@ -51,6 +51,7 @@ public final class ListingView {
             Dimensions dimensions,
             SaleStatus saleStatus,
             boolean hasPurchaseRequest,
+            boolean purchaseRequestedByMe,
             List<Image> images,
             Instant createdAt,
             Instant updatedAt,

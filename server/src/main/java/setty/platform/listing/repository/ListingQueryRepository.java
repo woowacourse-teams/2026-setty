@@ -119,8 +119,9 @@ public class ListingQueryRepository {
     }
 
     public Optional<MemberArea> findMemberAreaByToken(String token) {
-        return jdbcTemplate.query("SELECT dong_code, zip_code FROM members WHERE token = ?",
-                (resultSet, rowNum) -> new MemberArea(resultSet.getString("dong_code"), resultSet.getString("zip_code")),
+        return jdbcTemplate.query("SELECT id, dong_code, zip_code FROM members WHERE token = ?",
+                (resultSet, rowNum) -> new MemberArea(resultSet.getLong("id"), resultSet.getString("dong_code"),
+                        resultSet.getString("zip_code")),
                 token)
                 .stream().findFirst();
     }
@@ -176,6 +177,6 @@ public class ListingQueryRepository {
     ) {
     }
 
-    public record MemberArea(String dongCode, String zipCode) {
+    public record MemberArea(Long id, String dongCode, String zipCode) {
     }
 }

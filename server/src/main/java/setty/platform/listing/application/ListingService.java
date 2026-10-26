@@ -131,12 +131,16 @@ public class ListingService {
             return Buyer.ANONYMOUS;
         }
         return ListingRequestTiming.measure("buyer", () -> reader.findMemberAreaByToken(token))
-                .map(member -> buyerOf(member.dongCode(), member.zipCode()))
+                .map(member -> buyerOf(member.id(), member.dongCode(), member.zipCode()))
                 .orElse(Buyer.ANONYMOUS);
     }
 
     private Buyer buyerOf(String dongCode, String zipCode) {
-        return new Buyer(true, dongCode,
+        return buyerOf(null, dongCode, zipCode);
+    }
+
+    private Buyer buyerOf(Long memberId, String dongCode, String zipCode) {
+        return new Buyer(true, memberId, dongCode,
                 dongCode == null ? null : deliveryFeeService.findDong(dongCode).orElse(null),
                 deliveryFeeService.zipZoneOf(zipCode).orElse(null));
     }
@@ -420,11 +424,19 @@ public class ListingService {
                 dimensionsOf(listing),
                 listing.getSaleStatus(),
                 listing.hasPurchaseRequest(),
+                purchaseRequestedBy(listing, buyer),
                 images,
                 listing.getCreatedAt(),
                 listing.getUpdatedAt(),
                 dongOf(listing.getDongCode())
         );
+    }
+
+    // 선점한 결제 대기 주문이 조회한 회원의 것인지. 상세 화면이 "다른 구매자가 결제 중"과 "내 결제 이어서 하기"를 가른다.
+    private boolean purchaseRequestedBy(Listing listing, Buyer buyer) {
+        return listing.hasPurchaseRequest() && buyer.memberId() != null
+                && orderRepository.findPayableByListingIdAndBuyerId(listing.getId(), buyer.memberId(), Instant.now())
+                .isPresent();
     }
 
     private int deliveryFeeFor(Listing listing, Buyer buyer) {
@@ -515,8 +527,8 @@ public class ListingService {
         }
     }
 
-    private record Buyer(boolean member, String dongCode, Dong dong, Integer zipZone) {
+    private record Buyer(boolean member, Long memberId, String dongCode, Dong dong, Integer zipZone) {
 
-        static final Buyer ANONYMOUS = new Buyer(false, null, null, null);
+        static final Buyer ANONYMOUS = new Buyer(false, null, null, null, null);
     }
 }

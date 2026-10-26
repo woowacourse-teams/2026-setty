@@ -509,6 +509,20 @@ class ListingApiTest extends MySqlIntegrationTestSupport {
     }
 
     @Test
+    void 결제_대기_주문을_가진_구매자에게만_상세에_내_결제_대기_표시를_준다() throws Exception {
+        long listingId = createListing(SELLER_ID, "내 결제 대기 표시 확인용 가상 의자");
+        listingService.registerPurchaseRequest(listingId, FIRST_BUYER_ID, null, null);
+        long orderId = insertPendingOrder(listingId, FIRST_BUYER_ID);
+
+        assertPurchaseRequestedByMe(listingId, bearerToken(FIRST_BUYER_ID), true);
+        assertPurchaseRequestedByMe(listingId, bearerToken(SECOND_BUYER_ID), false);
+        assertPurchaseRequestedByMe(listingId, null, false);
+
+        jdbcTemplate.update("UPDATE orders SET pending_expires_at = DATE_SUB(NOW(6), INTERVAL 1 SECOND) WHERE id = ?", orderId);
+        assertPurchaseRequestedByMe(listingId, bearerToken(FIRST_BUYER_ID), false);
+    }
+
+    @Test
     void concurrentDeliveryReservationsAllowOnlyOneWinner() throws Exception {
         long listingId = createListing(SELLER_ID, "동시 예약 확인용 가상 침대");
         listingService.registerPurchaseRequest(listingId, null, null, null);
@@ -717,7 +731,31 @@ class ListingApiTest extends MySqlIntegrationTestSupport {
         return objectMapper.readTree(result.getResponse().getContentAsByteArray());
     }
 
+    private void assertPurchaseRequestedByMe(long listingId, String bearerToken, boolean expected) throws Exception {
+        var request = get("/api/listings/{listingId}", listingId);
+        if (bearerToken != null) {
+            request = request.header(HttpHeaders.AUTHORIZATION, bearerToken);
+        }
+        mockMvc.perform(request)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.hasPurchaseRequest").value(true))
+                .andExpect(jsonPath("$.purchaseRequestedByMe").value(expected));
+    }
+
+    // 만료 시각은 DB 시계로 넣는다. JDBC로 Timestamp를 바인딩하면 시간대 변환이 서버 쪽과 달라 어긋난다.
+    private long insertPendingOrder(long listingId, long buyerId) {
+        jdbcTemplate.update(
+                """
+                INSERT INTO orders (listing_id, buyer_id, delivery_status, order_status, pending_expires_at)
+                VALUES (?, ?, 'PENDING', 'PENDING', DATE_ADD(NOW(6), INTERVAL 5 MINUTE))
+                """,
+                listingId, buyerId);
+        return jdbcTemplate.queryForObject(
+                "SELECT id FROM orders WHERE listing_id = ? AND buyer_id = ?", Long.class, listingId, buyerId);
+    }
+
     private void deleteListingsAndMembers() {
+        jdbcTemplate.update("DELETE FROM orders");
         jdbcTemplate.update("DELETE FROM listing_images");
         jdbcTemplate.update("DELETE FROM listings");
         jdbcTemplate.update("DELETE FROM members");
