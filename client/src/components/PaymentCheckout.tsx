@@ -19,6 +19,10 @@ export function PaymentCheckout({ listingId, amount, orderName, onClose }: Payme
     const widgetsRef = useRef<TossPaymentsWidgets | null>(null);
 
     useEffect(() => {
+        trackEvent('checkout_opened', { listing_id: listingId, amount });
+    }, [listingId, amount]);
+
+    useEffect(() => {
         if (__ENABLE_MSW__) return;
 
         let active = true;

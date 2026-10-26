@@ -2,6 +2,7 @@ import { ArrowLeft } from '@phosphor-icons/react/dist/icons/ArrowLeft';
 import { Heart } from '@phosphor-icons/react/dist/icons/Heart';
 import { useEffect, useState } from 'react';
 import { trackEvent } from '../analytics/posthog';
+import { getPriceVariant } from '../analytics/priceScenario';
 import { addFavorite, fetchFavoriteStatus, removeFavorite } from '../api/favorites';
 import { fetchListing, type ListingDetail } from '../api/listings';
 import { PaymentCheckout } from './PaymentCheckout';
@@ -21,6 +22,8 @@ type ProductDetailProps = {
 };
 
 export function ProductDetail({ listingId, isLoggedIn, isReadOnly = false, onBack, onLoginRequired }: ProductDetailProps) {
+    const priceVariant = getPriceVariant();
+    const showDeliveryCosts = priceVariant === 'B';
     const [selectedImage, setSelectedImage] = useState(0);
     const [listing, setListing] = useState<ListingDetail | null>(null);
     const [error, setError] = useState<string | null>(null);
@@ -100,7 +103,6 @@ export function ProductDetail({ listingId, isLoggedIn, isReadOnly = false, onBac
         }
         setPurchaseMessage(null);
         setIsCheckoutOpen(true);
-        trackEvent('checkout_opened', { listing_id: listing.id, amount: listing.totalPrice });
     };
 
     const closeCheckout = () => {
@@ -109,7 +111,7 @@ export function ProductDetail({ listingId, isLoggedIn, isReadOnly = false, onBac
     };
 
     return (
-        <section className={productDetailStyles['product-detail']} aria-labelledby="product-title">
+        <section className={productDetailStyles['product-detail']} aria-labelledby="product-title" data-price-variant={priceVariant}>
             <button className={productDetailStyles['product-detail__back-button']} onClick={onBack} type="button">
                 <ArrowLeft aria-hidden="true" weight="bold" />
                 <span>목록으로</span>
@@ -147,12 +149,14 @@ export function ProductDetail({ listingId, isLoggedIn, isReadOnly = false, onBac
 
                     <dl className={productDetailStyles['product-detail__price-list']}>
                         <div><dt>매물 가격</dt><dd>{listing.price.toLocaleString('ko-KR')}원</dd></div>
-                        <div><dt>예상 배송비</dt><dd>{listing.deliveryFee.toLocaleString('ko-KR')}원</dd></div>
+                        {showDeliveryCosts && <div><dt>예상 배송비</dt><dd>{listing.deliveryFee.toLocaleString('ko-KR')}원</dd></div>}
                     </dl>
-                    <div className={productDetailStyles['product-detail__total']}>
-                        <span>총 결제 예상액</span>
-                        <strong>{listing.totalPrice.toLocaleString('ko-KR')}원</strong>
-                    </div>
+                    {showDeliveryCosts && (
+                        <div className={productDetailStyles['product-detail__total']}>
+                            <span>총 결제 예상액</span>
+                            <strong>{listing.totalPrice.toLocaleString('ko-KR')}원</strong>
+                        </div>
+                    )}
                     {!isReadOnly && (
                         <div className={productDetailStyles['product-detail__actions']}>
                             <button
