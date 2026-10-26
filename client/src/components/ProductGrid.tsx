@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { fetchListings, type ListingItem } from '../api/listings';
+import { getPriceVariant } from '../analytics/priceScenario';
 import productGridStyles from '../styles/modules/ProductGrid.module.css';
 
 const categoryLabels: Record<string, string> = {
@@ -21,13 +22,16 @@ type ProductCardProps = {
 };
 
 function ProductCard({ product, onSelect }: ProductCardProps) {
-function formatRegisteredAt(createdAt: string) {
-    const date = new Date(createdAt);
-    return `${date.getUTCMonth() + 1}.${date.getUTCDate()}`;
-}
+    const priceVariant = getPriceVariant();
+    const showDeliveryCosts = priceVariant === 'B';
+    function formatRegisteredAt(createdAt: string) {
+        const date = new Date(createdAt);
+        return `${date.getUTCMonth() + 1}.${date.getUTCDate()}`;
+    }
 
     return (
         <article
+            data-price-variant={priceVariant}
             className={[productGridStyles['product-card'], productGridStyles['product-card--interactive']].filter(Boolean).join(' ')}
             role="button"
             tabIndex={0}
@@ -47,9 +51,9 @@ function formatRegisteredAt(createdAt: string) {
             <div className={productGridStyles['product-card__details']}>
                 <h2 className={productGridStyles['product-card__title']}>{product.title}</h2>
                 <p className={productGridStyles['product-card__price']}>
-                    {formatWon(product.price)} <span>+ 배송 {formatWon(product.deliveryFee)}</span>
+                    {formatWon(product.price)} {showDeliveryCosts && <span>+ 배송 {formatWon(product.deliveryFee)}</span>}
                 </p>
-                <p className={productGridStyles['product-card__total']}>총 {formatWon(product.totalPrice)}</p>
+                {showDeliveryCosts && <p className={productGridStyles['product-card__total']}>총 {formatWon(product.totalPrice)}</p>}
                 <p className={productGridStyles['product-card__meta']}>
                     {categoryLabels[product.category] ?? product.category} <i /> {product.conditionGrade}급 <i /> {formatRegisteredAt(product.createdAt)} 등록
                 </p>

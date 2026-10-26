@@ -5,6 +5,7 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 
 const enableMsw = process.env.ENABLE_MSW === 'true';
 const enableSoldListingScenario = process.env.ENABLE_SOLD_LISTING_SCENARIO === 'true';
+const enablePriceScenario = process.env.SETTY_ENABLE_PRICE_SCENARIO === 'true';
 // PostHog 프로젝트 API 키(phc_…). 비어 있으면 행동 데이터를 수집하지 않는다. buildspec이 SETTY_* 변수를 빌드 해시에 포함한다.
 const posthogKey = process.env.SETTY_POSTHOG_KEY ?? '';
 const posthogHost = process.env.SETTY_POSTHOG_HOST ?? 'https://us.i.posthog.com';
@@ -56,6 +57,7 @@ module.exports = (_, argv) => {
             new webpack.DefinePlugin({
                 __ENABLE_MSW__: JSON.stringify(enableMsw),
                 __ENABLE_SOLD_LISTING_SCENARIO__: JSON.stringify(enableSoldListingScenario),
+                __ENABLE_PRICE_SCENARIO__: JSON.stringify(enablePriceScenario),
                 __POSTHOG_KEY__: JSON.stringify(posthogKey),
                 __POSTHOG_HOST__: JSON.stringify(posthogHost)
             }),
