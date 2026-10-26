@@ -125,7 +125,7 @@
 <rect x="1950" y="1124" width="5" height="122" rx="2" fill="#596b7e"/>
 <text x="1974" y="1152" font-size="25" font-weight="700" fill="#17283c" text-anchor="start">측정</text>
 <text x="1974" y="1190" font-size="21" font-weight="400" fill="#17283c" text-anchor="start">되살리기 2분 17초</text>
-<text x="1974" y="1222" font-size="21" font-weight="400" fill="#17283c" text-anchor="start">앱 기동 16~19초 (배포 기록)</text>
+<text x="1974" y="1222" font-size="21" font-weight="400" fill="#17283c" text-anchor="start">앱 시작 16~19초 (배포 기록)</text>
 <path d="M890 1185 H938" fill="none" stroke="#8054a4" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="9 7" marker-end="url(#arrow-8054a4)"/>
 <path d="M1390 1185 H1438" fill="none" stroke="#8054a4" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="9 7" marker-end="url(#arrow-8054a4)"/>
 <text x="85" y="1335" font-size="25" font-weight="700" fill="#8054a4" text-anchor="start">B  서버 소실</text>
@@ -175,7 +175,7 @@
 <text x="1507" y="1750" font-size="21" font-weight="400" fill="#17283c" text-anchor="start">4.4초 · 17개 테이블 일치</text>
 <rect x="1949" y="1670" width="440" height="125" rx="14" fill="white" stroke="#d4dee8" stroke-width="1.5"/>
 <rect x="1949" y="1684" width="5" height="97" rx="2" fill="#5c8545"/>
-<text x="1973" y="1712" font-size="24" font-weight="700" fill="#17283c" text-anchor="start">복원 DB로 앱 기동</text>
+<text x="1973" y="1712" font-size="24" font-weight="700" fill="#17283c" text-anchor="start">복원 DB로 앱 시작</text>
 <text x="1973" y="1750" font-size="21" font-weight="400" fill="#17283c" text-anchor="start">7.2초 · 매물 77건 일치</text>
 <text x="65" y="1872" font-size="21" font-weight="400" fill="#596b7e" text-anchor="start">근거: server/deploy/backup/ · CloudWatch 경보 설정 · 노션 「데이터 백업과 복구」의 완료 조건·기록 문서. 일치 = 테이블별 행 수(COUNT)와 CHECKSUM TABLE이 원본과 같음</text>
 </svg>
