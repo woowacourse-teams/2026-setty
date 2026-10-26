@@ -28,6 +28,9 @@ class OrderDeliverySnapshotIntegrationTest extends MySqlIntegrationTestSupport {
     private static final long LISTING_ID = 7011L;
     private static final String SELLER_DONG = "1111054000";
     private static final String BUYER_DONG = "1111053000";
+    // seoul-zip-zones.csv의 1457번 구역 = 우편번호 03040
+    private static final int SELLER_ZIP_ZONE = 1457;
+    private static final String SELLER_ZONE_ZIP = "03040";
 
     @Autowired
     private OrderService orderService;
@@ -65,7 +68,7 @@ class OrderDeliverySnapshotIntegrationTest extends MySqlIntegrationTestSupport {
     void 주문_뒤_회원_주소가_바뀌어도_배송_요청은_주문_시점_값으로_만든다() {
         insertMember(SELLER_ID, "판매자 주소", "010-0000-0001", SELLER_DONG, "MATCHED", "03045", "SELLER-MGMT");
         insertMember(BUYER_ID, "구매자 주소", "010-0000-0002", BUYER_DONG, "MATCHED", "03174", "BUYER-MGMT");
-        insertListing(SELLER_DONG);
+        insertListing(SELLER_DONG, SELLER_ZIP_ZONE);
 
         final long orderId = order();
         jdbcTemplate.update("""
@@ -82,8 +85,8 @@ class OrderDeliverySnapshotIntegrationTest extends MySqlIntegrationTestSupport {
                 .containsEntry("pickup_address", "판매자 주소")
                 .containsEntry("pickup_phone_number", "010-0000-0001")
                 .containsEntry("pickup_dong_code", SELLER_DONG)
-                // 매물 구역(listings.zip_zone)이 없는 매물이라 출발지 우편번호가 없다
-                .containsEntry("pickup_zip_code", null)
+                // 판매자 회원의 우편번호(03045)가 아니라 배송비를 계산한 매물 구역의 우편번호다
+                .containsEntry("pickup_zip_code", SELLER_ZONE_ZIP)
                 .containsEntry("delivery_address", "구매자 주소")
                 .containsEntry("delivery_phone_number", "010-0000-0002")
                 .containsEntry("delivery_dong_code", BUYER_DONG)
@@ -99,7 +102,7 @@ class OrderDeliverySnapshotIntegrationTest extends MySqlIntegrationTestSupport {
     void 표준_주소가_없는_회원도_주문하고_배송_요청을_받는다() {
         insertMember(SELLER_ID, "판매자 주소", "010-0000-0001", SELLER_DONG, "UNMATCHED", null, null);
         insertMember(BUYER_ID, "구매자 주소", "010-0000-0002", BUYER_DONG, null, null, null);
-        insertListing(SELLER_DONG);
+        insertListing(SELLER_DONG, null);
 
         final long orderId = order();
         completePayment(orderId);
@@ -142,13 +145,13 @@ class OrderDeliverySnapshotIntegrationTest extends MySqlIntegrationTestSupport {
                 """, id, "member" + id, phoneNumber, address, dongCode, addressStatus, zipCode, managementNumber);
     }
 
-    private void insertListing(final String dongCode) {
+    private void insertListing(final String dongCode, final Integer zipZone) {
         jdbcTemplate.update("""
                 INSERT INTO listings (id, seller_id, title, description, price, delivery_fee, category,
                                       condition_grade, width_cm, depth_cm, height_cm, sale_status,
-                                      has_purchase_request, created_at, updated_at, dong_code)
+                                      has_purchase_request, created_at, updated_at, dong_code, zip_zone)
                 VALUES (?, ?, '테스트 책상', '테스트 설명', 150000, 10000, 'DESK',
-                        'A', 60, 60, 70, 'AVAILABLE', false, NOW(6), NOW(6), ?)
-                """, LISTING_ID, SELLER_ID, dongCode);
+                        'A', 60, 60, 70, 'AVAILABLE', false, NOW(6), NOW(6), ?, ?)
+                """, LISTING_ID, SELLER_ID, dongCode, zipZone);
     }
 }

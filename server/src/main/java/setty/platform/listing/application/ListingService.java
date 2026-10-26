@@ -287,7 +287,7 @@ public class ListingService {
                 deliveryFee,
                 listing.getPrice() + deliveryFee,
                 listing.getDongCode(),
-                null
+                listing.getZipZone() == null ? null : deliveryFeeService.zipCodeOf(listing.getZipZone()).orElse(null)
         );
     }
 
