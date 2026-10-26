@@ -301,8 +301,8 @@ class DeliveryRequestSseHttpIntegrationTest extends MySqlIntegrationTestSupport 
                 OrderId.from(orderId),
                 FurnitureInfo.of("HTTP 재접속 후 조회할 요청", "CHAIR"),
                 DeliveryRoute.of(
-                        DeliveryPoint.pickup("서울시 가상구 출발로 1", "010-0000-0001"),
-                        DeliveryPoint.destination("서울시 가상구 도착로 2", "010-0000-0002")
+                        DeliveryPoint.pickup("서울시 가상구 출발로 1", "010-0000-0001", null, null),
+                        DeliveryPoint.destination("서울시 가상구 도착로 2", "010-0000-0002", null, null)
                 ),
                 EstimatedDeliveryFee.from(10_000),
                 Instant.now()

@@ -13,6 +13,9 @@ public record OrderConfirmed(
         Long listingId,
         Long sellerId,
         int itemPrice,
-        String deliveryDongCode
+        String deliveryDongCode,
+        String pickupDongCode,
+        String pickupZipCode,
+        String deliveryZipCode
 ) {
 }

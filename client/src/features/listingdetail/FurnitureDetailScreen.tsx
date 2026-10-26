@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router';
+import { trackEvent } from '../../analytics/posthog';
+import { getPriceVariant } from '../../analytics/priceScenario';
 import { isUnauthorized, toUserMessage } from '../../api/errors';
 import { ApiError, NetworkError } from '../../api/http';
 import { favoriteRepository, furnitureRepository } from '../../api/repositories';
@@ -80,6 +82,10 @@ export function FurnitureDetailScreen() {
             .then((isFavorited) => setFavorite((current) => ({ ...current, isFavorited })))
             .catch(() => undefined);
     }, [furnitureId, load]);
+
+    useEffect(() => {
+        if (state.status === 'success') trackEvent('product_viewed', { listing_id: state.listing.id });
+    }, [state]);
 
     // 결제를 마치고 돌아오면 완료를 알리고 주문 내역으로 갈 수 있게 한다
     const paymentCompleted = (location.state as { paymentCompleted?: boolean } | null)?.paymentCompleted === true;
@@ -177,8 +183,10 @@ export function FurnitureDetailScreen() {
 }
 
 function ListingDetailBody({ listing }: { listing: FurnitureDetail }) {
+    const priceVariant = getPriceVariant();
+    const showDeliveryCosts = priceVariant === 'B';
     return (
-        <div className={styles.body}>
+        <div className={styles.body} data-price-variant={priceVariant}>
             <ListingImageCarousel imageUrls={listing.imageUrls} title={listing.title} />
             <div className={styles['spec-row']}>
                 <div className={styles['grade-card']}>
@@ -200,11 +208,15 @@ function ListingDetailBody({ listing }: { listing: FurnitureDetail }) {
                 <SectionTitle>가격 정보</SectionTitle>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                     <PriceRow amount={listing.price} isFirst label="매물 가격" />
-                    <PriceRow amount={listing.deliveryFee} label="예상 배송비" />
-                    <div className={screenStyles['total-row']}>
-                        <span className="type-title-medium-em">총 결제 예상액</span>
-                        <span className={`${screenStyles['total-row__amount']} type-headline-large-em`}>{formatWon(listing.totalPrice)}</span>
-                    </div>
+                    {showDeliveryCosts && (
+                        <>
+                            <PriceRow amount={listing.deliveryFee} label="예상 배송비" />
+                            <div className={screenStyles['total-row']}>
+                                <span className="type-title-medium-em">총 결제 예상액</span>
+                                <span className={`${screenStyles['total-row__amount']} type-headline-large-em`}>{formatWon(listing.totalPrice)}</span>
+                            </div>
+                        </>
+                    )}
                 </div>
             </section>
             <section className={styles.section}>

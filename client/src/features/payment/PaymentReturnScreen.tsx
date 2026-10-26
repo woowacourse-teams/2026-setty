@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
+import { trackEvent } from '../../analytics/posthog';
 import { ApiError, NetworkError } from '../../api/http';
 import { paymentRepository } from '../../api/repositories';
 import { routes } from '../../navigation';
@@ -56,6 +57,10 @@ export function PaymentReturnScreen({ result }: { result: 'success' | 'fail' }) 
             if (tossOrderId) void paymentRepository.fail(tossOrderId).catch(() => undefined);
             clearPendingPayment();
             const code = searchParams.get('code');
+            trackEvent('payment_failed', {
+                ...(tossOrderId ? { order_id: tossOrderId.split('_')[0] } : {}),
+                code: code ?? PAY_PROCESS_CANCELED
+            });
             // 사용자가 결제창을 직접 닫은 경우는 에러로 보여주지 않는다
             backToPayment(code === PAY_PROCESS_CANCELED ? null : searchParams.get('message') ?? '결제를 진행하지 못했습니다');
             return;
@@ -72,6 +77,7 @@ export function PaymentReturnScreen({ result }: { result: 'success' | 'fail' }) 
         confirmWithRetry(paymentKey, tossOrderId, amount)
             .then(() => {
                 clearPendingPayment();
+                trackEvent('payment_succeeded', { order_id: tossOrderId.split('_')[0] });
                 // 결제로 매물 상태가 바뀌었으므로 매물 상세를 새로 불러온다
                 if (Number.isSafeInteger(listingId) && listingId > 0) {
                     navigate(routes.furnitureDetail(listingId), { replace: true, state: { paymentCompleted: true } });
@@ -82,7 +88,10 @@ export function PaymentReturnScreen({ result }: { result: 'success' | 'fail' }) 
             .catch((error: unknown) => {
                 // 서버가 승인을 거절한 경우에만 주문을 정리한다.
                 // 응답을 받지 못한 경우는 서버에서 승인이 진행됐을 수 있어 실패 처리하면 결제와 주문이 어긋난다.
-                if (error instanceof ApiError) void paymentRepository.fail(tossOrderId).catch(() => undefined);
+                if (error instanceof ApiError) {
+                    void paymentRepository.fail(tossOrderId).catch(() => undefined);
+                    trackEvent('payment_failed', { order_id: tossOrderId.split('_')[0], code: error.code });
+                }
                 clearPendingPayment();
                 backToPayment(confirmErrorMessage(error));
             });

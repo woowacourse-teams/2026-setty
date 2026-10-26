@@ -8,6 +8,11 @@ const enableMsw = process.env.ENABLE_MSW === 'true';
 const apiProxyTarget = process.env.SETTY_API_URL ?? 'http://localhost:8080';
 // 토스페이먼츠 결제위젯 클라이언트 키. 비우면 공개 문서용 테스트 키를 쓴다.
 const tossClientKey = process.env.SETTY_TOSS_CLIENT_KEY ?? 'test_gck_docs_Ovk5rk1EwkEbP0W43n07xlzm';
+const enableSoldListingScenario = process.env.ENABLE_SOLD_LISTING_SCENARIO === 'true';
+const enablePriceScenario = process.env.SETTY_ENABLE_PRICE_SCENARIO === 'true';
+// PostHog 프로젝트 API 키(phc_…). 비어 있으면 행동 데이터를 수집하지 않는다. buildspec이 SETTY_* 변수를 빌드 해시에 포함한다.
+const posthogKey = process.env.SETTY_POSTHOG_KEY ?? '';
+const posthogHost = process.env.SETTY_POSTHOG_HOST ?? 'https://us.i.posthog.com';
 
 module.exports = (_, argv) => {
     const isProduction = argv.mode === 'production';
@@ -62,7 +67,11 @@ module.exports = (_, argv) => {
         plugins: [
             new webpack.DefinePlugin({
                 __ENABLE_MSW__: JSON.stringify(enableMsw),
-                __TOSS_CLIENT_KEY__: JSON.stringify(tossClientKey)
+                __TOSS_CLIENT_KEY__: JSON.stringify(tossClientKey),
+                __ENABLE_SOLD_LISTING_SCENARIO__: JSON.stringify(enableSoldListingScenario),
+                __ENABLE_PRICE_SCENARIO__: JSON.stringify(enablePriceScenario),
+                __POSTHOG_KEY__: JSON.stringify(posthogKey),
+                __POSTHOG_HOST__: JSON.stringify(posthogHost)
             }),
             new HtmlWebpackPlugin({
                 template: path.resolve(__dirname, 'public/index.html')

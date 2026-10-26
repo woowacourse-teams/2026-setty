@@ -3,18 +3,21 @@ package setty.deliveryfee;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import setty.deliveryfee.config.DeliveryFeeProperties;
 import setty.deliveryfee.region.DistanceTable;
 import setty.deliveryfee.region.SeoulDongs;
+import setty.deliveryfee.region.SeoulZipZones;
 import setty.global.exception.BusinessException;
 
 class DeliveryFeeServiceTest {
 
     private final DeliveryFeeService deliveryFeeService = new DeliveryFeeService(
-            new SeoulDongs(), new DistanceTable(), new DeliveryFeeProperties(10_000, 5_000, 2, 3_000, 3_000));
+            new SeoulDongs(), new DistanceTable(), new SeoulZipZones(), Optional.empty(),
+            new DeliveryFeeProperties(10_000, 5_000, 2, 3_000, 3_000));
 
     @ParameterizedTest
     @CsvSource({
@@ -85,7 +88,8 @@ class DeliveryFeeServiceTest {
     @Test
     void 거리_규칙을_바꾸면_거리_단계도_바뀐다() {
         final DeliveryFeeService fiveKilometerRule = new DeliveryFeeService(
-                new SeoulDongs(), new DistanceTable(), new DeliveryFeeProperties(10_000, 5_000, 2, 5_000, 5_000));
+                new SeoulDongs(), new DistanceTable(), new SeoulZipZones(), Optional.empty(),
+                new DeliveryFeeProperties(10_000, 5_000, 2, 5_000, 5_000));
 
         // 24,052m: 무료 5km를 넘은 19,052m를 5km 단계로 나누면 4단계
         assertThat(fiveKilometerRule.steps(100, 300, VolumeTier.SMALL)).isEqualTo(4);

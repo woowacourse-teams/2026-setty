@@ -22,6 +22,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.test.util.ReflectionTestUtils;
+import setty.address.AddressResolution;
+import setty.address.StandardAddress;
 import setty.common.DeliveryStatus;
 import setty.common.OrderCancellationRequested;
 import setty.common.OrderCancelled;
@@ -35,12 +37,14 @@ import setty.platform.listing.domain.Listing;
 import setty.platform.listing.domain.ListingCategory;
 import setty.platform.listing.repository.ListingRepository;
 import setty.platform.member.domain.Member;
+import setty.platform.member.domain.ResolvedAddress;
 import setty.platform.member.repository.MemberRepository;
 import setty.platform.order.config.PendingOrderExpirationProperties;
 import setty.platform.order.controller.dto.MyOrderResponse;
 import setty.platform.order.controller.dto.OrderCancellationResponse;
 import setty.platform.order.controller.dto.OrderCreateRequest;
 import setty.platform.order.domain.Order;
+import setty.platform.order.domain.OrderPlace;
 import setty.platform.order.domain.OrderStatus;
 import setty.platform.order.repository.OrderRepository;
 
@@ -84,8 +88,9 @@ class OrderServiceTest {
         when(buyer.getId()).thenReturn(BUYER_ID);
         when(clock.instant()).thenReturn(createdAt);
         when(pendingOrderExpirationProperties.timeout()).thenReturn(timeout);
-        when(listingService.registerPurchaseRequest(LISTING_ID, BUYER_ID, null)).thenReturn(new ListingView.PurchaseInfo(
-                LISTING_ID, SELLER_ID, "가상 책상", ListingCategory.DESK, 150_000, 10_000, 160_000));
+        when(listingService.registerPurchaseRequest(LISTING_ID, BUYER_ID, null, null)).thenReturn(new ListingView.PurchaseInfo(
+                LISTING_ID, SELLER_ID, "가상 책상", ListingCategory.DESK, 150_000, 10_000, 160_000, null, null));
+        when(memberRepository.findById(SELLER_ID)).thenReturn(Optional.of(mock(Member.class)));
         when(orderRepository.saveAndFlush(any(Order.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -94,35 +99,67 @@ class OrderServiceTest {
         assertThat(order.getDeliveryStatus()).isEqualTo(DeliveryStatus.PENDING);
         assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.PENDING);
         assertThat(order.getPendingExpiresAt()).isEqualTo(createdAt.plus(timeout));
-        verify(listingService).registerPurchaseRequest(LISTING_ID, BUYER_ID, null);
+        verify(listingService).registerPurchaseRequest(LISTING_ID, BUYER_ID, null, null);
     }
 
     @Test
-    void 결제_대기_주문에_주문_시점_배송비와_배송지를_저장한다() {
-        final Member buyer = mock(Member.class);
+    void 결제_대기_주문에_주문_시점_출발지와_배송지를_저장한다() {
+        final Member buyer = member("구매자 주소", "010-0000-0002");
         when(buyer.getId()).thenReturn(BUYER_ID);
         when(buyer.getDongCode()).thenReturn("1111053000");
-        when(buyer.getAddress()).thenReturn("구매자 주소");
-        when(buyer.getPhoneNumber()).thenReturn("010-0000-0002");
+        when(buyer.getZipCode()).thenReturn("06236");
+        when(buyer.getResolvedAddress()).thenReturn(matched("BUYER-MGMT", "06236"));
+        final Member seller = member("판매자 주소", "010-0000-0001");
+        // 판매자의 지금 우편번호가 아니라 매물 구역의 우편번호를 쓴다
+        when(seller.getResolvedAddress()).thenReturn(matched("SELLER-MGMT", "99999"));
         when(clock.instant()).thenReturn(Instant.parse("2026-09-02T05:00:00Z"));
         when(pendingOrderExpirationProperties.timeout()).thenReturn(Duration.ofMinutes(6));
-        when(listingService.registerPurchaseRequest(LISTING_ID, BUYER_ID, "1111053000")).thenReturn(new ListingView.PurchaseInfo(
-                LISTING_ID, SELLER_ID, "가상 책상", ListingCategory.DESK, 150_000, 25_000, 175_000));
+        when(listingService.registerPurchaseRequest(LISTING_ID, BUYER_ID, "1111053000", "06236")).thenReturn(new ListingView.PurchaseInfo(
+                LISTING_ID, SELLER_ID, "가상 책상", ListingCategory.DESK, 150_000, 25_000, 175_000,
+                "1111060000", "04524"));
+        when(memberRepository.findById(SELLER_ID)).thenReturn(Optional.of(seller));
         when(orderRepository.saveAndFlush(any(Order.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
         final Order order = orderService.pending(new OrderCreateRequest(LISTING_ID), buyer);
 
         assertThat(order.getDeliveryFee()).isEqualTo(25_000);
-        assertThat(order.getDeliveryDongCode()).isEqualTo("1111053000");
-        assertThat(order.getDeliveryAddress()).isEqualTo("구매자 주소");
-        assertThat(order.getDeliveryPhoneNumber()).isEqualTo("010-0000-0002");
+        assertThat(order.getPickup()).isEqualTo(
+                new OrderPlace("판매자 주소", "010-0000-0001", "1111060000", "04524", "SELLER-MGMT"));
+        assertThat(order.getDestination()).isEqualTo(
+                new OrderPlace("구매자 주소", "010-0000-0002", "1111053000", "06236", "BUYER-MGMT"));
     }
 
     @Test
-    void 주문에_저장한_배송비와_배송지로_배송요청_이벤트를_발행한다() {
-        final Order order = Order.pending(LISTING_ID, BUYER_ID, Instant.now().plusSeconds(60),
-                25_000, "1111053000", "주문 때 주소", "010-1111-2222");
+    void 표준_주소가_없는_회원도_주문하고_표준_값은_비워_둔다() {
+        final Member buyer = member("구매자 주소", "010-0000-0002");
+        when(buyer.getId()).thenReturn(BUYER_ID);
+        when(buyer.getDongCode()).thenReturn("1111053000");
+        final Member seller = member("판매자 주소", "010-0000-0001");
+        when(seller.getResolvedAddress()).thenReturn(
+                ResolvedAddress.from(new AddressResolution(AddressResolution.Status.UNMATCHED, null)));
+        when(clock.instant()).thenReturn(Instant.parse("2026-09-02T05:00:00Z"));
+        when(pendingOrderExpirationProperties.timeout()).thenReturn(Duration.ofMinutes(6));
+        when(listingService.registerPurchaseRequest(LISTING_ID, BUYER_ID, "1111053000", null)).thenReturn(new ListingView.PurchaseInfo(
+                LISTING_ID, SELLER_ID, "가상 책상", ListingCategory.DESK, 150_000, 25_000, 175_000,
+                "1111060000", null));
+        when(memberRepository.findById(SELLER_ID)).thenReturn(Optional.of(seller));
+        when(orderRepository.saveAndFlush(any(Order.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        final Order order = orderService.pending(new OrderCreateRequest(LISTING_ID), buyer);
+
+        assertThat(order.getPickup()).isEqualTo(
+                new OrderPlace("판매자 주소", "010-0000-0001", "1111060000", null, null));
+        assertThat(order.getDestination()).isEqualTo(
+                new OrderPlace("구매자 주소", "010-0000-0002", "1111053000", null, null));
+    }
+
+    @Test
+    void 주문에_저장한_출발지와_배송지로_배송요청_이벤트를_발행한다() {
+        final Order order = Order.pending(LISTING_ID, BUYER_ID, Instant.now().plusSeconds(60), 25_000,
+                new OrderPlace("주문 때 판매자 주소", "010-3333-4444", "1111060000", "04524", "SELLER-MGMT"),
+                new OrderPlace("주문 때 주소", "010-1111-2222", "1111053000", "06236", "BUYER-MGMT"));
         ReflectionTestUtils.setField(order, "id", ORDER_ID);
         final Listing listing = mock(Listing.class);
         when(listing.getId()).thenReturn(LISTING_ID);
@@ -132,25 +169,24 @@ class OrderServiceTest {
         when(listing.getCategory()).thenReturn(ListingCategory.DESK);
         when(orderRepository.findByIdForUpdate(ORDER_ID)).thenReturn(Optional.of(order));
         when(listingRepository.findById(LISTING_ID)).thenReturn(Optional.of(listing));
-        final Member seller = member("판매자 주소", "010-0000-0001");
-        // 결제 뒤 구매자가 주소를 바꿨어도 주문 때 값을 쓴다
-        final Member buyer = mock(Member.class);
-        when(memberRepository.findById(SELLER_ID)).thenReturn(Optional.of(seller));
-        when(memberRepository.findById(BUYER_ID)).thenReturn(Optional.of(buyer));
 
         orderService.publishOrderConfirmed(ORDER_ID);
 
         final ArgumentCaptor<OrderConfirmed> eventCaptor = ArgumentCaptor.forClass(OrderConfirmed.class);
         verify(eventPublisher).publishEvent(eventCaptor.capture());
         assertThat(eventCaptor.getValue()).isEqualTo(new OrderConfirmed(
-                ORDER_ID, "가상 책상", ListingCategory.DESK.name(), "판매자 주소", "주문 때 주소",
-                25_000, "010-0000-0001", "010-1111-2222", LISTING_ID, SELLER_ID, 150_000, "1111053000"));
+                ORDER_ID, "가상 책상", ListingCategory.DESK.name(), "주문 때 판매자 주소", "주문 때 주소",
+                25_000, "010-3333-4444", "010-1111-2222", LISTING_ID, SELLER_ID, 150_000,
+                "1111053000", "1111060000", "04524", "06236"));
+        // 결제 뒤 판매자·구매자가 주소를 바꿨어도 회원 정보를 읽지 않는다
+        verifyNoInteractions(memberRepository);
     }
 
     @Test
-    void 결제완료_주문으로_배송요청_이벤트를_발행한다() {
+    void 출발지_저장_전_주문은_지금_판매자_정보와_매물_동으로_배송을_요청한다() {
         final Order order = order();
         final Listing listing = listing();
+        when(listing.getDongCode()).thenReturn("1111060000");
         final Member seller = member("판매자 주소", "010-0000-0001");
         final Member buyer = member("구매자 주소", "010-0000-0002");
         when(orderRepository.findByIdForUpdate(ORDER_ID)).thenReturn(Optional.of(order));
@@ -176,6 +212,9 @@ class OrderServiceTest {
                 LISTING_ID,
                 SELLER_ID,
                 150_000,
+                null,
+                "1111060000",
+                null,
                 null
         ));
         verify(orderRepository).findByIdForUpdate(ORDER_ID);
@@ -341,7 +380,7 @@ class OrderServiceTest {
                 null
         );
         when(orderRepository.findAllByBuyerIdOrderByIdDesc(BUYER_ID)).thenReturn(List.of(order));
-        when(listingService.findSummaries(List.of(LISTING_ID), null)).thenReturn(List.of(listing));
+        when(listingService.findSummaries(List.of(LISTING_ID), null, null)).thenReturn(List.of(listing));
 
         final List<MyOrderResponse> responses = orderService.findMyOrders(BUYER_ID);
 
@@ -368,7 +407,7 @@ class OrderServiceTest {
         );
         when(orderRepository.findAllByBuyerIdOrderByIdDesc(BUYER_ID))
                 .thenReturn(List.of(nextOrder, cancelledOrder));
-        when(listingService.findSummaries(any(), any())).thenAnswer(invocation -> {
+        when(listingService.findSummaries(any(), any(), any())).thenAnswer(invocation -> {
             final List<Long> ids = invocation.getArgument(0);
             return ids.stream().map(id -> listing).toList();
         });
@@ -404,6 +443,11 @@ class OrderServiceTest {
         when(listing.getCategory()).thenReturn(ListingCategory.DESK);
         when(listing.getDeliveryFee()).thenReturn(10_000);
         return listing;
+    }
+
+    private static ResolvedAddress matched(final String managementNumber, final String zipCode) {
+        return ResolvedAddress.from(new AddressResolution(AddressResolution.Status.MATCHED,
+                new StandardAddress(managementNumber, "도로명 주소", null, zipCode, null, null, null)));
     }
 
     private static Member member(final String address, final String phoneNumber) {

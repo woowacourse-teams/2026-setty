@@ -12,6 +12,8 @@ import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import java.time.Instant;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import setty.global.exception.BusinessException;
 import setty.global.exception.ErrorCode;
 
@@ -72,12 +74,17 @@ public class Listing {
     @Column(name = "dong_code", length = 10, updatable = false)
     private String dongCode;
 
+    @JdbcTypeCode(SqlTypes.SMALLINT)
+    @Column(name = "zip_zone", updatable = false)
+    private Integer zipZone;
+
     protected Listing() {
     }
 
     private Listing(
             final Long sellerId,
             final String dongCode,
+            final Integer zipZone,
             final String title,
             final String description,
             final Integer price,
@@ -90,6 +97,7 @@ public class Listing {
         final Instant now = Instant.now();
         this.sellerId = sellerId;
         this.dongCode = dongCode;
+        this.zipZone = zipZone;
         this.title = title.trim();
         this.description = description.trim();
         this.price = price;
@@ -106,6 +114,7 @@ public class Listing {
     public static Listing create(
             final Long sellerId,
             final String dongCode,
+            final Integer zipZone,
             final String title,
             final String description,
             final Integer price,
@@ -113,7 +122,7 @@ public class Listing {
             final ConditionGrade conditionGrade,
             final Dimensions dimensions
     ) {
-        return new Listing(sellerId, dongCode, title, description, price, category, conditionGrade, dimensions);
+        return new Listing(sellerId, dongCode, zipZone, title, description, price, category, conditionGrade, dimensions);
     }
 
     public void update(
@@ -281,6 +290,10 @@ public class Listing {
 
     public String getDongCode() {
         return dongCode;
+    }
+
+    public Integer getZipZone() {
+        return zipZone;
     }
 
     public Long getSellerId() {

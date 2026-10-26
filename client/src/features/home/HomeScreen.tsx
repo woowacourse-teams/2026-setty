@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
+import { getPriceVariant } from '../../analytics/priceScenario';
 import {
     categoryLabel,
     formatRegisteredDate,
@@ -178,6 +179,8 @@ function ListingList({ home, onListingClick }: { home: HomeState; onListingClick
 }
 
 function ListingItem({ furniture, index, count, onClick }: { furniture: FurnitureSummary; index: number; count: number; onClick: () => void }) {
+    const priceVariant = getPriceVariant();
+    const showDeliveryCosts = priceVariant === 'B';
     return (
         <SegmentedListItem
             count={count}
@@ -193,13 +196,17 @@ function ListingItem({ furniture, index, count, onClick }: { furniture: Furnitur
             onClick={onClick}
             overline={[categoryLabel(furniture.category), `${furniture.conditionGrade}급`, furniture.dongName].filter(Boolean).join(' · ')}
             supporting={(
-                <>
-                    <div className={`${screenStyles['price-primary']} type-body-large-em`}>{formatWon(furniture.totalPrice)}</div>
-                    <div className="type-label-medium">배송비 {formatWon(furniture.deliveryFee)} 포함</div>
+                <div data-price-variant={priceVariant}>
+                    <div className={`${screenStyles['price-primary']} type-body-large-em`}>
+                        {formatWon(showDeliveryCosts ? furniture.totalPrice : furniture.price)}
+                    </div>
+                    {showDeliveryCosts && (
+                        <div className="type-label-medium">매물 {formatWon(furniture.price)} · 배송비 {formatWon(furniture.deliveryFee)} 포함</div>
+                    )}
                     {furniture.hasPurchaseRequest && (
                         <div className={`${screenStyles['tertiary-text']} type-label-medium`}>{PAYMENT_IN_PROGRESS_LABEL}</div>
                     )}
-                </>
+                </div>
             )}
             trailing={<span className="type-label-medium">{formatRegisteredDate(furniture.createdAt)}</span>}
         />

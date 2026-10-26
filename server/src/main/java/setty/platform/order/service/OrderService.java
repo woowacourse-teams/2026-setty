@@ -29,6 +29,7 @@ import setty.platform.order.controller.dto.MyOrderResponse;
 import setty.platform.order.controller.dto.OrderCancellationResponse;
 import setty.platform.order.controller.dto.OrderCreateRequest;
 import setty.platform.order.domain.Order;
+import setty.platform.order.domain.OrderPlace;
 import setty.platform.order.domain.OrderStatus;
 import setty.platform.order.repository.OrderRepository;
 
@@ -72,7 +73,10 @@ public class OrderService {
         }
 
         final ListingView.PurchaseInfo purchase =
-                listingService.registerPurchaseRequest(request.listingId(), buyer.getId(), buyer.getDongCode());
+                listingService.registerPurchaseRequest(
+                        request.listingId(), buyer.getId(), buyer.getDongCode(), buyer.getZipCode());
+        final Member seller = memberRepository.findById(purchase.sellerId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.INTERNAL_ERROR));
 
         try {
             return orderRepository.saveAndFlush(Order.pending(
@@ -80,13 +84,19 @@ public class OrderService {
                     buyer.getId(),
                     clock.instant().plus(pendingOrderExpirationProperties.timeout()),
                     purchase.deliveryFee(),
-                    buyer.getDongCode(),
-                    buyer.getAddress(),
-                    buyer.getPhoneNumber()
+                    new OrderPlace(seller.getAddress(), seller.getPhoneNumber(), purchase.dongCode(),
+                            purchase.zipCode(), managementNumberOf(seller)),
+                    new OrderPlace(buyer.getAddress(), buyer.getPhoneNumber(), buyer.getDongCode(),
+                            buyer.getZipCode(), managementNumberOf(buyer))
             ));
         } catch (final DataIntegrityViolationException e) {
             throw new BusinessException(ErrorCode.ALREADY_ORDERED);
         }
+    }
+
+    // 표준 주소는 해석에 성공한 회원만 값이 있다. 출발지 우편번호는 회원이 아니라 매물 구역(PurchaseInfo)에서 온다.
+    private static String managementNumberOf(final Member member) {
+        return member.getResolvedAddress() == null ? null : member.getResolvedAddress().getManagementNumber();
     }
 
     @Transactional
@@ -107,26 +117,40 @@ public class OrderService {
 
         final Listing listing = listingRepository.findById(order.getListingId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.LISTING_NOT_FOUND));
-        final Member seller = memberRepository.findById(listing.getSellerId())
-                .orElseThrow(() -> new BusinessException(ErrorCode.INTERNAL_ERROR));
-        final Member buyer = memberRepository.findById(order.getBuyerId())
-                .orElseThrow(() -> new BusinessException(ErrorCode.INTERNAL_ERROR));
-
-        // 배송지는 주문 시점 값을 쓴다(docs/policy/delivery.md). 도입 전 주문만 지금 회원 정보로 대신한다.
+        // 출발지·배송지는 주문 시점 값을 쓴다(docs/policy/delivery.md). 도입 전 주문만 지금 회원 정보로 대신한다.
+        final OrderPlace pickup = order.getPickup() != null ? order.getPickup() : currentPickup(listing);
+        final OrderPlace destination = order.getDestination() != null
+                ? order.getDestination() : currentDestination(order.getBuyerId());
         eventPublisher.publishEvent(new OrderConfirmed(
                 order.getId(),
                 listing.getTitle(),
                 listing.getCategory().name(),
-                seller.getAddress(),
-                order.getDeliveryAddress() == null ? buyer.getAddress() : order.getDeliveryAddress(),
+                pickup.address(),
+                destination.address(),
                 order.getDeliveryFee() == null ? listing.getDeliveryFee() : order.getDeliveryFee(),
-                seller.getPhoneNumber(),
-                order.getDeliveryPhoneNumber() == null ? buyer.getPhoneNumber() : order.getDeliveryPhoneNumber(),
+                pickup.phoneNumber(),
+                destination.phoneNumber(),
                 listing.getId(),
                 listing.getSellerId(),
                 listing.getPrice(),
-                order.getDeliveryDongCode()
+                destination.dongCode(),
+                pickup.dongCode(),
+                pickup.zipCode(),
+                destination.zipCode()
         ));
+    }
+
+    private OrderPlace currentPickup(final Listing listing) {
+        final Member seller = memberRepository.findById(listing.getSellerId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.INTERNAL_ERROR));
+        return new OrderPlace(seller.getAddress(), seller.getPhoneNumber(), listing.getDongCode(), null, null);
+    }
+
+    // 배송지 저장 전 주문은 행정동도 저장하지 않았으므로 지금 회원 동을 쓰지 않는다(배송비 계산에 쓴 동이 아니다).
+    private OrderPlace currentDestination(final Long buyerId) {
+        final Member buyer = memberRepository.findById(buyerId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.INTERNAL_ERROR));
+        return new OrderPlace(buyer.getAddress(), buyer.getPhoneNumber(), null, null, null);
     }
 
     @Transactional
@@ -200,7 +224,7 @@ public class OrderService {
     public List<MyOrderResponse> findMyOrders(final Long buyerId) {
         final List<Order> orders = orderRepository.findAllByBuyerIdOrderByIdDesc(buyerId);
         final List<Long> listingIds = orders.stream().map(Order::getListingId).distinct().toList();
-        final Map<Long, ListingView.Summary> listings = listingService.findSummaries(listingIds, null).stream()
+        final Map<Long, ListingView.Summary> listings = listingService.findSummaries(listingIds, null, null).stream()
                 .collect(Collectors.toMap(ListingView.Summary::id, Function.identity()));
 
         return orders.stream()
@@ -212,7 +236,7 @@ public class OrderService {
     public MyOrderResponse findMyOrder(final Long orderId, final Long buyerId) {
         final Order order = orderRepository.findByIdAndBuyerId(orderId, buyerId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
-        final ListingView.Summary listing = listingService.findSummaries(List.of(order.getListingId()), null).stream()
+        final ListingView.Summary listing = listingService.findSummaries(List.of(order.getListingId()), null, null).stream()
                 .findFirst()
                 .orElse(null);
         return MyOrderResponse.of(order, listing);

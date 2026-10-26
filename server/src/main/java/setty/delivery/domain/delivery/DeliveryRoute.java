@@ -20,6 +20,8 @@ public class DeliveryRoute {
             name = "phoneNumber.value",
             column = @Column(name = "pickup_phone_number", nullable = false, length = 30)
     )
+    @AttributeOverride(name = "dongCode", column = @Column(name = "pickup_dong_code", length = 10))
+    @AttributeOverride(name = "zipCode", column = @Column(name = "pickup_zip_code", length = 5))
     private DeliveryPoint pickup;
 
     @Embedded
@@ -31,6 +33,8 @@ public class DeliveryRoute {
             name = "phoneNumber.value",
             column = @Column(name = "delivery_phone_number", nullable = false, length = 30)
     )
+    @AttributeOverride(name = "dongCode", column = @Column(name = "delivery_dong_code", length = 10))
+    @AttributeOverride(name = "zipCode", column = @Column(name = "delivery_zip_code", length = 5))
     private DeliveryPoint destination;
 
     protected DeliveryRoute() {

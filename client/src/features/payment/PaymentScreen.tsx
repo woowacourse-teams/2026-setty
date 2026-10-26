@@ -1,6 +1,7 @@
 import { ANONYMOUS, loadTossPayments, type TossPaymentsWidgets } from '@tosspayments/tosspayments-sdk';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router';
+import { trackEvent } from '../../analytics/posthog';
 import { ApiError, NetworkError } from '../../api/http';
 import { furnitureRepository, paymentRepository } from '../../api/repositories';
 import { formatWon } from '../../model/furniture';
@@ -127,8 +128,17 @@ function PaymentContent({ listingId, orderName, amount: initialAmount, onBack }:
     const [isAgreed, setIsAgreed] = useState<boolean | null>(null);
     const [step, setStep] = useState<PaymentStep>('IDLE');
     const widgetsRef = useRef<TossPaymentsWidgets | null>(null);
+    const paymentRequested = useRef(false);
     const navigate = useNavigate();
     const canPay = isWidgetLoaded && isAgreed !== false && step === 'IDLE';
+
+    useEffect(() => {
+        trackEvent('checkout_opened', { listing_id: listingId, amount: initialAmount });
+        return () => {
+            // 뒤로 가기 등 앱 안에서 결제 화면을 떠난 경우만 기록한다. 토스 인증 이동은 이탈로 세지 않는다.
+            if (!paymentRequested.current) trackEvent('checkout_closed', { listing_id: listingId });
+        };
+    }, [listingId, initialAmount]);
 
     useEffect(() => {
         if (__ENABLE_MSW__) return;
@@ -179,6 +189,7 @@ function PaymentContent({ listingId, orderName, amount: initialAmount, onBack }:
         setAmount(totalPrice);
         setStep('REQUESTING');
         savePendingPayment({ tossOrderId, amount: totalPrice, listingId });
+        paymentRequested.current = true;
 
         if (__ENABLE_MSW__) {
             // 목 모드: 토스 결제창 없이 결제 성공으로 돌아온 것처럼 이동한다
@@ -202,6 +213,8 @@ function PaymentContent({ listingId, orderName, amount: initialAmount, onBack }:
         } catch (reason) {
             // 결제창이 failUrl로 돌아가지 않고 요청을 거절한 경우. 이미 만든 주문은 정리한다
             void paymentRepository.fail(tossOrderId).catch(() => undefined);
+            trackEvent('payment_failed', { order_id: tossOrderId.split('_')[0], code: errorCodeOf(reason) });
+            paymentRequested.current = false;
             setStep('IDLE');
             // 사용자가 결제창을 직접 닫은 경우는 에러로 보여주지 않는다
             if (errorCodeOf(reason) !== PAY_PROCESS_CANCELED) {

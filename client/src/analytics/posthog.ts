@@ -1,0 +1,78 @@
+import posthog from 'posthog-js';
+import { getPriceScenarioEventProperties } from './priceScenario';
+
+/**
+ * 사용자 행동 수집(PostHog).
+ *
+ * 빌드 환경변수 SETTY_POSTHOG_KEY가 있을 때만 초기화한다. 값이 없는 로컬·테스트 빌드에서는
+ * 아래 함수들이 모두 아무 일도 하지 않는다. 세션 리플레이는 PostHog 프로젝트 설정에서 켠다.
+ *
+ * 수집 범위: 경로 변경마다 $pageview, 자동 클릭 수집, 커스텀 이벤트 7종, 로그인 아이디 identify.
+ * MSW 모의 결제는 공통 속성 is_mock으로 구분한다. 이벤트 이름과 속성은 AnalyticsEventName 및 호출부에서 관리한다.
+ * 배송비 표시 시나리오의 실행 ID·A/B 조건·is_synthetic은 커스텀 이벤트에만 추가한다.
+ * 비밀번호·연락처·주소 같은 입력값은 리플레이에서 마스킹하고 이벤트 속성에는 넣지 않는다.
+ */
+
+const KEY_PATTERN = /^phc_[A-Za-z0-9]+$/;
+const COMMON_PROPERTIES = { is_mock: __ENABLE_MSW__ };
+
+let initialized = false;
+
+export type AnalyticsEventName =
+    | 'product_viewed'
+    | 'checkout_opened'
+    | 'checkout_closed'
+    | 'payment_succeeded'
+    | 'payment_failed'
+    | 'my_listings_viewed'
+    | 'listing_status_observed';
+
+type EventProperties = Record<string, string | number | boolean>;
+
+function getKey(): string | null {
+    const key = __POSTHOG_KEY__.trim();
+    return KEY_PATTERN.test(key) ? key : null;
+}
+
+export function initializeAnalytics() {
+    if (initialized) return true;
+    const key = getKey();
+    if (!key) return false;
+
+    posthog.init(key, {
+        api_host: __POSTHOG_HOST__,
+        autocapture: true,
+        // React Router의 history 변경마다 $pageview를 보낸다(SPA).
+        capture_pageview: 'history_change',
+        capture_pageleave: true,
+        // 익명 방문자는 사람 프로필을 만들지 않고, 로그인(identify) 후부터 사람으로 묶는다.
+        person_profiles: 'identified_only',
+        // 리플레이에서 모든 입력값을 마스킹한다.
+        session_recording: {
+            maskAllInputs: true
+        },
+        loaded: (client) => {
+            client.register(COMMON_PROPERTIES);
+        }
+    });
+    initialized = true;
+    return true;
+}
+
+export function trackEvent(name: AnalyticsEventName, properties: EventProperties = {}) {
+    if (!initializeAnalytics()) return;
+    posthog.capture(name, { ...properties, ...getPriceScenarioEventProperties() });
+}
+
+/** 로그인 성공 시 아이디로 사람을 식별한다. 같은 기기를 여러 명이 쓸 때 세션을 가르기 위해서다. */
+export function identifyUser(loginId: string) {
+    if (!initializeAnalytics()) return;
+    posthog.identify(loginId);
+}
+
+/** 로그아웃 시 식별을 끊어 다음 사용자가 이전 사람에 묶이지 않게 한다. */
+export function resetUser() {
+    if (!initialized) return;
+    posthog.reset();
+    posthog.register(COMMON_PROPERTIES);
+}

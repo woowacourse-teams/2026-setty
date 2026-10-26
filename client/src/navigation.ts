@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import { useNavigate } from 'react-router';
+import { resetUser } from './analytics/posthog';
 import { tokenStore } from './api/http';
 import { resetHomeStore } from './features/home/homeStore';
 
@@ -40,6 +41,7 @@ export function useNavigateToLogin() {
     const navigate = useNavigate();
     return useCallback(() => {
         tokenStore.clear();
+        resetUser();
         resetHomeStore();
         navigate(routes.login, { replace: true });
     }, [navigate]);

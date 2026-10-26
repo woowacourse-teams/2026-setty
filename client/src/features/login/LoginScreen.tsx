@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
+import { identifyUser } from '../../analytics/posthog';
 import { ApiError, NetworkError } from '../../api/http';
 import { userRepository } from '../../api/repositories';
 import { routes } from '../../navigation';
@@ -29,6 +30,7 @@ export function LoginScreen() {
         setIsLoading(true);
         try {
             await userRepository.login(username, password);
+            identifyUser(username);
             // 다른 계정으로 다시 로그인했을 수 있으므로 이전 홈 목록을 버린다
             resetHomeStore();
             navigate(routes.home, { replace: true });
