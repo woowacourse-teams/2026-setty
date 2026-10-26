@@ -116,4 +116,10 @@ PREFIX=setty/backup/prune-test KEEP_DAYS=0 METRIC_NAMESPACE= /opt/setty/backup/s
   - `mysql -e "DROP TABLE setty.x"`처럼 DB 이름을 붙여 실행한 DDL은 새 DB로 바꿔 재생할 수 없다. 멈출 위치 전에 있으면 복원하지 않고 알리므로, 그 DDL 직전까지 복원한 뒤 나머지는 팀과 손으로 처리한다.
   - 재생 완료 메시지 없이 끝나면 새 DB가 반쯤 채워져 있다. 그 DB를 지우고 다시 실행한다.
 
+- 서버를 통째로 잃었을 때: 새 서버에 MySQL과 이 폴더의 스크립트, 암호화 키를 설치한 뒤, 가장 최근 덤프와 S3의 binlog로 운영 DB를 끝까지 되살린다. 새 서버 모드는 대상 DB가 아직 없을 때만 운영 DB 이름을 허용한다.
+
+  ```bash
+  sudo NEW_SERVER=1 BINLOG_SOURCE=s3 /opt/setty/backup/setty-pitr-restore.sh restore setty/backup/db/daily/<파일 이름> setty latest
+  ```
+
 prod DB 자체를 백업으로 덮어쓰는 절차는 아직 검증하지 않았다. 필요하면 혼자 진행하지 말고 팀과 먼저 상의한다.

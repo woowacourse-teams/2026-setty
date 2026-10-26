@@ -12,10 +12,10 @@ SRC="$1"; TARGET_DB="$2"
 BUCKET="${BUCKET:-techcourse-project-2026}"
 KEY_FILE="${KEY_FILE:-/root/setty-backup.key}"
 WORK_DIR="${WORK_DIR:-/var/tmp/setty-backup}"
-PROTECTED_DB="${PROTECTED_DB:-setty}"
+PROTECTED_DB="${PROTECTED_DB-setty}"
 ADMIN_DEFAULTS_FILE="${ADMIN_DEFAULTS_FILE:-}"
 
-if [ "$TARGET_DB" = "$PROTECTED_DB" ]; then
+if [ -n "$PROTECTED_DB" ] && [ "$TARGET_DB" = "$PROTECTED_DB" ]; then
   echo "운영 DB($PROTECTED_DB)에는 복원하지 않습니다. 새 DB 이름을 지정하세요." >&2
   exit 1
 fi

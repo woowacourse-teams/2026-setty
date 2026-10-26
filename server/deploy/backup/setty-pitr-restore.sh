@@ -3,19 +3,29 @@
 # 사용: sudo /opt/setty/backup/setty-pitr-restore.sh events  <덤프 s3 key 또는 파일>
 #       sudo /opt/setty/backup/setty-pitr-restore.sh restore <덤프 s3 key 또는 파일> <새 DB 이름> <binlog 파일> <위치>
 # events로 덤프 이후 setty DB의 삭제·수정·DDL을 보고, 되돌릴 묶음의 파일과 위치를 restore에 넣는다.
+#       sudo /opt/setty/backup/setty-pitr-restore.sh restore <덤프 s3 key 또는 파일> <새 DB 이름> latest
 # binlog는 서버 디스크에서 읽는다. 서버를 잃었을 때는 BINLOG_SOURCE=s3 로 S3에 올라간 binlog를 쓴다.
+# 새 서버에서는 NEW_SERVER=1 BINLOG_SOURCE=s3 로, 아직 없는 운영 DB 이름에 바로 복원할 수 있다. latest는 끝까지 재생한다.
 set -euo pipefail
 
 usage() {
   echo "사용: $0 events <덤프>" >&2
   echo "      $0 restore <덤프> <새 DB 이름> <binlog 파일> <위치>" >&2
+  echo "      $0 restore <덤프> <새 DB 이름> latest" >&2
   exit 2
 }
 [ "$#" -ge 2 ] || usage
 MODE="$1"; DUMP="$2"
 case "$MODE" in
   events) [ "$#" -eq 2 ] || usage ;;
-  restore) [ "$#" -eq 5 ] || usage; TARGET_DB="$3"; STOP_FILE="$4"; STOP_POS="$5" ;;
+  restore)
+    if [ "$#" -eq 4 ] && [ "$4" = "latest" ]; then
+      TARGET_DB="$3"; STOP_FILE=""; STOP_POS=""
+    elif [ "$#" -eq 5 ]; then
+      TARGET_DB="$3"; STOP_FILE="$4"; STOP_POS="$5"
+    else
+      usage
+    fi ;;
   *) usage ;;
 esac
 
@@ -27,15 +37,22 @@ BINLOG_SOURCE="${BINLOG_SOURCE:-local}"
 BINLOG_PREFIX="${BINLOG_PREFIX:-setty/backup/db/binlog}"
 RESTORE_SCRIPT="${RESTORE_SCRIPT:-$(dirname "$0")/setty-restore.sh}"
 ADMIN_DEFAULTS_FILE="${ADMIN_DEFAULTS_FILE:-}"
+NEW_SERVER="${NEW_SERVER:-0}"
 
 export TZ=Asia/Seoul
 if [ "$MODE" = "restore" ]; then
-  if [ "$TARGET_DB" = "$SOURCE_DB" ]; then
+  if [ "$TARGET_DB" = "$SOURCE_DB" ] && [ "$NEW_SERVER" != "1" ]; then
     echo "운영 DB($SOURCE_DB)에는 복원하지 않습니다. 새 DB 이름을 지정하세요." >&2
     exit 1
   fi
+  if [ "$NEW_SERVER" = "1" ] && [ "$BINLOG_SOURCE" != "s3" ]; then
+    echo "새 서버 모드는 S3의 binlog로만 복원합니다. BINLOG_SOURCE=s3 를 함께 주세요." >&2
+    exit 1
+  fi
   [[ "$TARGET_DB" =~ ^[A-Za-z0-9_]+$ ]] || { echo "DB 이름에는 영문, 숫자, _만 씁니다." >&2; exit 1; }
-  [[ "$STOP_POS" =~ ^[0-9]+$ ]] || { echo "위치는 숫자입니다." >&2; exit 1; }
+  if [ -n "$STOP_FILE" ]; then
+    [[ "$STOP_POS" =~ ^[0-9]+$ ]] || { echo "위치는 숫자입니다." >&2; exit 1; }
+  fi
 fi
 
 mkdir -p "$WORK_DIR"; chmod 700 "$WORK_DIR"
@@ -142,9 +159,9 @@ fi
 replay=()
 for name in "${FILES[@]}"; do
   replay+=("$name")
-  [ "$name" = "$STOP_FILE" ] && break
+  [ -n "$STOP_FILE" ] && [ "$name" = "$STOP_FILE" ] && break
 done
-if [ "${replay[-1]}" != "$STOP_FILE" ]; then
+if [ -n "$STOP_FILE" ] && [ "${replay[-1]}" != "$STOP_FILE" ]; then
   echo "멈출 binlog($STOP_FILE)가 덤프 이후 binlog 목록에 없습니다." >&2
   exit 1
 fi
@@ -167,14 +184,25 @@ if [ -z "$ADMIN_DEFAULTS_FILE" ]; then
   ADMIN_DEFAULTS_FILE="$ADMIN_CNF"
 fi
 
-ADMIN_DEFAULTS_FILE="$ADMIN_DEFAULTS_FILE" KEY_FILE="$KEY_FILE" PROTECTED_DB="$SOURCE_DB" WORK_DIR="$WORK_DIR" \
+if [ -n "$(mysql --defaults-file="$ADMIN_DEFAULTS_FILE" -N -e "SHOW DATABASES LIKE '$TARGET_DB'")" ]; then
+  echo "$TARGET_DB 가 이미 있습니다. 없는 DB 이름을 지정하세요." >&2
+  exit 1
+fi
+protected="$SOURCE_DB"; [ "$NEW_SERVER" = "1" ] && protected=""
+ADMIN_DEFAULTS_FILE="$ADMIN_DEFAULTS_FILE" KEY_FILE="$KEY_FILE" PROTECTED_DB="$protected" WORK_DIR="$WORK_DIR" \
   "$RESTORE_SCRIPT" "$LOCAL_DUMP" "$TARGET_DB"
 
+stop_opts=(); [ -n "$STOP_FILE" ] && stop_opts=(--stop-position="$STOP_POS")
 start=$(date +%s)
-mysqlbinlog --start-position="$START_POS" --stop-position="$STOP_POS" \
+mysqlbinlog --start-position="$START_POS" "${stop_opts[@]}" \
   --rewrite-db="$SOURCE_DB->$TARGET_DB" --database="$TARGET_DB" "${replay[@]/#/$BINLOG_DIR/}" \
 | mysql --defaults-file="$ADMIN_DEFAULTS_FILE" --init-command="SET sql_log_bin=0"
 end=$(date +%s)
-printf 'binlog 재생 완료: %s %s → %s %s 직전 (파일 %s개, %s초)\n' \
-  "$START_FILE" "$START_POS" "$STOP_FILE" "$STOP_POS" "${#replay[@]}" "$((end-start))"
-echo "운영 DB($SOURCE_DB)는 바꾸지 않았습니다. $TARGET_DB 를 확인한 뒤 전환 방법은 팀과 정합니다."
+stop_desc="${STOP_FILE:+$STOP_FILE $STOP_POS 직전}"
+printf 'binlog 재생 완료: %s %s → %s (파일 %s개, %s초)\n' \
+  "$START_FILE" "$START_POS" "${stop_desc:-끝까지}" "${#replay[@]}" "$((end-start))"
+if [ "$NEW_SERVER" = "1" ]; then
+  echo "새 서버에 $TARGET_DB 를 되살렸습니다. 확인한 뒤 앱을 연결하세요."
+else
+  echo "운영 DB($SOURCE_DB)는 바꾸지 않았습니다. $TARGET_DB 를 확인한 뒤 전환 방법은 팀과 정합니다."
+fi
