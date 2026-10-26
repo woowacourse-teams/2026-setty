@@ -41,7 +41,7 @@ public class ListingController {
             @Valid @RequestPart("request") CreateListingRequest request,
             @RequestPart(value = "images", required = false) List<MultipartFile> images
     ) {
-        ListingView.Created created = listingService.create(member.getId(), member.getDongCode(), new ListingCreateCommand(
+        ListingView.Created created = listingService.create(member.getId(), member.getDongCode(), member.getZipCode(), new ListingCreateCommand(
                 request.title(),
                 request.description(),
                 request.price(),

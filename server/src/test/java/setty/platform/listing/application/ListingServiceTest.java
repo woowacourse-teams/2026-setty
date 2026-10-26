@@ -21,6 +21,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.transaction.CannotCreateTransactionException;
+import setty.deliveryfee.DeliveryFeeService;
 import setty.global.exception.BusinessException;
 import setty.global.exception.ErrorCode;
 import setty.platform.listing.domain.ConditionGrade;
@@ -53,6 +54,9 @@ class ListingServiceTest {
     @Mock
     private OrderRepository orderRepository;
 
+    @Mock
+    private DeliveryFeeService deliveryFeeService;
+
     @InjectMocks
     private ListingService listingService;
 
@@ -61,6 +65,7 @@ class ListingServiceTest {
         final Listing listing = Listing.create(
                 201L,
                 "1111053000",
+                null,
                 "가상 책상",
                 "테스트용 가상 매물입니다.",
                 100_000,
@@ -81,10 +86,10 @@ class ListingServiceTest {
     void 등록_저장이_실패하면_올린_사진을_지운다() {
         final List<String> uploaded = List.of("setty/images/listings/uploaded.jpg");
         when(listingImageStorage.upload(anyList())).thenReturn(uploaded);
-        when(listingRecorder.create(anyLong(), anyString(), any(), eq(uploaded)))
+        when(listingRecorder.create(anyLong(), anyString(), any(), any(), eq(uploaded)))
                 .thenThrow(new CannotCreateTransactionException("커넥션을 얻지 못함"));
 
-        assertThatThrownBy(() -> listingService.create(SELLER_ID, "1111053000", createCommand()))
+        assertThatThrownBy(() -> listingService.create(SELLER_ID, "1111053000", null, createCommand()))
                 .isInstanceOf(CannotCreateTransactionException.class);
 
         verify(listingImageStorage).deleteAll(uploaded);
@@ -149,7 +154,7 @@ class ListingServiceTest {
 
     private Listing listingWithPurchaseRequest() {
         final Listing listing = Listing.create(
-                SELLER_ID, "1111053000", "가상 책상", "테스트용 가상 매물입니다.", 100_000, ListingCategory.DESK, ConditionGrade.A,
+                SELLER_ID, "1111053000", null, "가상 책상", "테스트용 가상 매물입니다.", 100_000, ListingCategory.DESK, ConditionGrade.A,
                 Dimensions.of(100, 50, 40));
         listing.registerPurchaseRequest();
         return listing;

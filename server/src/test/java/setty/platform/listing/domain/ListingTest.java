@@ -20,6 +20,7 @@ class ListingTest {
         Listing listing = Listing.create(
                 SELLER_ID,
                 "1111053000",
+                null,
                 "  원목 의자  ",
                 "  가상 판매용 설명입니다.  ",
                 40_000,
@@ -53,6 +54,7 @@ class ListingTest {
                 () -> Listing.create(
                         null,
                         "1111053000",
+                        null,
                         "원목 의자",
                         "가상 판매용 설명입니다.",
                         40_000,
@@ -66,6 +68,7 @@ class ListingTest {
                 () -> Listing.create(
                         SELLER_ID,
                         "1111053000",
+                        null,
                         "   ",
                         "가상 판매용 설명입니다.",
                         40_000,
@@ -79,6 +82,7 @@ class ListingTest {
                 () -> Listing.create(
                         SELLER_ID,
                         "1111053000",
+                        null,
                         "원목 의자",
                         "가상 판매용 설명입니다.",
                         -1,
@@ -247,6 +251,7 @@ class ListingTest {
         return Listing.create(
                 SELLER_ID,
                 "1111053000",
+                null,
                 "원목 의자",
                 "가상 판매용 설명입니다.",
                 40_000,

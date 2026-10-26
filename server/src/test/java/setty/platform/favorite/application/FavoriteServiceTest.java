@@ -92,7 +92,7 @@ class FavoriteServiceTest extends MySqlIntegrationTestSupport {
         favoriteService.add(MEMBER_ID, SECOND_LISTING_ID);
         jdbcTemplate.update("UPDATE listings SET deleted_at = NOW(6) WHERE id = ?", FIRST_LISTING_ID);
 
-        List<ListingView.Summary> summaries = favoriteService.findMine(MEMBER_ID, null);
+        List<ListingView.Summary> summaries = favoriteService.findMine(MEMBER_ID, null, null);
 
         assertThat(summaries)
                 .extracting(ListingView.Summary::id)
@@ -104,7 +104,7 @@ class FavoriteServiceTest extends MySqlIntegrationTestSupport {
         favoriteService.add(MEMBER_ID, FIRST_LISTING_ID);
         favoriteService.add(MEMBER_ID, SECOND_LISTING_ID);
 
-        List<ListingView.Summary> summaries = favoriteService.findMine(MEMBER_ID, null);
+        List<ListingView.Summary> summaries = favoriteService.findMine(MEMBER_ID, null, null);
 
         assertThat(summaries)
                 .extracting(ListingView.Summary::id)

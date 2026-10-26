@@ -4,6 +4,6 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
-@EnableConfigurationProperties(DeliveryFeeProperties.class)
+@EnableConfigurationProperties({DeliveryFeeProperties.class, ZipTableProperties.class})
 public class DeliveryFeeConfiguration {
 }
