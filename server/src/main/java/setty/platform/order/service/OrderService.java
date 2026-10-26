@@ -4,6 +4,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -65,11 +66,26 @@ public class OrderService {
     }
 
     // 결제 대기 주문 생성 — 결제 전이므로 OrderConfirmed(배차 요청)를 발행하지 않는다.
+    // 같은 구매자가 결제창을 닫고 다시 결제하면 새 주문 대신 만료 전 결제 대기 주문을 같은 만료 시각으로 돌려준다.
     @Transactional
     public Order pending(final OrderCreateRequest request, final Member buyer) {
+        final Instant now = clock.instant();
+        final Optional<Order> payable =
+                orderRepository.findPayableByListingIdAndBuyerId(request.listingId(), buyer.getId(), now);
+        if (payable.isPresent()) {
+            return payable.get();
+        }
+        // 잠금 없이 먼저 거절해, 만료 배치가 매물을 잠그고 있는 동안 같은 매물의 주문이 잠금을 기다리지 않게 한다.
         if (orderRepository.existsByListingIdAndOrderStatusNotIn(
                 request.listingId(), List.of(OrderStatus.EXPIRED, OrderStatus.CANCELLED))) {
             throw new BusinessException(ErrorCode.ALREADY_ORDERED);
+        }
+        // 매물 행을 잠가 같은 매물의 주문 시도를 직렬화하고, 잠금을 기다리는 사이 같은 구매자가 만든 주문이 있으면 그것을 돌려준다.
+        listingRepository.findActiveByIdForUpdate(request.listingId());
+        final Optional<Order> createdWhileWaiting =
+                orderRepository.findPayableByListingIdAndBuyerIdForUpdate(request.listingId(), buyer.getId(), now);
+        if (createdWhileWaiting.isPresent()) {
+            return createdWhileWaiting.get();
         }
 
         final ListingView.PurchaseInfo purchase =
@@ -82,7 +98,7 @@ public class OrderService {
             return orderRepository.saveAndFlush(Order.pending(
                     request.listingId(),
                     buyer.getId(),
-                    clock.instant().plus(pendingOrderExpirationProperties.timeout()),
+                    now.plus(pendingOrderExpirationProperties.timeout()),
                     purchase.deliveryFee(),
                     new OrderPlace(seller.getAddress(), seller.getPhoneNumber(), purchase.dongCode(),
                             purchase.zipCode(), managementNumberOf(seller)),

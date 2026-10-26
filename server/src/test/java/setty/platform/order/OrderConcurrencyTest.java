@@ -21,6 +21,7 @@ import setty.platform.listing.storage.ListingImageStorage;
 import setty.platform.member.domain.Member;
 import setty.platform.member.repository.MemberRepository;
 import setty.platform.order.controller.dto.OrderCreateRequest;
+import setty.platform.order.domain.Order;
 import setty.platform.order.service.OrderService;
 import setty.support.MySqlIntegrationTestSupport;
 
@@ -108,6 +109,44 @@ class OrderConcurrencyTest extends MySqlIntegrationTestSupport {
                 .isInstanceOf(BusinessException.class)
                 .extracting(e -> ((BusinessException) e).getErrorCode())
                 .isEqualTo(ErrorCode.ALREADY_ORDERED);
+
+        final Integer orderCount = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM orders WHERE listing_id = ?", Integer.class, LISTING_ID);
+        assertThat(orderCount).isEqualTo(1);
+    }
+
+    @Test
+    void 같은_구매자가_동시에_주문하면_같은_결제_대기_주문_하나를_받는다() throws InterruptedException {
+        final Member buyer = memberRepository.findById(FIRST_BUYER_ID).orElseThrow();
+
+        final CountDownLatch ready = new CountDownLatch(2);
+        final CountDownLatch start = new CountDownLatch(1);
+        final CountDownLatch done = new CountDownLatch(2);
+        final List<Object> results = new CopyOnWriteArrayList<>();
+
+        final ExecutorService executor = Executors.newFixedThreadPool(2);
+        for (int attempt = 0; attempt < 2; attempt++) {
+            executor.submit(() -> {
+                ready.countDown();
+                try {
+                    start.await();
+                    results.add(orderService.pending(new OrderCreateRequest(LISTING_ID), buyer));
+                } catch (final Exception e) {
+                    results.add(e);
+                } finally {
+                    done.countDown();
+                }
+            });
+        }
+
+        ready.await();
+        start.countDown();
+        final boolean finished = done.await(10, TimeUnit.SECONDS);
+        executor.shutdownNow();
+
+        assertThat(finished).isTrue();
+        assertThat(results).hasSize(2).allSatisfy(result -> assertThat(result).isInstanceOf(Order.class));
+        assertThat(results.stream().map(result -> ((Order) result).getId()).distinct()).hasSize(1);
 
         final Integer orderCount = jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM orders WHERE listing_id = ?", Integer.class, LISTING_ID);
