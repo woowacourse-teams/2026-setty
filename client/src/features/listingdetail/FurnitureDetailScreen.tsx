@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useLocation, useNavigate, useParams } from 'react-router';
+import { useNavigate, useParams } from 'react-router';
 import { trackEvent } from '../../analytics/posthog';
 import { getPriceVariant } from '../../analytics/priceScenario';
 import { isUnauthorized, toUserMessage } from '../../api/errors';
@@ -73,7 +73,6 @@ export function FurnitureDetailScreen() {
     const { listingId } = useParams();
     const furnitureId = Number(listingId);
     const navigate = useNavigate();
-    const location = useLocation();
     const navigateBack = useNavigateBack();
     const navigateToLogin = useNavigateToLogin();
     const [state, setState] = useState<DetailState>({ status: 'loading' });
@@ -99,14 +98,6 @@ export function FurnitureDetailScreen() {
     useEffect(() => {
         if (state.status === 'success') trackEvent('product_viewed', { listing_id: state.listing.id });
     }, [state]);
-
-    // 결제를 마치고 돌아오면 완료를 알리고 주문 내역으로 갈 수 있게 한다
-    const paymentCompleted = (location.state as { paymentCompleted?: boolean } | null)?.paymentCompleted === true;
-    useEffect(() => {
-        if (!paymentCompleted) return;
-        navigate(location.pathname, { replace: true, state: null });
-        showSnackbar('결제가 완료되었습니다', { actionLabel: '주문 내역', onAction: () => navigate(routes.orders), long: true });
-    }, [paymentCompleted, location.pathname, navigate]);
 
     const toggleFavorite = async () => {
         const { isFavorited, isUpdating } = favoriteRef.current;

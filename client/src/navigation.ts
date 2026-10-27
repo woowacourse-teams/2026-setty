@@ -17,7 +17,8 @@ export const routes = {
     favorites: '/me/favorites',
     orders: '/me/orders',
     orderDetail: (orderId: number) => `/me/orders/${orderId}`,
-    payment: (listingId: number) => `/payment?listingId=${listingId}`
+    payment: (listingId: number) => `/payment?listingId=${listingId}`,
+    paymentComplete: '/payment/complete'
 } as const;
 
 /**

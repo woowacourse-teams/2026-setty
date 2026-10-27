@@ -301,8 +301,12 @@ export const paymentRepository = {
     },
 
     /** 토스 결제 성공 결과로 서버 승인을 요청한다. 이미 승인된 주문이면 서버가 기존 결과를 돌려준다(멱등). */
-    async confirm(paymentKey: string, tossOrderId: string, amount: number) {
-        await apiCall('/api/payments/confirm', { method: 'POST', body: { paymentKey, orderId: tossOrderId, amount } });
+    async confirm(paymentKey: string, tossOrderId: string, amount: number): Promise<{ orderId: number; amount: number }> {
+        const response = await apiCall<{ orderId: number; status: string; amount: number }>(
+            '/api/payments/confirm',
+            { method: 'POST', body: { paymentKey, orderId: tossOrderId, amount } }
+        );
+        return { orderId: response.orderId, amount: response.amount };
     },
 
     /** 결제 실패·취소를 알려 PENDING 주문을 정리(매물 선점 해제)한다. */

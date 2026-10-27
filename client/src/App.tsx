@@ -10,6 +10,7 @@ import { MyListingsScreen } from './features/mylistings/MyListingsScreen';
 import { MyPageScreen } from './features/mypage/MyPageScreen';
 import { OrderDetailScreen } from './features/orders/OrderDetailScreen';
 import { OrdersScreen } from './features/orders/OrdersScreen';
+import { PaymentCompleteScreen } from './features/payment/PaymentCompleteScreen';
 import { PaymentReturnScreen } from './features/payment/PaymentReturnScreen';
 import { PaymentScreen } from './features/payment/PaymentScreen';
 import { ProfileEditScreen } from './features/profile/ProfileEditScreen';
@@ -57,6 +58,7 @@ export const router = createBrowserRouter([
             { path: '/payment', element: <RequireLogin><PaymentScreen /></RequireLogin> },
             { path: '/payment/success', element: <RequireLogin><PaymentReturnScreen result="success" /></RequireLogin> },
             { path: '/payment/fail', element: <RequireLogin><PaymentReturnScreen result="fail" /></RequireLogin> },
+            { path: routes.paymentComplete, element: <RequireLogin><PaymentCompleteScreen /></RequireLogin> },
             { path: '*', element: <Navigate replace to={routes.home} /> }
         ]
     }
