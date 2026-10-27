@@ -17,6 +17,7 @@ import { deliveryStatusOf, orderStatusOrNull, type Order, type OrderStatus, type
 import { apiCall, tokenStore } from './http';
 import type {
     AboutMeResponse,
+    DeviceTokenRequest,
     DongResponse,
     FurnitureDetailResponse,
     FurnitureSummaryResponse,
@@ -377,5 +378,17 @@ export const notificationRepository = {
     /** 알림을 열어 봤다고 서버에 알린다. 이미 확인한 알림이어도 에러가 아니다. */
     async ack(notificationId: number) {
         await apiCall(`/api/me/notifications/${notificationId}/ack`, { method: 'POST' });
+    }
+};
+
+export const deviceTokenRepository = {
+    /** 브라우저가 받은 FCM 토큰을 내 기기로 등록한다. 같은 토큰을 다시 올리면 서버가 갱신만 한다. */
+    async register(token: string) {
+        const body: DeviceTokenRequest = { token, platform: 'WEB' };
+        await apiCall('/api/me/device-token', { method: 'PUT', body });
+    },
+
+    async unregister(token: string) {
+        await apiCall('/api/me/device-token', { method: 'DELETE', body: { token } });
     }
 };

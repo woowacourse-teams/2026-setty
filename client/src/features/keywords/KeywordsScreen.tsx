@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { isUnauthorized, toUserMessage } from '../../api/errors';
 import { keywordRepository } from '../../api/repositories';
 import { conditionsSummary, hasConditions, KEYWORD_MAX_LENGTH, MAX_KEYWORDS, type Keyword } from '../../model/keyword';
 import { routes, useNavigateBack, useNavigateToLogin } from '../../navigation';
+import { enablePush, getPushState, type PushState } from '../../push/webPush';
 import {
+    AlertDialog,
     BackIconButton,
     Button,
     ErrorContent,
@@ -18,6 +20,7 @@ import {
     SettyMessage,
     TextField
 } from '../../ui/components';
+import { Icon } from '../../ui/Icon';
 import { showSnackbar } from '../../ui/snackbar';
 import { useLoad } from '../useLoad';
 import screenStyles from '../screens.module.css';
@@ -85,6 +88,7 @@ export function KeywordsScreen() {
             {state.status === 'success' && (
                 <PullToRefresh isRefreshing={isRefreshing} onRefresh={refresh}>
                     <div className={screenStyles['list-padding']}>
+                        <PushToggle />
                         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 16 }}>
                             <TextField
                                 enterKeyHint="done"
@@ -128,5 +132,67 @@ export function KeywordsScreen() {
                 </PullToRefresh>
             )}
         </Scaffold>
+    );
+}
+
+/** 브라우저 알림 켜기. 설정값이 없거나 지원하지 않는 브라우저면 아무것도 보여주지 않는다. */
+function PushToggle() {
+    const [pushState, setPushState] = useState<PushState>('unsupported');
+    const [isEnabling, setIsEnabling] = useState(false);
+    const [isIosGuideVisible, setIsIosGuideVisible] = useState(false);
+    const navigateToLogin = useNavigateToLogin();
+
+    useEffect(() => {
+        void getPushState().then(setPushState);
+    }, []);
+
+    const enable = async () => {
+        if (pushState === 'ios-needs-install') {
+            setIsIosGuideVisible(true);
+            return;
+        }
+        setIsEnabling(true);
+        try {
+            const result = await enablePush();
+            setPushState(result);
+            if (result === 'granted') showSnackbar('브라우저 알림을 켰어요');
+        } catch (error) {
+            if (isUnauthorized(error)) {
+                navigateToLogin();
+            } else {
+                showSnackbar(toUserMessage(error, '알림을 켜지 못했어요'));
+            }
+        } finally {
+            setIsEnabling(false);
+        }
+    };
+
+    if (pushState === 'unsupported') return null;
+    return (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+            {pushState === 'granted' && (
+                <span className="type-label-large" style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'var(--primary)' }}>
+                    <Icon name="notifications" size={18} />브라우저 알림 켜짐
+                </span>
+            )}
+            {pushState === 'denied' && (
+                <span className="type-label-medium" style={{ color: 'var(--on-surface-variant)' }}>
+                    브라우저 설정에서 알림이 차단돼 있어요
+                </span>
+            )}
+            {(pushState === 'default' || pushState === 'ios-needs-install') && (
+                <Button disabled={isEnabling} onClick={() => void enable()} variant="tonal">브라우저 알림 받기</Button>
+            )}
+            {isIosGuideVisible && (
+                <AlertDialog
+                    confirmLabel="확인"
+                    dismissLabel="닫기"
+                    onConfirm={() => setIsIosGuideVisible(false)}
+                    onDismiss={() => setIsIosGuideVisible(false)}
+                    text="사파리 공유 버튼 → 홈 화면에 추가 → 추가된 세티를 열고 다시 눌러 주세요."
+                    title="홈 화면에 추가한 뒤 켤 수 있어요"
+                />
+            )}
+        </div>
     );
 }

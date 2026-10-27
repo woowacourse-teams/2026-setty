@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router';
+import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { trackEvent } from '../../analytics/posthog';
 import { getPriceVariant } from '../../analytics/priceScenario';
 import { isUnauthorized, toUserMessage } from '../../api/errors';
 import { ApiError, NetworkError } from '../../api/http';
-import { favoriteRepository, furnitureRepository } from '../../api/repositories';
+import { favoriteRepository, furnitureRepository, notificationRepository } from '../../api/repositories';
 import {
     canResumePayment,
     categoryLabel,
@@ -75,8 +75,19 @@ export function FurnitureDetailScreen() {
     const navigate = useNavigate();
     const navigateBack = useNavigateBack();
     const navigateToLogin = useNavigateToLogin();
+    const [searchParams, setSearchParams] = useSearchParams();
     const [state, setState] = useState<DetailState>({ status: 'loading' });
     const [favorite, setFavorite] = useState<FavoriteState>({ isFavorited: null, isUpdating: false });
+
+    // 푸시 알림을 눌러 들어오면 주소의 notificationId로 확인 처리하고 주소에서 지운다
+    useEffect(() => {
+        const notificationId = Number(searchParams.get('notificationId'));
+        if (!searchParams.has('notificationId')) return;
+        if (Number.isSafeInteger(notificationId)) void notificationRepository.ack(notificationId).catch(() => undefined);
+        const next = new URLSearchParams(searchParams);
+        next.delete('notificationId');
+        setSearchParams(next, { replace: true });
+    }, [searchParams, setSearchParams]);
     const favoriteRef = useRef(favorite);
     favoriteRef.current = favorite;
 

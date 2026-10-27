@@ -13,12 +13,28 @@ const enablePriceScenario = process.env.SETTY_ENABLE_PRICE_SCENARIO === 'true';
 // PostHog 프로젝트 API 키(phc_…). 비어 있으면 행동 데이터를 수집하지 않는다. buildspec이 SETTY_* 변수를 빌드 해시에 포함한다.
 const posthogKey = process.env.SETTY_POSTHOG_KEY ?? '';
 const posthogHost = process.env.SETTY_POSTHOG_HOST ?? 'https://us.i.posthog.com';
+// Firebase 웹 앱 설정(공개값)과 웹 푸시 VAPID 공개키. 넷 중 하나라도 비면 푸시 기능을 숨긴다.
+const firebaseConfig = ['SETTY_FIREBASE_API_KEY', 'SETTY_FIREBASE_PROJECT_ID', 'SETTY_FIREBASE_MESSAGING_SENDER_ID', 'SETTY_FIREBASE_APP_ID']
+    .every((name) => process.env[name])
+    ? {
+        apiKey: process.env.SETTY_FIREBASE_API_KEY,
+        projectId: process.env.SETTY_FIREBASE_PROJECT_ID,
+        messagingSenderId: process.env.SETTY_FIREBASE_MESSAGING_SENDER_ID,
+        appId: process.env.SETTY_FIREBASE_APP_ID
+    }
+    : null;
+const firebaseVapidKey = process.env.SETTY_FIREBASE_VAPID_KEY ?? '';
+const SERVICE_WORKER_ENTRY = 'firebase-messaging-sw';
 
 module.exports = (_, argv) => {
     const isProduction = argv.mode === 'production';
 
     return {
-        entry: './src/main.tsx',
+        // 서비스 워커는 두 번째 엔트리로 루트에 해시 없이 내보낸다. 브라우저가 고정 주소로 등록하기 때문이다.
+        entry: {
+            main: './src/main.tsx',
+            [SERVICE_WORKER_ENTRY]: './src/firebase-messaging-sw.js'
+        },
         cache: isProduction
             ? {
                 type: 'filesystem',
@@ -71,9 +87,12 @@ module.exports = (_, argv) => {
                 __ENABLE_SOLD_LISTING_SCENARIO__: JSON.stringify(enableSoldListingScenario),
                 __ENABLE_PRICE_SCENARIO__: JSON.stringify(enablePriceScenario),
                 __POSTHOG_KEY__: JSON.stringify(posthogKey),
-                __POSTHOG_HOST__: JSON.stringify(posthogHost)
+                __POSTHOG_HOST__: JSON.stringify(posthogHost),
+                __FIREBASE_CONFIG__: JSON.stringify(firebaseConfig),
+                __FIREBASE_VAPID_KEY__: JSON.stringify(firebaseVapidKey)
             }),
             new HtmlWebpackPlugin({
+                chunks: ['main'],
                 template: path.resolve(__dirname, 'public/index.html')
             }),
             new CopyWebpackPlugin({
@@ -106,7 +125,9 @@ module.exports = (_, argv) => {
                 ]
         },
         output: {
-            filename: isProduction ? 'assets/js/[name].[contenthash:8].js' : 'bundle.js',
+            filename: (pathData) => pathData.chunk.name === SERVICE_WORKER_ENTRY
+                ? `${SERVICE_WORKER_ENTRY}.js`
+                : (isProduction ? 'assets/js/[name].[contenthash:8].js' : 'bundle.js'),
             chunkFilename: isProduction ? 'assets/js/[name].[contenthash:8].js' : '[name].bundle.js',
             path: path.resolve(__dirname, 'dist'),
             publicPath: '/',

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router';
 import { userRepository } from '../../api/repositories';
 import type { Member } from '../../model/member';
 import { routes, useNavigateBack, useNavigateToLogin } from '../../navigation';
+import { clearPushToken } from '../../push/webPush';
 import {
     AlertDialog,
     BackIconButton,
@@ -38,6 +39,7 @@ export function MyPageScreen() {
     const logout = async () => {
         if (isLoggingOut) return;
         setIsLoggingOut(true);
+        await clearPushToken();
         await userRepository.logout();
         navigateToLogin();
     };
