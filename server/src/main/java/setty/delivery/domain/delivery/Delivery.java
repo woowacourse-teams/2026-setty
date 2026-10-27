@@ -110,6 +110,13 @@ public class Delivery {
         status = DeliveryStatus.PICKED_UP;
     }
 
+    public void cancelAssignment(final DriverId driverId) {
+        ensureStatus(DeliveryStatus.ACCEPTED);
+        ensureAssignedDriver(driverId);
+        assignment = null;
+        status = DeliveryStatus.REQUESTED;
+    }
+
     public void complete(final DriverId driverId, final Instant deliveredAt) {
         ensureStatus(DeliveryStatus.PICKED_UP);
         ensureAssignedDriver(driverId);

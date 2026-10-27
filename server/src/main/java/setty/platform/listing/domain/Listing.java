@@ -156,8 +156,13 @@ public class Listing {
         touch();
     }
 
-    // 결제 실패로 주문이 취소될 때 선점을 되돌린다. 멱등 — 이미 해제돼 있어도 예외 없이 통과한다.
+    // 주문이 취소될 때 선점을 되돌린다. 멱등 — 이미 해제돼 있어도 예외 없이 통과한다.
+    // 기사가 배차를 취소하면 예약이 남은 채 주문이 취소될 수 있어 예약도 함께 푼다.
     public void releasePurchaseRequest() {
+        if (saleStatus == SaleStatus.RESERVED) {
+            this.saleStatus = SaleStatus.AVAILABLE;
+            touch();
+        }
         releasePurchaseRequestState();
     }
 

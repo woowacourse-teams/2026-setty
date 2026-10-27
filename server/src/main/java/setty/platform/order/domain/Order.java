@@ -198,6 +198,10 @@ public class Order {
     // 같은 상태 중복 이벤트는 무시(멱등), 그 외 불일치는 예외 — 버그를 조용히 삼키지 않는다.
     public void syncDeliveryStatus(final DeliveryStatus newStatus, final Instant changedAt) {
         if (this.deliveryStatus == newStatus) {
+            // 배차 취소 뒤 새 기사의 수락이 취소보다 먼저 도착한 경우다. 수락 시각을 새 배차로 바꿔 늦게 온 취소가 되돌리지 못하게 한다.
+            if (newStatus == DeliveryStatus.ACCEPTED && changedAt != null) {
+                this.deliveryStatusChangedAt = changedAt;
+            }
             return;
         }
         if (this.deliveryStatus != expectedPreviousStatusOf(newStatus)) {
@@ -208,6 +212,19 @@ public class Order {
         }
         this.deliveryStatus = newStatus;
         this.deliveryStatusChangedAt = changedAt;
+    }
+
+    // 이벤트는 순서가 바뀌어 도착할 수 있어 시각 크기가 아니라 같은 배차인지로 판단한다. 다르면 이미 새 배차가 반영된 것이다.
+    public boolean reopenDelivery(final Instant cancelledAcceptedAt, final Instant changedAt) {
+        if (cancelledAcceptedAt == null || changedAt == null) {
+            throw new BusinessException(ErrorCode.INVALID_REQUEST);
+        }
+        if (deliveryStatus != DeliveryStatus.ACCEPTED || !cancelledAcceptedAt.equals(deliveryStatusChangedAt)) {
+            return false;
+        }
+        this.deliveryStatus = DeliveryStatus.REQUESTED;
+        this.deliveryStatusChangedAt = changedAt;
+        return true;
     }
 
     // 배송 완료된 주문만 판매 완료할 수 있다. 이미 판매 완료된 주문이면 false.

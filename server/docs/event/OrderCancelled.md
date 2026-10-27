@@ -10,7 +10,7 @@
 
 | 수신자 | 처리 |
 | --- | --- |
-| [`ListingDeliveryEventListener#onOrderCancelled`](../../src/main/java/setty/platform/listing/application/ListingDeliveryEventListener.java) | 해당 매물의 구매 선점을 해제한다. |
+| [`ListingDeliveryEventListener#onOrderCancelled`](../../src/main/java/setty/platform/listing/application/ListingDeliveryEventListener.java) | 해당 매물의 구매 선점을 해제한다. 기사 배차 취소로 예약(`RESERVED`)이 남아 있으면 판매 가능(`AVAILABLE`)으로 되돌린다. |
 | [`SettlementEventListener#handle`](../../src/main/java/setty/settlement/event/SettlementEventListener.java) | 주문의 정산 결론을 취소로 기록하고 `PENDING` 정산을 `CANCELLED`로 바꾼다. 이후 기록되는 정산도 취소로 기록한다. 이미 결론 난 주문이면 건너뛴다. |
 
 ## 다음 확인할 이벤트 문서

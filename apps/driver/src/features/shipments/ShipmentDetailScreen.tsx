@@ -1,7 +1,8 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { DeliveryStatus } from '@/model/delivery';
+import { confirmAction } from '@/lib/confirm';
 import { formatFee, formatTimeKst, shortAddress } from '@/lib/format';
 import { AppText } from '@/components/AppText';
 import { Screen } from '@/components/Screen';
@@ -16,13 +17,38 @@ import { styles } from './ShipmentDetailScreen.styles';
 /** 내 배차 상세 + 상태 변경(수령 → 완료). */
 export function ShipmentDetailScreen({ deliveryId }: { deliveryId: number }) {
   const router = useRouter();
-  const { detail, loading, working, error, advance } = useShipmentDetail(deliveryId);
+  const { detail, loading, working, cancelling, error, advance, cancel } = useShipmentDetail(deliveryId);
   const { message, show } = useToast();
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const mounted = useRef(true);
+
+  useEffect(
+    () => () => {
+      mounted.current = false;
+      if (closeTimer.current) clearTimeout(closeTimer.current);
+    },
+    [],
+  );
 
   const onAdvance = useCallback(async () => {
     const res = await advance();
     if (res.message) show(res.message);
   }, [advance, show]);
+
+  const onCancel = useCallback(async () => {
+    const confirmed = await confirmAction(
+      '배차를 취소할까요?',
+      '요청이 다른 기사님께 다시 열려요.',
+      '배차 취소',
+    );
+    if (!confirmed) return;
+    const res = await cancel();
+    // 응답 전에 화면을 벗어났으면 이미 다른 화면이라 닫지 않는다.
+    if (!mounted.current) return;
+    if (res.message) show(res.message);
+    // 토스트를 보여 준 뒤 닫는다. 내 배차 목록은 돌아가면 포커스 재조회로 다시 불러온다.
+    if (res.ok) closeTimer.current = setTimeout(() => router.back(), 1200);
+  }, [cancel, router, show]);
 
   const cta = detail ? ctaFor(detail.status) : null;
 
@@ -110,11 +136,22 @@ export function ShipmentDetailScreen({ deliveryId }: { deliveryId: number }) {
 
           {cta ? (
             <View style={styles.footer}>
+              {detail.status === 'ACCEPTED' ? (
+                <PrimaryButton
+                  label="배차 취소"
+                  variant="ghost"
+                  onPress={onCancel}
+                  loading={cancelling}
+                  disabled={working}
+                  style={{ flex: 1 }}
+                />
+              ) : null}
               <PrimaryButton
                 label={cta.label}
                 onPress={onAdvance}
                 loading={working}
-                disabled={cta.disabled}
+                disabled={cta.disabled || cancelling}
+                style={{ flex: 2 }}
               />
             </View>
           ) : null}

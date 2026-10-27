@@ -2,8 +2,8 @@
 
 ## 발생
 
-- 발행자: [`RegisterDeliveryService#register`](../../src/main/java/setty/delivery/application/RegisterDeliveryService.java), [`DeliveryLifecycleService#accept`](../../src/main/java/setty/delivery/application/DeliveryLifecycleService.java), [`DeliveryLifecycleService#cancel`](../../src/main/java/setty/delivery/application/DeliveryLifecycleService.java)
-- 상황: 새 배송 요청이 생성되거나, 요청이 기사에게 수락되거나, `REQUESTED` 요청이 취소되어 기사에게 보이는 목록이 바뀔 때 발행한다. 기존 요청을 재등록하거나 이미 취소된 요청을 다시 처리할 때는 발행하지 않는다.
+- 발행자: [`RegisterDeliveryService#register`](../../src/main/java/setty/delivery/application/RegisterDeliveryService.java), [`DeliveryLifecycleService#accept`](../../src/main/java/setty/delivery/application/DeliveryLifecycleService.java), [`DeliveryLifecycleService#cancel`](../../src/main/java/setty/delivery/application/DeliveryLifecycleService.java), [`DeliveryLifecycleService#cancelAssignment`](../../src/main/java/setty/delivery/application/DeliveryLifecycleService.java)
+- 상황: 새 배송 요청이 생성되거나, 요청이 기사에게 수락되거나, `REQUESTED` 요청이 취소되거나, 기사가 배차를 취소해 요청이 다시 열려 기사에게 보이는 목록이 바뀔 때 발행한다. 기존 요청을 재등록하거나 이미 취소된 요청을 다시 처리할 때는 발행하지 않는다.
 - 전달 값: [이벤트 클래스](../../src/main/java/setty/delivery/application/DeliveryRequestsChanged.java)에 필드가 없다. 변경된 목록은 수신자가 다시 조회한다.
 
 ## Fanout
