@@ -1,0 +1,10 @@
+[Unit]
+Description=SETTY binlog backup (binlog → S3)
+After=mysqld.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/opt/setty/backup/setty-binlog-backup.sh
+StandardOutput=journal
+StandardError=journal
