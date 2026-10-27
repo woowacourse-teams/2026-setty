@@ -4,7 +4,7 @@ import { isUnauthorized, toUserMessage } from '../../api/errors';
 import { keywordRepository } from '../../api/repositories';
 import { conditionsSummary, hasConditions, KEYWORD_MAX_LENGTH, MAX_KEYWORDS, type Keyword } from '../../model/keyword';
 import { routes, useNavigateBack, useNavigateToLogin } from '../../navigation';
-import { enablePush, getPushState, type PushState } from '../../push/webPush';
+import { enablePush, getPushState, syncPushToken, type PushState } from '../../push/webPush';
 import {
     AlertDialog,
     BackIconButton,
@@ -143,7 +143,11 @@ function PushToggle() {
     const navigateToLogin = useNavigateToLogin();
 
     useEffect(() => {
-        void getPushState().then(setPushState);
+        void getPushState().then((state) => {
+            setPushState(state);
+            // 허용돼 있으면 토큰이 서버에 있는지 한 번 더 맞춘다. 같은 토큰이면 서버는 갱신만 한다
+            if (state === 'granted') void syncPushToken();
+        });
     }, []);
 
     const enable = async () => {

@@ -24,17 +24,20 @@ const firebaseConfig = ['SETTY_FIREBASE_API_KEY', 'SETTY_FIREBASE_PROJECT_ID', '
     }
     : null;
 const firebaseVapidKey = process.env.SETTY_FIREBASE_VAPID_KEY ?? '';
-const SERVICE_WORKER_ENTRY = 'firebase-messaging-sw';
+const SERVICE_WORKER_FILE = 'firebase-messaging-sw.js';
 
 module.exports = (_, argv) => {
     const isProduction = argv.mode === 'production';
 
+    return [appConfig(isProduction), serviceWorkerConfig(isProduction)];
+};
+
+// 앱. 개발 서버 설정은 첫 번째 설정에서만 읽힌다.
+// 이름이 있어야 페이지의 개발 서버 클라이언트가 서비스 워커 빌드 신호를 무시한다. 없으면 페이지가 무한히 새로고침된다.
+function appConfig(isProduction) {
     return {
-        // 서비스 워커는 두 번째 엔트리로 루트에 해시 없이 내보낸다. 브라우저가 고정 주소로 등록하기 때문이다.
-        entry: {
-            main: './src/main.tsx',
-            [SERVICE_WORKER_ENTRY]: './src/firebase-messaging-sw.js'
-        },
+        name: 'app',
+        entry: './src/main.tsx',
         cache: isProduction
             ? {
                 type: 'filesystem',
@@ -92,7 +95,6 @@ module.exports = (_, argv) => {
                 __FIREBASE_VAPID_KEY__: JSON.stringify(firebaseVapidKey)
             }),
             new HtmlWebpackPlugin({
-                chunks: ['main'],
                 template: path.resolve(__dirname, 'public/index.html')
             }),
             new CopyWebpackPlugin({
@@ -125,13 +127,52 @@ module.exports = (_, argv) => {
                 ]
         },
         output: {
-            filename: (pathData) => pathData.chunk.name === SERVICE_WORKER_ENTRY
-                ? `${SERVICE_WORKER_ENTRY}.js`
-                : (isProduction ? 'assets/js/[name].[contenthash:8].js' : 'bundle.js'),
+            filename: isProduction ? 'assets/js/[name].[contenthash:8].js' : 'bundle.js',
             chunkFilename: isProduction ? 'assets/js/[name].[contenthash:8].js' : '[name].bundle.js',
             path: path.resolve(__dirname, 'dist'),
             publicPath: '/',
-            clean: true
+            // 서비스 워커는 다른 설정이 같은 폴더에 내보내므로 지우지 않는다
+            clean: { keep: SERVICE_WORKER_FILE }
         }
     };
-};
+}
+
+// FCM 서비스 워커. 브라우저가 고정 주소로 등록하므로 루트에 해시 없이 내보낸다.
+// 웹 대상이 아니게(target: false) 따로 빌드해 개발 서버가 새로고침 클라이언트를 끼워 넣지 않게 한다.
+// 그 코드는 window를 찾아 서비스 워커 등록을 깨뜨린다.
+function serviceWorkerConfig(isProduction) {
+    return {
+        name: 'service-worker',
+        target: false,
+        entry: './src/firebase-messaging-sw.js',
+        devtool: isProduction ? false : 'cheap-source-map',
+        resolve: {
+            conditionNames: ['browser', 'import', 'module', 'default'],
+            mainFields: ['browser', 'module', 'main']
+        },
+        plugins: [
+            new webpack.DefinePlugin({
+                __FIREBASE_CONFIG__: JSON.stringify(firebaseConfig)
+            })
+        ],
+        output: {
+            filename: SERVICE_WORKER_FILE,
+            path: path.resolve(__dirname, 'dist'),
+            publicPath: '/',
+            globalObject: 'self',
+            iife: true,
+            chunkFormat: false,
+            chunkLoading: false,
+            wasmLoading: false,
+            workerChunkLoading: false,
+            environment: {
+                arrowFunction: true,
+                const: true,
+                destructuring: true,
+                forOf: true,
+                optionalChaining: true,
+                templateLiteral: true
+            }
+        }
+    };
+}

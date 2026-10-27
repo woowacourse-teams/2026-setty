@@ -67,8 +67,9 @@ export async function syncPushToken(): Promise<void> {
     if (!tokenStore.get()) return;
     try {
         if ((await getPushState()) === 'granted') await uploadToken();
-    } catch {
-        // 푸시는 부가 기능이라 실패를 알리지 않는다
+    } catch (error) {
+        // 푸시는 부가 기능이라 화면에는 알리지 않고 원인만 남긴다
+        console.warn('[push] 토큰 등록 실패', error);
     }
 }
 
