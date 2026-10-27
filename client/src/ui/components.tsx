@@ -412,6 +412,22 @@ export function StatusBadge({ text, containerColor, contentColor }: StatusBadgeP
     );
 }
 
+/** 목록 카드 오른쪽 열. 첫 자식은 위, 마지막 자식은 아래 오른쪽 끝에 놓인다. */
+export function TrailingColumn({ children }: { children: ReactNode }) {
+    return <div className={styles['trailing-column']}>{children}</div>;
+}
+
+/** 목록 카드 오른쪽 아래의 찜 수. 찜이 없으면 그리지 않는다. */
+export function FavoriteCount({ count }: { count: number }) {
+    if (count < 1) return null;
+    return (
+        <span aria-label={`찜 ${count}개`} className={cx(styles['favorite-count'], 'type-label-medium')}>
+            <Icon name="favoriteFilled" size={14} />
+            {count}
+        </span>
+    );
+}
+
 export function SaleStatusBadge({ saleStatus, orderState = 'NONE' }: { saleStatus: SaleStatus; orderState?: OrderState }) {
     let colors: [string, string];
     if (saleStatus === 'SOLD') {

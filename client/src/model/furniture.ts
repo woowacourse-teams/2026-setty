@@ -79,6 +79,8 @@ export type FurnitureSummary = {
     // 결제 대기 주문이 매물을 선점하고 있으면 true. 선점은 판매 상태를 바꾸지 않는다
     hasPurchaseRequest: boolean;
     orderState: OrderState;
+    // 이 매물을 찜한 회원 수
+    favoriteCount: number;
 };
 
 export type FurnitureDetail = {
@@ -102,6 +104,7 @@ export type FurnitureDetail = {
     orderState: OrderState;
     // 내가 이 매물에 가진 진행 중 주문 id. 결제가 끝난 구매자를 주문 상세로 보낸다
     myOrderId: number | null;
+    favoriteCount: number;
 };
 
 /** 판매중이지만 결제 대기 주문이 선점한 매물인지. 판매중이 아니면 판매 상태를 우선한다. */

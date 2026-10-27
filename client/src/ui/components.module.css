@@ -436,6 +436,22 @@
     color: var(--on-surface-variant);
 }
 
+/* 카드 오른쪽 열. 위에는 날짜·버튼, 아래 오른쪽 끝에는 찜 수가 온다. 썸네일(72px) 높이에 맞춘다 */
+.trailing-column {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    justify-content: space-between;
+    height: 72px;
+}
+
+.favorite-count {
+    display: inline-flex;
+    gap: 2px;
+    align-items: center;
+    color: var(--on-surface-variant);
+}
+
 .plain-item {
     display: flex;
     align-items: center;

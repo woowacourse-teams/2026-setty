@@ -140,6 +140,20 @@ public class ListingQueryRepository {
         return objectKeys;
     }
 
+    public Map<Long, Integer> findFavoriteCounts(List<Long> listingIds) {
+        String placeholders = String.join(",", Collections.nCopies(listingIds.size(), "?"));
+        Map<Long, Integer> counts = new HashMap<>();
+        jdbcTemplate.query(
+                "SELECT listing_id, COUNT(*) AS favorite_count FROM favorites WHERE listing_id IN (" + placeholders
+                        + ") GROUP BY listing_id",
+                (ResultSet resultSet) -> {
+                    counts.put(resultSet.getLong("listing_id"), resultSet.getInt("favorite_count"));
+                },
+                listingIds.toArray()
+        );
+        return counts;
+    }
+
     // 매물마다 걸린 열린 주문(결제 대기·결제 완료·취소 대기)의 상태. 목록 카드의 "결제 중"과 "거래중"을 가른다.
     public Map<Long, List<String>> findOpenOrderStatuses(List<Long> listingIds) {
         String placeholders = String.join(",", Collections.nCopies(listingIds.size(), "?"));

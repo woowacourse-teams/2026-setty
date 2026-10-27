@@ -42,9 +42,10 @@ type DetailState =
     | { status: 'error'; reason: DetailError };
 
 type FavoriteState = {
-    // 찜 여부를 아직 모르면 null
+    // 찜 여부를 아직 모르면 null. 비로그인이면 false로 두고 누를 때 로그인 화면으로 보낸다
     isFavorited: boolean | null;
     isUpdating: boolean;
+    requiresLogin: boolean;
 };
 
 function toDetailError(error: unknown): DetailError {
@@ -76,23 +77,30 @@ export function FurnitureDetailScreen() {
     const navigateBack = useNavigateBack();
     const navigateToLogin = useNavigateToLogin();
     const [state, setState] = useState<DetailState>({ status: 'loading' });
-    const [favorite, setFavorite] = useState<FavoriteState>({ isFavorited: null, isUpdating: false });
+    const [favorite, setFavorite] = useState<FavoriteState>({ isFavorited: null, isUpdating: false, requiresLogin: false });
+    // 찜 수는 상세 응답에서 받고, 찜을 누르면 서버 응답을 기다리지 않고 먼저 바꾼다
+    const [favoriteCount, setFavoriteCount] = useState(0);
     const favoriteRef = useRef(favorite);
     favoriteRef.current = favorite;
 
     const load = useCallback(() => {
         setState({ status: 'loading' });
         furnitureRepository.getFurnitureDetail(furnitureId)
-            .then((listing) => setState({ status: 'success', listing }))
+            .then((listing) => {
+                setFavoriteCount(listing.favoriteCount);
+                setState({ status: 'success', listing });
+            })
             .catch((error: unknown) => setState({ status: 'error', reason: toDetailError(error) }));
     }, [furnitureId]);
 
     useEffect(() => {
         load();
-        // 찜 여부는 부가 정보라 실패해도 알리지 않고 토글만 숨긴다
+        // 찜 여부는 부가 정보라 실패해도 알리지 않는다. 비로그인(401)은 빈 하트로 두고, 그 밖의 실패는 토글만 막는다
         favoriteRepository.isFavorited(furnitureId)
             .then((isFavorited) => setFavorite((current) => ({ ...current, isFavorited })))
-            .catch(() => undefined);
+            .catch((error: unknown) => {
+                if (isUnauthorized(error)) setFavorite((current) => ({ ...current, isFavorited: false, requiresLogin: true }));
+            });
     }, [furnitureId, load]);
 
     useEffect(() => {
@@ -100,10 +108,15 @@ export function FurnitureDetailScreen() {
     }, [state]);
 
     const toggleFavorite = async () => {
-        const { isFavorited, isUpdating } = favoriteRef.current;
+        const { isFavorited, isUpdating, requiresLogin } = favoriteRef.current;
+        if (requiresLogin) {
+            navigateToLogin();
+            return;
+        }
         if (isFavorited === null || isUpdating) return;
         // 먼저 바꿔 보여주고 실패하면 되돌린다
-        setFavorite({ isFavorited: !isFavorited, isUpdating: true });
+        setFavorite({ isFavorited: !isFavorited, isUpdating: true, requiresLogin: false });
+        setFavoriteCount((count) => count + (isFavorited ? -1 : 1));
         try {
             if (isFavorited) {
                 await favoriteRepository.remove(furnitureId);
@@ -113,7 +126,8 @@ export function FurnitureDetailScreen() {
             setFavorite((current) => ({ ...current, isUpdating: false }));
             showSnackbar(isFavorited ? '찜을 해제했습니다' : '찜했습니다');
         } catch (error) {
-            setFavorite({ isFavorited, isUpdating: false });
+            setFavorite({ isFavorited, isUpdating: false, requiresLogin: false });
+            setFavoriteCount((count) => count - (isFavorited ? -1 : 1));
             if (isUnauthorized(error)) {
                 navigateToLogin();
             } else {
@@ -152,15 +166,20 @@ export function FurnitureDetailScreen() {
             )}
             topBar={(
                 <FlexibleTopAppBar
-                    actions={listing && favorite.isFavorited !== null && (
-                        <IconButton
-                            aria-pressed={favorite.isFavorited}
-                            disabled={favorite.isUpdating}
-                            icon={favorite.isFavorited ? 'favoriteFilled' : 'favorite'}
-                            label={favorite.isFavorited ? '찜 해제' : '찜하기'}
-                            onClick={() => void toggleFavorite()}
-                            variant={favorite.isFavorited ? 'tonal' : 'tonal-off'}
-                        />
+                    actions={listing && (
+                        <span className={styles['favorite-action']}>
+                            <IconButton
+                                aria-pressed={favorite.isFavorited === true}
+                                disabled={favorite.isFavorited === null || favorite.isUpdating}
+                                icon={favorite.isFavorited ? 'favoriteFilled' : 'favorite'}
+                                label={favorite.isFavorited ? '찜 해제' : '찜하기'}
+                                onClick={() => void toggleFavorite()}
+                                variant={favorite.isFavorited ? 'tonal' : 'tonal-off'}
+                            />
+                            <span aria-label={`찜 ${favoriteCount}개`} className={`${styles['favorite-action__count']} type-label-large`}>
+                                {favoriteCount}
+                            </span>
+                        </span>
                     )}
                     navigation={<BackIconButton onBack={navigateBack} />}
                     subtitle={listing && [categoryLabel(listing.category), listing.dongName].filter(Boolean).join(' · ')}

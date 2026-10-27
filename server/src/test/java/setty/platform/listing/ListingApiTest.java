@@ -15,6 +15,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -541,6 +542,28 @@ class ListingApiTest extends MySqlIntegrationTestSupport {
     }
 
     @Test
+    void 찜_수를_목록과_상세에_보여_주고_찜한_본인과_비로그인이_같은_수를_본다() throws Exception {
+        long listingId = createListing(SELLER_ID, "찜 수 확인용 가상 의자");
+        assertFavoriteCount(listingId, null, 0);
+        assertFavoriteCount(listingId, bearerToken(FIRST_BUYER_ID), 0);
+
+        mockMvc.perform(put("/api/me/favorites/{listingId}", listingId)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(FIRST_BUYER_ID)))
+                .andExpect(status().isNoContent());
+        mockMvc.perform(put("/api/me/favorites/{listingId}", listingId)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(SECOND_BUYER_ID)))
+                .andExpect(status().isNoContent());
+        assertFavoriteCount(listingId, null, 2);
+        assertFavoriteCount(listingId, bearerToken(FIRST_BUYER_ID), 2);
+
+        mockMvc.perform(delete("/api/me/favorites/{listingId}", listingId)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(SECOND_BUYER_ID)))
+                .andExpect(status().isNoContent());
+        assertFavoriteCount(listingId, null, 1);
+        assertFavoriteCount(listingId, bearerToken(FIRST_BUYER_ID), 1);
+    }
+
+    @Test
     void concurrentDeliveryReservationsAllowOnlyOneWinner() throws Exception {
         long listingId = createListing(SELLER_ID, "동시 예약 확인용 가상 침대");
         listingService.registerPurchaseRequest(listingId, null, null, null);
@@ -770,6 +793,22 @@ class ListingApiTest extends MySqlIntegrationTestSupport {
                 .andExpect(jsonPath("$.orderState").value(expected));
     }
 
+    private void assertFavoriteCount(long listingId, String bearerToken, int expected) throws Exception {
+        var listRequest = get("/api/listings");
+        var detailRequest = get("/api/listings/{listingId}", listingId);
+        if (bearerToken != null) {
+            listRequest = listRequest.header(HttpHeaders.AUTHORIZATION, bearerToken);
+            detailRequest = detailRequest.header(HttpHeaders.AUTHORIZATION, bearerToken);
+        }
+        mockMvc.perform(listRequest)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[0].id").value(listingId))
+                .andExpect(jsonPath("$.items[0].favoriteCount").value(expected));
+        mockMvc.perform(detailRequest)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.favoriteCount").value(expected));
+    }
+
     private void assertMyOrderId(long listingId, String bearerToken, Long expected) throws Exception {
         var request = get("/api/listings/{listingId}", listingId);
         if (bearerToken != null) {
@@ -796,6 +835,7 @@ class ListingApiTest extends MySqlIntegrationTestSupport {
     }
 
     private void deleteListingsAndMembers() {
+        jdbcTemplate.update("DELETE FROM favorites");
         jdbcTemplate.update("DELETE FROM orders");
         jdbcTemplate.update("DELETE FROM listing_images");
         jdbcTemplate.update("DELETE FROM listings");
