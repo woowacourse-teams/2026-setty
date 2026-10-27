@@ -270,9 +270,9 @@ class PendingOrderExpirationBatchTest extends MySqlIntegrationTestSupport {
 
     private void seed(long id, String status, Instant expiresAt, boolean reserved) {
         jdbc.update("""
-                INSERT INTO listings (id,seller_id,title,description,price,delivery_fee,category,condition_grade,
+                INSERT INTO listings (id,seller_id,title, display_title,description,price,delivery_fee,category,condition_grade,
                     width_cm,depth_cm,height_cm,sale_status,has_purchase_request,created_at,updated_at)
-                VALUES (?,?,'테스트 책상','테스트 설명',10000,10000,'DESK','A',60,60,70,'AVAILABLE',?,?,?)
+                VALUES (?,?,'테스트 책상', '테스트 책상','테스트 설명',10000,10000,'DESK','A',60,60,70,'AVAILABLE',?,?,?)
                 """, id, SELLER, reserved, sqlTime(OLD_UPDATED_AT), sqlTime(OLD_UPDATED_AT));
         jdbc.update("""
                 INSERT INTO orders (id,listing_id,buyer_id,delivery_status,order_status,pending_expires_at)

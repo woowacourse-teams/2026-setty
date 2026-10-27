@@ -32,10 +32,10 @@ public class Listing {
     @Column(name = "seller_id", nullable = false)
     private Long sellerId;
 
-    @Column(nullable = false, length = MAXIMUM_TITLE_LENGTH)
+    @Column(length = MAXIMUM_TITLE_LENGTH)
     private String title;
 
-    // 스키마 실험 C1: 기존 컬럼을 읽고 두 컬럼을 같은 트랜잭션에서 기록한다.
+    // 스키마 실험 C2: 신규 컬럼을 읽고 두 컬럼을 기록한다. 기존 값은 C3 공존을 위해 NULL을 허용한다.
     @Column(name = "display_title", length = MAXIMUM_TITLE_LENGTH)
     private String displayTitle;
 
@@ -307,7 +307,7 @@ public class Listing {
     }
 
     public String getTitle() {
-        return title;
+        return displayTitle;
     }
 
     public String getDescription() {

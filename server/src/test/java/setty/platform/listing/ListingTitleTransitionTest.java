@@ -49,19 +49,19 @@ class ListingTitleTransitionTest extends MySqlIntegrationTestSupport {
     }
 
     @Test
-    void c0RowWithMissingNewTitleCanBeReadAndUpdated() {
+    void newColumnDrivesReadingEvenWhenLegacyTitleDiffers() {
         Listing listing = listings.saveAndFlush(Listing.create(987601L, "1111053000", null,
                 "initial", "synthetic", 50000, ListingCategory.CHAIR, ConditionGrade.A, Dimensions.of(40, 40, 80)));
-        jdbc.update("UPDATE listings SET title='written-by-c0', display_title=NULL WHERE id=?", listing.getId());
+        jdbc.update("UPDATE listings SET title='legacy-value', display_title='new-value' WHERE id=?", listing.getId());
         entityManager.clear();
 
         Listing reloaded = listings.findById(listing.getId()).orElseThrow();
-        assertThat(reloaded.getTitle()).isEqualTo("written-by-c0");
-        reloaded.update("updated-by-c1", "synthetic", 50000, ListingCategory.CHAIR,
+        assertThat(reloaded.getTitle()).isEqualTo("new-value");
+        reloaded.update("updated-by-c2", "synthetic", 50000, ListingCategory.CHAIR,
                 ConditionGrade.A, Dimensions.of(40, 40, 80));
         listings.flush();
 
-        assertTitles(listing.getId(), "updated-by-c1");
+        assertTitles(listing.getId(), "updated-by-c2");
     }
 
     private void assertTitles(Long id, String title) {
