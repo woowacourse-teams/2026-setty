@@ -37,11 +37,16 @@ type PaymentLocationState = {
     amount?: number;
     // 결제창에서 실패하고 돌아왔을 때 보여줄 문구
     failedMessage?: string | null;
+    // 결제창을 결제 없이 닫고 돌아왔는지. 결제 대기 주문이 남아 있어 같은 주문으로 이어서 결제한다
+    canceled?: boolean;
+    // 상세에서 "결제 이어서 하기"로 들어왔는지. 안내 없이 버튼 문구만 바꾼다
+    resuming?: boolean;
 };
 
 const ALREADY_ORDERED = 'ALREADY_ORDERED';
 // 서버는 PENDING 주문을 6분 뒤 만료시키고 1분 주기로 정리한다
-const ALREADY_ORDERED_NOTICE = '결제가 진행 중인 매물입니다. 결제가 완료되지 않으면 7분 이내에 다시 구매할 수 있습니다';
+const ALREADY_ORDERED_NOTICE = '다른 구매자가 결제 중인 매물입니다. 결제가 완료되지 않으면 7분 이내에 다시 구매할 수 있습니다';
+const CANCELED_NOTICE = '결제창을 닫았어요. 6분 안에 다시 결제하면 같은 주문으로 이어집니다';
 
 function orderErrorMessage(error: unknown): string {
     if (error instanceof ApiError) return error.message;
@@ -71,9 +76,9 @@ export function PaymentScreen() {
     const navigate = useNavigate();
     const navigateBack = useNavigateBack();
     const locationState = (location.state ?? {}) as PaymentLocationState;
-    const [order, setOrder] = useState<{ orderName: string; amount: number } | null>(
+    const [order, setOrder] = useState<{ orderName: string; amount: number; isResuming: boolean } | null>(
         locationState.orderName && locationState.amount
-            ? { orderName: locationState.orderName, amount: locationState.amount }
+            ? { orderName: locationState.orderName, amount: locationState.amount, isResuming: locationState.canceled === true || locationState.resuming === true }
             : null
     );
     const [loadError, setLoadError] = useState<string | null>(null);
@@ -85,15 +90,15 @@ export function PaymentScreen() {
             .then((listing) => {
                 const pending = readPendingPayment();
                 const amount = pending?.listingId === listingId ? pending.amount : listing.totalPrice;
-                setOrder({ orderName: listing.title, amount });
+                setOrder({ orderName: listing.title, amount, isResuming: listing.purchaseRequestedByMe });
             })
             .catch((error: unknown) => setLoadError(orderErrorMessage(error)));
     }, [order, listingId]);
 
     useEffect(() => {
-        if (!locationState.failedMessage) return;
-        showSnackbar(locationState.failedMessage);
-        navigate(`${location.pathname}${location.search}`, { replace: true, state: { ...locationState, failedMessage: null } });
+        if (!locationState.failedMessage && !locationState.canceled) return;
+        showSnackbar(locationState.canceled ? CANCELED_NOTICE : locationState.failedMessage ?? '', { long: locationState.canceled });
+        navigate(`${location.pathname}${location.search}`, { replace: true, state: { ...locationState, failedMessage: null, canceled: false } });
     }, [locationState, location.pathname, location.search, navigate]);
 
     if (!Number.isSafeInteger(listingId) || listingId <= 0 || loadError) {
@@ -110,19 +115,22 @@ export function PaymentScreen() {
             </PaymentScaffold>
         );
     }
-    return <PaymentContent amount={order.amount} listingId={listingId} onBack={navigateBack} orderName={order.orderName} />;
+    return <PaymentContent amount={order.amount} isResuming={order.isResuming} listingId={listingId} onBack={navigateBack} orderName={order.orderName} />;
 }
 
 type PaymentContentProps = {
     listingId: number;
     orderName: string;
     amount: number;
+    // 이 매물에 내 결제 대기 주문이 이미 있는지. 결제창을 닫고 돌아온 경우가 대표적이다
+    isResuming: boolean;
     onBack: () => void;
 };
 
-function PaymentContent({ listingId, orderName, amount: initialAmount, onBack }: PaymentContentProps) {
+function PaymentContent({ listingId, orderName, amount: initialAmount, isResuming: initialIsResuming, onBack }: PaymentContentProps) {
     // 결제할 금액. 주문을 만들기 전에는 매물 상세의 총액, 만든 뒤에는 주문 생성 응답의 총액이다
     const [amount, setAmount] = useState(initialAmount);
+    const [isResuming, setIsResuming] = useState(initialIsResuming);
     const [isWidgetLoaded, setIsWidgetLoaded] = useState(__ENABLE_MSW__);
     // 약관 위젯이 아직 동의 상태를 알려주지 않았으면 null
     const [isAgreed, setIsAgreed] = useState<boolean | null>(null);
@@ -177,7 +185,7 @@ function PaymentContent({ listingId, orderName, amount: initialAmount, onBack }:
             totalPrice = pendingOrder.totalPrice;
         } catch (error) {
             setStep('IDLE');
-            // 결제가 끝나지 않은 PENDING 주문이 매물을 선점 중이면 만료 후 다시 구매할 수 있음을 안내한다
+            // 다른 구매자의 PENDING 주문이 매물을 선점 중이면 만료 후 다시 구매할 수 있음을 안내한다. 내 PENDING 주문은 서버가 그대로 돌려준다
             if (error instanceof ApiError && error.code === ALREADY_ORDERED) {
                 showSnackbar(ALREADY_ORDERED_NOTICE, { long: true });
             } else {
@@ -187,6 +195,8 @@ function PaymentContent({ listingId, orderName, amount: initialAmount, onBack }:
         }
 
         setAmount(totalPrice);
+        // 주문이 생긴 뒤로는 결제창이 어떤 이유로 닫히든 같은 주문으로 이어서 결제한다
+        setIsResuming(true);
         setStep('REQUESTING');
         savePendingPayment({ tossOrderId, amount: totalPrice, listingId });
         paymentRequested.current = true;
@@ -216,8 +226,10 @@ function PaymentContent({ listingId, orderName, amount: initialAmount, onBack }:
             trackEvent('payment_failed', { order_id: tossOrderId.split('_')[0], code: errorCodeOf(reason) });
             paymentRequested.current = false;
             setStep('IDLE');
-            // 사용자가 결제창을 직접 닫은 경우는 에러로 보여주지 않는다
-            if (errorCodeOf(reason) !== PAY_PROCESS_CANCELED) {
+            // 사용자가 결제창을 직접 닫은 경우는 에러가 아니라 "닫았다"로 알린다. 주문은 남아 있어 같은 주문으로 이어서 결제한다
+            if (errorCodeOf(reason) === PAY_PROCESS_CANCELED) {
+                showSnackbar(CANCELED_NOTICE, { long: true });
+            } else {
                 showSnackbar(reason instanceof Error ? reason.message : '결제를 진행하지 못했습니다');
             }
         }
@@ -227,7 +239,7 @@ function PaymentContent({ listingId, orderName, amount: initialAmount, onBack }:
         <PaymentScaffold
             bottomBar={(
                 <Button disabled={!canPay} fullWidth onClick={() => void startPayment()} size="medium">
-                    {step === 'IDLE' ? `${formatWon(amount)} 결제하기` : '결제 진행 중'}
+                    {step !== 'IDLE' ? '결제 진행 중' : isResuming ? `${formatWon(amount)} 결제 이어서 하기` : `${formatWon(amount)} 결제하기`}
                 </Button>
             )}
             canLeave

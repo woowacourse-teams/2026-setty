@@ -7,7 +7,8 @@ import {
     type FurniturePage,
     type FurnitureSummary,
     type ListingDraft,
-    type MyFurniture
+    type MyFurniture,
+    orderStateOf
 } from '../model/furniture';
 import type { Member } from '../model/member';
 import { deliveryStatusOf, orderStatusOrNull, type Order, type OrderStatus, type PendingOrder } from '../model/order';
@@ -111,7 +112,8 @@ function toFurniture(response: FurnitureSummaryResponse): FurnitureSummary {
         conditionGrade: response.conditionGrade,
         createdAt: response.createdAt,
         dongName: response.dong ? dongDisplayName(response.dong) : null,
-        hasPurchaseRequest: response.hasPurchaseRequest ?? false
+        hasPurchaseRequest: response.hasPurchaseRequest ?? false,
+        orderState: orderStateOf(response.orderState, response.hasPurchaseRequest ?? false)
     };
 }
 
@@ -135,7 +137,10 @@ function toFurnitureDetail(response: FurnitureDetailResponse): FurnitureDetail {
         saleStatus: saleStatusOf(response.saleStatus),
         imageUrls: sortedImages(response).map((image) => image.url),
         dongName: response.dong ? dongDisplayName(response.dong) : null,
-        hasPurchaseRequest: response.hasPurchaseRequest ?? false
+        hasPurchaseRequest: response.hasPurchaseRequest ?? false,
+        purchaseRequestedByMe: response.purchaseRequestedByMe ?? false,
+        orderState: orderStateOf(response.orderState, response.hasPurchaseRequest ?? false),
+        myOrderId: response.myOrderId ?? null
     };
 }
 
@@ -296,8 +301,12 @@ export const paymentRepository = {
     },
 
     /** 토스 결제 성공 결과로 서버 승인을 요청한다. 이미 승인된 주문이면 서버가 기존 결과를 돌려준다(멱등). */
-    async confirm(paymentKey: string, tossOrderId: string, amount: number) {
-        await apiCall('/api/payments/confirm', { method: 'POST', body: { paymentKey, orderId: tossOrderId, amount } });
+    async confirm(paymentKey: string, tossOrderId: string, amount: number): Promise<{ orderId: number; amount: number }> {
+        const response = await apiCall<{ orderId: number; status: string; amount: number }>(
+            '/api/payments/confirm',
+            { method: 'POST', body: { paymentKey, orderId: tossOrderId, amount } }
+        );
+        return { orderId: response.orderId, amount: response.amount };
     },
 
     /** 결제 실패·취소를 알려 PENDING 주문을 정리(매물 선점 해제)한다. */

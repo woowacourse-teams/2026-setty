@@ -5,8 +5,9 @@ import {
     categoryLabel,
     formatRegisteredDate,
     formatWon,
-    PAYMENT_IN_PROGRESS_LABEL,
+    PAYING_LABEL,
     selectableCategories,
+    TRADING_LABEL,
     type FurnitureCategory,
     type FurnitureSummary
 } from '../../model/furniture';
@@ -203,8 +204,10 @@ function ListingItem({ furniture, index, count, onClick }: { furniture: Furnitur
                     {showDeliveryCosts && (
                         <div className="type-label-medium">매물 {formatWon(furniture.price)} · 배송비 {formatWon(furniture.deliveryFee)} 포함</div>
                     )}
-                    {furniture.hasPurchaseRequest && (
-                        <div className={`${screenStyles['tertiary-text']} type-label-medium`}>{PAYMENT_IN_PROGRESS_LABEL}</div>
+                    {furniture.orderState !== 'NONE' && (
+                        <div className={`${screenStyles['tertiary-text']} type-label-medium`}>
+                            {furniture.orderState === 'TRADING' ? TRADING_LABEL : PAYING_LABEL}
+                        </div>
                     )}
                 </div>
             )}

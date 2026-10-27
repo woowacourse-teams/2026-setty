@@ -67,7 +67,44 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             """)
     List<Long> findCompletionDueOrderIds(@Param("deliveredBefore") Instant deliveredBefore);
 
+    @Query("""
+            select o
+            from Order o
+            where o.listingId = :listingId
+              and o.buyerId = :buyerId
+              and o.orderStatus = setty.platform.order.domain.OrderStatus.PENDING
+              and o.pendingExpiresAt > :referenceTime
+            """)
+    Optional<Order> findPayableByListingIdAndBuyerId(
+            @Param("listingId") Long listingId,
+            @Param("buyerId") Long buyerId,
+            @Param("referenceTime") Instant referenceTime
+    );
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+            select o
+            from Order o
+            where o.listingId = :listingId
+              and o.buyerId = :buyerId
+              and o.orderStatus = setty.platform.order.domain.OrderStatus.PENDING
+              and o.pendingExpiresAt > :referenceTime
+            """)
+    Optional<Order> findPayableByListingIdAndBuyerIdForUpdate(
+            @Param("listingId") Long listingId,
+            @Param("buyerId") Long buyerId,
+            @Param("referenceTime") Instant referenceTime
+    );
+
     List<Order> findAllByBuyerIdOrderByIdDesc(Long buyerId);
+
+    List<Order> findAllByListingIdInAndOrderStatusIn(List<Long> listingIds, List<OrderStatus> statuses);
+
+    List<Order> findAllByListingIdAndBuyerIdAndOrderStatusInOrderByIdDesc(
+            Long listingId,
+            Long buyerId,
+            List<OrderStatus> statuses
+    );
 
     Optional<Order> findByIdAndBuyerId(Long id, Long buyerId);
 }

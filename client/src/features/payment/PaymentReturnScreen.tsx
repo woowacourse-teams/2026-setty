@@ -5,6 +5,7 @@ import { ApiError, NetworkError } from '../../api/http';
 import { paymentRepository } from '../../api/repositories';
 import { routes } from '../../navigation';
 import { Button, CenterFill, LoadingIndicator } from '../../ui/components';
+import type { PaymentCompleteState } from './PaymentCompleteScreen';
 import { PaymentScaffold } from './PaymentScreen';
 import { clearPendingPayment, PAY_PROCESS_CANCELED, readPendingPayment } from './pendingPayment';
 
@@ -43,9 +44,9 @@ export function PaymentReturnScreen({ result }: { result: 'success' | 'fail' }) 
         if (isHandled.current) return;
         isHandled.current = true;
         const pending = readPendingPayment();
-        const backToPayment = (failedMessage: string | null) => {
+        const backToPayment = (state: { failedMessage?: string | null; canceled?: boolean }) => {
             if (Number.isSafeInteger(listingId) && listingId > 0) {
-                navigate(routes.payment(listingId), { replace: true, state: { failedMessage } });
+                navigate(routes.payment(listingId), { replace: true, state });
             } else {
                 navigate(routes.home, { replace: true });
             }
@@ -61,29 +62,28 @@ export function PaymentReturnScreen({ result }: { result: 'success' | 'fail' }) 
                 ...(tossOrderId ? { order_id: tossOrderId.split('_')[0] } : {}),
                 code: code ?? PAY_PROCESS_CANCELED
             });
-            // 사용자가 결제창을 직접 닫은 경우는 에러로 보여주지 않는다
-            backToPayment(code === PAY_PROCESS_CANCELED ? null : searchParams.get('message') ?? '결제를 진행하지 못했습니다');
+            // 사용자가 결제창을 직접 닫은 경우는 에러가 아니라 "닫았다"로 알려 같은 주문으로 이어서 결제하게 한다
+            backToPayment(code === PAY_PROCESS_CANCELED
+                ? { canceled: true }
+                : { failedMessage: searchParams.get('message') ?? '결제를 진행하지 못했습니다' });
             return;
         }
 
         const paymentKey = searchParams.get('paymentKey');
         const tossOrderId = searchParams.get('orderId');
         if (!paymentKey || !tossOrderId) {
-            backToPayment('결제 결과를 확인하지 못했습니다');
+            backToPayment({ failedMessage: '결제 결과를 확인하지 못했습니다' });
             return;
         }
         // 서버 승인 요청에는 주문 생성 응답의 총액을 보낸다
         const amount = pending?.tossOrderId === tossOrderId ? pending.amount : Number(searchParams.get('amount'));
         confirmWithRetry(paymentKey, tossOrderId, amount)
-            .then(() => {
+            .then((confirmed) => {
                 clearPendingPayment();
                 trackEvent('payment_succeeded', { order_id: tossOrderId.split('_')[0] });
-                // 결제로 매물 상태가 바뀌었으므로 매물 상세를 새로 불러온다
-                if (Number.isSafeInteger(listingId) && listingId > 0) {
-                    navigate(routes.furnitureDetail(listingId), { replace: true, state: { paymentCompleted: true } });
-                } else {
-                    navigate(routes.orders, { replace: true });
-                }
+                // 주문 확정과 배송 요청은 승인 뒤 서버가 이벤트로 처리하므로, 상세를 바로 읽지 않고 승인 결과만으로 완료 화면을 그린다
+                const state: PaymentCompleteState = { orderId: confirmed.orderId, amount: confirmed.amount, listingId };
+                navigate(routes.paymentComplete, { replace: true, state });
             })
             .catch((error: unknown) => {
                 // 서버가 승인을 거절한 경우에만 주문을 정리한다.
@@ -93,7 +93,7 @@ export function PaymentReturnScreen({ result }: { result: 'success' | 'fail' }) 
                     trackEvent('payment_failed', { order_id: tossOrderId.split('_')[0], code: error.code });
                 }
                 clearPendingPayment();
-                backToPayment(confirmErrorMessage(error));
+                backToPayment({ failedMessage: confirmErrorMessage(error) });
             });
     }, [listingId, navigate, result, searchParams]);
 

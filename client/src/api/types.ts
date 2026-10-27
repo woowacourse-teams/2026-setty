@@ -44,6 +44,8 @@ export type FurnitureSummaryResponse = {
     // 행정동 도입 전에 등록한 매물은 null
     dong?: ListingDongResponse | null;
     hasPurchaseRequest?: boolean;
+    // NONE | PAYING(결제 대기 주문이 선점) | TRADING(결제 완료, 배송 완료 전)
+    orderState?: string;
 };
 
 export type ListingListResponse = {
@@ -68,6 +70,10 @@ export type FurnitureDetailResponse = {
     updatedAt: string;
     dong?: ListingDongResponse | null;
     hasPurchaseRequest?: boolean;
+    purchaseRequestedByMe?: boolean;
+    orderState?: string;
+    // 조회한 회원이 이 매물에 가진 진행 중 주문 id. 없으면 null
+    myOrderId?: number | null;
 };
 
 export type MyFurnitureResponse = {

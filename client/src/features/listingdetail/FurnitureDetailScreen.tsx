@@ -1,15 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useLocation, useNavigate, useParams } from 'react-router';
+import { useNavigate, useParams } from 'react-router';
 import { trackEvent } from '../../analytics/posthog';
 import { getPriceVariant } from '../../analytics/priceScenario';
 import { isUnauthorized, toUserMessage } from '../../api/errors';
 import { ApiError, NetworkError } from '../../api/http';
 import { favoriteRepository, furnitureRepository } from '../../api/repositories';
 import {
+    canResumePayment,
     categoryLabel,
     formatWon,
+    hasMyOrder,
     isPaymentInProgress,
     isPurchasable,
+    isTrading,
     type FurnitureDetail
 } from '../../model/furniture';
 import { routes, useNavigateBack, useNavigateToLogin } from '../../navigation';
@@ -56,11 +59,20 @@ const detailErrorMessages: Record<DetailError, string> = {
     UNKNOWN_ERROR: '알 수 없는 에러가 발생했습니다'
 };
 
+function purchaseButtonLabel(listing: FurnitureDetail): string {
+    if (isPurchasable(listing)) return '결제하고 주문하기';
+    if (canResumePayment(listing)) return '결제 이어서 하기';
+    if (hasMyOrder(listing)) return '내 주문 보기';
+    if (isPaymentInProgress(listing)) return '다른 구매자가 결제 중이에요';
+    if (isTrading(listing)) return '거래 중인 매물이에요';
+    if (listing.saleStatus === 'SOLD') return '판매 완료된 매물이에요';
+    return '구매할 수 없는 매물입니다';
+}
+
 export function FurnitureDetailScreen() {
     const { listingId } = useParams();
     const furnitureId = Number(listingId);
     const navigate = useNavigate();
-    const location = useLocation();
     const navigateBack = useNavigateBack();
     const navigateToLogin = useNavigateToLogin();
     const [state, setState] = useState<DetailState>({ status: 'loading' });
@@ -86,14 +98,6 @@ export function FurnitureDetailScreen() {
     useEffect(() => {
         if (state.status === 'success') trackEvent('product_viewed', { listing_id: state.listing.id });
     }, [state]);
-
-    // 결제를 마치고 돌아오면 완료를 알리고 주문 내역으로 갈 수 있게 한다
-    const paymentCompleted = (location.state as { paymentCompleted?: boolean } | null)?.paymentCompleted === true;
-    useEffect(() => {
-        if (!paymentCompleted) return;
-        navigate(location.pathname, { replace: true, state: null });
-        showSnackbar('결제가 완료되었습니다', { actionLabel: '주문 내역', onAction: () => navigate(routes.orders), long: true });
-    }, [paymentCompleted, location.pathname, navigate]);
 
     const toggleFavorite = async () => {
         const { isFavorited, isUpdating } = favoriteRef.current;
@@ -126,7 +130,7 @@ export function FurnitureDetailScreen() {
     const titleRow = (
         <span className={styles['title-row']}>
             <span className={styles['title-row__text']}>{listing?.title ?? ''}</span>
-            {listing && <SaleStatusBadge isPaymentInProgress={isPaymentInProgress(listing)} saleStatus={listing.saleStatus} />}
+            {listing && <SaleStatusBadge orderState={listing.orderState} saleStatus={listing.saleStatus} />}
         </span>
     );
 
@@ -135,14 +139,14 @@ export function FurnitureDetailScreen() {
             bottomBar={listing && (
                 <BottomBar>
                     <Button
-                        disabled={!isPurchasable(listing)}
+                        disabled={!isPurchasable(listing) && !canResumePayment(listing) && !hasMyOrder(listing)}
                         fullWidth
-                        onClick={() => navigate(routes.payment(listing.id), { state: { orderName: listing.title, amount: listing.totalPrice } })}
+                        onClick={() => (hasMyOrder(listing) && listing.myOrderId !== null
+                            ? navigate(routes.orderDetail(listing.myOrderId))
+                            : navigate(routes.payment(listing.id), { state: { orderName: listing.title, amount: listing.totalPrice, resuming: canResumePayment(listing) } }))}
                         size="medium"
                     >
-                        {isPurchasable(listing)
-                            ? '결제하고 주문하기'
-                            : isPaymentInProgress(listing) ? '다른 구매자가 결제 중이에요' : '구매할 수 없는 매물입니다'}
+                        {purchaseButtonLabel(listing)}
                     </Button>
                 </BottomBar>
             )}
