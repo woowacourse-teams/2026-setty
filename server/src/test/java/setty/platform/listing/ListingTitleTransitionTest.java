@@ -36,7 +36,7 @@ class ListingTitleTransitionTest extends MySqlIntegrationTestSupport {
     }
 
     @Test
-    void createAndUpdatePersistBothTitlesInTheSameTransaction() {
+    void createAndUpdatePersistOnlyNewTitle() {
         Listing listing = listings.saveAndFlush(Listing.create(987601L, "1111053000", null,
                 "  initial  ", "synthetic", 50000, ListingCategory.CHAIR, ConditionGrade.A, Dimensions.of(40, 40, 80)));
         assertTitles(listing.getId(), "initial");
@@ -46,6 +46,7 @@ class ListingTitleTransitionTest extends MySqlIntegrationTestSupport {
         listings.flush();
 
         assertTitles(listing.getId(), "changed");
+        assertThat(jdbc.queryForObject("SELECT title FROM listings WHERE id=?", String.class, listing.getId())).isNull();
     }
 
     @Test
@@ -57,15 +58,17 @@ class ListingTitleTransitionTest extends MySqlIntegrationTestSupport {
 
         Listing reloaded = listings.findById(listing.getId()).orElseThrow();
         assertThat(reloaded.getTitle()).isEqualTo("new-value");
-        reloaded.update("updated-by-c2", "synthetic", 50000, ListingCategory.CHAIR,
+        reloaded.update("updated-by-c3", "synthetic", 50000, ListingCategory.CHAIR,
                 ConditionGrade.A, Dimensions.of(40, 40, 80));
         listings.flush();
 
-        assertTitles(listing.getId(), "updated-by-c2");
+        assertTitles(listing.getId(), "updated-by-c3");
+        assertThat(jdbc.queryForObject("SELECT title FROM listings WHERE id=?", String.class, listing.getId()))
+                .isEqualTo("legacy-value");
     }
 
     private void assertTitles(Long id, String title) {
         assertThat(jdbc.queryForMap("SELECT title, display_title FROM listings WHERE id=?", id))
-                .containsEntry("title", title).containsEntry("display_title", title);
+                .containsEntry("display_title", title);
     }
 }

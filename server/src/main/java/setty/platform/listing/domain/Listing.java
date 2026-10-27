@@ -32,11 +32,8 @@ public class Listing {
     @Column(name = "seller_id", nullable = false)
     private Long sellerId;
 
-    @Column(length = MAXIMUM_TITLE_LENGTH)
-    private String title;
-
-    // 스키마 실험 C2: 신규 컬럼을 읽고 두 컬럼을 기록한다. 기존 값은 C3 공존을 위해 NULL을 허용한다.
-    @Column(name = "display_title", length = MAXIMUM_TITLE_LENGTH)
+    // 스키마 실험 C3: 기존 물리 컬럼을 참조하지 않고 신규 컬럼만 읽고 쓴다.
+    @Column(name = "display_title", nullable = false, length = MAXIMUM_TITLE_LENGTH)
     private String displayTitle;
 
     @Column(nullable = false, length = MAXIMUM_DESCRIPTION_LENGTH)
@@ -102,8 +99,7 @@ public class Listing {
         this.sellerId = sellerId;
         this.dongCode = dongCode;
         this.zipZone = zipZone;
-        this.title = title.trim();
-        this.displayTitle = this.title;
+        this.displayTitle = title.trim();
         this.description = description.trim();
         this.price = price;
         this.deliveryFee = DeliveryFeePolicy.calculate(dimensions);
@@ -140,8 +136,7 @@ public class Listing {
     ) {
         ensureUpdatable();
         validateFields(title, description, price, category, conditionGrade, dimensions);
-        this.title = title.trim();
-        this.displayTitle = this.title;
+        this.displayTitle = title.trim();
         this.description = description.trim();
         this.price = price;
         this.deliveryFee = DeliveryFeePolicy.calculate(dimensions);

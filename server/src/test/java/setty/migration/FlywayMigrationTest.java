@@ -34,7 +34,7 @@ class FlywayMigrationTest {
             "delivery_address_mgmt_no");
     private static final List<String> DELIVERY_ZONE_COLUMNS = List.of("pickup_dong_code", "pickup_zip_code",
             "delivery_dong_code", "delivery_zip_code");
-    private static final int MIGRATION_COUNT = 11;
+    private static final int MIGRATION_COUNT = 12;
 
     @Container
     static final MySQLContainer MYSQL = new MySQLContainer("mysql:8.4.11");
@@ -125,12 +125,12 @@ class FlywayMigrationTest {
                 delivery_address='synthetic delivery address', delivery_phone_number='010-0000-0000'
                 WHERE id=1
                 """);
-        var schemaBefore = schemaSnapshot();
+        var schemaBefore = schemaSnapshot().stream().filter(column -> !legacyTitleColumn(column)).toList();
         var orderBefore = jdbc.queryForMap("SELECT * FROM orders WHERE id=1");
 
         assertThat(flyway(true).migrate().migrationsExecuted).isEqualTo(MIGRATION_COUNT);
 
-        assertThat(schemaSnapshot().stream().filter(column -> !addedAfterAdoption(column)).toList())
+        assertThat(schemaSnapshot().stream().filter(column -> !addedAfterAdoption(column) && !legacyTitleColumn(column)).toList())
                 .isEqualTo(schemaBefore);
         assertCurrentSchema();
         var orderAfter = jdbc.queryForMap("SELECT * FROM orders WHERE id=1");
@@ -273,6 +273,10 @@ class FlywayMigrationTest {
         return jdbc.queryForObject("SELECT GROUP_CONCAT(column_name ORDER BY seq_in_index) "
                 + "FROM information_schema.statistics WHERE table_schema=DATABASE() AND table_name=? AND index_name=?",
                 String.class, table, index);
+    }
+
+    private boolean legacyTitleColumn(final Map<String, Object> column) {
+        return column.get("table_name").equals("listings") && column.get("column_name").equals("title");
     }
 
     private boolean addedAfterAdoption(final Map<String, Object> column) {

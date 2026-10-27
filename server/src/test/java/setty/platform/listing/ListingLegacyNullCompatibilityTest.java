@@ -25,7 +25,7 @@ class ListingLegacyNullCompatibilityTest {
     void currentMappingReadsAndUpdatesARowWhoseLegacyTitleIsNull() {
         var source = new DriverManagerDataSource(MYSQL.getJdbcUrl(), MYSQL.getUsername(), MYSQL.getPassword());
         var jdbc = new JdbcTemplate(source);
-        // C2 JAR에는 다음 단계 SQL을 넣지 않고 별도 DB를 V12 모양으로 준비한다.
+        // 기존 컬럼이 NULL인 호환 fixture를 별도 DB에 준비한다.
         Flyway.configure().dataSource(source).target("11").load().migrate();
         jdbc.execute("ALTER TABLE listings MODIFY COLUMN title VARCHAR(100) NULL");
         jdbc.update("""
@@ -57,7 +57,7 @@ class ListingLegacyNullCompatibilityTest {
                 transaction.commit();
             }
             assertThat(jdbc.queryForMap("SELECT title,display_title FROM listings WHERE id=?", id))
-                    .containsEntry("title", "changed").containsEntry("display_title", "changed");
+                    .containsEntry("title", null).containsEntry("display_title", "changed");
         }
     }
 }
