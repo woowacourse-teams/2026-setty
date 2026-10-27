@@ -65,6 +65,10 @@ class AuthMatrixTest extends MySqlIntegrationTestSupport {
             "GET,    /api/delivery/shipments,            member-token,         401, INVALID_TOKEN",
             "GET,    /api/delivery/shipments,            -,                    401, INVALID_TOKEN",
 
+            "POST,   /api/delivery/shipments/999999/cancellation, Bearer member-token, 401, INVALID_TOKEN",
+            "POST,   /api/delivery/shipments/999999/cancellation, -,                   401, INVALID_TOKEN",
+            "POST,   /api/delivery/shipments/999999/cancellation, Bearer driver-token, 404, DELIVERY_NOT_FOUND",
+
             "GET,    /api/listings,                      Bearer member-token,  200, -",
             "GET,    /api/listings,                      Bearer driver-token,  200, -",
             "GET,    /api/listings,                      Bearer no-such-token, 200, -",

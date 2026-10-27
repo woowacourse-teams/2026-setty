@@ -177,6 +177,21 @@ class ListingTest {
         assertThat(listing.hasPurchaseRequest()).isTrue();
     }
 
+    @DisplayName("주문 취소로 선점을 해제하면 배차 취소로 남은 예약도 풀려 판매 가능으로 돌아온다")
+    @Test
+    void releasesReservationWhenOrderIsCancelled() {
+        Listing listing = createListing();
+        listing.registerPurchaseRequest();
+        listing.reserve();
+
+        listing.releasePurchaseRequest();
+
+        assertThat(listing.getSaleStatus()).isEqualTo(SaleStatus.AVAILABLE);
+        assertThat(listing.hasPurchaseRequest()).isFalse();
+        listing.registerPurchaseRequest();
+        assertThat(listing.hasPurchaseRequest()).isTrue();
+    }
+
     @DisplayName("구매 신청 해제는 예약·판매 완료 상태를 판매 가능으로 덮어쓰지 않는다")
     @Test
     void preservesReservedAndSoldStatusWhenReleasingPurchaseRequest() {

@@ -122,6 +122,42 @@ class OrderTest {
     }
 
     @Test
+    void 배차_취소는_같은_배차일_때만_배송_요청으로_되돌린다() {
+        final Order order = new Order(1L, 2L);
+        order.syncDeliveryStatus(DeliveryStatus.ACCEPTED, CHANGED_AT);
+        final Instant reopenedAt = CHANGED_AT.plusSeconds(60);
+
+        assertThat(order.reopenDelivery(CHANGED_AT, reopenedAt)).isTrue();
+
+        assertThat(order.getDeliveryStatus()).isEqualTo(DeliveryStatus.REQUESTED);
+        assertThat(order.getDeliveryStatusChangedAt()).isEqualTo(reopenedAt);
+    }
+
+    @Test
+    void 새_배차가_먼저_반영되면_늦게_온_배차_취소는_무시된다() {
+        final Order order = new Order(1L, 2L);
+        order.syncDeliveryStatus(DeliveryStatus.ACCEPTED, CHANGED_AT);
+        final Instant newAcceptedAt = CHANGED_AT.minusSeconds(1);
+        order.syncDeliveryStatus(DeliveryStatus.ACCEPTED, newAcceptedAt);
+
+        assertThat(order.reopenDelivery(CHANGED_AT, CHANGED_AT.plusSeconds(60))).isFalse();
+
+        assertThat(order.getDeliveryStatus()).isEqualTo(DeliveryStatus.ACCEPTED);
+        assertThat(order.getDeliveryStatusChangedAt()).isEqualTo(newAcceptedAt);
+    }
+
+    @Test
+    void 픽업_뒤에_온_배차_취소는_무시된다() {
+        final Order order = new Order(1L, 2L);
+        order.syncDeliveryStatus(DeliveryStatus.ACCEPTED, CHANGED_AT);
+        order.syncDeliveryStatus(DeliveryStatus.PICKED_UP, CHANGED_AT.plusSeconds(60));
+
+        assertThat(order.reopenDelivery(CHANGED_AT, CHANGED_AT.plusSeconds(30))).isFalse();
+
+        assertThat(order.getDeliveryStatus()).isEqualTo(DeliveryStatus.PICKED_UP);
+    }
+
+    @Test
     void 역행_이벤트는_거부된다() {
         final Order order = new Order(1L, 2L);
         order.syncDeliveryStatus(DeliveryStatus.ACCEPTED, CHANGED_AT);

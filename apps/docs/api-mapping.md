@@ -41,6 +41,7 @@
 | 내 배차(상세) | `GET /api/delivery/shipments/{deliveryId}` | `ShipmentDetailResponse` | 전화·타임스탬프 4종 |
 | 수령 | `POST /api/delivery/shipments/{deliveryId}/pickup` | 없음(204) | `ACCEPTED`에서만 가능 |
 | 배송완료 | `POST /api/delivery/shipments/{deliveryId}/completion` | 없음(204) | `PICKED_UP`에서만 가능 |
+| 배차 취소 | `POST /api/delivery/shipments/{deliveryId}/cancellation` | 없음(204) | `ACCEPTED`에서만 가능(그 외 409). 남의 배차면 404. 성공하면 요청이 `REQUESTED`로 돌아가 대기 목록 SSE가 다시 알린다 |
 
 - shipments 경로의 `{id}`는 `deliveryId`와 같은 값이다.
 - 수락·수령·완료 POST는 응답 바디가 없다. 성공하면 관련 목록/상세를 재조회해 화면을 맞춘다.

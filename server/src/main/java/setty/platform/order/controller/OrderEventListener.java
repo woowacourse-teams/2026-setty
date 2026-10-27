@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.modulith.events.ApplicationModuleListener;
 import org.springframework.stereotype.Component;
 import setty.common.DeliveryAccepted;
+import setty.common.DeliveryAssignmentCancelled;
 import setty.common.DeliveryCancelled;
 import setty.common.DeliveryCancellationRejected;
 import setty.common.DeliveryDelivered;
@@ -65,6 +66,18 @@ public class OrderEventListener {
                 event.orderId(),
                 event.changedAt(),
                 DeliveryStatus.ACCEPTED
+        );
+    }
+
+    // 픽업 전 기사의 배차 취소를 주문의 배송 상태에 반영한다.
+    @ApplicationModuleListener
+    public void onDeliveryAssignmentCancelled(final DeliveryAssignmentCancelled event) {
+        requireEvent(event);
+        syncOrderDeliveryStatusService.reopen(
+                event.deliveryId(),
+                event.orderId(),
+                event.acceptedAt(),
+                event.changedAt()
         );
     }
 
