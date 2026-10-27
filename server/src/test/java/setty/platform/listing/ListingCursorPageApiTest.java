@@ -204,12 +204,12 @@ class ListingCursorPageApiTest extends MySqlIntegrationTestSupport {
         Timestamp at = Timestamp.from(createdAt);
         jdbcTemplate.update(
                 """
-                INSERT INTO listings (id, seller_id, title, display_title, description, price, delivery_fee, category, condition_grade,
+                INSERT INTO listings (id, seller_id, display_title, description, price, delivery_fee, category, condition_grade,
                                       width_cm, depth_cm, height_cm, sale_status, has_purchase_request,
                                       created_at, updated_at, deleted_at)
-                VALUES (?, ?, ?, ?, '테스트용 가상 매물입니다', 120000, 10000, 'CHAIR', 'A', 50, 50, 80, ?, false, ?, ?, ?)
+                VALUES (?, ?, ?, '테스트용 가상 매물입니다', 120000, 10000, 'CHAIR', 'A', 50, 50, 80, ?, false, ?, ?, ?)
                 """,
-                id, SELLER_ID, "가상 매물 " + id, "가상 매물 " + id, saleStatus, at, at, deleted ? at : null
+                id, SELLER_ID, "가상 매물 " + id, saleStatus, at, at, deleted ? at : null
         );
     }
 

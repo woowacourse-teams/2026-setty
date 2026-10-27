@@ -34,7 +34,7 @@ class FlywayMigrationTest {
             "delivery_address_mgmt_no");
     private static final List<String> DELIVERY_ZONE_COLUMNS = List.of("pickup_dong_code", "pickup_zip_code",
             "delivery_dong_code", "delivery_zip_code");
-    private static final int MIGRATION_COUNT = 12;
+    private static final int MIGRATION_COUNT = 13;
 
     @Container
     static final MySQLContainer MYSQL = new MySQLContainer("mysql:8.4.11");
@@ -93,10 +93,10 @@ class FlywayMigrationTest {
         legacy("pre-dong-main.sql");
         seedExistingRows();
 
-        assertThat(flyway(true).migrate().migrationsExecuted).isEqualTo(MIGRATION_COUNT);
+        assertThat(migrateWithExplicitTitleBackfill(true)).isEqualTo(MIGRATION_COUNT);
 
         assertCurrentSchema();
-        assertThat(jdbc.queryForObject("SELECT title FROM listings WHERE id=1", String.class))
+        assertThat(jdbc.queryForObject("SELECT display_title FROM listings WHERE id=1", String.class))
                 .isEqualTo("migration fixture");
         assertThat(jdbc.queryForObject("SELECT dong_code FROM listings WHERE id=1", String.class)).isNull();
         assertThat(jdbc.queryForObject("SELECT volume_tier FROM listings WHERE id=1", String.class))
@@ -128,7 +128,7 @@ class FlywayMigrationTest {
         var schemaBefore = schemaSnapshot().stream().filter(column -> !legacyTitleColumn(column)).toList();
         var orderBefore = jdbc.queryForMap("SELECT * FROM orders WHERE id=1");
 
-        assertThat(flyway(true).migrate().migrationsExecuted).isEqualTo(MIGRATION_COUNT);
+        assertThat(migrateWithExplicitTitleBackfill(true)).isEqualTo(MIGRATION_COUNT);
 
         assertThat(schemaSnapshot().stream().filter(column -> !addedAfterAdoption(column) && !legacyTitleColumn(column)).toList())
                 .isEqualTo(schemaBefore);
@@ -148,7 +148,7 @@ class FlywayMigrationTest {
         jdbc.execute("ALTER TABLE orders ADD COLUMN delivery_fee INT NULL");
         jdbc.update("UPDATE orders SET delivery_fee=15000 WHERE id=1");
 
-        flyway(true).migrate();
+        migrateWithExplicitTitleBackfill(true);
 
         assertCurrentSchema();
         assertThat(jdbc.queryForObject("SELECT delivery_fee FROM orders WHERE id=1", Integer.class))
@@ -162,7 +162,7 @@ class FlywayMigrationTest {
         seedExistingRows();
         var deliveryBefore = jdbc.queryForMap("SELECT * FROM delivery WHERE id=1");
 
-        assertThat(flyway(false).migrate().migrationsExecuted).isEqualTo(MIGRATION_COUNT - 9);
+        assertThat(migrateWithExplicitTitleBackfill(false)).isEqualTo(MIGRATION_COUNT - 9);
 
         assertCurrentSchema();
         assertThat(jdbc.queryForMap("SELECT * FROM delivery WHERE id=1")).isEqualTo(deliveryBefore);
@@ -187,6 +187,29 @@ class FlywayMigrationTest {
                 .hasMessageContaining("checksum mismatch");
         assertThat(count("SELECT COUNT(*) FROM flyway_schema_history WHERE type='SQL' AND success=1"))
                 .isEqualTo(MIGRATION_COUNT);
+    }
+
+    @Test
+    void contractRejectsMissingNewValuesAndKeepsLegacyColumnAndData() {
+        Flyway.configure().dataSource(dataSource).locations("classpath:db/migration")
+                .target("12").load().migrate();
+        seedExistingRows();
+
+        assertThatThrownBy(() -> flyway(false).migrate()).isInstanceOf(FlywayException.class);
+
+        assertThat(columnCount("listings", "title")).isOne();
+        assertThat(jdbc.queryForObject("SELECT title FROM listings WHERE id=1", String.class))
+                .isEqualTo("migration fixture");
+        assertThat(jdbc.queryForObject("SELECT display_title FROM listings WHERE id=1", String.class)).isNull();
+    }
+
+    private int migrateWithExplicitTitleBackfill(boolean adoptExisting) {
+        var beforeContract = Flyway.configure().dataSource(dataSource).locations("classpath:db/migration")
+                .baselineVersion("0").baselineOnMigrate(adoptExisting).target("12").cleanDisabled(true).load();
+        int executed = beforeContract.migrate().migrationsExecuted;
+        jdbc.update("UPDATE listings SET display_title=title WHERE NOT "
+                + "(CAST(display_title AS BINARY) <=> CAST(title AS BINARY))");
+        return executed + flyway(false).migrate().migrationsExecuted;
     }
 
     private Flyway flyway(final boolean adoptExisting) {
@@ -235,6 +258,11 @@ class FlywayMigrationTest {
                 .isEqualTo("road_name,building_main,building_sub");
         assertThat(indexColumns("address_reference", "idx_address_reference_jibun"))
                 .isEqualTo("legal_dong,jibun_main,jibun_sub");
+        assertThat(columnCount("listings", "title")).isZero();
+        assertThat(columnCount("listings", "display_title")).isOne();
+        assertThat(jdbc.queryForObject("SELECT IS_NULLABLE FROM information_schema.columns "
+                + "WHERE table_schema=DATABASE() AND table_name='listings' AND column_name='display_title'",
+                String.class)).isEqualTo("NO");
         assertThat(columnCount("listings", "dong_code")).isOne();
         assertThat(columnCount("listings", "volume_tier")).isOne();
         for (var column : List.of("delivery_fee", "delivery_dong_code", "delivery_address", "delivery_phone_number")) {

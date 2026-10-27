@@ -46,14 +46,14 @@ class ListingTitleTransitionTest extends MySqlIntegrationTestSupport {
         listings.flush();
 
         assertTitles(listing.getId(), "changed");
-        assertThat(jdbc.queryForObject("SELECT title FROM listings WHERE id=?", String.class, listing.getId())).isNull();
+
     }
 
     @Test
-    void newColumnDrivesReadingEvenWhenLegacyTitleDiffers() {
+    void newColumnRemainsTheReadAndWriteSourceAfterContract() {
         Listing listing = listings.saveAndFlush(Listing.create(987601L, "1111053000", null,
                 "initial", "synthetic", 50000, ListingCategory.CHAIR, ConditionGrade.A, Dimensions.of(40, 40, 80)));
-        jdbc.update("UPDATE listings SET title='legacy-value', display_title='new-value' WHERE id=?", listing.getId());
+        jdbc.update("UPDATE listings SET display_title='new-value' WHERE id=?", listing.getId());
         entityManager.clear();
 
         Listing reloaded = listings.findById(listing.getId()).orElseThrow();
@@ -63,12 +63,11 @@ class ListingTitleTransitionTest extends MySqlIntegrationTestSupport {
         listings.flush();
 
         assertTitles(listing.getId(), "updated-by-c3");
-        assertThat(jdbc.queryForObject("SELECT title FROM listings WHERE id=?", String.class, listing.getId()))
-                .isEqualTo("legacy-value");
+
     }
 
     private void assertTitles(Long id, String title) {
-        assertThat(jdbc.queryForMap("SELECT title, display_title FROM listings WHERE id=?", id))
+        assertThat(jdbc.queryForMap("SELECT display_title FROM listings WHERE id=?", id))
                 .containsEntry("display_title", title);
     }
 }
