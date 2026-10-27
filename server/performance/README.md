@@ -34,6 +34,10 @@ LISTING_COUNT=100 ./gradlew gatlingRun \
 
 기본 대상은 dev다. 시나리오 자체를 로컬에서 검증할 때만 `LISTING_BASE_URL=http://127.0.0.1:포트`로 바꿀 수 있다. 이 로컬 결과는 dev 성능 결과로 사용하지 않는다. 워밍업과 본 측정의 구분은 [요청별 통계 범위](https://docs.gatling.io/concepts/assertions/)를 사용한다.
 
+## 배송 목록 복합 인덱스 검증
+
+[단일·복수 인덱스 비교](local-delivery-index/README.md)는 미배정 목록과 기사별 내역을 네 경로로 비교한다. 취소 이력을 포함한 합성 배송 5만 건에서 결과·정렬 순서와 실행 계획을 확인하며, V10에서 복합 인덱스 하나만 추가한 판단 근거와 재현 방법을 보존한다.
+
 ## 대표 사진 쿼리 비교와 선별 결과
 
 [로컬 쿼리 비교](local-thumbnail-query/README.md)는 같은 합성 입력으로 MIN 서브쿼리와 순서 1 조회를 교차 실행한다. 과거 로컬·최종 dev 측정의 선별 결과와 오프라인 검증기도 함께 제공한다. [사진 수 비교 절차](listing-images.md)는 전용 매물의 사진을 1→5→1개로 변경·복원하는 방법을 설명한다. `ListingCountSimulation`의 5,020·5,138건 조건은 해당 실험의 전체 목록 수다.
