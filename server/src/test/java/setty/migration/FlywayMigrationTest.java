@@ -34,7 +34,7 @@ class FlywayMigrationTest {
             "delivery_address_mgmt_no");
     private static final List<String> DELIVERY_ZONE_COLUMNS = List.of("pickup_dong_code", "pickup_zip_code",
             "delivery_dong_code", "delivery_zip_code");
-    private static final int MIGRATION_COUNT = 9;
+    private static final int MIGRATION_COUNT = 10;
 
     @Container
     static final MySQLContainer MYSQL = new MySQLContainer("mysql:8.4.11");
@@ -156,6 +156,20 @@ class FlywayMigrationTest {
     }
 
     @Test
+    void deliveryIndexUpgradesVersionNineWithoutChangingExistingDelivery() {
+        Flyway.configure().dataSource(dataSource).locations("classpath:db/migration")
+                .target("9").cleanDisabled(true).load().migrate();
+        seedExistingRows();
+        var deliveryBefore = jdbc.queryForMap("SELECT * FROM delivery WHERE id=1");
+
+        assertThat(flyway(false).migrate().migrationsExecuted).isOne();
+
+        assertCurrentSchema();
+        assertThat(jdbc.queryForMap("SELECT * FROM delivery WHERE id=1")).isEqualTo(deliveryBefore);
+        assertThat(flyway(false).migrate().migrationsExecuted).isZero();
+    }
+
+    @Test
     void changingAnAppliedMigrationIsRejected(@TempDir final Path directory) throws Exception {
         flyway(false).migrate();
         for (var resource : new PathMatchingResourcePatternResolver().getResources("classpath:db/migration/V*.sql")) {
@@ -232,6 +246,8 @@ class FlywayMigrationTest {
         for (var column : DELIVERY_ZONE_COLUMNS) {
             assertThat(columnCount("delivery", column)).as("delivery.%s", column).isOne();
         }
+        assertThat(indexColumns("delivery", "idx_delivery_requests"))
+                .isEqualTo("status,driver_id,requested_at,id");
         assertThat(indexColumns("listings", "idx_listings_delivery_filter"))
                 .isEqualTo("deleted_at,sale_status,created_at,id,dong_code,volume_tier");
         assertThat(columnCount("listings", "zip_zone")).isOne();
