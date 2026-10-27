@@ -47,7 +47,7 @@ class ListingVolumeTierColumnTest extends MySqlIntegrationTestSupport {
     })
     void 부피_구간_컬럼은_매물_배송비_정책과_같은_경계로_나뉜다(final int width, final int depth, final int height) {
         jdbcTemplate.update("""
-                INSERT INTO listings (seller_id, display_title, description, price, delivery_fee, category, condition_grade,
+                INSERT INTO listings (seller_id, title, description, price, delivery_fee, category, condition_grade,
                                       width_cm, depth_cm, height_cm, sale_status, has_purchase_request,
                                       created_at, updated_at)
                 VALUES (?, '가상 매물', '테스트용 가상 매물입니다', 120000, 10000, 'CHAIR', 'A', ?, ?, ?, 'AVAILABLE', false,

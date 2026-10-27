@@ -95,7 +95,7 @@ class PaymentConfirmRecoveryTest extends MySqlIntegrationTestSupport {
         insertMember(SELLER_ID);
         insertMember(BUYER_ID);
         jdbcTemplate.update("""
-                INSERT INTO listings (id, seller_id, display_title, description, price, delivery_fee, category,
+                INSERT INTO listings (id, seller_id, title, description, price, delivery_fee, category,
                                       condition_grade, width_cm, depth_cm, height_cm, sale_status,
                                       has_purchase_request, created_at, updated_at, deleted_at)
                 VALUES (?, ?, '테스트 책상', '테스트 설명', ?, ?, 'DESK',

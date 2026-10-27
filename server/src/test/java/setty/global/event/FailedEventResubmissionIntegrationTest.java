@@ -105,7 +105,7 @@ class FailedEventResubmissionIntegrationTest extends MySqlIntegrationTestSupport
         insertMember(BUYER_ID);
         jdbcTemplate.update(
                 """
-                INSERT INTO listings (id, seller_id, display_title, description, price, delivery_fee, category,
+                INSERT INTO listings (id, seller_id, title, description, price, delivery_fee, category,
                                       condition_grade, width_cm, depth_cm, height_cm, sale_status,
                                       has_purchase_request, created_at, updated_at, deleted_at)
                 VALUES (?, ?, '가상 원목 의자', '가상 설명', 50000, 10000, 'CHAIR',

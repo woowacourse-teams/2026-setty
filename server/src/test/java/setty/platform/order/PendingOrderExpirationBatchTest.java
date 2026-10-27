@@ -156,10 +156,10 @@ class PendingOrderExpirationBatchTest extends MySqlIntegrationTestSupport {
             seed(id, "PENDING", REFERENCE, true);
         }
         // 이 테스트의 임시 DB에서만 매물 2의 변경을 실패시킨다.
-        jdbc.update("UPDATE listings SET display_title='test-expiration-failure' WHERE id=2");
+        jdbc.update("UPDATE listings SET title='test-expiration-failure' WHERE id=2");
         jdbc.execute("""
                 ALTER TABLE listings ADD CONSTRAINT test_expiration_release_failure
-                CHECK (display_title <> 'test-expiration-failure' OR has_purchase_request = true)
+                CHECK (title <> 'test-expiration-failure' OR has_purchase_request = true)
                 """);
 
         assertThatThrownBy(() -> expirationService.expireBatch(List.of(1L, 2L, 3L), REFERENCE))
@@ -270,7 +270,7 @@ class PendingOrderExpirationBatchTest extends MySqlIntegrationTestSupport {
 
     private void seed(long id, String status, Instant expiresAt, boolean reserved) {
         jdbc.update("""
-                INSERT INTO listings (id,seller_id,display_title,description,price,delivery_fee,category,condition_grade,
+                INSERT INTO listings (id,seller_id,title,description,price,delivery_fee,category,condition_grade,
                     width_cm,depth_cm,height_cm,sale_status,has_purchase_request,created_at,updated_at)
                 VALUES (?,?,'테스트 책상','테스트 설명',10000,10000,'DESK','A',60,60,70,'AVAILABLE',?,?,?)
                 """, id, SELLER, reserved, sqlTime(OLD_UPDATED_AT), sqlTime(OLD_UPDATED_AT));

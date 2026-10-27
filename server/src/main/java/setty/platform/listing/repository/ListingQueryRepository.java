@@ -26,7 +26,7 @@ import setty.platform.listing.domain.ListingCategory;
 public class ListingQueryRepository {
 
     private static final String SELECT_COLUMNS = """
-            SELECT id, display_title AS title, price, delivery_fee, category, condition_grade,
+            SELECT id, title, price, delivery_fee, category, condition_grade,
                    width_cm, depth_cm, height_cm, has_purchase_request, created_at, dong_code, zip_zone, volume_tier""";
     private static final String ORDER_BY_LATEST = " ORDER BY created_at DESC, id DESC";
 

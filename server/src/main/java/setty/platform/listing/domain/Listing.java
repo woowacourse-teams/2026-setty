@@ -32,9 +32,8 @@ public class Listing {
     @Column(name = "seller_id", nullable = false)
     private Long sellerId;
 
-    // 스키마 실험 C3: 기존 물리 컬럼을 참조하지 않고 신규 컬럼만 읽고 쓴다.
-    @Column(name = "display_title", nullable = false, length = MAXIMUM_TITLE_LENGTH)
-    private String displayTitle;
+    @Column(nullable = false, length = MAXIMUM_TITLE_LENGTH)
+    private String title;
 
     @Column(nullable = false, length = MAXIMUM_DESCRIPTION_LENGTH)
     private String description;
@@ -99,7 +98,7 @@ public class Listing {
         this.sellerId = sellerId;
         this.dongCode = dongCode;
         this.zipZone = zipZone;
-        this.displayTitle = title.trim();
+        this.title = title.trim();
         this.description = description.trim();
         this.price = price;
         this.deliveryFee = DeliveryFeePolicy.calculate(dimensions);
@@ -136,7 +135,7 @@ public class Listing {
     ) {
         ensureUpdatable();
         validateFields(title, description, price, category, conditionGrade, dimensions);
-        this.displayTitle = title.trim();
+        this.title = title.trim();
         this.description = description.trim();
         this.price = price;
         this.deliveryFee = DeliveryFeePolicy.calculate(dimensions);
@@ -302,7 +301,7 @@ public class Listing {
     }
 
     public String getTitle() {
-        return displayTitle;
+        return title;
     }
 
     public String getDescription() {
