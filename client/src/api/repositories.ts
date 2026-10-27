@@ -7,7 +7,8 @@ import {
     type FurniturePage,
     type FurnitureSummary,
     type ListingDraft,
-    type MyFurniture
+    type MyFurniture,
+    orderStateOf
 } from '../model/furniture';
 import type { Member } from '../model/member';
 import { deliveryStatusOf, orderStatusOrNull, type Order, type OrderStatus, type PendingOrder } from '../model/order';
@@ -111,7 +112,8 @@ function toFurniture(response: FurnitureSummaryResponse): FurnitureSummary {
         conditionGrade: response.conditionGrade,
         createdAt: response.createdAt,
         dongName: response.dong ? dongDisplayName(response.dong) : null,
-        hasPurchaseRequest: response.hasPurchaseRequest ?? false
+        hasPurchaseRequest: response.hasPurchaseRequest ?? false,
+        orderState: orderStateOf(response.orderState, response.hasPurchaseRequest ?? false)
     };
 }
 
@@ -136,7 +138,9 @@ function toFurnitureDetail(response: FurnitureDetailResponse): FurnitureDetail {
         imageUrls: sortedImages(response).map((image) => image.url),
         dongName: response.dong ? dongDisplayName(response.dong) : null,
         hasPurchaseRequest: response.hasPurchaseRequest ?? false,
-        purchaseRequestedByMe: response.purchaseRequestedByMe ?? false
+        purchaseRequestedByMe: response.purchaseRequestedByMe ?? false,
+        orderState: orderStateOf(response.orderState, response.hasPurchaseRequest ?? false),
+        myOrderId: response.myOrderId ?? null
     };
 }
 

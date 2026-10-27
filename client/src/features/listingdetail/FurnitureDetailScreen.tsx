@@ -9,8 +9,10 @@ import {
     canResumePayment,
     categoryLabel,
     formatWon,
+    hasMyOrder,
     isPaymentInProgress,
     isPurchasable,
+    isTrading,
     type FurnitureDetail
 } from '../../model/furniture';
 import { routes, useNavigateBack, useNavigateToLogin } from '../../navigation';
@@ -60,7 +62,10 @@ const detailErrorMessages: Record<DetailError, string> = {
 function purchaseButtonLabel(listing: FurnitureDetail): string {
     if (isPurchasable(listing)) return '결제하고 주문하기';
     if (canResumePayment(listing)) return '결제 이어서 하기';
+    if (hasMyOrder(listing)) return '내 주문 보기';
     if (isPaymentInProgress(listing)) return '다른 구매자가 결제 중이에요';
+    if (isTrading(listing)) return '거래 중인 매물이에요';
+    if (listing.saleStatus === 'SOLD') return '판매 완료된 매물이에요';
     return '구매할 수 없는 매물입니다';
 }
 
@@ -134,7 +139,7 @@ export function FurnitureDetailScreen() {
     const titleRow = (
         <span className={styles['title-row']}>
             <span className={styles['title-row__text']}>{listing?.title ?? ''}</span>
-            {listing && <SaleStatusBadge isPaymentInProgress={isPaymentInProgress(listing)} saleStatus={listing.saleStatus} />}
+            {listing && <SaleStatusBadge orderState={listing.orderState} saleStatus={listing.saleStatus} />}
         </span>
     );
 
@@ -143,9 +148,11 @@ export function FurnitureDetailScreen() {
             bottomBar={listing && (
                 <BottomBar>
                     <Button
-                        disabled={!isPurchasable(listing) && !canResumePayment(listing)}
+                        disabled={!isPurchasable(listing) && !canResumePayment(listing) && !hasMyOrder(listing)}
                         fullWidth
-                        onClick={() => navigate(routes.payment(listing.id), { state: { orderName: listing.title, amount: listing.totalPrice } })}
+                        onClick={() => (hasMyOrder(listing) && listing.myOrderId !== null
+                            ? navigate(routes.orderDetail(listing.myOrderId))
+                            : navigate(routes.payment(listing.id), { state: { orderName: listing.title, amount: listing.totalPrice } }))}
                         size="medium"
                     >
                         {purchaseButtonLabel(listing)}

@@ -34,6 +34,19 @@ function hasPurchaseRequest(listing: MockListing): boolean {
     return orders.some((order) => order.listingId === listing.id && order.orderStatus === 'PENDING');
 }
 
+function orderStateOf(listing: MockListing): 'NONE' | 'PAYING' | 'TRADING' {
+    const open = orders.filter((order) => order.listingId === listing.id);
+    if (listing.saleStatus === 'RESERVED' || open.some((order) => order.orderStatus === 'CONFIRMED' || order.orderStatus === 'CANCEL_PENDING')) return 'TRADING';
+    if (open.some((order) => order.orderStatus === 'PENDING')) return 'PAYING';
+    return 'NONE';
+}
+
+function myOpenOrderOf(listing: MockListing, member: MockMember | null): MockOrder | undefined {
+    if (!member) return undefined;
+    return orders.find((order) => order.listingId === listing.id && order.buyerId === member.id
+        && (order.orderStatus === 'PENDING' || order.orderStatus === 'CONFIRMED' || order.orderStatus === 'CANCEL_PENDING'));
+}
+
 function summaryOf(listing: MockListing) {
     const deliveryFee = deliveryFeeOf(listing);
     return {
@@ -47,7 +60,8 @@ function summaryOf(listing: MockListing) {
         conditionGrade: listing.conditionGrade,
         createdAt: listing.createdAt,
         dong: dongOf(listing.dongCode),
-        hasPurchaseRequest: hasPurchaseRequest(listing)
+        hasPurchaseRequest: hasPurchaseRequest(listing),
+        orderState: orderStateOf(listing)
     };
 }
 
@@ -64,7 +78,8 @@ function detailOf(listing: MockListing, member: MockMember | null) {
         saleStatus: listing.saleStatus,
         images: listing.images,
         updatedAt: listing.updatedAt,
-        purchaseRequestedByMe: pendingOrderOf(listing, member) !== undefined
+        purchaseRequestedByMe: pendingOrderOf(listing, member) !== undefined,
+        myOrderId: myOpenOrderOf(listing, member)?.id ?? null
     };
 }
 

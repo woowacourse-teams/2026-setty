@@ -9,7 +9,7 @@ import {
     type RefObject
 } from 'react';
 import { createPortal } from 'react-dom';
-import { saleStatusLabel, PAYMENT_IN_PROGRESS_LABEL, type SaleStatus } from '../model/furniture';
+import { tradeStatusLabel, type OrderState, type SaleStatus } from '../model/furniture';
 import { Icon, type IconName } from './Icon';
 import { shapeStyle, type ShapeName } from './shapes';
 import { dismissSnackbar, useSnackbar } from './snackbar';
@@ -412,20 +412,20 @@ export function StatusBadge({ text, containerColor, contentColor }: StatusBadgeP
     );
 }
 
-export function SaleStatusBadge({ saleStatus, isPaymentInProgress = false }: { saleStatus: SaleStatus; isPaymentInProgress?: boolean }) {
+export function SaleStatusBadge({ saleStatus, orderState = 'NONE' }: { saleStatus: SaleStatus; orderState?: OrderState }) {
     let colors: [string, string];
-    if (isPaymentInProgress || saleStatus === 'RESERVED') {
-        colors = ['var(--tertiary-container)', 'var(--on-tertiary-container)'];
-    } else if (saleStatus === 'AVAILABLE') {
-        colors = ['var(--primary-container)', 'var(--on-primary-container)'];
-    } else {
+    if (saleStatus === 'SOLD') {
         colors = ['var(--surface-container-highest)', 'var(--on-surface-variant)'];
+    } else if (saleStatus === 'RESERVED' || orderState !== 'NONE') {
+        colors = ['var(--tertiary-container)', 'var(--on-tertiary-container)'];
+    } else {
+        colors = ['var(--primary-container)', 'var(--on-primary-container)'];
     }
     return (
         <StatusBadge
             containerColor={colors[0]}
             contentColor={colors[1]}
-            text={isPaymentInProgress ? PAYMENT_IN_PROGRESS_LABEL : saleStatusLabel(saleStatus)}
+            text={tradeStatusLabel(saleStatus, orderState)}
         />
     );
 }

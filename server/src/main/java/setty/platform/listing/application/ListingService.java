@@ -37,6 +37,7 @@ import setty.platform.listing.repository.ListingImageRepository;
 import setty.platform.listing.repository.ListingQueryRepository;
 import setty.platform.listing.repository.ListingRepository;
 import setty.platform.listing.storage.ListingImageStorage;
+import setty.platform.order.domain.Order;
 import setty.platform.order.domain.OrderStatus;
 import setty.platform.order.repository.OrderRepository;
 
@@ -48,6 +49,10 @@ public class ListingService {
     private static final int MAXIMUM_PAGE_SIZE = 100;
 
     private static final List<OrderStatus> CLOSED_ORDER_STATUSES = List.of(OrderStatus.EXPIRED, OrderStatus.CANCELLED);
+    private static final List<OrderStatus> OPEN_ORDER_STATUSES =
+            List.of(OrderStatus.PENDING, OrderStatus.CONFIRMED, OrderStatus.CANCEL_PENDING);
+    private static final List<OrderStatus> TRADING_ORDER_STATUSES =
+            List.of(OrderStatus.CONFIRMED, OrderStatus.CANCEL_PENDING);
 
     private final ListingRepository listingRepository;
     private final ListingImageRepository listingImageRepository;
@@ -188,9 +193,14 @@ public class ListingService {
                 ? Map.<Long, String>of()
                 : reader.findThumbnailObjectKeys(listingIds));
         ListingRequestTiming.count("image_count", thumbnails.size());
+        Map<Long, List<String>> orderStatuses = ListingRequestTiming.measure("orders", () -> listingIds.isEmpty()
+                ? Map.<Long, List<String>>of()
+                : reader.findOpenOrderStatuses(listingIds));
 
         List<ListingView.Summary> summaries = ListingRequestTiming.measure("mapping", () -> page.stream()
-                .map(row -> toSummary(row, thumbnails.get(row.id()), buyer))
+                .map(row -> toSummary(row, thumbnails.get(row.id()), buyer,
+                        orderStateOf(SaleStatus.AVAILABLE, row.hasPurchaseRequest(),
+                                orderStatuses.getOrDefault(row.id(), List.of()).stream().map(OrderStatus::valueOf).toList())))
                 .toList());
         ListingRequestTiming.count("summary_count", summaries.size());
 
@@ -208,7 +218,8 @@ public class ListingService {
                 .map(this::toImageView)
                 .toList();
 
-        return toDetail(listing, images, buyerOf(listingQueryRepository, buyerToken));
+        Buyer buyer = buyerOf(listingQueryRepository, buyerToken);
+        return toDetail(listing, images, buyer, myOpenOrderOf(listing, buyer));
     }
 
     @Transactional(readOnly = true)
@@ -233,11 +244,14 @@ public class ListingService {
         Map<Long, Listing> listingById = listings.stream()
                 .collect(Collectors.toMap(Listing::getId, Function.identity()));
         Map<Long, ListingImage> thumbnails = findThumbnails(listings);
+        Map<Long, List<OrderStatus>> orderStatuses = findOpenOrderStatuses(listingIds);
 
         return listingIds.stream()
                 .map(listingById::get)
                 .filter(Objects::nonNull)
-                .map(listing -> toSummary(listing, thumbnails.get(listing.getId()), buyer))
+                .map(listing -> toSummary(listing, thumbnails.get(listing.getId()), buyer,
+                        orderStateOf(listing.getSaleStatus(), listing.hasPurchaseRequest(),
+                                orderStatuses.getOrDefault(listing.getId(), List.of()))))
                 .toList();
     }
 
@@ -374,7 +388,12 @@ public class ListingService {
         return images == null ? List.of() : List.copyOf(images);
     }
 
-    private ListingView.Summary toSummary(ListingQueryRepository.Row row, String thumbnailObjectKey, Buyer buyer) {
+    private ListingView.Summary toSummary(
+            ListingQueryRepository.Row row,
+            String thumbnailObjectKey,
+            Buyer buyer,
+            ListingView.OrderState orderState
+    ) {
         int deliveryFee = deliveryFeeFor(row.dongCode(), row.zipZone(), row.volumeTier(), row.deliveryFee(), buyer);
         return new ListingView.Summary(
                 row.id(),
@@ -387,12 +406,18 @@ public class ListingService {
                 row.conditionGrade(),
                 new ListingView.Dimensions(row.widthCm(), row.depthCm(), row.heightCm()),
                 row.hasPurchaseRequest(),
+                orderState,
                 row.createdAt(),
                 dongOf(row.dongCode())
         );
     }
 
-    private ListingView.Summary toSummary(Listing listing, ListingImage thumbnail, Buyer buyer) {
+    private ListingView.Summary toSummary(
+            Listing listing,
+            ListingImage thumbnail,
+            Buyer buyer,
+            ListingView.OrderState orderState
+    ) {
         int deliveryFee = deliveryFeeFor(listing, buyer);
         return new ListingView.Summary(
                 listing.getId(),
@@ -405,12 +430,13 @@ public class ListingService {
                 listing.getConditionGrade(),
                 dimensionsOf(listing),
                 listing.hasPurchaseRequest(),
+                orderState,
                 listing.getCreatedAt(),
                 dongOf(listing.getDongCode())
         );
     }
 
-    private ListingView.Detail toDetail(Listing listing, List<ListingView.Image> images, Buyer buyer) {
+    private ListingView.Detail toDetail(Listing listing, List<ListingView.Image> images, Buyer buyer, Order myOrder) {
         int deliveryFee = deliveryFeeFor(listing, buyer);
         return new ListingView.Detail(
                 listing.getId(),
@@ -424,7 +450,10 @@ public class ListingService {
                 dimensionsOf(listing),
                 listing.getSaleStatus(),
                 listing.hasPurchaseRequest(),
-                purchaseRequestedBy(listing, buyer),
+                purchaseRequestedBy(listing, myOrder),
+                orderStateOf(listing.getSaleStatus(), listing.hasPurchaseRequest(),
+                        findOpenOrderStatuses(List.of(listing.getId())).getOrDefault(listing.getId(), List.of())),
+                myOrder == null ? null : myOrder.getId(),
                 images,
                 listing.getCreatedAt(),
                 listing.getUpdatedAt(),
@@ -433,10 +462,39 @@ public class ListingService {
     }
 
     // 선점한 결제 대기 주문이 조회한 회원의 것인지. 상세 화면이 "다른 구매자가 결제 중"과 "내 결제 이어서 하기"를 가른다.
-    private boolean purchaseRequestedBy(Listing listing, Buyer buyer) {
-        return listing.hasPurchaseRequest() && buyer.memberId() != null
-                && orderRepository.findPayableByListingIdAndBuyerId(listing.getId(), buyer.memberId(), Instant.now())
-                .isPresent();
+    private boolean purchaseRequestedBy(Listing listing, Order myOrder) {
+        return listing.hasPurchaseRequest() && myOrder != null && myOrder.isPayable(Instant.now());
+    }
+
+    // 조회한 회원이 이 매물에 가진 진행 중 주문. 결제 대기는 만료 전인 것만, 결제가 끝난 주문은 배송 완료 전까지 해당한다.
+    private Order myOpenOrderOf(Listing listing, Buyer buyer) {
+        if (buyer.memberId() == null) {
+            return null;
+        }
+        Instant now = Instant.now();
+        return orderRepository
+                .findAllByListingIdAndBuyerIdAndOrderStatusInOrderByIdDesc(listing.getId(), buyer.memberId(), OPEN_ORDER_STATUSES)
+                .stream()
+                .filter(order -> order.getOrderStatus() != OrderStatus.PENDING || order.isPayable(now))
+                .findFirst()
+                .orElse(null);
+    }
+
+    private Map<Long, List<OrderStatus>> findOpenOrderStatuses(List<Long> listingIds) {
+        return orderRepository.findAllByListingIdInAndOrderStatusIn(listingIds, OPEN_ORDER_STATUSES).stream()
+                .collect(Collectors.groupingBy(Order::getListingId,
+                        Collectors.mapping(Order::getOrderStatus, Collectors.toList())));
+    }
+
+    // 결제가 끝났거나 기사가 배차된 매물은 거래중, 결제 대기 주문이 선점 중이면 결제 중이다.
+    private ListingView.OrderState orderStateOf(SaleStatus saleStatus, boolean hasPurchaseRequest, List<OrderStatus> statuses) {
+        if (saleStatus == SaleStatus.RESERVED || statuses.stream().anyMatch(TRADING_ORDER_STATUSES::contains)) {
+            return ListingView.OrderState.TRADING;
+        }
+        if (hasPurchaseRequest || statuses.contains(OrderStatus.PENDING)) {
+            return ListingView.OrderState.PAYING;
+        }
+        return ListingView.OrderState.NONE;
     }
 
     private int deliveryFeeFor(Listing listing, Buyer buyer) {

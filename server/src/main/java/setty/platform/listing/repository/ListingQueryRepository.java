@@ -140,6 +140,22 @@ public class ListingQueryRepository {
         return objectKeys;
     }
 
+    // 매물마다 걸린 열린 주문(결제 대기·결제 완료·취소 대기)의 상태. 목록 카드의 "결제 중"과 "거래중"을 가른다.
+    public Map<Long, List<String>> findOpenOrderStatuses(List<Long> listingIds) {
+        String placeholders = String.join(",", Collections.nCopies(listingIds.size(), "?"));
+        Map<Long, List<String>> statuses = new HashMap<>();
+        jdbcTemplate.query(
+                "SELECT listing_id, order_status FROM orders WHERE order_status IN ('PENDING', 'CONFIRMED', 'CANCEL_PENDING')"
+                        + " AND listing_id IN (" + placeholders + ")",
+                (ResultSet resultSet) -> {
+                    statuses.computeIfAbsent(resultSet.getLong("listing_id"), id -> new ArrayList<>())
+                            .add(resultSet.getString("order_status"));
+                },
+                listingIds.toArray()
+        );
+        return statuses;
+    }
+
     private static Row mapRow(ResultSet resultSet, int rowNum) throws SQLException {
         return new Row(
                 resultSet.getLong("id"),

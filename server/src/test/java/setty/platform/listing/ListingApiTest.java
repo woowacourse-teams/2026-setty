@@ -523,6 +523,24 @@ class ListingApiTest extends MySqlIntegrationTestSupport {
     }
 
     @Test
+    void 결제가_끝난_매물은_거래중으로_표시하고_주문한_구매자에게만_내_주문_id를_준다() throws Exception {
+        long listingId = createListing(SELLER_ID, "거래중 표시 확인용 가상 의자");
+        assertOrderState(listingId, "NONE");
+
+        listingService.registerPurchaseRequest(listingId, FIRST_BUYER_ID, null, null);
+        long orderId = insertPendingOrder(listingId, FIRST_BUYER_ID);
+        assertOrderState(listingId, "PAYING");
+        assertMyOrderId(listingId, bearerToken(FIRST_BUYER_ID), orderId);
+
+        jdbcTemplate.update("UPDATE orders SET order_status = 'CONFIRMED' WHERE id = ?", orderId);
+        assertOrderState(listingId, "TRADING");
+        assertMyOrderId(listingId, bearerToken(FIRST_BUYER_ID), orderId);
+        assertMyOrderId(listingId, bearerToken(SECOND_BUYER_ID), null);
+        assertMyOrderId(listingId, null, null);
+        assertPurchaseRequestedByMe(listingId, bearerToken(FIRST_BUYER_ID), false);
+    }
+
+    @Test
     void concurrentDeliveryReservationsAllowOnlyOneWinner() throws Exception {
         long listingId = createListing(SELLER_ID, "동시 예약 확인용 가상 침대");
         listingService.registerPurchaseRequest(listingId, null, null, null);
@@ -740,6 +758,29 @@ class ListingApiTest extends MySqlIntegrationTestSupport {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.hasPurchaseRequest").value(true))
                 .andExpect(jsonPath("$.purchaseRequestedByMe").value(expected));
+    }
+
+    private void assertOrderState(long listingId, String expected) throws Exception {
+        mockMvc.perform(get("/api/listings"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[0].id").value(listingId))
+                .andExpect(jsonPath("$.items[0].orderState").value(expected));
+        mockMvc.perform(get("/api/listings/{listingId}", listingId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.orderState").value(expected));
+    }
+
+    private void assertMyOrderId(long listingId, String bearerToken, Long expected) throws Exception {
+        var request = get("/api/listings/{listingId}", listingId);
+        if (bearerToken != null) {
+            request = request.header(HttpHeaders.AUTHORIZATION, bearerToken);
+        }
+        JsonNode detail = read(mockMvc.perform(request).andExpect(status().isOk()).andReturn());
+        if (expected == null) {
+            assertThat(detail.get("myOrderId").isNull()).isTrue();
+        } else {
+            assertThat(detail.get("myOrderId").asLong()).isEqualTo(expected);
+        }
     }
 
     // 만료 시각은 DB 시계로 넣는다. JDBC로 Timestamp를 바인딩하면 시간대 변환이 서버 쪽과 달라 어긋난다.
