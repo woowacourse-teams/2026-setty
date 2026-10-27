@@ -35,6 +35,10 @@ public class Listing {
     @Column(nullable = false, length = MAXIMUM_TITLE_LENGTH)
     private String title;
 
+    // 스키마 실험 C1: 기존 컬럼을 읽고 두 컬럼을 같은 트랜잭션에서 기록한다.
+    @Column(name = "display_title", length = MAXIMUM_TITLE_LENGTH)
+    private String displayTitle;
+
     @Column(nullable = false, length = MAXIMUM_DESCRIPTION_LENGTH)
     private String description;
 
@@ -99,6 +103,7 @@ public class Listing {
         this.dongCode = dongCode;
         this.zipZone = zipZone;
         this.title = title.trim();
+        this.displayTitle = this.title;
         this.description = description.trim();
         this.price = price;
         this.deliveryFee = DeliveryFeePolicy.calculate(dimensions);
@@ -136,6 +141,7 @@ public class Listing {
         ensureUpdatable();
         validateFields(title, description, price, category, conditionGrade, dimensions);
         this.title = title.trim();
+        this.displayTitle = this.title;
         this.description = description.trim();
         this.price = price;
         this.deliveryFee = DeliveryFeePolicy.calculate(dimensions);

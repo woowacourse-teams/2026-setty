@@ -354,6 +354,32 @@ class Lab:
         path.write_text(content)
         print(path)
 
+    def phase(self, label):
+        valid_name(label)
+        record = {"at": now(), "phase": label, "active": self.state["active"]}
+        write_json(self.root / "phase.json", record)
+        with (self.root / "timeline.jsonl").open("a") as output:
+            output.write(json.dumps(record) + "\n")
+        print(json.dumps(record))
+
+    def checkpoint(self, label):
+        valid_name(label)
+        path = self.root / "evidence" / f"checkpoint-{label}.json"
+        if path.exists():
+            raise ValueError("기존 체크포인트는 덮어쓰지 않습니다.")
+        columns = self.query("SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE "
+                             "TABLE_SCHEMA=DATABASE() AND TABLE_NAME='listings' "
+                             "AND COLUMN_NAME IN ('title','display_title') ORDER BY ORDINAL_POSITION;").splitlines()
+        record = {"at": now(), "label": label, "state": self.state, "expected": self.data(),
+                  "history": self.query("SELECT version,description,success FROM flyway_schema_history "
+                                        "ORDER BY installed_rank;"),
+                  "columns": self.query("SELECT COLUMN_NAME,COLUMN_TYPE,IS_NULLABLE FROM information_schema.COLUMNS "
+                                        "WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='listings' "
+                                        "AND COLUMN_NAME IN ('title','display_title') ORDER BY ORDINAL_POSITION;"),
+                  "rows": self.query("SELECT id," + ",".join(columns) + " FROM listings ORDER BY id;")}
+        write_json(path, record)
+        print(path)
+
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
@@ -369,6 +395,8 @@ def main():
     start.add_argument("version", choices=VERSIONS)
     for name in ("route", "stop"):
         commands.add_parser(name).add_argument("slot", choices=PORTS)
+    for name in ("phase", "checkpoint"):
+        commands.add_parser(name).add_argument("label")
     for name in ("create", "update"):
         command = commands.add_parser(name)
         command.add_argument("label")
@@ -390,6 +418,8 @@ def main():
         lab.start(args.slot, args.version)
     elif args.command in ("route", "stop"):
         getattr(lab, args.command)(args.slot)
+    elif args.command in ("phase", "checkpoint"):
+        getattr(lab, args.command)(args.label)
     elif args.command in ("create", "update"):
         getattr(lab, args.command)(args.label, args.title, args.slot)
     elif args.command == "verify":

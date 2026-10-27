@@ -34,7 +34,7 @@ class FlywayMigrationTest {
             "delivery_address_mgmt_no");
     private static final List<String> DELIVERY_ZONE_COLUMNS = List.of("pickup_dong_code", "pickup_zip_code",
             "delivery_dong_code", "delivery_zip_code");
-    private static final int MIGRATION_COUNT = 10;
+    private static final int MIGRATION_COUNT = 11;
 
     @Container
     static final MySQLContainer MYSQL = new MySQLContainer("mysql:8.4.11");
@@ -162,7 +162,7 @@ class FlywayMigrationTest {
         seedExistingRows();
         var deliveryBefore = jdbc.queryForMap("SELECT * FROM delivery WHERE id=1");
 
-        assertThat(flyway(false).migrate().migrationsExecuted).isOne();
+        assertThat(flyway(false).migrate().migrationsExecuted).isEqualTo(MIGRATION_COUNT - 9);
 
         assertCurrentSchema();
         assertThat(jdbc.queryForMap("SELECT * FROM delivery WHERE id=1")).isEqualTo(deliveryBefore);
@@ -280,7 +280,7 @@ class FlywayMigrationTest {
         var name = (String) column.get("column_name");
         return table.equals("address_reference")
                 || table.equals("members") && STANDARD_ADDRESS_COLUMNS.contains(name)
-                || table.equals("listings") && name.equals("zip_zone")
+                || table.equals("listings") && List.of("zip_zone", "display_title").contains(name)
                 || table.equals("orders") && ORDER_PICKUP_SNAPSHOT_COLUMNS.contains(name)
                 || table.equals("delivery") && DELIVERY_ZONE_COLUMNS.contains(name);
     }

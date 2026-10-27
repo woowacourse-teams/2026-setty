@@ -1,5 +1,7 @@
 # 점진적 스키마 배포·롤백 로컬 실험
 
+이 브랜치는 로컬 실험용 임시 변경이다. 실험 결과를 보관한 뒤 변경을 원복하며, 운영 배포용으로 머지하지 않는다.
+
 공통 `schema-lab` 프로필과 격리 Docker Compose를 사용한다. 앱은 Java 21 컨테이너에서 각각 실행하고, 같은 실험 DB를 공유한다. C0 준비부터 시작해 단계별로 진행한다.
 
 | 항목 | 값 |
@@ -84,6 +86,19 @@ SQL
 `sql`은 Compose 내부의 실험 DB 계정으로만 실행한다. 컬럼 확장 이후에는 해당 단계에 맞는 확인 SQL과 백필을 사용한다. `verify --dual`은 두 컬럼이 같은 값을 유지해야 하는 C1 백필 완료~C2 재전환 구간에서만 사용한다. C3 이후에는 기존 값이 NULL이거나 오래돼도 되므로 `--dual`을 사용하지 않는다.
 
 ## 4. 기록과 일시 중지
+
+전환 직전 `phase`로 관찰 구간을 바꾸고, 각 단계의 DB·슬롯·기대값은 `checkpoint`로 보관한다. 체크포인트 라벨은 다시 사용하지 않는다.
+
+```bash
+lab phase c1-expansion
+python3 server/schema-lab/observe.py .local/schema-lab/schema-20261027-01
+```
+
+관찰기는 별도 터미널에서 실행한다. 요청 완료 후 0.5초씩 쉬며 목록 JSON·HTTP 상태·지연·서버 요청 ID·실제 upstream을 `evidence/observations.jsonl`에 저장한다. 쓰는 중의 응답은 같은 시점의 기대값과 비교하지 않으며, 값 일치는 별도 `verify`로 판정한다. 관찰을 끝낼 때는 실행 폴더에 `observer.stop` 파일을 만든다. 한 회차의 관찰 파일을 덮어쓰지 않는다.
+
+```bash
+lab checkpoint c1-coexistence
+```
 
 - `jars/<버전>.json`: 소스 커밋, JAR SHA-256, 마이그레이션 목록.
 - `state.json`: 실행 ID, 슬롯별 산출물, 현재 활성 슬롯.
