@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static setty.global.event.EventPublicationTestSupport.awaitEventsHandled;
 
@@ -12,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.awaitility.Awaitility;
+import org.mockito.ArgumentCaptor;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -24,8 +26,14 @@ import org.springframework.transaction.support.TransactionTemplate;
 import setty.notification.keyword.application.KeywordSubscriptionService;
 import setty.notification.listing.application.ListingNotificationDispatcher;
 import setty.notification.listing.application.ListingNotificationService;
+import setty.notification.listing.application.ListingToNotify;
 import setty.notification.send.NotificationSender;
 import setty.notification.send.SendResult;
+import setty.deliveryfee.DeliveryFeeService;
+import setty.deliveryfee.Dong;
+import setty.deliveryfee.VolumeTier;
+import setty.notification.keyword.domain.KeywordConditions;
+import setty.notification.send.NotificationMessage;
 import setty.platform.listing.application.ListingCreateCommand;
 import setty.platform.listing.application.ListingService;
 import setty.platform.listing.application.ListingUpdateCommand;
@@ -42,6 +50,7 @@ class ListingNotificationIntegrationTest extends MySqlIntegrationTestSupport {
     private static final long FIRST_SUBSCRIBER_ID = 902L;
     private static final long SECOND_SUBSCRIBER_ID = 903L;
     private static final long THIRD_SUBSCRIBER_ID = 904L;
+    private static final String SELLER_DONG_CODE = "1111053000";
 
     @Autowired
     private ListingService listingService;
@@ -60,6 +69,9 @@ class ListingNotificationIntegrationTest extends MySqlIntegrationTestSupport {
 
     @Autowired
     private ListingNotificationService listingNotificationService;
+
+    @Autowired
+    private DeliveryFeeService deliveryFeeService;
 
     @MockitoBean
     private ListingImageStorage listingImageStorage;
@@ -82,6 +94,7 @@ class ListingNotificationIntegrationTest extends MySqlIntegrationTestSupport {
         awaitEventsHandled(jdbcTemplate);
         jdbcTemplate.update("DELETE FROM EVENT_PUBLICATION");
         jdbcTemplate.update("DELETE FROM listing_notifications");
+        jdbcTemplate.update("DELETE FROM keyword_exclusions");
         jdbcTemplate.update("DELETE FROM keyword_subscriptions");
         jdbcTemplate.update("DELETE FROM listing_images");
         jdbcTemplate.update("DELETE FROM listings");
@@ -156,7 +169,7 @@ class ListingNotificationIntegrationTest extends MySqlIntegrationTestSupport {
                 listingId);
 
         assertThatCode(() -> transactionTemplate.executeWithoutResult(
-                status -> listingNotificationDispatcher.dispatch(listingId, "아이폰 15 팝니다")))
+                status -> listingNotificationDispatcher.dispatch(listing(listingId))))
                 .doesNotThrowAnyException();
         assertThat(countByStatus(listingId, "SENT")).isEqualTo(3);
     }
@@ -169,7 +182,7 @@ class ListingNotificationIntegrationTest extends MySqlIntegrationTestSupport {
         final long listingId = createListing("아이폰 15 팝니다");
         awaitEventsHandled(jdbcTemplate);
 
-        assertThatThrownBy(() -> listingNotificationDispatcher.dispatch(listingId, "아이폰 15 팝니다"))
+        assertThatThrownBy(() -> listingNotificationDispatcher.dispatch(listing(listingId)))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("1 notifications left");
     }
@@ -208,7 +221,7 @@ class ListingNotificationIntegrationTest extends MySqlIntegrationTestSupport {
         final long listingId = createListing("아이폰 15 팝니다");
         awaitEventsHandled(jdbcTemplate);
 
-        assertThatCode(() -> listingNotificationService.createForListing(listingId, SELLER_ID, "아이폰 15 팝니다"))
+        assertThatCode(() -> listingNotificationService.createForListing(listing(listingId)))
                 .doesNotThrowAnyException();
         assertThat(notificationCount(listingId)).isEqualTo(2);
         assertThat(countByStatus(listingId, "SENT")).isEqualTo(2);
@@ -261,19 +274,164 @@ class ListingNotificationIntegrationTest extends MySqlIntegrationTestSupport {
         assertThat(notificationCount(listingId)).isEqualTo(1);
     }
 
+    @Test
+    void 카테고리_조건이_다르면_받지_않고_같으면_받는다() {
+        subscribeWith(FIRST_SUBSCRIBER_ID, "아이폰", KeywordConditions.of("CHAIR", null, null, null, null, null));
+        subscribeWith(SECOND_SUBSCRIBER_ID, "아이폰", KeywordConditions.of("DESK", null, null, null, null, null));
+
+        final long listingId = createListing("아이폰 15 팝니다");
+        awaitEventsHandled(jdbcTemplate);
+
+        assertThat(countByMember(listingId, FIRST_SUBSCRIBER_ID)).isZero();
+        assertThat(countByMember(listingId, SECOND_SUBSCRIBER_ID)).isEqualTo(1);
+    }
+
+    @Test
+    void 물품가_범위는_경계값을_포함한다() {
+        subscribeWith(FIRST_SUBSCRIBER_ID, "아이폰", KeywordConditions.of(null, 1_000_000, 1_000_000, null, null, null));
+        subscribeWith(SECOND_SUBSCRIBER_ID, "아이폰", KeywordConditions.of(null, 1_000_001, null, null, null, null));
+        subscribeWith(THIRD_SUBSCRIBER_ID, "아이폰", KeywordConditions.of(null, null, 999_999, null, null, null));
+
+        final long listingId = createListing("아이폰 15 팝니다");
+        awaitEventsHandled(jdbcTemplate);
+
+        assertThat(countByMember(listingId, FIRST_SUBSCRIBER_ID)).isEqualTo(1);
+        assertThat(countByMember(listingId, SECOND_SUBSCRIBER_ID)).isZero();
+        assertThat(countByMember(listingId, THIRD_SUBSCRIBER_ID)).isZero();
+    }
+
+    @Test
+    void 제외_키워드가_하나라도_제목에_있으면_받지_않는다() {
+        subscribeWith(FIRST_SUBSCRIBER_ID, "아이폰", KeywordConditions.of(null, null, null, null, null, List.of("팝니다")));
+        subscribeWith(SECOND_SUBSCRIBER_ID, "아이폰", KeywordConditions.of(null, null, null, null, null, List.of("삽니다")));
+        subscribeWith(THIRD_SUBSCRIBER_ID, "아이폰", KeywordConditions.of(null, null, null, null, null, List.of("삽니다", "중고", "15")));
+
+        final long listingId = createListing("아이폰 15 팝니다");
+        awaitEventsHandled(jdbcTemplate);
+
+        assertThat(countByMember(listingId, FIRST_SUBSCRIBER_ID)).isZero();
+        assertThat(countByMember(listingId, SECOND_SUBSCRIBER_ID)).isEqualTo(1);
+        assertThat(countByMember(listingId, THIRD_SUBSCRIBER_ID)).isZero();
+    }
+
+    @Test
+    void 배송비_상한은_구독자_위치로_계산한_배송비로_판정한다() {
+        final int nearFee = deliveryFeeService.fee(sellerDong().index(), sellerDong().index(), VolumeTier.SMALL);
+        final Dong farDong = farDong(nearFee);
+        jdbcTemplate.update("UPDATE members SET dong_code = ? WHERE id = ?", SELLER_DONG_CODE, FIRST_SUBSCRIBER_ID);
+        jdbcTemplate.update("UPDATE members SET dong_code = ? WHERE id = ?", farDong.code(), SECOND_SUBSCRIBER_ID);
+        subscribeWith(FIRST_SUBSCRIBER_ID, "아이폰", KeywordConditions.of(null, null, null, nearFee, null, null));
+        subscribeWith(SECOND_SUBSCRIBER_ID, "아이폰", KeywordConditions.of(null, null, null, nearFee, null, null));
+
+        final long listingId = createListing("아이폰 15 팝니다");
+        awaitEventsHandled(jdbcTemplate);
+
+        assertThat(countByMember(listingId, FIRST_SUBSCRIBER_ID)).isEqualTo(1);
+        assertThat(countByMember(listingId, SECOND_SUBSCRIBER_ID)).isZero();
+    }
+
+    @Test
+    void 동을_모르는_구독자는_부피_기준_배송비로_판정한다() {
+        subscribeWith(FIRST_SUBSCRIBER_ID, "아이폰", KeywordConditions.of(null, null, null, 10_000, null, null));
+        subscribeWith(SECOND_SUBSCRIBER_ID, "아이폰", KeywordConditions.of(null, null, null, 9_999, null, null));
+
+        final long listingId = createListing("아이폰 15 팝니다");
+        awaitEventsHandled(jdbcTemplate);
+
+        assertThat(countByMember(listingId, FIRST_SUBSCRIBER_ID)).isEqualTo(1);
+        assertThat(countByMember(listingId, SECOND_SUBSCRIBER_ID)).isZero();
+    }
+
+    @Test
+    void 총가격_상한은_물품가와_배송비를_더해_판정한다() {
+        subscribeWith(FIRST_SUBSCRIBER_ID, "아이폰", KeywordConditions.of(null, null, null, null, 1_010_000, null));
+        subscribeWith(SECOND_SUBSCRIBER_ID, "아이폰", KeywordConditions.of(null, null, null, null, 1_009_999, null));
+
+        final long listingId = createListing("아이폰 15 팝니다");
+        awaitEventsHandled(jdbcTemplate);
+
+        assertThat(countByMember(listingId, FIRST_SUBSCRIBER_ID)).isEqualTo(1);
+        assertThat(countByMember(listingId, SECOND_SUBSCRIBER_ID)).isZero();
+    }
+
+    @Test
+    void 조건_여럿이_전부_맞아야_받는다() {
+        subscribeWith(FIRST_SUBSCRIBER_ID, "아이폰",
+                KeywordConditions.of("DESK", 900_000, 1_100_000, 10_000, 1_010_000, List.of("중고")));
+        subscribeWith(SECOND_SUBSCRIBER_ID, "아이폰",
+                KeywordConditions.of("DESK", 900_000, 1_100_000, 10_000, 1_010_000, List.of("팝니다")));
+
+        final long listingId = createListing("아이폰 15 팝니다");
+        awaitEventsHandled(jdbcTemplate);
+
+        assertThat(countByMember(listingId, FIRST_SUBSCRIBER_ID)).isEqualTo(1);
+        assertThat(countByMember(listingId, SECOND_SUBSCRIBER_ID)).isZero();
+    }
+
+    @Test
+    void 조건_없는_키워드와_배송비_조건_키워드에_같이_걸려도_알림은_1건이다() {
+        subscribe(FIRST_SUBSCRIBER_ID, "아이폰");
+        subscribeWith(FIRST_SUBSCRIBER_ID, "15", KeywordConditions.of(null, null, null, 10_000, null, null));
+
+        final long listingId = createListing("아이폰 15 팝니다");
+        awaitEventsHandled(jdbcTemplate);
+
+        assertThat(countByMember(listingId, FIRST_SUBSCRIBER_ID)).isEqualTo(1);
+        assertThat(countByStatus(listingId, "SENT")).isEqualTo(1);
+    }
+
+    @Test
+    void 발송_메시지에_물품가와_받는_사람_기준_배송비를_싣는다() {
+        subscribe(FIRST_SUBSCRIBER_ID, "아이폰");
+
+        final long listingId = createListing("아이폰 15 팝니다");
+        awaitEventsHandled(jdbcTemplate);
+
+        @SuppressWarnings("unchecked")
+        final ArgumentCaptor<List<NotificationMessage>> captor = ArgumentCaptor.forClass(List.class);
+        verify(notificationSender).send(captor.capture());
+        final NotificationMessage message = captor.getValue().getFirst();
+        assertThat(message.listingId()).isEqualTo(listingId);
+        assertThat(message.price()).isEqualTo(1_000_000);
+        assertThat(message.deliveryFee()).isEqualTo(10_000);
+    }
+
     private void dispatchQuietly(final long listingId) {
         try {
-            listingNotificationDispatcher.dispatch(listingId, "아이폰 15 팝니다");
+            listingNotificationDispatcher.dispatch(listing(listingId));
         } catch (final IllegalStateException leftToRetry) {
         }
+    }
+
+    private ListingToNotify listing(final long listingId) {
+        return new ListingToNotify(listingId, SELLER_ID, "아이폰 15 팝니다", "DESK", 1_000_000, "1111053000", null,
+                VolumeTier.SMALL, 10_000);
     }
 
     private void subscribe(final long memberId, final String keyword) {
         keywordSubscriptionService.subscribe(memberId, keyword);
     }
 
+    private void subscribeWith(final long memberId, final String keyword, final KeywordConditions conditions) {
+        keywordSubscriptionService.subscribe(memberId, keyword);
+        final Long subscriptionId = jdbcTemplate.queryForObject(
+                "SELECT id FROM keyword_subscriptions WHERE member_id = ? AND keyword = ?", Long.class, memberId, keyword);
+        keywordSubscriptionService.updateConditions(memberId, subscriptionId, conditions);
+    }
+
+    private Dong sellerDong() {
+        return deliveryFeeService.findDong(SELLER_DONG_CODE).orElseThrow();
+    }
+
+    private Dong farDong(final int nearFee) {
+        return deliveryFeeService.dongs().stream()
+                .filter(dong -> deliveryFeeService.fee(sellerDong().index(), dong.index(), VolumeTier.SMALL) > nearFee)
+                .findFirst()
+                .orElseThrow();
+    }
+
     private long createListing(final String title) {
-        return listingService.create(SELLER_ID, "1111053000", null, new ListingCreateCommand(
+        return listingService.create(SELLER_ID, SELLER_DONG_CODE, null, new ListingCreateCommand(
                 title, "테스트 설명", 1_000_000, ListingCategory.DESK, ConditionGrade.A, Dimensions.of(10, 10, 10),
                 List.of(new MockMultipartFile("images", "test.jpg", "image/jpeg", new byte[]{1}))
         )).listingId();

@@ -3,13 +3,32 @@ package setty.notification.listing.presentation;
 import java.time.Instant;
 import setty.notification.listing.domain.ListingNotification;
 
-public record NotificationResponse(Long id, Long listingId, String title, String status, Instant createdAt) {
+public record NotificationResponse(
+        Long id,
+        String type,
+        Long listingId,
+        String title,
+        Integer price,
+        Integer deliveryFee,
+        String status,
+        Instant createdAt
+) {
 
-    public static NotificationResponse of(final ListingNotification notification, final String title) {
+    static final String KEYWORD = "KEYWORD";
+
+    public static NotificationResponse of(
+            final ListingNotification notification,
+            final String title,
+            final Integer price,
+            final Integer deliveryFee
+    ) {
         return new NotificationResponse(
                 notification.getId(),
+                KEYWORD,
                 notification.getListingId(),
                 title,
+                price,
+                deliveryFee,
                 notification.getStatus().name(),
                 notification.getCreatedAt()
         );

@@ -94,6 +94,40 @@ public class DeliveryFeeService {
         return result;
     }
 
+    // 매물 상세와 같은 규칙. 우편번호 구역을 둘 다 알면 구역 표, 아니면 행정동 표, 구매자 동을 모르면 기본값을 쓴다.
+    public int feeOrDefault(
+            final String sellerDongCode,
+            final Integer sellerZipZone,
+            final String buyerDongCode,
+            final String buyerZipCode,
+            final VolumeTier volumeTier,
+            final int defaultFee
+    ) {
+        if (volumeTier == null) {
+            return defaultFee;
+        }
+        final Integer buyerZipZone = buyerZipCode == null ? null : zipZoneOf(buyerZipCode).orElse(null);
+        return zipFee(sellerZipZone, buyerZipZone, volumeTier)
+                .orElseGet(() -> dongFeeOrDefault(sellerDongCode, buyerDongCode, volumeTier, defaultFee));
+    }
+
+    private int dongFeeOrDefault(
+            final String sellerDongCode,
+            final String buyerDongCode,
+            final VolumeTier volumeTier,
+            final int defaultFee
+    ) {
+        if (sellerDongCode == null || buyerDongCode == null) {
+            return defaultFee;
+        }
+        final Optional<Dong> seller = findDong(sellerDongCode);
+        final Optional<Dong> buyer = findDong(buyerDongCode);
+        if (seller.isEmpty() || buyer.isEmpty()) {
+            return defaultFee;
+        }
+        return fee(seller.get().index(), buyer.get().index(), volumeTier);
+    }
+
     public Optional<Integer> zipZoneOf(final String zipCode) {
         return zipZones.zoneOf(zipCode);
     }

@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import setty.common.ListingCreated;
 import setty.global.exception.BusinessException;
+import setty.platform.listing.domain.DeliveryFeePolicy;
 import setty.platform.listing.domain.Listing;
 import setty.platform.listing.domain.ListingImage;
 import setty.platform.listing.repository.ListingImageRepository;
@@ -79,7 +80,16 @@ public class ListingRecorder {
         listingRepository.flush();
         listingImageRepository.saveAll(createImages(listing.getId(), objectKeys, 1));
         eventPublisher.publishEvent(new ListingCreated(
-                listing.getId(), sellerId, listing.getTitle(), listing.getCreatedAt()));
+                listing.getId(),
+                sellerId,
+                listing.getTitle(),
+                listing.getCategory().name(),
+                listing.getPrice(),
+                listing.getDongCode(),
+                listing.getZipZone(),
+                DeliveryFeePolicy.volumeTier(listing.getDimensions()),
+                listing.getDeliveryFee(),
+                listing.getCreatedAt()));
 
         return new ListingView.Created(listing.getId(), listing.getCreatedAt());
     }

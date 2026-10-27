@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import setty.platform.listing.domain.DeliveryFeePolicy;
 import setty.platform.listing.domain.Listing;
 import setty.platform.listing.repository.ListingRepository;
 
@@ -17,10 +18,23 @@ public class NotificationListingReader {
         this.listingRepository = listingRepository;
     }
 
-    // 지난 알림도 제목을 보여 줘야 해서 삭제된 매물을 거르지 않는다.
+    // 지난 알림도 보여 줘야 해서 삭제된 매물을 거르지 않는다.
     @Transactional(readOnly = true)
-    public Map<Long, String> findTitles(final List<Long> listingIds) {
+    public Map<Long, NotifiedListing> findAll(final List<Long> listingIds) {
         return listingRepository.findAllById(listingIds).stream()
-                .collect(Collectors.toMap(Listing::getId, Listing::getTitle));
+                .map(NotificationListingReader::toNotified)
+                .collect(Collectors.toMap(NotifiedListing::id, listing -> listing));
+    }
+
+    private static NotifiedListing toNotified(final Listing listing) {
+        return new NotifiedListing(
+                listing.getId(),
+                listing.getTitle(),
+                listing.getPrice(),
+                listing.getDongCode(),
+                listing.getZipZone(),
+                DeliveryFeePolicy.volumeTier(listing.getDimensions()),
+                listing.getDeliveryFee()
+        );
     }
 }

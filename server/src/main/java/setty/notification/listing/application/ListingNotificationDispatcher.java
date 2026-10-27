@@ -43,36 +43,37 @@ public class ListingNotificationDispatcher {
     @Async(NotificationSendConfiguration.DISPATCH_EXECUTOR)
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onListingCreated(final ListingCreated event) {
-        listingNotificationService.createForListing(event.listingId(), event.sellerId(), event.title());
-        dispatch(event.listingId(), event.title());
+        final ListingToNotify listing = ListingToNotify.from(event);
+        listingNotificationService.createForListing(listing);
+        dispatch(listing);
     }
 
-    public void dispatch(final Long listingId, final String title) {
+    public void dispatch(final ListingToNotify listing) {
         final long started = System.nanoTime();
-        final List<CompletableFuture<Long>> batches = sendAllPending(listingId, title);
+        final List<CompletableFuture<Long>> batches = sendAllPending(listing);
         final long retryable = batches.stream().mapToLong(CompletableFuture::join).sum();
         log.info("listing notification dispatched listingId={} batches={} retryable={} elapsedMs={}",
-                listingId, batches.size(), retryable, (System.nanoTime() - started) / 1_000_000);
+                listing.listingId(), batches.size(), retryable, (System.nanoTime() - started) / 1_000_000);
         if (retryable > 0) {
             throw new IllegalStateException(
-                    "listing " + listingId + " has " + retryable + " notifications left to retry");
+                    "listing " + listing.listingId() + " has " + retryable + " notifications left to retry");
         }
     }
 
-    private List<CompletableFuture<Long>> sendAllPending(final Long listingId, final String title) {
+    private List<CompletableFuture<Long>> sendAllPending(final ListingToNotify listing) {
         final Semaphore inFlight = new Semaphore(properties.sendConcurrency() * IN_FLIGHT_BATCHES_PER_THREAD);
         final List<CompletableFuture<Long>> futures = new ArrayList<>();
         long afterId = 0L;
         while (true) {
             inFlight.acquireUninterruptibly();
-            final List<ListingNotification> batch = listingNotificationService.findPendingBatch(listingId, afterId);
+            final List<ListingNotification> batch = listingNotificationService.findPendingBatch(listing.listingId(), afterId);
             if (batch.isEmpty()) {
                 inFlight.release();
                 break;
             }
             afterId = batch.getLast().getId();
             futures.add(CompletableFuture
-                    .supplyAsync(() -> batchSender.send(batch, title), sendExecutor)
+                    .supplyAsync(() -> batchSender.send(batch, listing), sendExecutor)
                     .whenComplete((ignored, error) -> inFlight.release()));
         }
         CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new)).join();

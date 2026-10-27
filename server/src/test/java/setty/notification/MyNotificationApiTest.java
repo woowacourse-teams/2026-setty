@@ -1,6 +1,7 @@
 package setty.notification;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -51,6 +52,7 @@ class MyNotificationApiTest extends MySqlIntegrationTestSupport {
     @AfterEach
     void cleanUp() {
         jdbcTemplate.update("DELETE FROM device_tokens");
+        jdbcTemplate.update("DELETE FROM keyword_exclusions");
         jdbcTemplate.update("DELETE FROM keyword_subscriptions");
         jdbcTemplate.update("DELETE FROM listing_notifications");
         jdbcTemplate.update("DELETE FROM listing_images");
@@ -70,8 +72,11 @@ class MyNotificationApiTest extends MySqlIntegrationTestSupport {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items.length()").value(2))
                 .andExpect(jsonPath("$.items[0].id").value(7_002))
+                .andExpect(jsonPath("$.items[0].type").value("KEYWORD"))
                 .andExpect(jsonPath("$.items[0].listingId").value(72))
                 .andExpect(jsonPath("$.items[0].title").value("삭제된 의자"))
+                .andExpect(jsonPath("$.items[0].price").value(150_000))
+                .andExpect(jsonPath("$.items[0].deliveryFee").value(10_000))
                 .andExpect(jsonPath("$.items[1].title").value("원목 책상"));
     }
 
@@ -106,6 +111,57 @@ class MyNotificationApiTest extends MySqlIntegrationTestSupport {
                 .andExpect(status().isNoContent());
 
         assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM keyword_subscriptions", Integer.class)).isZero();
+    }
+
+    @Test
+    void 키워드_조건을_설정하면_목록에_실리고_남의_키워드는_404다() throws Exception {
+        mockMvc.perform(put("/api/me/keywords")
+                        .header(HttpHeaders.AUTHORIZATION, TOKEN)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"keyword\":\"소파\"}"))
+                .andExpect(status().isNoContent());
+        Long subscriptionId = jdbcTemplate.queryForObject(
+                "SELECT id FROM keyword_subscriptions WHERE member_id = ?", Long.class, MEMBER_ID);
+
+        mockMvc.perform(put("/api/me/keywords/" + subscriptionId + "/conditions")
+                        .header(HttpHeaders.AUTHORIZATION, TOKEN)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"category\":\"SOFA\",\"minPrice\":100000,\"maxPrice\":300000,"
+                                + "\"maxDeliveryFee\":20000,\"maxTotalPrice\":320000,\"excludeKeywords\":[\"케이스\",\"중고\"]}"))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(get("/api/me/keywords").header(HttpHeaders.AUTHORIZATION, TOKEN))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[0].category").value("SOFA"))
+                .andExpect(jsonPath("$.items[0].minPrice").value(100_000))
+                .andExpect(jsonPath("$.items[0].maxPrice").value(300_000))
+                .andExpect(jsonPath("$.items[0].maxDeliveryFee").value(20_000))
+                .andExpect(jsonPath("$.items[0].maxTotalPrice").value(320_000))
+                .andExpect(jsonPath("$.items[0].excludeKeywords", containsInAnyOrder("케이스", "중고")));
+
+        mockMvc.perform(put("/api/me/keywords/" + subscriptionId + "/conditions")
+                        .header(HttpHeaders.AUTHORIZATION, TOKEN)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"minPrice\":300000,\"maxPrice\":100000}"))
+                .andExpect(status().isBadRequest());
+
+        mockMvc.perform(put("/api/me/keywords/" + subscriptionId + "/conditions")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer token-" + OTHER_MEMBER_ID)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void 웹_기기_토큰을_등록한다() throws Exception {
+        mockMvc.perform(put("/api/me/device-token")
+                        .header(HttpHeaders.AUTHORIZATION, TOKEN)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"token\":\"web-token-1\",\"platform\":\"WEB\"}"))
+                .andExpect(status().isNoContent());
+
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT platform FROM device_tokens WHERE token = 'web-token-1'", String.class)).isEqualTo("WEB");
     }
 
     @Test
