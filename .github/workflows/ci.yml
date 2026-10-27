@@ -18,6 +18,9 @@ jobs:
       - name: Verify slot deployment and rollback
         run: python3 -m unittest discover -s server/deploy/tests -v
 
+      - name: Verify schema lab tooling
+        run: python3 -m unittest discover -s server/schema-lab/tests -v
+
   server-test:
     runs-on: ubuntu-latest
     steps:
