@@ -26,6 +26,28 @@ export type MockListing = {
     deleted: boolean;
 };
 
+export type MockKeyword = {
+    id: number;
+    memberId: number;
+    keyword: string;
+    category: string | null;
+    minPrice: number | null;
+    maxPrice: number | null;
+    maxDeliveryFee: number | null;
+    maxTotalPrice: number | null;
+    excludeKeywords: string[];
+    createdAt: string;
+};
+
+export type MockNotification = {
+    id: number;
+    memberId: number;
+    listingId: number;
+    status: 'PENDING' | 'SENT' | 'FAILED';
+    createdAt: string;
+    ackedAt: string | null;
+};
+
 export type MockOrder = {
     id: number;
     listingId: number;
@@ -153,4 +175,21 @@ export function deliveryFeeOf(listing: MockListing): number {
     if (cubicMeters <= 0.8) return 20_000;
     if (cubicMeters <= 1.5) return 30_000;
     return 50_000;
+}
+
+export const keywords: MockKeyword[] = [
+    { id: 901, memberId: 1, keyword: '소파', category: 'SOFA', minPrice: 100_000, maxPrice: 300_000, maxDeliveryFee: 20_000, maxTotalPrice: null, excludeKeywords: ['가죽', '중고'], createdAt: new Date(now - 3 * 86_400_000).toISOString() },
+    { id: 902, memberId: 1, keyword: '책상', category: null, minPrice: null, maxPrice: null, maxDeliveryFee: null, maxTotalPrice: null, excludeKeywords: [], createdAt: new Date(now - 2 * 86_400_000).toISOString() }
+];
+
+export const notifications: MockNotification[] = [
+    { id: 7_001, memberId: 1, listingId: 2, status: 'SENT', createdAt: new Date(now - 30 * 60_000).toISOString(), ackedAt: null },
+    { id: 7_002, memberId: 1, listingId: 4, status: 'SENT', createdAt: new Date(now - 5 * 3_600_000).toISOString(), ackedAt: null },
+    { id: 7_003, memberId: 1, listingId: 13, status: 'SENT', createdAt: new Date(now - 2 * 86_400_000).toISOString(), ackedAt: new Date(now - 86_400_000).toISOString() }
+];
+
+let nextKeywordId = 1_000;
+
+export function newKeywordId(): number {
+    return nextKeywordId++;
 }

@@ -3,14 +3,69 @@ import {
     deliveryFeeOf,
     dongs,
     favorites,
+    keywords,
     listings,
     members,
     newImageId,
+    newKeywordId,
+    notifications,
     orders,
+    type MockKeyword,
     type MockListing,
     type MockMember,
     type MockOrder
 } from './data';
+
+const MAX_KEYWORDS = 10;
+const MAX_EXCLUDE_KEYWORDS = 10;
+const CONDITION_AMOUNT_MAX = 100_000_000;
+const KEYWORD_CATEGORIES = ['SOFA', 'TABLE', 'DESK', 'CHAIR', 'STORAGE', 'BED'];
+
+type ConditionsBody = {
+    category?: string | null;
+    minPrice?: number | null;
+    maxPrice?: number | null;
+    maxDeliveryFee?: number | null;
+    maxTotalPrice?: number | null;
+    excludeKeywords?: string[] | null;
+};
+
+function invalidAmount(value: number | null | undefined) {
+    return value !== null && value !== undefined && (value < 0 || value > CONDITION_AMOUNT_MAX);
+}
+
+/** 서버 `KeywordConditions` 검증과 같은 규칙. 어긋나면 에러 문구를 돌려준다. */
+function conditionsError(keyword: MockKeyword, body: ConditionsBody): string | null {
+    const category = body.category?.trim().toUpperCase() || null;
+    if (category && !KEYWORD_CATEGORIES.includes(category)) return '카테고리가 올바르지 않습니다';
+    if ([body.minPrice, body.maxPrice, body.maxDeliveryFee, body.maxTotalPrice].some(invalidAmount)) return '금액은 0원 이상 1억 원 이하여야 합니다';
+    if (body.minPrice != null && body.maxPrice != null && body.minPrice > body.maxPrice) return '최소 가격은 최대 가격보다 클 수 없습니다';
+    const excludes = normalizedExcludes(body);
+    if (excludes.length > MAX_EXCLUDE_KEYWORDS) return `제외 키워드는 ${MAX_EXCLUDE_KEYWORDS}개까지 걸 수 있습니다`;
+    if (excludes.some((word) => word.length > 20)) return '제외 키워드는 20자 이하여야 합니다';
+    if (excludes.some((word) => word.toLowerCase() === keyword.keyword.toLowerCase())) return '제외 키워드는 키워드와 같을 수 없습니다';
+    return null;
+}
+
+function normalizedExcludes(body: ConditionsBody): string[] {
+    const words: string[] = [];
+    (body.excludeKeywords ?? []).forEach((word) => {
+        const stripped = word.trim();
+        if (stripped && !words.some((item) => item.toLowerCase() === stripped.toLowerCase())) words.push(stripped);
+    });
+    return words;
+}
+
+function keywordOf(keyword: MockKeyword) {
+    const { memberId: _memberId, ...response } = keyword;
+    return response;
+}
+
+/** 매물 부피 배송비에 받는 사람의 동이 판매자 동과 다르면 5천 원을 얹어 거리 배송비를 흉내낸다. */
+function deliveryFeeFor(listing: MockListing, member: MockMember): number {
+    const base = deliveryFeeOf(listing);
+    return member.dongCode && listing.dongCode && member.dongCode !== listing.dongCode ? base + 5_000 : base;
+}
 
 const TOKEN_PREFIX = 'mock-token-';
 
@@ -395,6 +450,116 @@ export const handlers = [
         const listing = listings.find((item) => item.id === order.listingId);
         if (listing) listing.saleStatus = 'SOLD';
         return HttpResponse.json({ orderId: order.id, status: 'DONE', amount });
+    }),
+
+    http.get('/api/me/keywords', async ({ request }) => {
+        await delay(300);
+        const member = currentMember(request);
+        if (!member) return unauthorized();
+        const mine = keywords
+            .filter((keyword) => keyword.memberId === member.id)
+            .sort((left, right) => left.createdAt.localeCompare(right.createdAt) || left.id - right.id);
+        return HttpResponse.json({ items: mine.map(keywordOf) });
+    }),
+
+    http.put('/api/me/keywords', async ({ request }) => {
+        await delay(300);
+        const member = currentMember(request);
+        if (!member) return unauthorized();
+        const keyword = ((await request.json() as { keyword?: string }).keyword ?? '').trim();
+        if (!keyword || keyword.length > 20) return error(400, 'INVALID_KEYWORD', '키워드는 공백을 제외하고 1자 이상 20자 이하여야 합니다');
+        const mine = keywords.filter((item) => item.memberId === member.id);
+        if (mine.some((item) => item.keyword.toLowerCase() === keyword.toLowerCase())) return new HttpResponse(null, { status: 204 });
+        if (mine.length >= MAX_KEYWORDS) return error(400, 'TOO_MANY_KEYWORDS', '키워드는 10개까지 등록할 수 있습니다');
+        keywords.push({
+            id: newKeywordId(),
+            memberId: member.id,
+            keyword,
+            category: null,
+            minPrice: null,
+            maxPrice: null,
+            maxDeliveryFee: null,
+            maxTotalPrice: null,
+            excludeKeywords: [],
+            createdAt: new Date().toISOString()
+        });
+        return new HttpResponse(null, { status: 204 });
+    }),
+
+    http.put('/api/me/keywords/:keywordId/conditions', async ({ request, params }) => {
+        await delay(300);
+        const member = currentMember(request);
+        if (!member) return unauthorized();
+        const keyword = keywords.find((item) => item.id === Number(params.keywordId) && item.memberId === member.id);
+        if (!keyword) return error(404, 'KEYWORD_NOT_FOUND', '존재하지 않는 키워드입니다');
+        const body = await request.json() as ConditionsBody;
+        const message = conditionsError(keyword, body);
+        if (message) return error(400, 'INVALID_KEYWORD_CONDITION', message);
+        Object.assign(keyword, {
+            category: body.category?.trim().toUpperCase() || null,
+            minPrice: body.minPrice ?? null,
+            maxPrice: body.maxPrice ?? null,
+            maxDeliveryFee: body.maxDeliveryFee ?? null,
+            maxTotalPrice: body.maxTotalPrice ?? null,
+            excludeKeywords: normalizedExcludes(body)
+        });
+        return new HttpResponse(null, { status: 204 });
+    }),
+
+    http.delete('/api/me/keywords/:keywordId', async ({ request, params }) => {
+        await delay(200);
+        const member = currentMember(request);
+        if (!member) return unauthorized();
+        const index = keywords.findIndex((item) => item.id === Number(params.keywordId) && item.memberId === member.id);
+        if (index < 0) return error(404, 'KEYWORD_NOT_FOUND', '존재하지 않는 키워드입니다');
+        keywords.splice(index, 1);
+        return new HttpResponse(null, { status: 204 });
+    }),
+
+    http.get('/api/me/notifications', async ({ request }) => {
+        await delay(300);
+        const member = currentMember(request);
+        if (!member) return unauthorized();
+        const url = new URL(request.url);
+        const size = Math.min(Math.max(Number(url.searchParams.get('size') ?? 20), 1), 100);
+        const page = Math.max(Number(url.searchParams.get('page') ?? 0), 0);
+        const mine = notifications
+            .filter((notification) => notification.memberId === member.id)
+            .sort((left, right) => right.createdAt.localeCompare(left.createdAt) || right.id - left.id)
+            .slice(page * size, page * size + size)
+            .map((notification) => {
+                const listing = listings.find((item) => item.id === notification.listingId);
+                return {
+                    id: notification.id,
+                    type: 'KEYWORD',
+                    listingId: notification.listingId,
+                    title: listing?.title ?? null,
+                    price: listing?.price ?? null,
+                    deliveryFee: listing ? deliveryFeeFor(listing, member) : null,
+                    status: notification.status,
+                    createdAt: notification.createdAt
+                };
+            });
+        return HttpResponse.json({ items: mine });
+    }),
+
+    http.post('/api/me/notifications/:notificationId/ack', async ({ request, params }) => {
+        const member = currentMember(request);
+        if (!member) return unauthorized();
+        const notification = notifications.find((item) => item.id === Number(params.notificationId) && item.memberId === member.id);
+        if (!notification) return error(404, 'NOTIFICATION_NOT_FOUND', '존재하지 않는 알림입니다');
+        notification.ackedAt ??= new Date().toISOString();
+        return new HttpResponse(null, { status: 204 });
+    }),
+
+    http.put('/api/me/device-token', async ({ request }) => {
+        if (!currentMember(request)) return unauthorized();
+        return new HttpResponse(null, { status: 204 });
+    }),
+
+    http.delete('/api/me/device-token', async ({ request }) => {
+        if (!currentMember(request)) return unauthorized();
+        return new HttpResponse(null, { status: 204 });
     }),
 
     http.post('/api/payments/fail', async ({ request }) => {

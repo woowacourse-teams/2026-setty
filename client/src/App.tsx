@@ -3,11 +3,14 @@ import { createBrowserRouter, Navigate, Outlet, ScrollRestoration, useLocation }
 import { tokenStore } from './api/http';
 import { FavoritesScreen } from './features/favorites/FavoritesScreen';
 import { HomeScreen } from './features/home/HomeScreen';
+import { KeywordConditionsScreen } from './features/keywords/KeywordConditionsScreen';
+import { KeywordsScreen } from './features/keywords/KeywordsScreen';
 import { FurnitureDetailScreen } from './features/listingdetail/FurnitureDetailScreen';
 import { ListingEditorScreen } from './features/listingeditor/ListingEditorScreen';
 import { LoginScreen } from './features/login/LoginScreen';
 import { MyListingsScreen } from './features/mylistings/MyListingsScreen';
 import { MyPageScreen } from './features/mypage/MyPageScreen';
+import { NotificationsScreen } from './features/notifications/NotificationsScreen';
 import { OrderDetailScreen } from './features/orders/OrderDetailScreen';
 import { OrdersScreen } from './features/orders/OrdersScreen';
 import { PaymentCompleteScreen } from './features/payment/PaymentCompleteScreen';
@@ -55,6 +58,9 @@ export const router = createBrowserRouter([
             { path: routes.favorites, element: <RequireLogin><FavoritesScreen /></RequireLogin> },
             { path: routes.orders, element: <RequireLogin><OrdersScreen /></RequireLogin> },
             { path: '/me/orders/:orderId', element: <RequireLogin><OrderDetailScreen /></RequireLogin> },
+            { path: routes.keywords, element: <RequireLogin><KeywordsScreen /></RequireLogin> },
+            { path: '/me/keywords/:keywordId', element: <RequireLogin><KeywordConditionsScreen /></RequireLogin> },
+            { path: routes.notifications, element: <RequireLogin><NotificationsScreen /></RequireLogin> },
             { path: '/payment', element: <RequireLogin><PaymentScreen /></RequireLogin> },
             { path: '/payment/success', element: <RequireLogin><PaymentReturnScreen result="success" /></RequireLogin> },
             { path: '/payment/fail', element: <RequireLogin><PaymentReturnScreen result="fail" /></RequireLogin> },
