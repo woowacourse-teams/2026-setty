@@ -143,7 +143,7 @@ export function FurnitureDetailScreen() {
                         fullWidth
                         onClick={() => (hasMyOrder(listing) && listing.myOrderId !== null
                             ? navigate(routes.orderDetail(listing.myOrderId))
-                            : navigate(routes.payment(listing.id), { state: { orderName: listing.title, amount: listing.totalPrice } }))}
+                            : navigate(routes.payment(listing.id), { state: { orderName: listing.title, amount: listing.totalPrice, resuming: canResumePayment(listing) } }))}
                         size="medium"
                     >
                         {purchaseButtonLabel(listing)}

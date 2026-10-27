@@ -39,6 +39,8 @@ type PaymentLocationState = {
     failedMessage?: string | null;
     // 결제창을 결제 없이 닫고 돌아왔는지. 결제 대기 주문이 남아 있어 같은 주문으로 이어서 결제한다
     canceled?: boolean;
+    // 상세에서 "결제 이어서 하기"로 들어왔는지. 안내 없이 버튼 문구만 바꾼다
+    resuming?: boolean;
 };
 
 const ALREADY_ORDERED = 'ALREADY_ORDERED';
@@ -76,7 +78,7 @@ export function PaymentScreen() {
     const locationState = (location.state ?? {}) as PaymentLocationState;
     const [order, setOrder] = useState<{ orderName: string; amount: number; isResuming: boolean } | null>(
         locationState.orderName && locationState.amount
-            ? { orderName: locationState.orderName, amount: locationState.amount, isResuming: locationState.canceled === true }
+            ? { orderName: locationState.orderName, amount: locationState.amount, isResuming: locationState.canceled === true || locationState.resuming === true }
             : null
     );
     const [loadError, setLoadError] = useState<string | null>(null);
@@ -193,6 +195,8 @@ function PaymentContent({ listingId, orderName, amount: initialAmount, isResumin
         }
 
         setAmount(totalPrice);
+        // 주문이 생긴 뒤로는 결제창이 어떤 이유로 닫히든 같은 주문으로 이어서 결제한다
+        setIsResuming(true);
         setStep('REQUESTING');
         savePendingPayment({ tossOrderId, amount: totalPrice, listingId });
         paymentRequested.current = true;
@@ -224,7 +228,6 @@ function PaymentContent({ listingId, orderName, amount: initialAmount, isResumin
             setStep('IDLE');
             // 사용자가 결제창을 직접 닫은 경우는 에러가 아니라 "닫았다"로 알린다. 주문은 남아 있어 같은 주문으로 이어서 결제한다
             if (errorCodeOf(reason) === PAY_PROCESS_CANCELED) {
-                setIsResuming(true);
                 showSnackbar(CANCELED_NOTICE, { long: true });
             } else {
                 showSnackbar(reason instanceof Error ? reason.message : '결제를 진행하지 못했습니다');
