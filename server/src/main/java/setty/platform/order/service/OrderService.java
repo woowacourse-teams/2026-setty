@@ -2,6 +2,7 @@ package setty.platform.order.service;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -69,7 +70,7 @@ public class OrderService {
     // 같은 구매자가 결제창을 닫고 다시 결제하면 새 주문 대신 만료 전 결제 대기 주문을 같은 만료 시각으로 돌려준다.
     @Transactional
     public Order pending(final OrderCreateRequest request, final Member buyer) {
-        final Instant now = clock.instant();
+        final Instant now = clock.instant().truncatedTo(ChronoUnit.MICROS);
         final Optional<Order> payable =
                 orderRepository.findPayableByListingIdAndBuyerId(request.listingId(), buyer.getId(), now);
         if (payable.isPresent()) {
