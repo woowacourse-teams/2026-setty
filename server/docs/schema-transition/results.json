@@ -1,0 +1,1305 @@
+{
+  "run_id": "schema-20261027-01",
+  "observation": {
+    "samples": 1757,
+    "statuses": {
+      "200": 1757
+    },
+    "errors": 0,
+    "p50_ms": 15.636,
+    "p95_ms": 34.699,
+    "max_ms": 297.288,
+    "started_at": "2026-10-27T12:19:21.821390+00:00",
+    "last_started_at": "2026-10-27T12:34:39.864634+00:00"
+  },
+  "phases": {
+    "c0-baseline": {
+      "samples": 322,
+      "statuses": {
+        "200": 322
+      },
+      "errors": 0,
+      "p50_ms": 16.321,
+      "p95_ms": 29.784,
+      "max_ms": 61.981,
+      "started_at": "2026-10-27T12:19:21.821390+00:00",
+      "last_started_at": "2026-10-27T12:22:09.053236+00:00"
+    },
+    "c1-expansion": {
+      "samples": 16,
+      "statuses": {
+        "200": 16
+      },
+      "errors": 0,
+      "p50_ms": 6.393,
+      "p95_ms": 18.692,
+      "max_ms": 18.692,
+      "started_at": "2026-10-27T12:22:09.577017+00:00",
+      "last_started_at": "2026-10-27T12:22:17.254269+00:00"
+    },
+    "c1-active": {
+      "samples": 159,
+      "statuses": {
+        "200": 159
+      },
+      "errors": 0,
+      "p50_ms": 17.678,
+      "p95_ms": 35.424,
+      "max_ms": 66.007,
+      "started_at": "2026-10-27T12:22:17.764034+00:00",
+      "last_started_at": "2026-10-27T12:23:40.377308+00:00"
+    },
+    "backfill": {
+      "samples": 125,
+      "statuses": {
+        "200": 125
+      },
+      "errors": 0,
+      "p50_ms": 15.417,
+      "p95_ms": 42.281,
+      "max_ms": 297.288,
+      "started_at": "2026-10-27T12:23:40.900081+00:00",
+      "last_started_at": "2026-10-27T12:24:46.087832+00:00"
+    },
+    "c2-preparation": {
+      "samples": 272,
+      "statuses": {
+        "200": 272
+      },
+      "errors": 0,
+      "p50_ms": 13.877,
+      "p95_ms": 27.281,
+      "max_ms": 50.756,
+      "started_at": "2026-10-27T12:24:46.604352+00:00",
+      "last_started_at": "2026-10-27T12:27:07.654264+00:00"
+    },
+    "c2-deploy": {
+      "samples": 15,
+      "statuses": {
+        "200": 15
+      },
+      "errors": 0,
+      "p50_ms": 7.064,
+      "p95_ms": 16.689,
+      "max_ms": 16.689,
+      "started_at": "2026-10-27T12:27:08.180110+00:00",
+      "last_started_at": "2026-10-27T12:27:15.368056+00:00"
+    },
+    "c2-active": {
+      "samples": 6,
+      "statuses": {
+        "200": 6
+      },
+      "errors": 0,
+      "p50_ms": 16.262,
+      "p95_ms": 21.156,
+      "max_ms": 21.156,
+      "started_at": "2026-10-27T12:27:15.883302+00:00",
+      "last_started_at": "2026-10-27T12:27:18.497474+00:00"
+    },
+    "rollback-to-c1": {
+      "samples": 6,
+      "statuses": {
+        "200": 6
+      },
+      "errors": 0,
+      "p50_ms": 8.616,
+      "p95_ms": 17.809,
+      "max_ms": 17.809,
+      "started_at": "2026-10-27T12:27:19.023822+00:00",
+      "last_started_at": "2026-10-27T12:27:21.615350+00:00"
+    },
+    "c1-rollback-writes": {
+      "samples": 6,
+      "statuses": {
+        "200": 6
+      },
+      "errors": 0,
+      "p50_ms": 9.247,
+      "p95_ms": 21.089,
+      "max_ms": 21.089,
+      "started_at": "2026-10-27T12:27:22.136460+00:00",
+      "last_started_at": "2026-10-27T12:27:24.720804+00:00"
+    },
+    "return-to-c2": {
+      "samples": 4,
+      "statuses": {
+        "200": 4
+      },
+      "errors": 0,
+      "p50_ms": 12.69,
+      "p95_ms": 18.63,
+      "max_ms": 18.63,
+      "started_at": "2026-10-27T12:27:25.244491+00:00",
+      "last_started_at": "2026-10-27T12:27:26.806812+00:00"
+    },
+    "c3-preparation": {
+      "samples": 336,
+      "statuses": {
+        "200": 336
+      },
+      "errors": 0,
+      "p50_ms": 15.861,
+      "p95_ms": 35.718,
+      "max_ms": 204.088,
+      "started_at": "2026-10-27T12:27:27.327896+00:00",
+      "last_started_at": "2026-10-27T12:30:23.237410+00:00"
+    },
+    "c3-deploy": {
+      "samples": 15,
+      "statuses": {
+        "200": 15
+      },
+      "errors": 0,
+      "p50_ms": 10.294,
+      "p95_ms": 30.234,
+      "max_ms": 30.234,
+      "started_at": "2026-10-27T12:30:23.751510+00:00",
+      "last_started_at": "2026-10-27T12:30:31.011310+00:00"
+    },
+    "c3-active": {
+      "samples": 6,
+      "statuses": {
+        "200": 6
+      },
+      "errors": 0,
+      "p50_ms": 8.779,
+      "p95_ms": 17.106,
+      "max_ms": 17.106,
+      "started_at": "2026-10-27T12:30:31.524172+00:00",
+      "last_started_at": "2026-10-27T12:30:34.100747+00:00"
+    },
+    "c4-preparation": {
+      "samples": 430,
+      "statuses": {
+        "200": 430
+      },
+      "errors": 0,
+      "p50_ms": 15.759,
+      "p95_ms": 41.343,
+      "max_ms": 159.457,
+      "started_at": "2026-10-27T12:30:34.622202+00:00",
+      "last_started_at": "2026-10-27T12:34:19.573998+00:00"
+    },
+    "c4-deploy": {
+      "samples": 16,
+      "statuses": {
+        "200": 16
+      },
+      "errors": 0,
+      "p50_ms": 10.98,
+      "p95_ms": 70.719,
+      "max_ms": 70.719,
+      "started_at": "2026-10-27T12:34:20.083722+00:00",
+      "last_started_at": "2026-10-27T12:34:27.875185+00:00"
+    },
+    "c4-active": {
+      "samples": 1,
+      "statuses": {
+        "200": 1
+      },
+      "errors": 0,
+      "p50_ms": 5.736,
+      "p95_ms": 5.736,
+      "max_ms": 5.736,
+      "started_at": "2026-10-27T12:34:28.446499+00:00",
+      "last_started_at": "2026-10-27T12:34:28.446499+00:00"
+    },
+    "c3-restart-on-v13": {
+      "samples": 17,
+      "statuses": {
+        "200": 17
+      },
+      "errors": 0,
+      "p50_ms": 11.964,
+      "p95_ms": 25.481,
+      "max_ms": 25.481,
+      "started_at": "2026-10-27T12:34:28.960349+00:00",
+      "last_started_at": "2026-10-27T12:34:37.240798+00:00"
+    },
+    "final-verification": {
+      "samples": 5,
+      "statuses": {
+        "200": 5
+      },
+      "errors": 0,
+      "p50_ms": 20.024,
+      "p95_ms": 24.922,
+      "max_ms": 24.922,
+      "started_at": "2026-10-27T12:34:37.756203+00:00",
+      "last_started_at": "2026-10-27T12:34:39.864634+00:00"
+    }
+  },
+  "artifacts": [
+    {
+      "version": "C0",
+      "commit": "646f0c3565f85959b8a2968085b60f4bd8438151",
+      "built_at": "2026-10-27T11:16:28.661384+00:00",
+      "sha256": "61fd0740db3ab7119a0cb1ce14225f19fade913c7dc14bdf27850d27ce27cfcb",
+      "migrations": [
+        "BOOT-INF/classes/db/migration/V1__adopt_platform_schema.sql",
+        "BOOT-INF/classes/db/migration/V2__adopt_notification_schema.sql",
+        "BOOT-INF/classes/db/migration/V3__adopt_delivery_schema.sql",
+        "BOOT-INF/classes/db/migration/V4__adopt_payment_schema.sql",
+        "BOOT-INF/classes/db/migration/V5__adopt_settlement_schema.sql",
+        "BOOT-INF/classes/db/migration/V6__adopt_event_schema.sql",
+        "BOOT-INF/classes/db/migration/V7__add_standard_address.sql",
+        "BOOT-INF/classes/db/migration/V8__add_listing_zip_zone.sql",
+        "BOOT-INF/classes/db/migration/V9__add_order_pickup_snapshot.sql",
+        "BOOT-INF/classes/db/migration/V10__add_delivery_query_index.sql"
+      ]
+    },
+    {
+      "version": "C1",
+      "commit": "40aee0843108642bf725789d7284f400d2c44676",
+      "built_at": "2026-10-27T12:21:38.030467+00:00",
+      "sha256": "a1bbf6d83146b83e668dc7d18718be354dd7328590f2ee1fa7c67d17294c5c5f",
+      "migrations": [
+        "BOOT-INF/classes/db/migration/V1__adopt_platform_schema.sql",
+        "BOOT-INF/classes/db/migration/V2__adopt_notification_schema.sql",
+        "BOOT-INF/classes/db/migration/V3__adopt_delivery_schema.sql",
+        "BOOT-INF/classes/db/migration/V4__adopt_payment_schema.sql",
+        "BOOT-INF/classes/db/migration/V5__adopt_settlement_schema.sql",
+        "BOOT-INF/classes/db/migration/V6__adopt_event_schema.sql",
+        "BOOT-INF/classes/db/migration/V7__add_standard_address.sql",
+        "BOOT-INF/classes/db/migration/V8__add_listing_zip_zone.sql",
+        "BOOT-INF/classes/db/migration/V9__add_order_pickup_snapshot.sql",
+        "BOOT-INF/classes/db/migration/V10__add_delivery_query_index.sql",
+        "BOOT-INF/classes/db/migration/V11__lab_expand_listing_title.sql"
+      ]
+    },
+    {
+      "version": "C2",
+      "commit": "0e215d0e1e66833dcf5308d8cbd9edd7cc8207de",
+      "built_at": "2026-10-27T12:26:31.316286+00:00",
+      "sha256": "fe65d676c14ad49db3adeaeaa5b8b1c91971402dcd6034c752c4764ec68f227e",
+      "migrations": [
+        "BOOT-INF/classes/db/migration/V1__adopt_platform_schema.sql",
+        "BOOT-INF/classes/db/migration/V2__adopt_notification_schema.sql",
+        "BOOT-INF/classes/db/migration/V3__adopt_delivery_schema.sql",
+        "BOOT-INF/classes/db/migration/V4__adopt_payment_schema.sql",
+        "BOOT-INF/classes/db/migration/V5__adopt_settlement_schema.sql",
+        "BOOT-INF/classes/db/migration/V6__adopt_event_schema.sql",
+        "BOOT-INF/classes/db/migration/V7__add_standard_address.sql",
+        "BOOT-INF/classes/db/migration/V8__add_listing_zip_zone.sql",
+        "BOOT-INF/classes/db/migration/V9__add_order_pickup_snapshot.sql",
+        "BOOT-INF/classes/db/migration/V10__add_delivery_query_index.sql",
+        "BOOT-INF/classes/db/migration/V11__lab_expand_listing_title.sql"
+      ]
+    },
+    {
+      "version": "C3",
+      "commit": "3a09734779db022006836f38320f5eff8c97ca27",
+      "built_at": "2026-10-27T12:29:55.183088+00:00",
+      "sha256": "c4d35f0aa04896985a79c5353791c030d7136610f76c6caf01dade1f9b148151",
+      "migrations": [
+        "BOOT-INF/classes/db/migration/V1__adopt_platform_schema.sql",
+        "BOOT-INF/classes/db/migration/V2__adopt_notification_schema.sql",
+        "BOOT-INF/classes/db/migration/V3__adopt_delivery_schema.sql",
+        "BOOT-INF/classes/db/migration/V4__adopt_payment_schema.sql",
+        "BOOT-INF/classes/db/migration/V5__adopt_settlement_schema.sql",
+        "BOOT-INF/classes/db/migration/V6__adopt_event_schema.sql",
+        "BOOT-INF/classes/db/migration/V7__add_standard_address.sql",
+        "BOOT-INF/classes/db/migration/V8__add_listing_zip_zone.sql",
+        "BOOT-INF/classes/db/migration/V9__add_order_pickup_snapshot.sql",
+        "BOOT-INF/classes/db/migration/V10__add_delivery_query_index.sql",
+        "BOOT-INF/classes/db/migration/V11__lab_expand_listing_title.sql",
+        "BOOT-INF/classes/db/migration/V12__lab_relax_legacy_listing_title.sql"
+      ]
+    },
+    {
+      "version": "C4",
+      "commit": "14a36bf9173f39ef128504067fe18e98e0358c01",
+      "built_at": "2026-10-27T12:33:25.099890+00:00",
+      "sha256": "b67eacd579244039dd02403ae15c017e427764659a270ce230c0287ecccf2967",
+      "migrations": [
+        "BOOT-INF/classes/db/migration/V1__adopt_platform_schema.sql",
+        "BOOT-INF/classes/db/migration/V2__adopt_notification_schema.sql",
+        "BOOT-INF/classes/db/migration/V3__adopt_delivery_schema.sql",
+        "BOOT-INF/classes/db/migration/V4__adopt_payment_schema.sql",
+        "BOOT-INF/classes/db/migration/V5__adopt_settlement_schema.sql",
+        "BOOT-INF/classes/db/migration/V6__adopt_event_schema.sql",
+        "BOOT-INF/classes/db/migration/V7__add_standard_address.sql",
+        "BOOT-INF/classes/db/migration/V8__add_listing_zip_zone.sql",
+        "BOOT-INF/classes/db/migration/V9__add_order_pickup_snapshot.sql",
+        "BOOT-INF/classes/db/migration/V10__add_delivery_query_index.sql",
+        "BOOT-INF/classes/db/migration/V11__lab_expand_listing_title.sql",
+        "BOOT-INF/classes/db/migration/V12__lab_relax_legacy_listing_title.sql",
+        "BOOT-INF/classes/db/migration/V13__lab_contract_listing_title.sql"
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "stage": "C1",
+      "commit": "40aee0843108642bf725789d7284f400d2c44676",
+      "tests": 719,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 1
+    },
+    {
+      "stage": "C2",
+      "commit": "0e215d0e1e66833dcf5308d8cbd9edd7cc8207de",
+      "tests": 720,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 1
+    },
+    {
+      "stage": "C3",
+      "commit": "3a09734779db022006836f38320f5eff8c97ca27",
+      "tests": 720,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 1
+    },
+    {
+      "stage": "C4",
+      "commit": "14a36bf9173f39ef128504067fe18e98e0358c01",
+      "tests": 721,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 1
+    }
+  ],
+  "checkpoints": [
+    {
+      "at": "2026-10-27T12:23:41.395516+00:00",
+      "label": "backfill-complete",
+      "expected": {
+        "E1": {
+          "id": 1,
+          "title": "lab-E1-by-C0",
+          "created_at": "2026-10-27T11:26:05.753924+00:00"
+        },
+        "E2": {
+          "id": 2,
+          "title": "lab-E2-initial",
+          "created_at": "2026-10-27T11:26:05.771620+00:00"
+        }
+      },
+      "history": "1\tadopt platform schema\t1\n2\tadopt notification schema\t1\n3\tadopt delivery schema\t1\n4\tadopt payment schema\t1\n5\tadopt settlement schema\t1\n6\tadopt event schema\t1\n7\tadd standard address\t1\n8\tadd listing zip zone\t1\n9\tadd order pickup snapshot\t1\n10\tadd delivery query index\t1\n11\tlab expand listing title\t1",
+      "columns": "title\tvarchar(100)\tNO\ndisplay_title\tvarchar(100)\tYES",
+      "rows": "1\tlab-E1-by-C0\tlab-E1-by-C0\n2\tlab-E2-initial\tlab-E2-initial",
+      "active": "green",
+      "slots": {
+        "blue": {
+          "version": "C0",
+          "commit": "646f0c3565f85959b8a2968085b60f4bd8438151",
+          "sha256": "61fd0740db3ab7119a0cb1ce14225f19fade913c7dc14bdf27850d27ce27cfcb"
+        },
+        "green": {
+          "version": "C1",
+          "commit": "40aee0843108642bf725789d7284f400d2c44676",
+          "sha256": "a1bbf6d83146b83e668dc7d18718be354dd7328590f2ee1fa7c67d17294c5c5f"
+        }
+      }
+    },
+    {
+      "at": "2026-10-27T12:27:16.332672+00:00",
+      "label": "before-rollback",
+      "expected": {
+        "E1": {
+          "id": 1,
+          "title": "lab-E1-before-rollback",
+          "created_at": "2026-10-27T11:26:05.753924+00:00"
+        },
+        "E2": {
+          "id": 2,
+          "title": "lab-E2-initial",
+          "created_at": "2026-10-27T11:26:05.771620+00:00"
+        },
+        "N1": {
+          "id": 3,
+          "title": "lab-N1-before-rollback",
+          "created_at": "2026-10-27T12:27:15.870612+00:00"
+        }
+      },
+      "history": "1\tadopt platform schema\t1\n2\tadopt notification schema\t1\n3\tadopt delivery schema\t1\n4\tadopt payment schema\t1\n5\tadopt settlement schema\t1\n6\tadopt event schema\t1\n7\tadd standard address\t1\n8\tadd listing zip zone\t1\n9\tadd order pickup snapshot\t1\n10\tadd delivery query index\t1\n11\tlab expand listing title\t1",
+      "columns": "title\tvarchar(100)\tNO\ndisplay_title\tvarchar(100)\tYES",
+      "rows": "1\tlab-E1-before-rollback\tlab-E1-before-rollback\n2\tlab-E2-initial\tlab-E2-initial\n3\tlab-N1-before-rollback\tlab-N1-before-rollback",
+      "active": "blue",
+      "slots": {
+        "blue": {
+          "version": "C2",
+          "commit": "0e215d0e1e66833dcf5308d8cbd9edd7cc8207de",
+          "sha256": "fe65d676c14ad49db3adeaeaa5b8b1c91971402dcd6034c752c4764ec68f227e"
+        },
+        "green": {
+          "version": "C1",
+          "commit": "40aee0843108642bf725789d7284f400d2c44676",
+          "sha256": "a1bbf6d83146b83e668dc7d18718be354dd7328590f2ee1fa7c67d17294c5c5f"
+        }
+      }
+    },
+    {
+      "at": "2026-10-27T12:19:14.856027+00:00",
+      "label": "c0-resumed",
+      "expected": {
+        "E1": {
+          "id": 1,
+          "title": "lab-E1-initial",
+          "created_at": "2026-10-27T11:26:05.753924+00:00"
+        },
+        "E2": {
+          "id": 2,
+          "title": "lab-E2-initial",
+          "created_at": "2026-10-27T11:26:05.771620+00:00"
+        }
+      },
+      "history": "1\tadopt platform schema\t1\n2\tadopt notification schema\t1\n3\tadopt delivery schema\t1\n4\tadopt payment schema\t1\n5\tadopt settlement schema\t1\n6\tadopt event schema\t1\n7\tadd standard address\t1\n8\tadd listing zip zone\t1\n9\tadd order pickup snapshot\t1\n10\tadd delivery query index\t1",
+      "columns": "title\tvarchar(100)\tNO",
+      "rows": "1\tlab-E1-initial\n2\tlab-E2-initial",
+      "active": "blue",
+      "slots": {
+        "blue": {
+          "version": "C0",
+          "commit": "646f0c3565f85959b8a2968085b60f4bd8438151",
+          "sha256": "61fd0740db3ab7119a0cb1ce14225f19fade913c7dc14bdf27850d27ce27cfcb"
+        }
+      }
+    },
+    {
+      "at": "2026-10-27T12:22:18.604596+00:00",
+      "label": "c1-active",
+      "expected": {
+        "E1": {
+          "id": 1,
+          "title": "lab-E1-by-C0",
+          "created_at": "2026-10-27T11:26:05.753924+00:00"
+        },
+        "E2": {
+          "id": 2,
+          "title": "lab-E2-initial",
+          "created_at": "2026-10-27T11:26:05.771620+00:00"
+        }
+      },
+      "history": "1\tadopt platform schema\t1\n2\tadopt notification schema\t1\n3\tadopt delivery schema\t1\n4\tadopt payment schema\t1\n5\tadopt settlement schema\t1\n6\tadopt event schema\t1\n7\tadd standard address\t1\n8\tadd listing zip zone\t1\n9\tadd order pickup snapshot\t1\n10\tadd delivery query index\t1\n11\tlab expand listing title\t1",
+      "columns": "title\tvarchar(100)\tNO\ndisplay_title\tvarchar(100)\tYES",
+      "rows": "1\tlab-E1-by-C0\tlab-E1-by-C1\n2\tlab-E2-initial\tNULL",
+      "active": "green",
+      "slots": {
+        "blue": {
+          "version": "C0",
+          "commit": "646f0c3565f85959b8a2968085b60f4bd8438151",
+          "sha256": "61fd0740db3ab7119a0cb1ce14225f19fade913c7dc14bdf27850d27ce27cfcb"
+        },
+        "green": {
+          "version": "C1",
+          "commit": "40aee0843108642bf725789d7284f400d2c44676",
+          "sha256": "a1bbf6d83146b83e668dc7d18718be354dd7328590f2ee1fa7c67d17294c5c5f"
+        }
+      }
+    },
+    {
+      "at": "2026-10-27T12:22:17.292804+00:00",
+      "label": "c1-coexistence",
+      "expected": {
+        "E1": {
+          "id": 1,
+          "title": "lab-E1-by-C0",
+          "created_at": "2026-10-27T11:26:05.753924+00:00"
+        },
+        "E2": {
+          "id": 2,
+          "title": "lab-E2-initial",
+          "created_at": "2026-10-27T11:26:05.771620+00:00"
+        }
+      },
+      "history": "1\tadopt platform schema\t1\n2\tadopt notification schema\t1\n3\tadopt delivery schema\t1\n4\tadopt payment schema\t1\n5\tadopt settlement schema\t1\n6\tadopt event schema\t1\n7\tadd standard address\t1\n8\tadd listing zip zone\t1\n9\tadd order pickup snapshot\t1\n10\tadd delivery query index\t1\n11\tlab expand listing title\t1",
+      "columns": "title\tvarchar(100)\tNO\ndisplay_title\tvarchar(100)\tYES",
+      "rows": "1\tlab-E1-by-C0\tlab-E1-by-C1\n2\tlab-E2-initial\tNULL",
+      "active": "blue",
+      "slots": {
+        "blue": {
+          "version": "C0",
+          "commit": "646f0c3565f85959b8a2968085b60f4bd8438151",
+          "sha256": "61fd0740db3ab7119a0cb1ce14225f19fade913c7dc14bdf27850d27ce27cfcb"
+        },
+        "green": {
+          "version": "C1",
+          "commit": "40aee0843108642bf725789d7284f400d2c44676",
+          "sha256": "a1bbf6d83146b83e668dc7d18718be354dd7328590f2ee1fa7c67d17294c5c5f"
+        }
+      }
+    },
+    {
+      "at": "2026-10-27T12:27:26.920821+00:00",
+      "label": "c2-return",
+      "expected": {
+        "E1": {
+          "id": 1,
+          "title": "lab-E1-before-rollback",
+          "created_at": "2026-10-27T11:26:05.753924+00:00"
+        },
+        "E2": {
+          "id": 2,
+          "title": "lab-E2-initial",
+          "created_at": "2026-10-27T11:26:05.771620+00:00"
+        },
+        "N1": {
+          "id": 3,
+          "title": "lab-N1-during-rollback",
+          "created_at": "2026-10-27T12:27:15.870612+00:00"
+        },
+        "N2": {
+          "id": 4,
+          "title": "lab-N2-during-rollback",
+          "created_at": "2026-10-27T12:27:22.129693+00:00"
+        }
+      },
+      "history": "1\tadopt platform schema\t1\n2\tadopt notification schema\t1\n3\tadopt delivery schema\t1\n4\tadopt payment schema\t1\n5\tadopt settlement schema\t1\n6\tadopt event schema\t1\n7\tadd standard address\t1\n8\tadd listing zip zone\t1\n9\tadd order pickup snapshot\t1\n10\tadd delivery query index\t1\n11\tlab expand listing title\t1",
+      "columns": "title\tvarchar(100)\tNO\ndisplay_title\tvarchar(100)\tYES",
+      "rows": "1\tlab-E1-before-rollback\tlab-E1-before-rollback\n2\tlab-E2-initial\tlab-E2-initial\n3\tlab-N1-during-rollback\tlab-N1-during-rollback\n4\tlab-N2-during-rollback\tlab-N2-during-rollback",
+      "active": "blue",
+      "slots": {
+        "blue": {
+          "version": "C2",
+          "commit": "0e215d0e1e66833dcf5308d8cbd9edd7cc8207de",
+          "sha256": "fe65d676c14ad49db3adeaeaa5b8b1c91971402dcd6034c752c4764ec68f227e"
+        },
+        "green": {
+          "version": "C1",
+          "commit": "40aee0843108642bf725789d7284f400d2c44676",
+          "sha256": "a1bbf6d83146b83e668dc7d18718be354dd7328590f2ee1fa7c67d17294c5c5f"
+        }
+      }
+    },
+    {
+      "at": "2026-10-27T12:30:33.939596+00:00",
+      "label": "c3-complete",
+      "expected": {
+        "E1": {
+          "id": 1,
+          "title": "lab-E1-before-rollback",
+          "created_at": "2026-10-27T11:26:05.753924+00:00"
+        },
+        "E2": {
+          "id": 2,
+          "title": "lab-E2-initial",
+          "created_at": "2026-10-27T11:26:05.771620+00:00"
+        },
+        "N1": {
+          "id": 3,
+          "title": "lab-N1-during-rollback",
+          "created_at": "2026-10-27T12:27:15.870612+00:00"
+        },
+        "N2": {
+          "id": 4,
+          "title": "lab-N2-during-rollback",
+          "created_at": "2026-10-27T12:27:22.129693+00:00"
+        },
+        "N3": {
+          "id": 5,
+          "title": "lab-N3-final",
+          "created_at": "2026-10-27T12:30:31.451278+00:00"
+        }
+      },
+      "history": "1\tadopt platform schema\t1\n2\tadopt notification schema\t1\n3\tadopt delivery schema\t1\n4\tadopt payment schema\t1\n5\tadopt settlement schema\t1\n6\tadopt event schema\t1\n7\tadd standard address\t1\n8\tadd listing zip zone\t1\n9\tadd order pickup snapshot\t1\n10\tadd delivery query index\t1\n11\tlab expand listing title\t1\n12\tlab relax legacy listing title\t1",
+      "columns": "title\tvarchar(100)\tYES\ndisplay_title\tvarchar(100)\tYES",
+      "rows": "1\tlab-E1-before-rollback\tlab-E1-before-rollback\n2\tlab-E2-initial\tlab-E2-initial\n3\tlab-N1-during-rollback\tlab-N1-during-rollback\n4\tlab-N2-during-rollback\tlab-N2-during-rollback\n5\tlab-N3-by-C2\tlab-N3-final",
+      "active": "green",
+      "slots": {
+        "blue": {
+          "version": "C2",
+          "commit": "0e215d0e1e66833dcf5308d8cbd9edd7cc8207de",
+          "sha256": "fe65d676c14ad49db3adeaeaa5b8b1c91971402dcd6034c752c4764ec68f227e"
+        },
+        "green": {
+          "version": "C3",
+          "commit": "3a09734779db022006836f38320f5eff8c97ca27",
+          "sha256": "c4d35f0aa04896985a79c5353791c030d7136610f76c6caf01dade1f9b148151"
+        }
+      }
+    },
+    {
+      "at": "2026-10-27T12:30:31.637702+00:00",
+      "label": "c3-new-row-legacy-null",
+      "expected": {
+        "E1": {
+          "id": 1,
+          "title": "lab-E1-before-rollback",
+          "created_at": "2026-10-27T11:26:05.753924+00:00"
+        },
+        "E2": {
+          "id": 2,
+          "title": "lab-E2-initial",
+          "created_at": "2026-10-27T11:26:05.771620+00:00"
+        },
+        "N1": {
+          "id": 3,
+          "title": "lab-N1-during-rollback",
+          "created_at": "2026-10-27T12:27:15.870612+00:00"
+        },
+        "N2": {
+          "id": 4,
+          "title": "lab-N2-during-rollback",
+          "created_at": "2026-10-27T12:27:22.129693+00:00"
+        },
+        "N3": {
+          "id": 5,
+          "title": "lab-N3-after-legacy-stop",
+          "created_at": "2026-10-27T12:30:31.451278+00:00"
+        }
+      },
+      "history": "1\tadopt platform schema\t1\n2\tadopt notification schema\t1\n3\tadopt delivery schema\t1\n4\tadopt payment schema\t1\n5\tadopt settlement schema\t1\n6\tadopt event schema\t1\n7\tadd standard address\t1\n8\tadd listing zip zone\t1\n9\tadd order pickup snapshot\t1\n10\tadd delivery query index\t1\n11\tlab expand listing title\t1\n12\tlab relax legacy listing title\t1",
+      "columns": "title\tvarchar(100)\tYES\ndisplay_title\tvarchar(100)\tYES",
+      "rows": "1\tlab-E1-before-rollback\tlab-E1-before-rollback\n2\tlab-E2-initial\tlab-E2-initial\n3\tlab-N1-during-rollback\tlab-N1-during-rollback\n4\tlab-N2-during-rollback\tlab-N2-during-rollback\n5\tNULL\tlab-N3-after-legacy-stop",
+      "active": "green",
+      "slots": {
+        "blue": {
+          "version": "C2",
+          "commit": "0e215d0e1e66833dcf5308d8cbd9edd7cc8207de",
+          "sha256": "fe65d676c14ad49db3adeaeaa5b8b1c91971402dcd6034c752c4764ec68f227e"
+        },
+        "green": {
+          "version": "C3",
+          "commit": "3a09734779db022006836f38320f5eff8c97ca27",
+          "sha256": "c4d35f0aa04896985a79c5353791c030d7136610f76c6caf01dade1f9b148151"
+        }
+      }
+    },
+    {
+      "at": "2026-10-27T12:34:36.362958+00:00",
+      "label": "c3-restart-v13",
+      "expected": {
+        "E1": {
+          "id": 1,
+          "title": "lab-E1-before-rollback",
+          "created_at": "2026-10-27T11:26:05.753924+00:00"
+        },
+        "E2": {
+          "id": 2,
+          "title": "lab-E2-initial",
+          "created_at": "2026-10-27T11:26:05.771620+00:00"
+        },
+        "N1": {
+          "id": 3,
+          "title": "lab-N1-during-rollback",
+          "created_at": "2026-10-27T12:27:15.870612+00:00"
+        },
+        "N2": {
+          "id": 4,
+          "title": "lab-N2-during-rollback",
+          "created_at": "2026-10-27T12:27:22.129693+00:00"
+        },
+        "N3": {
+          "id": 5,
+          "title": "lab-N3-final",
+          "created_at": "2026-10-27T12:30:31.451278+00:00"
+        },
+        "N4": {
+          "id": 6,
+          "title": "lab-N4-final",
+          "created_at": "2026-10-27T12:34:28.232915+00:00"
+        }
+      },
+      "history": "1\tadopt platform schema\t1\n2\tadopt notification schema\t1\n3\tadopt delivery schema\t1\n4\tadopt payment schema\t1\n5\tadopt settlement schema\t1\n6\tadopt event schema\t1\n7\tadd standard address\t1\n8\tadd listing zip zone\t1\n9\tadd order pickup snapshot\t1\n10\tadd delivery query index\t1\n11\tlab expand listing title\t1\n12\tlab relax legacy listing title\t1\n13\tlab contract listing title\t1",
+      "columns": "display_title\tvarchar(100)\tNO",
+      "rows": "1\tlab-E1-before-rollback\n2\tlab-E2-initial\n3\tlab-N1-during-rollback\n4\tlab-N2-during-rollback\n5\tlab-N3-final\n6\tlab-N4-final",
+      "active": "blue",
+      "slots": {
+        "blue": {
+          "version": "C4",
+          "commit": "14a36bf9173f39ef128504067fe18e98e0358c01",
+          "sha256": "b67eacd579244039dd02403ae15c017e427764659a270ce230c0287ecccf2967"
+        },
+        "green": {
+          "version": "C3",
+          "commit": "3a09734779db022006836f38320f5eff8c97ca27",
+          "sha256": "c4d35f0aa04896985a79c5353791c030d7136610f76c6caf01dade1f9b148151"
+        }
+      }
+    },
+    {
+      "at": "2026-10-27T12:34:27.127568+00:00",
+      "label": "c4-before-route",
+      "expected": {
+        "E1": {
+          "id": 1,
+          "title": "lab-E1-before-rollback",
+          "created_at": "2026-10-27T11:26:05.753924+00:00"
+        },
+        "E2": {
+          "id": 2,
+          "title": "lab-E2-initial",
+          "created_at": "2026-10-27T11:26:05.771620+00:00"
+        },
+        "N1": {
+          "id": 3,
+          "title": "lab-N1-during-rollback",
+          "created_at": "2026-10-27T12:27:15.870612+00:00"
+        },
+        "N2": {
+          "id": 4,
+          "title": "lab-N2-during-rollback",
+          "created_at": "2026-10-27T12:27:22.129693+00:00"
+        },
+        "N3": {
+          "id": 5,
+          "title": "lab-N3-final",
+          "created_at": "2026-10-27T12:30:31.451278+00:00"
+        }
+      },
+      "history": "1\tadopt platform schema\t1\n2\tadopt notification schema\t1\n3\tadopt delivery schema\t1\n4\tadopt payment schema\t1\n5\tadopt settlement schema\t1\n6\tadopt event schema\t1\n7\tadd standard address\t1\n8\tadd listing zip zone\t1\n9\tadd order pickup snapshot\t1\n10\tadd delivery query index\t1\n11\tlab expand listing title\t1\n12\tlab relax legacy listing title\t1\n13\tlab contract listing title\t1",
+      "columns": "display_title\tvarchar(100)\tNO",
+      "rows": "1\tlab-E1-before-rollback\n2\tlab-E2-initial\n3\tlab-N1-during-rollback\n4\tlab-N2-during-rollback\n5\tlab-N3-final",
+      "active": "green",
+      "slots": {
+        "blue": {
+          "version": "C4",
+          "commit": "14a36bf9173f39ef128504067fe18e98e0358c01",
+          "sha256": "b67eacd579244039dd02403ae15c017e427764659a270ce230c0287ecccf2967"
+        },
+        "green": {
+          "version": "C3",
+          "commit": "3a09734779db022006836f38320f5eff8c97ca27",
+          "sha256": "c4d35f0aa04896985a79c5353791c030d7136610f76c6caf01dade1f9b148151"
+        }
+      }
+    },
+    {
+      "at": "2026-10-27T12:34:28.555325+00:00",
+      "label": "c4-final-data",
+      "expected": {
+        "E1": {
+          "id": 1,
+          "title": "lab-E1-before-rollback",
+          "created_at": "2026-10-27T11:26:05.753924+00:00"
+        },
+        "E2": {
+          "id": 2,
+          "title": "lab-E2-initial",
+          "created_at": "2026-10-27T11:26:05.771620+00:00"
+        },
+        "N1": {
+          "id": 3,
+          "title": "lab-N1-during-rollback",
+          "created_at": "2026-10-27T12:27:15.870612+00:00"
+        },
+        "N2": {
+          "id": 4,
+          "title": "lab-N2-during-rollback",
+          "created_at": "2026-10-27T12:27:22.129693+00:00"
+        },
+        "N3": {
+          "id": 5,
+          "title": "lab-N3-final",
+          "created_at": "2026-10-27T12:30:31.451278+00:00"
+        },
+        "N4": {
+          "id": 6,
+          "title": "lab-N4-final",
+          "created_at": "2026-10-27T12:34:28.232915+00:00"
+        }
+      },
+      "history": "1\tadopt platform schema\t1\n2\tadopt notification schema\t1\n3\tadopt delivery schema\t1\n4\tadopt payment schema\t1\n5\tadopt settlement schema\t1\n6\tadopt event schema\t1\n7\tadd standard address\t1\n8\tadd listing zip zone\t1\n9\tadd order pickup snapshot\t1\n10\tadd delivery query index\t1\n11\tlab expand listing title\t1\n12\tlab relax legacy listing title\t1\n13\tlab contract listing title\t1",
+      "columns": "display_title\tvarchar(100)\tNO",
+      "rows": "1\tlab-E1-before-rollback\n2\tlab-E2-initial\n3\tlab-N1-during-rollback\n4\tlab-N2-during-rollback\n5\tlab-N3-final\n6\tlab-N4-final",
+      "active": "blue",
+      "slots": {
+        "blue": {
+          "version": "C4",
+          "commit": "14a36bf9173f39ef128504067fe18e98e0358c01",
+          "sha256": "b67eacd579244039dd02403ae15c017e427764659a270ce230c0287ecccf2967"
+        },
+        "green": {
+          "version": "C3",
+          "commit": "3a09734779db022006836f38320f5eff8c97ca27",
+          "sha256": "c4d35f0aa04896985a79c5353791c030d7136610f76c6caf01dade1f9b148151"
+        }
+      }
+    },
+    {
+      "at": "2026-10-27T12:34:37.630452+00:00",
+      "label": "final",
+      "expected": {
+        "E1": {
+          "id": 1,
+          "title": "lab-E1-before-rollback",
+          "created_at": "2026-10-27T11:26:05.753924+00:00"
+        },
+        "E2": {
+          "id": 2,
+          "title": "lab-E2-initial",
+          "created_at": "2026-10-27T11:26:05.771620+00:00"
+        },
+        "N1": {
+          "id": 3,
+          "title": "lab-N1-during-rollback",
+          "created_at": "2026-10-27T12:27:15.870612+00:00"
+        },
+        "N2": {
+          "id": 4,
+          "title": "lab-N2-during-rollback",
+          "created_at": "2026-10-27T12:27:22.129693+00:00"
+        },
+        "N3": {
+          "id": 5,
+          "title": "lab-N3-final",
+          "created_at": "2026-10-27T12:30:31.451278+00:00"
+        },
+        "N4": {
+          "id": 6,
+          "title": "lab-N4-final",
+          "created_at": "2026-10-27T12:34:28.232915+00:00"
+        }
+      },
+      "history": "1\tadopt platform schema\t1\n2\tadopt notification schema\t1\n3\tadopt delivery schema\t1\n4\tadopt payment schema\t1\n5\tadopt settlement schema\t1\n6\tadopt event schema\t1\n7\tadd standard address\t1\n8\tadd listing zip zone\t1\n9\tadd order pickup snapshot\t1\n10\tadd delivery query index\t1\n11\tlab expand listing title\t1\n12\tlab relax legacy listing title\t1\n13\tlab contract listing title\t1",
+      "columns": "display_title\tvarchar(100)\tNO",
+      "rows": "1\tlab-E1-before-rollback\n2\tlab-E2-initial\n3\tlab-N1-during-rollback\n4\tlab-N2-during-rollback\n5\tlab-N3-final\n6\tlab-N4-final",
+      "active": "blue",
+      "slots": {
+        "blue": {
+          "version": "C4",
+          "commit": "14a36bf9173f39ef128504067fe18e98e0358c01",
+          "sha256": "b67eacd579244039dd02403ae15c017e427764659a270ce230c0287ecccf2967"
+        },
+        "green": {
+          "version": "C3",
+          "commit": "3a09734779db022006836f38320f5eff8c97ca27",
+          "sha256": "c4d35f0aa04896985a79c5353791c030d7136610f76c6caf01dade1f9b148151"
+        }
+      }
+    },
+    {
+      "at": "2026-10-27T12:27:19.692638+00:00",
+      "label": "rollback-c1",
+      "expected": {
+        "E1": {
+          "id": 1,
+          "title": "lab-E1-before-rollback",
+          "created_at": "2026-10-27T11:26:05.753924+00:00"
+        },
+        "E2": {
+          "id": 2,
+          "title": "lab-E2-initial",
+          "created_at": "2026-10-27T11:26:05.771620+00:00"
+        },
+        "N1": {
+          "id": 3,
+          "title": "lab-N1-before-rollback",
+          "created_at": "2026-10-27T12:27:15.870612+00:00"
+        }
+      },
+      "history": "1\tadopt platform schema\t1\n2\tadopt notification schema\t1\n3\tadopt delivery schema\t1\n4\tadopt payment schema\t1\n5\tadopt settlement schema\t1\n6\tadopt event schema\t1\n7\tadd standard address\t1\n8\tadd listing zip zone\t1\n9\tadd order pickup snapshot\t1\n10\tadd delivery query index\t1\n11\tlab expand listing title\t1",
+      "columns": "title\tvarchar(100)\tNO\ndisplay_title\tvarchar(100)\tYES",
+      "rows": "1\tlab-E1-before-rollback\tlab-E1-before-rollback\n2\tlab-E2-initial\tlab-E2-initial\n3\tlab-N1-before-rollback\tlab-N1-before-rollback",
+      "active": "green",
+      "slots": {
+        "blue": {
+          "version": "C2",
+          "commit": "0e215d0e1e66833dcf5308d8cbd9edd7cc8207de",
+          "sha256": "fe65d676c14ad49db3adeaeaa5b8b1c91971402dcd6034c752c4764ec68f227e"
+        },
+        "green": {
+          "version": "C1",
+          "commit": "40aee0843108642bf725789d7284f400d2c44676",
+          "sha256": "a1bbf6d83146b83e668dc7d18718be354dd7328590f2ee1fa7c67d17294c5c5f"
+        }
+      }
+    },
+    {
+      "at": "2026-10-27T12:27:22.526277+00:00",
+      "label": "rollback-writes",
+      "expected": {
+        "E1": {
+          "id": 1,
+          "title": "lab-E1-before-rollback",
+          "created_at": "2026-10-27T11:26:05.753924+00:00"
+        },
+        "E2": {
+          "id": 2,
+          "title": "lab-E2-initial",
+          "created_at": "2026-10-27T11:26:05.771620+00:00"
+        },
+        "N1": {
+          "id": 3,
+          "title": "lab-N1-during-rollback",
+          "created_at": "2026-10-27T12:27:15.870612+00:00"
+        },
+        "N2": {
+          "id": 4,
+          "title": "lab-N2-during-rollback",
+          "created_at": "2026-10-27T12:27:22.129693+00:00"
+        }
+      },
+      "history": "1\tadopt platform schema\t1\n2\tadopt notification schema\t1\n3\tadopt delivery schema\t1\n4\tadopt payment schema\t1\n5\tadopt settlement schema\t1\n6\tadopt event schema\t1\n7\tadd standard address\t1\n8\tadd listing zip zone\t1\n9\tadd order pickup snapshot\t1\n10\tadd delivery query index\t1\n11\tlab expand listing title\t1",
+      "columns": "title\tvarchar(100)\tNO\ndisplay_title\tvarchar(100)\tYES",
+      "rows": "1\tlab-E1-before-rollback\tlab-E1-before-rollback\n2\tlab-E2-initial\tlab-E2-initial\n3\tlab-N1-during-rollback\tlab-N1-during-rollback\n4\tlab-N2-during-rollback\tlab-N2-during-rollback",
+      "active": "green",
+      "slots": {
+        "blue": {
+          "version": "C2",
+          "commit": "0e215d0e1e66833dcf5308d8cbd9edd7cc8207de",
+          "sha256": "fe65d676c14ad49db3adeaeaa5b8b1c91971402dcd6034c752c4764ec68f227e"
+        },
+        "green": {
+          "version": "C1",
+          "commit": "40aee0843108642bf725789d7284f400d2c44676",
+          "sha256": "a1bbf6d83146b83e668dc7d18718be354dd7328590f2ee1fa7c67d17294c5c5f"
+        }
+      }
+    }
+  ],
+  "final_data": {
+    "E1": {
+      "id": 1,
+      "title": "lab-E1-before-rollback",
+      "created_at": "2026-10-27T11:26:05.753924+00:00"
+    },
+    "E2": {
+      "id": 2,
+      "title": "lab-E2-initial",
+      "created_at": "2026-10-27T11:26:05.771620+00:00"
+    },
+    "N1": {
+      "id": 3,
+      "title": "lab-N1-during-rollback",
+      "created_at": "2026-10-27T12:27:15.870612+00:00"
+    },
+    "N2": {
+      "id": 4,
+      "title": "lab-N2-during-rollback",
+      "created_at": "2026-10-27T12:27:22.129693+00:00"
+    },
+    "N3": {
+      "id": 5,
+      "title": "lab-N3-final",
+      "created_at": "2026-10-27T12:30:31.451278+00:00"
+    },
+    "N4": {
+      "id": 6,
+      "title": "lab-N4-final",
+      "created_at": "2026-10-27T12:34:28.232915+00:00"
+    }
+  },
+  "backfill": {
+    "at": "2026-10-27T12:23:41.007892+00:00",
+    "first_changed_rows": "2",
+    "second_changed_rows": "0"
+  },
+  "timeline": [
+    {
+      "at": "2026-10-27T12:19:19.460412+00:00",
+      "phase": "c0-baseline",
+      "active": "blue"
+    },
+    {
+      "at": "2026-10-27T12:22:09.306192+00:00",
+      "phase": "c1-expansion",
+      "active": "blue"
+    },
+    {
+      "at": "2026-10-27T12:22:17.525363+00:00",
+      "phase": "c1-active",
+      "active": "blue"
+    },
+    {
+      "at": "2026-10-27T12:23:40.814683+00:00",
+      "phase": "backfill",
+      "active": "green"
+    },
+    {
+      "at": "2026-10-27T12:24:46.574575+00:00",
+      "phase": "c2-preparation",
+      "active": "green"
+    },
+    {
+      "at": "2026-10-27T12:27:08.085978+00:00",
+      "phase": "c2-deploy",
+      "active": "green"
+    },
+    {
+      "at": "2026-10-27T12:27:15.690848+00:00",
+      "phase": "c2-active",
+      "active": "blue"
+    },
+    {
+      "at": "2026-10-27T12:27:18.576087+00:00",
+      "phase": "rollback-to-c1",
+      "active": "blue"
+    },
+    {
+      "at": "2026-10-27T12:27:21.948662+00:00",
+      "phase": "c1-rollback-writes",
+      "active": "green"
+    },
+    {
+      "at": "2026-10-27T12:27:24.773145+00:00",
+      "phase": "return-to-c2",
+      "active": "green"
+    },
+    {
+      "at": "2026-10-27T12:27:27.178749+00:00",
+      "phase": "c3-preparation",
+      "active": "blue"
+    },
+    {
+      "at": "2026-10-27T12:30:23.344665+00:00",
+      "phase": "c3-deploy",
+      "active": "blue"
+    },
+    {
+      "at": "2026-10-27T12:30:31.336596+00:00",
+      "phase": "c3-active",
+      "active": "green"
+    },
+    {
+      "at": "2026-10-27T12:30:34.197075+00:00",
+      "phase": "c4-preparation",
+      "active": "green"
+    },
+    {
+      "at": "2026-10-27T12:34:19.645055+00:00",
+      "phase": "c4-deploy",
+      "active": "green"
+    },
+    {
+      "at": "2026-10-27T12:34:28.023534+00:00",
+      "phase": "c4-active",
+      "active": "blue"
+    },
+    {
+      "at": "2026-10-27T12:34:28.851004+00:00",
+      "phase": "c3-restart-on-v13",
+      "active": "blue"
+    },
+    {
+      "at": "2026-10-27T12:34:37.285240+00:00",
+      "phase": "final-verification",
+      "active": "blue"
+    }
+  ],
+  "raw_files": [
+    {
+      "path": "evidence/observations.jsonl",
+      "sha256": "1a4ef31fbbcdb1138d469032fad1ade14704d9af49f1008eb76a60588df78414",
+      "bytes": 3549289
+    },
+    {
+      "path": "timeline.jsonl",
+      "sha256": "926e86999ec01844a0aa95809cd60a090b2227a6474c3ec7a5b9cdc3cc3ba384",
+      "bytes": 1555
+    }
+  ],
+  "final_db": "setty_schema_transition_lab\t8.4.11\n1\t1\tV1__adopt_platform_schema.sql\t1842858151\t2026-10-27 20:24:45\t85\t1\n2\t2\tV2__adopt_notification_schema.sql\t-1516128677\t2026-10-27 20:24:45\t46\t1\n3\t3\tV3__adopt_delivery_schema.sql\t1629194274\t2026-10-27 20:24:45\t22\t1\n4\t4\tV4__adopt_payment_schema.sql\t-2052593097\t2026-10-27 20:24:45\t10\t1\n5\t5\tV5__adopt_settlement_schema.sql\t1954017099\t2026-10-27 20:24:45\t17\t1\n6\t6\tV6__adopt_event_schema.sql\t1168947502\t2026-10-27 20:24:45\t11\t1\n7\t7\tV7__add_standard_address.sql\t-74165082\t2026-10-27 20:24:45\t145\t1\n8\t8\tV8__add_listing_zip_zone.sql\t483628361\t2026-10-27 20:24:45\t26\t1\n9\t9\tV9__add_order_pickup_snapshot.sql\t901110005\t2026-10-27 20:24:45\t260\t1\n10\t10\tV10__add_delivery_query_index.sql\t-199358346\t2026-10-27 20:24:45\t6\t1\n11\t11\tV11__lab_expand_listing_title.sql\t1599857534\t2026-10-27 21:22:12\t31\t1\n12\t12\tV12__lab_relax_legacy_listing_title.sql\t1338930132\t2026-10-27 21:30:26\t58\t1\n13\t13\tV13__lab_contract_listing_title.sql\t-77821317\t2026-10-27 21:34:23\t43\t1\n1\tlab-E1-before-rollback\n2\tlab-E2-initial\n3\tlab-N1-during-rollback\n4\tlab-N2-during-rollback\n5\tlab-N3-final\n6\tlab-N4-final",
+  "request_proofs": [
+    {
+      "probe_id": "schema-20261027-01-E1-create-2e465abd",
+      "started_at": "2026-10-27T11:26:05.119690+00:00",
+      "completed_at": "2026-10-27T11:26:05.753266+00:00",
+      "url": "http://127.0.0.1:18000/api/listings",
+      "method": "POST",
+      "status": 201,
+      "body": {
+        "listingId": 1,
+        "createdAt": "2026-10-27T11:26:05.640866427Z"
+      },
+      "response_headers": {
+        "X-Request-Id": "37100cf9-f1c0-488a-bfe3-3b76b0d7a73f",
+        "X-Schema-Lab-Upstream": "172.19.0.3:8080"
+      }
+    },
+    {
+      "probe_id": "schema-20261027-01-E2-create-da4be435",
+      "started_at": "2026-10-27T11:26:05.754262+00:00",
+      "completed_at": "2026-10-27T11:26:05.769900+00:00",
+      "url": "http://127.0.0.1:18000/api/listings",
+      "method": "POST",
+      "status": 201,
+      "body": {
+        "listingId": 2,
+        "createdAt": "2026-10-27T11:26:05.758883261Z"
+      },
+      "response_headers": {
+        "X-Request-Id": "0d5f688d-ac15-4f73-8b5a-33019bae3104",
+        "X-Schema-Lab-Upstream": "172.19.0.3:8080"
+      }
+    },
+    {
+      "probe_id": "schema-20261027-01-E2-update-cdce8475",
+      "started_at": "2026-10-27T11:26:05.809403+00:00",
+      "completed_at": "2026-10-27T11:26:05.923235+00:00",
+      "url": "http://127.0.0.1:18000/api/listings/2",
+      "method": "PUT",
+      "status": 204,
+      "body": null,
+      "response_headers": {
+        "X-Request-Id": "5a1f8ffa-96cd-4339-a197-979179657271",
+        "X-Schema-Lab-Upstream": "172.19.0.3:8080"
+      }
+    },
+    {
+      "probe_id": "schema-20261027-01-E1-update-6a9a8322",
+      "started_at": "2026-10-27T12:22:16.134133+00:00",
+      "completed_at": "2026-10-27T12:22:16.258949+00:00",
+      "url": "http://127.0.0.1:18081/api/listings/1",
+      "method": "PUT",
+      "status": 204,
+      "body": null,
+      "response_headers": {
+        "X-Request-Id": "5aa62d7f-ae67-4118-ae8f-5fe0391a83ea"
+      }
+    },
+    {
+      "probe_id": "schema-20261027-01-E1-update-82047497",
+      "started_at": "2026-10-27T12:22:16.361780+00:00",
+      "completed_at": "2026-10-27T12:22:16.671406+00:00",
+      "url": "http://127.0.0.1:18080/api/listings/1",
+      "method": "PUT",
+      "status": 204,
+      "body": null,
+      "response_headers": {
+        "X-Request-Id": "46b7a80b-8ee6-4bfc-ba5b-6c7b9c0e3bbe"
+      }
+    },
+    {
+      "probe_id": "schema-20261027-01-N1-create-b35d5982",
+      "started_at": "2026-10-27T12:27:15.693107+00:00",
+      "completed_at": "2026-10-27T12:27:15.869943+00:00",
+      "url": "http://127.0.0.1:18000/api/listings",
+      "method": "POST",
+      "status": 201,
+      "body": {
+        "listingId": 3,
+        "createdAt": "2026-10-27T12:27:15.824622219Z"
+      },
+      "response_headers": {
+        "X-Request-Id": "d415b6cb-e602-4327-866f-610770d8272f",
+        "X-Schema-Lab-Upstream": "172.19.0.3:8080"
+      }
+    },
+    {
+      "probe_id": "schema-20261027-01-E1-update-2667d311",
+      "started_at": "2026-10-27T12:27:15.878621+00:00",
+      "completed_at": "2026-10-27T12:27:15.940021+00:00",
+      "url": "http://127.0.0.1:18000/api/listings/1",
+      "method": "PUT",
+      "status": 204,
+      "body": null,
+      "response_headers": {
+        "X-Request-Id": "4af89049-525b-4023-9a38-026d9c191ed6",
+        "X-Schema-Lab-Upstream": "172.19.0.3:8080"
+      }
+    },
+    {
+      "probe_id": "schema-20261027-01-N1-update-31d097ae",
+      "started_at": "2026-10-27T12:27:21.971063+00:00",
+      "completed_at": "2026-10-27T12:27:22.026148+00:00",
+      "url": "http://127.0.0.1:18000/api/listings/3",
+      "method": "PUT",
+      "status": 204,
+      "body": null,
+      "response_headers": {
+        "X-Request-Id": "a68141d4-1d98-42fe-9411-5ed2489741f0",
+        "X-Schema-Lab-Upstream": "172.19.0.5:8080"
+      }
+    },
+    {
+      "probe_id": "schema-20261027-01-N2-create-a3f13ec7",
+      "started_at": "2026-10-27T12:27:22.027775+00:00",
+      "completed_at": "2026-10-27T12:27:22.128832+00:00",
+      "url": "http://127.0.0.1:18000/api/listings",
+      "method": "POST",
+      "status": 201,
+      "body": {
+        "listingId": 4,
+        "createdAt": "2026-10-27T12:27:22.058457180Z"
+      },
+      "response_headers": {
+        "X-Request-Id": "11893357-46e2-4a62-a9e1-e7d3c252b074",
+        "X-Schema-Lab-Upstream": "172.19.0.5:8080"
+      }
+    },
+    {
+      "probe_id": "schema-20261027-01-N3-create-372ce5ec",
+      "started_at": "2026-10-27T12:30:31.337169+00:00",
+      "completed_at": "2026-10-27T12:30:31.450870+00:00",
+      "url": "http://127.0.0.1:18000/api/listings",
+      "method": "POST",
+      "status": 201,
+      "body": {
+        "listingId": 5,
+        "createdAt": "2026-10-27T12:30:31.414462337Z"
+      },
+      "response_headers": {
+        "X-Request-Id": "b6477acf-b1e4-41ef-97b3-b77b72e7800c",
+        "X-Schema-Lab-Upstream": "172.19.0.5:8080"
+      }
+    },
+    {
+      "probe_id": "schema-20261027-01-N3-update-1eba9a55",
+      "started_at": "2026-10-27T12:30:32.068302+00:00",
+      "completed_at": "2026-10-27T12:30:32.092140+00:00",
+      "url": "http://127.0.0.1:18080/api/listings/5",
+      "method": "PUT",
+      "status": 204,
+      "body": null,
+      "response_headers": {
+        "X-Request-Id": "09852df4-32e4-40cc-9e20-61dca19b7540"
+      }
+    },
+    {
+      "probe_id": "schema-20261027-01-N3-update-9fbdf70d",
+      "started_at": "2026-10-27T12:30:32.303123+00:00",
+      "completed_at": "2026-10-27T12:30:32.361083+00:00",
+      "url": "http://127.0.0.1:18000/api/listings/5",
+      "method": "PUT",
+      "status": 204,
+      "body": null,
+      "response_headers": {
+        "X-Request-Id": "6e053c7d-ad4d-4a83-8dcc-8e484544216d",
+        "X-Schema-Lab-Upstream": "172.19.0.5:8080"
+      }
+    },
+    {
+      "probe_id": "schema-20261027-01-N4-create-5826fee4",
+      "started_at": "2026-10-27T12:34:28.025754+00:00",
+      "completed_at": "2026-10-27T12:34:28.232233+00:00",
+      "url": "http://127.0.0.1:18000/api/listings",
+      "method": "POST",
+      "status": 201,
+      "body": {
+        "listingId": 6,
+        "createdAt": "2026-10-27T12:34:28.191643419Z"
+      },
+      "response_headers": {
+        "X-Request-Id": "971eb482-6ecd-4060-8a23-856eac46bf8f",
+        "X-Schema-Lab-Upstream": "172.19.0.3:8080"
+      }
+    },
+    {
+      "probe_id": "schema-20261027-01-E2-update-b15017f6",
+      "started_at": "2026-10-27T12:34:35.898745+00:00",
+      "completed_at": "2026-10-27T12:34:36.011628+00:00",
+      "url": "http://127.0.0.1:18081/api/listings/2",
+      "method": "PUT",
+      "status": 204,
+      "body": null,
+      "response_headers": {
+        "X-Request-Id": "31798246-ff3d-4d73-9e7f-abb733ce3c5b"
+      }
+    }
+  ],
+  "restoration": {
+    "commit": "9902ffa552a7ba1ed94701810460b1463bdc0537",
+    "tests": {
+      "stage": "restored",
+      "commit": "9902ffa552a7ba1ed94701810460b1463bdc0537",
+      "tests": 713,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 1
+    },
+    "app_schema_ci_equal_to": "1714b04c10af6222bea2b99a70bbf6d6f1ef3e72",
+    "containers": "stopped",
+    "database": "V13 / 6 rows / volume retained"
+  },
+  "images": {
+    "mysql": "mysql@sha256:b3b90af2a6552ae30c266fdb7d5dd55f3afb72404bb78d37fe8a23eb857fd3fb",
+    "java": "eclipse-temurin@sha256:ff92a063dac03a29fca3987bcfc66aa5f17769542df802bbf7d2ebaba4df8ebe",
+    "nginx": "nginx@sha256:30f1c0d78e0ad60901648be663a710bdadf19e4c10ac6782c235200619158284"
+  }
+}
