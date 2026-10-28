@@ -3,6 +3,7 @@ package setty.platform.favorite.application;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.tuple;
 
 import java.util.List;
 import org.junit.jupiter.api.AfterEach;
@@ -14,6 +15,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import setty.global.exception.BusinessException;
 import setty.global.exception.ErrorCode;
+import setty.platform.listing.application.ListingService;
 import setty.platform.listing.application.ListingView;
 import setty.platform.listing.storage.ListingImageStorage;
 import setty.support.MySqlIntegrationTestSupport;
@@ -23,11 +25,15 @@ class FavoriteServiceTest extends MySqlIntegrationTestSupport {
 
     private static final long SELLER_ID = 101L;
     private static final long MEMBER_ID = 202L;
+    private static final long OTHER_MEMBER_ID = 303L;
     private static final long FIRST_LISTING_ID = 11L;
     private static final long SECOND_LISTING_ID = 12L;
 
     @Autowired
     private FavoriteService favoriteService;
+
+    @Autowired
+    private ListingService listingService;
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
@@ -40,6 +46,7 @@ class FavoriteServiceTest extends MySqlIntegrationTestSupport {
         cleanUp();
         insertMember(SELLER_ID);
         insertMember(MEMBER_ID);
+        insertMember(OTHER_MEMBER_ID);
         insertListing(FIRST_LISTING_ID, SELLER_ID);
         insertListing(SECOND_LISTING_ID, SELLER_ID);
     }
@@ -109,6 +116,31 @@ class FavoriteServiceTest extends MySqlIntegrationTestSupport {
         assertThat(summaries)
                 .extracting(ListingView.Summary::id)
                 .containsExactly(SECOND_LISTING_ID, FIRST_LISTING_ID);
+    }
+
+    @Test
+    void 내_찜_목록은_매물마다_찜_수를_싣고_찜한_순서를_유지한다() {
+        favoriteService.add(MEMBER_ID, FIRST_LISTING_ID);
+        favoriteService.add(MEMBER_ID, SECOND_LISTING_ID);
+        favoriteService.add(OTHER_MEMBER_ID, SECOND_LISTING_ID);
+
+        List<ListingView.Summary> summaries = favoriteService.findMine(MEMBER_ID, null, null);
+
+        assertThat(summaries)
+                .extracting(ListingView.Summary::id, ListingView.Summary::favoriteCount)
+                .containsExactly(tuple(SECOND_LISTING_ID, 2), tuple(FIRST_LISTING_ID, 1));
+    }
+
+    @Test
+    void 찜_수_집계는_찜이_없는_매물을_0으로_채운다() {
+        favoriteService.add(OTHER_MEMBER_ID, FIRST_LISTING_ID);
+
+        List<ListingView.Summary> summaries = listingService.findSummaries(
+                List.of(FIRST_LISTING_ID, SECOND_LISTING_ID), null, null);
+
+        assertThat(summaries)
+                .extracting(ListingView.Summary::id, ListingView.Summary::favoriteCount)
+                .containsExactly(tuple(FIRST_LISTING_ID, 1), tuple(SECOND_LISTING_ID, 0));
     }
 
     @Test

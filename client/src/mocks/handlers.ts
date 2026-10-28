@@ -47,6 +47,10 @@ function myOpenOrderOf(listing: MockListing, member: MockMember | null): MockOrd
         && (order.orderStatus === 'PENDING' || order.orderStatus === 'CONFIRMED' || order.orderStatus === 'CANCEL_PENDING'));
 }
 
+function favoriteCountOf(listing: MockListing): number {
+    return [...favorites.values()].filter((ids) => ids.has(listing.id)).length;
+}
+
 function summaryOf(listing: MockListing) {
     const deliveryFee = deliveryFeeOf(listing);
     return {
@@ -61,7 +65,8 @@ function summaryOf(listing: MockListing) {
         createdAt: listing.createdAt,
         dong: dongOf(listing.dongCode),
         hasPurchaseRequest: hasPurchaseRequest(listing),
-        orderState: orderStateOf(listing)
+        orderState: orderStateOf(listing),
+        favoriteCount: favoriteCountOf(listing)
     };
 }
 

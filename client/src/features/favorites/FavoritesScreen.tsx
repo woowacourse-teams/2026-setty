@@ -6,6 +6,7 @@ import { routes, useNavigateBack, useNavigateToLogin } from '../../navigation';
 import {
     BackIconButton,
     ErrorContent,
+    FavoriteCount,
     FlexibleTopAppBar,
     FurnitureThumbnail,
     IconButton,
@@ -14,7 +15,8 @@ import {
     Scaffold,
     SegmentedList,
     SegmentedListItem,
-    SettyMessage
+    SettyMessage,
+    TrailingColumn
 } from '../../ui/components';
 import { showSnackbar } from '../../ui/snackbar';
 import { useLoad } from '../useLoad';
@@ -70,13 +72,16 @@ export function FavoritesScreen() {
                                         </>
                                     )}
                                     trailing={(
-                                        <IconButton
-                                            aria-pressed
-                                            icon="favoriteFilled"
-                                            iconStyle={{ color: 'var(--error)' }}
-                                            label="찜 해제"
-                                            onClick={() => void remove(furniture, index)}
-                                        />
+                                        <TrailingColumn>
+                                            <IconButton
+                                                aria-pressed
+                                                icon="favoriteFilled"
+                                                iconStyle={{ color: 'var(--error)' }}
+                                                label="찜 해제"
+                                                onClick={() => void remove(furniture, index)}
+                                            />
+                                            <FavoriteCount count={furniture.favoriteCount} />
+                                        </TrailingColumn>
                                     )}
                                 />
                             ))}

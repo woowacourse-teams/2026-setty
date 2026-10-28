@@ -14,4 +14,14 @@ public interface FavoriteRepository extends JpaRepository<Favorite, Long> {
 
     @Query("select favorite.listingId from Favorite favorite where favorite.memberId = :memberId order by favorite.createdAt desc, favorite.id desc")
     List<Long> findListingIdsByMemberIdOrderByCreatedAtDesc(@Param("memberId") Long memberId);
+
+    int countByListingId(Long listingId);
+
+    @Query("""
+            select new setty.platform.favorite.repository.FavoriteCount(favorite.listingId, count(favorite))
+            from Favorite favorite
+            where favorite.listingId in :listingIds
+            group by favorite.listingId
+            """)
+    List<FavoriteCount> countByListingIdIn(@Param("listingIds") List<Long> listingIds);
 }

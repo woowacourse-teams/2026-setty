@@ -9,7 +9,8 @@ import {
     selectableCategories,
     TRADING_LABEL,
     type FurnitureCategory,
-    type FurnitureSummary
+    type FurnitureSummary,
+    type OrderState
 } from '../../model/furniture';
 import { routes, useNavigateBack } from '../../navigation';
 import {
@@ -17,6 +18,7 @@ import {
     Button,
     CenterFill,
     ChipRow,
+    FavoriteCount,
     FilterChip,
     FurnitureThumbnail,
     IconButton,
@@ -27,7 +29,8 @@ import {
     SegmentedListItem,
     SettyMessage,
     ToggleButtonGroup,
-    TopAppBar
+    TopAppBar,
+    TrailingColumn
 } from '../../ui/components';
 import { Icon } from '../../ui/Icon';
 import { shapeStyle } from '../../ui/shapes';
@@ -179,9 +182,16 @@ function ListingList({ home, onListingClick }: { home: HomeState; onListingClick
     );
 }
 
+function orderLabelOf(orderState: OrderState): string | null {
+    if (orderState === 'TRADING') return TRADING_LABEL;
+    if (orderState === 'PAYING') return PAYING_LABEL;
+    return null;
+}
+
 function ListingItem({ furniture, index, count, onClick }: { furniture: FurnitureSummary; index: number; count: number; onClick: () => void }) {
     const priceVariant = getPriceVariant();
     const showDeliveryCosts = priceVariant === 'B';
+    const orderLabel = orderLabelOf(furniture.orderState);
     return (
         <SegmentedListItem
             count={count}
@@ -204,14 +214,15 @@ function ListingItem({ furniture, index, count, onClick }: { furniture: Furnitur
                     {showDeliveryCosts && (
                         <div className="type-label-medium">매물 {formatWon(furniture.price)} · 배송비 {formatWon(furniture.deliveryFee)} 포함</div>
                     )}
-                    {furniture.orderState !== 'NONE' && (
-                        <div className={`${screenStyles['tertiary-text']} type-label-medium`}>
-                            {furniture.orderState === 'TRADING' ? TRADING_LABEL : PAYING_LABEL}
-                        </div>
-                    )}
+                    {orderLabel && <div className={`${screenStyles['tertiary-text']} type-label-medium`}>{orderLabel}</div>}
                 </div>
             )}
-            trailing={<span className="type-label-medium">{formatRegisteredDate(furniture.createdAt)}</span>}
+            trailing={(
+                <TrailingColumn>
+                    <span className="type-label-medium">{formatRegisteredDate(furniture.createdAt)}</span>
+                    <FavoriteCount count={furniture.favoriteCount} />
+                </TrailingColumn>
+            )}
         />
     );
 }
