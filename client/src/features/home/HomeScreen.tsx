@@ -70,6 +70,7 @@ export function HomeScreen() {
                         <>
                             {/* 검색창은 기록에 남겨 브라우저 뒤로 가기로도 닫히게 한다 */}
                             <IconButton icon="search" label="가구 검색" onClick={() => navigate(`?${SEARCH_PARAM}=1`)} />
+                            <IconButton icon="notifications" label="알림함" onClick={() => navigate(routes.notifications)} />
                             <ProfileButton onClick={() => navigate(routes.myPage)} profileInitial={home.profileInitial} />
                         </>
                     )}
