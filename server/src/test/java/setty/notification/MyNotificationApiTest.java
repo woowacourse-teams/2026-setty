@@ -77,7 +77,10 @@ class MyNotificationApiTest extends MySqlIntegrationTestSupport {
                 .andExpect(jsonPath("$.items[0].title").value("삭제된 의자"))
                 .andExpect(jsonPath("$.items[0].price").value(150_000))
                 .andExpect(jsonPath("$.items[0].deliveryFee").value(10_000))
-                .andExpect(jsonPath("$.items[1].title").value("원목 책상"));
+                .andExpect(jsonPath("$.items[0].read").value(false))
+                .andExpect(jsonPath("$.items[0].listingStatus").value("DELETED"))
+                .andExpect(jsonPath("$.items[1].title").value("원목 책상"))
+                .andExpect(jsonPath("$.items[1].listingStatus").value("AVAILABLE"));
     }
 
     @Test
@@ -90,6 +93,75 @@ class MyNotificationApiTest extends MySqlIntegrationTestSupport {
 
         assertThat(jdbcTemplate.queryForObject(
                 "SELECT acked_at IS NOT NULL FROM listing_notifications WHERE id = 7001", Boolean.class)).isTrue();
+    }
+
+    @Test
+    void 안_읽은_알림은_발송된_내_알림만_세고_모두_읽으면_0이_된다() throws Exception {
+        insertListing(71L, "원목 책상", false);
+        insertListing(72L, "의자", false);
+        insertListing(73L, "소파", false);
+        insertNotification(7_001L, 71L, MEMBER_ID, "2026-10-01 00:00:00");
+        insertNotification(7_002L, 72L, MEMBER_ID, "2026-10-02 00:00:00");
+        insertNotification(7_003L, 71L, OTHER_MEMBER_ID, "2026-10-03 00:00:00");
+        jdbcTemplate.update("""
+                INSERT INTO listing_notifications (id, listing_id, member_id, status, attempts, created_at)
+                VALUES (7004, 73, ?, 'PENDING', 0, NOW(6))
+                """, MEMBER_ID);
+        jdbcTemplate.update("UPDATE listing_notifications SET acked_at = NOW(6) WHERE id = 7001");
+
+        mockMvc.perform(get("/api/me/notifications/unread-count").header(HttpHeaders.AUTHORIZATION, TOKEN))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.count").value(2));
+
+        mockMvc.perform(post("/api/me/notifications/read").header(HttpHeaders.AUTHORIZATION, TOKEN))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(get("/api/me/notifications/unread-count").header(HttpHeaders.AUTHORIZATION, TOKEN))
+                .andExpect(jsonPath("$.count").value(0));
+        mockMvc.perform(get("/api/me/notifications/unread-count")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer token-" + OTHER_MEMBER_ID))
+                .andExpect(jsonPath("$.count").value(1));
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT read_at IS NULL FROM listing_notifications WHERE id = 7004", Boolean.class)).isTrue();
+    }
+
+    @Test
+    void 알림_하나를_읽으면_그_알림만_읽음이_되고_남의_알림은_404다() throws Exception {
+        insertListing(71L, "원목 책상", false);
+        insertListing(72L, "의자", false);
+        insertNotification(7_001L, 71L, MEMBER_ID, "2026-10-01 00:00:00");
+        insertNotification(7_002L, 72L, MEMBER_ID, "2026-10-02 00:00:00");
+        insertNotification(7_003L, 71L, OTHER_MEMBER_ID, "2026-10-03 00:00:00");
+
+        mockMvc.perform(post("/api/me/notifications/7001/read").header(HttpHeaders.AUTHORIZATION, TOKEN))
+                .andExpect(status().isNoContent());
+        mockMvc.perform(post("/api/me/notifications/7003/read").header(HttpHeaders.AUTHORIZATION, TOKEN))
+                .andExpect(status().isNotFound());
+
+        mockMvc.perform(get("/api/me/notifications").header(HttpHeaders.AUTHORIZATION, TOKEN))
+                .andExpect(jsonPath("$.items[0].id").value(7_002))
+                .andExpect(jsonPath("$.items[0].read").value(false))
+                .andExpect(jsonPath("$.items[1].read").value(true));
+        mockMvc.perform(get("/api/me/notifications/unread-count").header(HttpHeaders.AUTHORIZATION, TOKEN))
+                .andExpect(jsonPath("$.count").value(1));
+    }
+
+    @Test
+    void 알림함은_결제_대기와_배차를_거래중으로_묶고_판매완료를_구분한다() throws Exception {
+        insertListing(71L, "결제 대기 책상", false);
+        insertListing(72L, "배차된 의자", false);
+        insertListing(73L, "팔린 소파", false);
+        jdbcTemplate.update("UPDATE listings SET has_purchase_request = true WHERE id = 71");
+        jdbcTemplate.update("UPDATE listings SET sale_status = 'RESERVED', has_purchase_request = true WHERE id = 72");
+        jdbcTemplate.update("UPDATE listings SET sale_status = 'SOLD' WHERE id = 73");
+        insertNotification(7_001L, 71L, MEMBER_ID, "2026-10-01 00:00:00");
+        insertNotification(7_002L, 72L, MEMBER_ID, "2026-10-02 00:00:00");
+        insertNotification(7_003L, 73L, MEMBER_ID, "2026-10-03 00:00:00");
+
+        mockMvc.perform(get("/api/me/notifications").header(HttpHeaders.AUTHORIZATION, TOKEN))
+                .andExpect(jsonPath("$.items[0].listingStatus").value("SOLD"))
+                .andExpect(jsonPath("$.items[1].listingStatus").value("TRADING"))
+                .andExpect(jsonPath("$.items[2].listingStatus").value("TRADING"));
     }
 
     @Test

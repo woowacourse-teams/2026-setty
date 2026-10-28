@@ -35,7 +35,7 @@ class FlywayMigrationTest {
     private static final List<String> DELIVERY_ZONE_COLUMNS = List.of("pickup_dong_code", "pickup_zip_code",
             "delivery_dong_code", "delivery_zip_code");
     private static final List<String> KEYWORD_CONDITION_COLUMNS = List.of("max_delivery_fee", "max_total_price");
-    private static final int MIGRATION_COUNT = 12;
+    private static final int MIGRATION_COUNT = 13;
 
     @Container
     static final MySQLContainer MYSQL = new MySQLContainer("mysql:8.4.11");
@@ -163,7 +163,7 @@ class FlywayMigrationTest {
         seedExistingRows();
         var deliveryBefore = jdbc.queryForMap("SELECT * FROM delivery WHERE id=1");
 
-        assertThat(flyway(false).migrate().migrationsExecuted).isEqualTo(3);
+        assertThat(flyway(false).migrate().migrationsExecuted).isEqualTo(4);
 
         assertCurrentSchema();
         assertThat(jdbc.queryForMap("SELECT * FROM delivery WHERE id=1")).isEqualTo(deliveryBefore);
@@ -250,6 +250,7 @@ class FlywayMigrationTest {
         for (var column : KEYWORD_CONDITION_COLUMNS) {
             assertThat(columnCount("keyword_subscriptions", column)).as("keyword_subscriptions.%s", column).isOne();
         }
+        assertThat(columnCount("listing_notifications", "read_at")).isOne();
         assertThat(indexColumns("delivery", "idx_delivery_requests"))
                 .isEqualTo("status,driver_id,requested_at,id");
         assertThat(indexColumns("listings", "idx_listings_delivery_filter"))
@@ -288,7 +289,8 @@ class FlywayMigrationTest {
                 || table.equals("orders") && ORDER_PICKUP_SNAPSHOT_COLUMNS.contains(name)
                 || table.equals("delivery") && DELIVERY_ZONE_COLUMNS.contains(name)
                 || table.equals("keyword_subscriptions") && KEYWORD_CONDITION_COLUMNS.contains(name)
-                || table.equals("keyword_exclusions");
+                || table.equals("keyword_exclusions")
+                || table.equals("listing_notifications") && name.equals("read_at");
     }
 
     private int count(final String sql) {

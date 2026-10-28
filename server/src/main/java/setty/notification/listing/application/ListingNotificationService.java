@@ -183,6 +183,42 @@ public class ListingNotificationService {
         }
     }
 
+    public long countUnread(final Long memberId) {
+        return jdbcTemplate.queryForObject(
+                """
+                SELECT COUNT(*) FROM listing_notifications
+                WHERE member_id = ? AND status = 'SENT' AND read_at IS NULL
+                """,
+                Long.class,
+                memberId
+        );
+    }
+
+    public void read(final Long memberId, final Long notificationId) {
+        final int matched = jdbcTemplate.update(
+                """
+                UPDATE listing_notifications
+                SET read_at = COALESCE(read_at, NOW(6))
+                WHERE id = ? AND member_id = ?
+                """,
+                notificationId, memberId
+        );
+        if (matched == 0) {
+            throw new BusinessException(ErrorCode.NOTIFICATION_NOT_FOUND);
+        }
+    }
+
+    public void readAll(final Long memberId) {
+        jdbcTemplate.update(
+                """
+                UPDATE listing_notifications
+                SET read_at = NOW(6)
+                WHERE member_id = ? AND status = 'SENT' AND read_at IS NULL
+                """,
+                memberId
+        );
+    }
+
     @Transactional(readOnly = true)
     public List<ListingNotification> findMine(final Long memberId, final int page, final int size) {
         return listingNotificationRepository.findAllByMemberIdOrderByCreatedAtDescIdDesc(

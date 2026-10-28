@@ -10,7 +10,9 @@ public record NotificationResponse(
         String title,
         Integer price,
         Integer deliveryFee,
+        String listingStatus,
         String status,
+        boolean read,
         Instant createdAt
 ) {
 
@@ -20,7 +22,8 @@ public record NotificationResponse(
             final ListingNotification notification,
             final String title,
             final Integer price,
-            final Integer deliveryFee
+            final Integer deliveryFee,
+            final String listingStatus
     ) {
         return new NotificationResponse(
                 notification.getId(),
@@ -29,7 +32,9 @@ public record NotificationResponse(
                 title,
                 price,
                 deliveryFee,
+                listingStatus,
                 notification.getStatus().name(),
+                notification.isRead(),
                 notification.getCreatedAt()
         );
     }

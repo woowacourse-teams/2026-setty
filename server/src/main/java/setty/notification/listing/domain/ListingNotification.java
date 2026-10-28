@@ -42,6 +42,9 @@ public class ListingNotification {
     @Column(name = "acked_at")
     private Instant ackedAt;
 
+    @Column(name = "read_at")
+    private Instant readAt;
+
     protected ListingNotification() {
     }
 
@@ -75,5 +78,9 @@ public class ListingNotification {
 
     public Instant getAckedAt() {
         return ackedAt;
+    }
+
+    public boolean isRead() {
+        return readAt != null;
     }
 }

@@ -61,6 +61,26 @@ public class MyNotificationController {
         return ResponseEntity.ok(new ListResponse<>(items));
     }
 
+    @GetMapping("/unread-count")
+    public ResponseEntity<UnreadCountResponse> countUnread(@LoginMember final Long memberId) {
+        return ResponseEntity.ok(new UnreadCountResponse(listingNotificationService.countUnread(memberId)));
+    }
+
+    @PostMapping("/read")
+    public ResponseEntity<Void> readAll(@LoginMember final Long memberId) {
+        listingNotificationService.readAll(memberId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{notificationId}/read")
+    public ResponseEntity<Void> read(
+            @LoginMember final Long memberId,
+            @PathVariable final Long notificationId
+    ) {
+        listingNotificationService.read(memberId, notificationId);
+        return ResponseEntity.noContent().build();
+    }
+
     @PostMapping("/{notificationId}/ack")
     public ResponseEntity<Void> ack(
             @LoginMember final Long memberId,
@@ -76,9 +96,9 @@ public class MyNotificationController {
             final MemberDeliveryArea receiver
     ) {
         if (listing == null) {
-            return NotificationResponse.of(notification, null, null, null);
+            return NotificationResponse.of(notification, null, null, null, null);
         }
         final int deliveryFee = notificationDeliveryFee.of(ListingToNotify.from(listing), receiver);
-        return NotificationResponse.of(notification, listing.title(), listing.price(), deliveryFee);
+        return NotificationResponse.of(notification, listing.title(), listing.price(), deliveryFee, listing.tradeStatus());
     }
 }

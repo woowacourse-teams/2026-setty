@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import setty.platform.listing.domain.DeliveryFeePolicy;
 import setty.platform.listing.domain.Listing;
+import setty.platform.listing.domain.SaleStatus;
 import setty.platform.listing.repository.ListingRepository;
 
 @Service
@@ -34,7 +35,21 @@ public class NotificationListingReader {
                 listing.getDongCode(),
                 listing.getZipZone(),
                 DeliveryFeePolicy.volumeTier(listing.getDimensions()),
-                listing.getDeliveryFee()
+                listing.getDeliveryFee(),
+                tradeStatusOf(listing)
         );
+    }
+
+    private static String tradeStatusOf(final Listing listing) {
+        if (listing.isDeleted()) {
+            return "DELETED";
+        }
+        if (listing.getSaleStatus() == SaleStatus.SOLD) {
+            return "SOLD";
+        }
+        if (listing.getSaleStatus() == SaleStatus.RESERVED || listing.hasPurchaseRequest()) {
+            return "TRADING";
+        }
+        return "AVAILABLE";
     }
 }
