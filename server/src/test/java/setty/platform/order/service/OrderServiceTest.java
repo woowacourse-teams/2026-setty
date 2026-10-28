@@ -377,6 +377,7 @@ class OrderServiceTest {
                 new ListingView.Dimensions(120, 60, 75),
                 false,
                 ListingView.OrderState.NONE,
+                0,
                 Instant.parse("2026-09-03T00:00:00Z"),
                 null
         );
@@ -403,7 +404,7 @@ class OrderServiceTest {
         final ListingView.Summary listing = new ListingView.Summary(
                 LISTING_ID, "가상 책상", null, 100_000, 10_000, 110_000,
                 ListingCategory.DESK, ConditionGrade.A,
-                new ListingView.Dimensions(120, 60, 75), false, ListingView.OrderState.NONE,
+                new ListingView.Dimensions(120, 60, 75), false, ListingView.OrderState.NONE, 0,
                 Instant.parse("2026-09-03T00:00:00Z"),
                 null
         );

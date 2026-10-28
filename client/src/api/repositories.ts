@@ -119,7 +119,8 @@ function toFurniture(response: FurnitureSummaryResponse): FurnitureSummary {
         createdAt: response.createdAt,
         dongName: response.dong ? dongDisplayName(response.dong) : null,
         hasPurchaseRequest: response.hasPurchaseRequest ?? false,
-        orderState: orderStateOf(response.orderState, response.hasPurchaseRequest ?? false)
+        orderState: orderStateOf(response.orderState, response.hasPurchaseRequest ?? false),
+        favoriteCount: response.favoriteCount ?? 0
     };
 }
 
@@ -146,7 +147,8 @@ function toFurnitureDetail(response: FurnitureDetailResponse): FurnitureDetail {
         hasPurchaseRequest: response.hasPurchaseRequest ?? false,
         purchaseRequestedByMe: response.purchaseRequestedByMe ?? false,
         orderState: orderStateOf(response.orderState, response.hasPurchaseRequest ?? false),
-        myOrderId: response.myOrderId ?? null
+        myOrderId: response.myOrderId ?? null,
+        favoriteCount: response.favoriteCount ?? 0
     };
 }
 

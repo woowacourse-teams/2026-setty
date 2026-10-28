@@ -28,6 +28,8 @@ import setty.deliveryfee.VolumeTier;
 import setty.deliveryfee.ZoneRange;
 import setty.global.exception.BusinessException;
 import setty.global.logging.ListingRequestTiming;
+import setty.platform.favorite.repository.FavoriteCount;
+import setty.platform.favorite.repository.FavoriteRepository;
 import setty.platform.listing.domain.DeliveryFeePolicy;
 import setty.platform.listing.domain.Dimensions;
 import setty.platform.listing.domain.Listing;
@@ -60,6 +62,7 @@ public class ListingService {
     private final ListingImageStorage listingImageStorage;
     private final ListingRecorder listingRecorder;
     private final OrderRepository orderRepository;
+    private final FavoriteRepository favoriteRepository;
     private final DeliveryFeeService deliveryFeeService;
 
     public ListingService(
@@ -69,6 +72,7 @@ public class ListingService {
             ListingImageStorage listingImageStorage,
             ListingRecorder listingRecorder,
             OrderRepository orderRepository,
+            FavoriteRepository favoriteRepository,
             DeliveryFeeService deliveryFeeService
     ) {
         this.listingRepository = listingRepository;
@@ -77,6 +81,7 @@ public class ListingService {
         this.listingImageStorage = listingImageStorage;
         this.listingRecorder = listingRecorder;
         this.orderRepository = orderRepository;
+        this.favoriteRepository = favoriteRepository;
         this.deliveryFeeService = deliveryFeeService;
     }
 
@@ -196,11 +201,15 @@ public class ListingService {
         Map<Long, List<String>> orderStatuses = ListingRequestTiming.measure("orders", () -> listingIds.isEmpty()
                 ? Map.<Long, List<String>>of()
                 : reader.findOpenOrderStatuses(listingIds));
+        Map<Long, Integer> favoriteCounts = ListingRequestTiming.measure("favorites", () -> listingIds.isEmpty()
+                ? Map.<Long, Integer>of()
+                : reader.findFavoriteCounts(listingIds));
 
         List<ListingView.Summary> summaries = ListingRequestTiming.measure("mapping", () -> page.stream()
                 .map(row -> toSummary(row, thumbnails.get(row.id()), buyer,
                         orderStateOf(SaleStatus.AVAILABLE, row.hasPurchaseRequest(),
-                                orderStatuses.getOrDefault(row.id(), List.of()).stream().map(OrderStatus::valueOf).toList())))
+                                orderStatuses.getOrDefault(row.id(), List.of()).stream().map(OrderStatus::valueOf).toList()),
+                        favoriteCounts.getOrDefault(row.id(), 0)))
                 .toList());
         ListingRequestTiming.count("summary_count", summaries.size());
 
@@ -219,7 +228,7 @@ public class ListingService {
                 .toList();
 
         Buyer buyer = buyerOf(listingQueryRepository, buyerToken);
-        return toDetail(listing, images, buyer, myOpenOrderOf(listing, buyer));
+        return toDetail(listing, images, buyer, myOpenOrderOf(listing, buyer), favoriteRepository.countByListingId(listingId));
     }
 
     @Transactional(readOnly = true)
@@ -245,13 +254,15 @@ public class ListingService {
                 .collect(Collectors.toMap(Listing::getId, Function.identity()));
         Map<Long, ListingImage> thumbnails = findThumbnails(listings);
         Map<Long, List<OrderStatus>> orderStatuses = findOpenOrderStatuses(listingIds);
+        Map<Long, Integer> favoriteCounts = findFavoriteCounts(listingIds);
 
         return listingIds.stream()
                 .map(listingById::get)
                 .filter(Objects::nonNull)
                 .map(listing -> toSummary(listing, thumbnails.get(listing.getId()), buyer,
                         orderStateOf(listing.getSaleStatus(), listing.hasPurchaseRequest(),
-                                orderStatuses.getOrDefault(listing.getId(), List.of()))))
+                                orderStatuses.getOrDefault(listing.getId(), List.of())),
+                        favoriteCounts.getOrDefault(listing.getId(), 0)))
                 .toList();
     }
 
@@ -392,7 +403,8 @@ public class ListingService {
             ListingQueryRepository.Row row,
             String thumbnailObjectKey,
             Buyer buyer,
-            ListingView.OrderState orderState
+            ListingView.OrderState orderState,
+            int favoriteCount
     ) {
         int deliveryFee = deliveryFeeFor(row.dongCode(), row.zipZone(), row.volumeTier(), row.deliveryFee(), buyer);
         return new ListingView.Summary(
@@ -407,6 +419,7 @@ public class ListingService {
                 new ListingView.Dimensions(row.widthCm(), row.depthCm(), row.heightCm()),
                 row.hasPurchaseRequest(),
                 orderState,
+                favoriteCount,
                 row.createdAt(),
                 dongOf(row.dongCode())
         );
@@ -416,7 +429,8 @@ public class ListingService {
             Listing listing,
             ListingImage thumbnail,
             Buyer buyer,
-            ListingView.OrderState orderState
+            ListingView.OrderState orderState,
+            int favoriteCount
     ) {
         int deliveryFee = deliveryFeeFor(listing, buyer);
         return new ListingView.Summary(
@@ -431,12 +445,19 @@ public class ListingService {
                 dimensionsOf(listing),
                 listing.hasPurchaseRequest(),
                 orderState,
+                favoriteCount,
                 listing.getCreatedAt(),
                 dongOf(listing.getDongCode())
         );
     }
 
-    private ListingView.Detail toDetail(Listing listing, List<ListingView.Image> images, Buyer buyer, Order myOrder) {
+    private ListingView.Detail toDetail(
+            Listing listing,
+            List<ListingView.Image> images,
+            Buyer buyer,
+            Order myOrder,
+            int favoriteCount
+    ) {
         int deliveryFee = deliveryFeeFor(listing, buyer);
         return new ListingView.Detail(
                 listing.getId(),
@@ -454,6 +475,7 @@ public class ListingService {
                 orderStateOf(listing.getSaleStatus(), listing.hasPurchaseRequest(),
                         findOpenOrderStatuses(List.of(listing.getId())).getOrDefault(listing.getId(), List.of())),
                 myOrder == null ? null : myOrder.getId(),
+                favoriteCount,
                 images,
                 listing.getCreatedAt(),
                 listing.getUpdatedAt(),
@@ -484,6 +506,11 @@ public class ListingService {
         return orderRepository.findAllByListingIdInAndOrderStatusIn(listingIds, OPEN_ORDER_STATUSES).stream()
                 .collect(Collectors.groupingBy(Order::getListingId,
                         Collectors.mapping(Order::getOrderStatus, Collectors.toList())));
+    }
+
+    private Map<Long, Integer> findFavoriteCounts(List<Long> listingIds) {
+        return favoriteRepository.countByListingIdIn(listingIds).stream()
+                .collect(Collectors.toMap(FavoriteCount::listingId, favoriteCount -> (int) favoriteCount.count()));
     }
 
     // 결제가 끝났거나 기사가 배차된 매물은 거래중, 결제 대기 주문이 선점 중이면 결제 중이다.

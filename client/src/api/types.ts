@@ -46,6 +46,7 @@ export type FurnitureSummaryResponse = {
     hasPurchaseRequest?: boolean;
     // NONE | PAYING(결제 대기 주문이 선점) | TRADING(결제 완료, 배송 완료 전)
     orderState?: string;
+    favoriteCount?: number;
 };
 
 export type ListingListResponse = {
@@ -74,6 +75,7 @@ export type FurnitureDetailResponse = {
     orderState?: string;
     // 조회한 회원이 이 매물에 가진 진행 중 주문 id. 없으면 null
     myOrderId?: number | null;
+    favoriteCount?: number;
 };
 
 export type MyFurnitureResponse = {

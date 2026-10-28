@@ -13,6 +13,18 @@
     word-break: keep-all;
 }
 
+.favorite-action {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.favorite-action__count {
+    min-width: 16px;
+    color: var(--on-surface-variant);
+    text-align: center;
+}
+
 .body {
     display: flex;
     flex-direction: column;

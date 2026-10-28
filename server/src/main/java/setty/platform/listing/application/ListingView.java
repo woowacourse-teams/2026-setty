@@ -39,6 +39,7 @@ public final class ListingView {
             Dimensions dimensions,
             boolean hasPurchaseRequest,
             OrderState orderState,
+            int favoriteCount,
             Instant createdAt,
             Dong dong
     ) {
@@ -62,6 +63,7 @@ public final class ListingView {
             boolean purchaseRequestedByMe,
             OrderState orderState,
             Long myOrderId,
+            int favoriteCount,
             List<Image> images,
             Instant createdAt,
             Instant updatedAt,
