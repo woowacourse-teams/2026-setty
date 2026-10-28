@@ -1,5 +1,8 @@
 export type NotificationType = 'KEYWORD' | 'UNKNOWN';
 
+/** 결제 대기와 배차는 구매자가 살 수 없다는 점이 같아 거래중으로 묶는다. */
+export type NotifiedListingStatus = 'AVAILABLE' | 'TRADING' | 'SOLD' | 'DELETED';
+
 export type Notification = {
     id: number;
     type: NotificationType;
@@ -8,8 +11,20 @@ export type Notification = {
     title: string | null;
     price: number | null;
     deliveryFee: number | null;
+    listingStatus: NotifiedListingStatus;
+    read: boolean;
     createdAt: string;
 };
+
+/** 모르는 상태나 매물이 없는 알림은 삭제된 매물로 본다. */
+export function notifiedListingStatusOf(value: string | null | undefined): NotifiedListingStatus {
+    return value === 'AVAILABLE' || value === 'TRADING' || value === 'SOLD' ? value : 'DELETED';
+}
+
+/** 더 이상 살 수 없는 매물의 알림은 흐리게 보여 준다. */
+export function isNotifiedListingClosed(status: NotifiedListingStatus): boolean {
+    return status !== 'AVAILABLE';
+}
 
 export function notificationTypeOf(value: string): NotificationType {
     return value === 'KEYWORD' ? value : 'UNKNOWN';

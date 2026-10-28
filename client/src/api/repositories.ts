@@ -12,7 +12,7 @@ import {
 } from '../model/furniture';
 import { keywordCategoryOf, type Keyword, type KeywordConditions } from '../model/keyword';
 import type { Member } from '../model/member';
-import { notificationTypeOf, type Notification } from '../model/notification';
+import { notificationTypeOf, notifiedListingStatusOf, type Notification } from '../model/notification';
 import { deliveryStatusOf, orderStatusOrNull, type Order, type OrderStatus, type PendingOrder } from '../model/order';
 import { apiCall, tokenStore } from './http';
 import type {
@@ -365,6 +365,8 @@ function toNotification(response: NotificationResponse): Notification {
         title: response.title ?? null,
         price: response.price ?? null,
         deliveryFee: response.deliveryFee ?? null,
+        listingStatus: notifiedListingStatusOf(response.listingStatus),
+        read: response.read,
         createdAt: response.createdAt
     };
 }
@@ -378,6 +380,18 @@ export const notificationRepository = {
     /** 알림을 열어 봤다고 서버에 알린다. 이미 확인한 알림이어도 에러가 아니다. */
     async ack(notificationId: number) {
         await apiCall(`/api/me/notifications/${notificationId}/ack`, { method: 'POST' });
+    },
+
+    async read(notificationId: number) {
+        await apiCall(`/api/me/notifications/${notificationId}/read`, { method: 'POST' });
+    },
+
+    async countUnread(): Promise<number> {
+        return (await apiCall<{ count: number }>('/api/me/notifications/unread-count')).count;
+    },
+
+    async readAll() {
+        await apiCall('/api/me/notifications/read', { method: 'POST' });
     }
 };
 

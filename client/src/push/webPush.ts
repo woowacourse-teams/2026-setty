@@ -5,6 +5,7 @@ import { deviceTokenRepository, notificationRepository } from '../api/repositori
 import { formatWon } from '../model/furniture';
 import { routes } from '../navigation';
 import { showSnackbar } from '../ui/snackbar';
+import { refreshUnreadNotifications } from './unreadNotifications';
 
 /**
  * 브라우저 푸시(FCM). 빌드 변수에 Firebase 설정이 없으면 모든 함수가 아무 일도 하지 않는다.
@@ -115,6 +116,7 @@ export async function listenForegroundMessages(navigate: (path: string) => void)
         const notificationId = Number(data.notificationId);
         if (!Number.isSafeInteger(listingId) || !data.title) return;
         if (Number.isSafeInteger(notificationId)) void notificationRepository.ack(notificationId).catch(() => undefined);
+        void refreshUnreadNotifications();
         showSnackbar(`관심 키워드의 새 매물: ${data.title}${priceSuffix(data.price, data.deliveryFee)}`, {
             actionLabel: '보기',
             long: true,

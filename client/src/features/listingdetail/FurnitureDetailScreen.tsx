@@ -16,6 +16,7 @@ import {
     type FurnitureDetail
 } from '../../model/furniture';
 import { routes, useNavigateBack, useNavigateToLogin } from '../../navigation';
+import { readNotification } from '../../push/unreadNotifications';
 import {
     BackIconButton,
     BottomBar,
@@ -83,7 +84,10 @@ export function FurnitureDetailScreen() {
     useEffect(() => {
         const notificationId = Number(searchParams.get('notificationId'));
         if (!searchParams.has('notificationId')) return;
-        if (Number.isSafeInteger(notificationId)) void notificationRepository.ack(notificationId).catch(() => undefined);
+        if (Number.isSafeInteger(notificationId)) {
+            void notificationRepository.ack(notificationId).catch(() => undefined);
+            void readNotification(notificationId);
+        }
         const next = new URLSearchParams(searchParams);
         next.delete('notificationId');
         setSearchParams(next, { replace: true });

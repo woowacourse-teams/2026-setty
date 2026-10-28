@@ -170,7 +170,11 @@ export type NotificationResponse = {
     price?: number | null;
     // 보는 사람 위치로 계산한 배송비
     deliveryFee?: number | null;
+    // AVAILABLE·TRADING·SOLD·DELETED. 매물 레코드가 없으면 null
+    listingStatus?: string | null;
     status: string;
+    // 알림함에서 눌러 봤는지
+    read: boolean;
     createdAt: string;
 };
 

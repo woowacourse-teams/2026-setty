@@ -536,11 +536,39 @@ export const handlers = [
                     title: listing?.title ?? null,
                     price: listing?.price ?? null,
                     deliveryFee: listing ? deliveryFeeFor(listing, member) : null,
+                    listingStatus: notifiedStatusOf(listing),
                     status: notification.status,
+                    read: notification.readAt !== null,
                     createdAt: notification.createdAt
                 };
             });
         return HttpResponse.json({ items: mine });
+    }),
+
+    http.get('/api/me/notifications/unread-count', ({ request }) => {
+        const member = currentMember(request);
+        if (!member) return unauthorized();
+        const count = notifications.filter((item) => item.memberId === member.id && item.status === 'SENT' && !item.readAt).length;
+        return HttpResponse.json({ count });
+    }),
+
+    http.post('/api/me/notifications/read', ({ request }) => {
+        const member = currentMember(request);
+        if (!member) return unauthorized();
+        const readAt = new Date().toISOString();
+        notifications
+            .filter((item) => item.memberId === member.id && item.status === 'SENT')
+            .forEach((item) => { item.readAt ??= readAt; });
+        return new HttpResponse(null, { status: 204 });
+    }),
+
+    http.post('/api/me/notifications/:notificationId/read', ({ request, params }) => {
+        const member = currentMember(request);
+        if (!member) return unauthorized();
+        const notification = notifications.find((item) => item.id === Number(params.notificationId) && item.memberId === member.id);
+        if (!notification) return error(404, 'NOTIFICATION_NOT_FOUND', '존재하지 않는 알림입니다');
+        notification.readAt ??= new Date().toISOString();
+        return new HttpResponse(null, { status: 204 });
     }),
 
     http.post('/api/me/notifications/:notificationId/ack', async ({ request, params }) => {
@@ -569,3 +597,10 @@ export const handlers = [
         return new HttpResponse(null, { status: 204 });
     })
 ];
+
+function notifiedStatusOf(listing: MockListing | undefined): string | null {
+    if (!listing) return null;
+    if (listing.deleted) return 'DELETED';
+    if (listing.saleStatus === 'SOLD') return 'SOLD';
+    return orderStateOf(listing) === 'NONE' ? 'AVAILABLE' : 'TRADING';
+}

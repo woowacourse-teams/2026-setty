@@ -46,6 +46,7 @@ export type MockNotification = {
     status: 'PENDING' | 'SENT' | 'FAILED';
     createdAt: string;
     ackedAt: string | null;
+    readAt: string | null;
 };
 
 export type MockOrder = {
@@ -183,9 +184,9 @@ export const keywords: MockKeyword[] = [
 ];
 
 export const notifications: MockNotification[] = [
-    { id: 7_001, memberId: 1, listingId: 2, status: 'SENT', createdAt: new Date(now - 30 * 60_000).toISOString(), ackedAt: null },
-    { id: 7_002, memberId: 1, listingId: 4, status: 'SENT', createdAt: new Date(now - 5 * 3_600_000).toISOString(), ackedAt: null },
-    { id: 7_003, memberId: 1, listingId: 13, status: 'SENT', createdAt: new Date(now - 2 * 86_400_000).toISOString(), ackedAt: new Date(now - 86_400_000).toISOString() }
+    { id: 7_001, memberId: 1, listingId: 2, status: 'SENT', createdAt: new Date(now - 30 * 60_000).toISOString(), ackedAt: null, readAt: null },
+    { id: 7_002, memberId: 1, listingId: 4, status: 'SENT', createdAt: new Date(now - 5 * 3_600_000).toISOString(), ackedAt: null, readAt: null },
+    { id: 7_003, memberId: 1, listingId: 8, status: 'SENT', createdAt: new Date(now - 2 * 86_400_000).toISOString(), ackedAt: new Date(now - 86_400_000).toISOString(), readAt: new Date(now - 86_400_000).toISOString() }
 ];
 
 let nextKeywordId = 1_000;

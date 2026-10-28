@@ -12,6 +12,7 @@ import {
     type FurnitureSummary
 } from '../../model/furniture';
 import { routes, useNavigateBack } from '../../navigation';
+import { refreshUnreadNotifications, useHasUnreadNotifications } from '../../push/unreadNotifications';
 import {
     BottomSheet,
     Button,
@@ -70,7 +71,7 @@ export function HomeScreen() {
                         <>
                             {/* 검색창은 기록에 남겨 브라우저 뒤로 가기로도 닫히게 한다 */}
                             <IconButton icon="search" label="가구 검색" onClick={() => navigate(`?${SEARCH_PARAM}=1`)} />
-                            <IconButton icon="notifications" label="알림함" onClick={() => navigate(routes.notifications)} />
+                            <NotificationsButton onClick={() => navigate(routes.notifications)} />
                             <ProfileButton onClick={() => navigate(routes.myPage)} profileInitial={home.profileInitial} />
                         </>
                     )}
@@ -107,6 +108,27 @@ export function HomeScreen() {
 }
 
 /** 로그인한 회원 아이디의 첫 글자를 Expressive 도형 안에 보여준다. 아직 모르면 계정 아이콘을 보여준다. */
+/** 안 읽은 알림이 있으면 종 위에 점을 띄운다. 홈에 들어오거나 탭으로 돌아올 때 다시 확인한다. */
+function NotificationsButton({ onClick }: { onClick: () => void }) {
+    const hasUnread = useHasUnreadNotifications();
+
+    useEffect(() => {
+        void refreshUnreadNotifications();
+        const refreshWhenVisible = () => {
+            if (document.visibilityState === 'visible') void refreshUnreadNotifications();
+        };
+        document.addEventListener('visibilitychange', refreshWhenVisible);
+        return () => document.removeEventListener('visibilitychange', refreshWhenVisible);
+    }, []);
+
+    return (
+        <span className={styles['notifications-button']}>
+            <IconButton icon="notifications" label={hasUnread ? '알림함, 새 알림 있음' : '알림함'} onClick={onClick} />
+            {hasUnread && <span aria-hidden className={styles['unread-dot']} />}
+        </span>
+    );
+}
+
 function ProfileButton({ profileInitial, onClick }: { profileInitial: string | null; onClick: () => void }) {
     return (
         <button aria-label="내 정보" className={styles['profile-button']} onClick={onClick} type="button">
