@@ -2,7 +2,7 @@ import { createRoot } from 'react-dom/client';
 import { RouterProvider } from 'react-router/dom';
 import { router } from './App';
 import { initializeAnalytics } from './analytics/posthog';
-import { listenForegroundMessages, syncPushToken } from './push/webPush';
+import { listenForegroundMessages, listenNotificationClicks, syncPushToken } from './push/webPush';
 import './styles/global.css';
 
 async function enableMocking() {
@@ -22,6 +22,7 @@ async function bootstrap() {
     createRoot(root).render(<RouterProvider router={router} />);
     void syncPushToken();
     void listenForegroundMessages((path) => void router.navigate(path));
+    listenNotificationClicks((path) => void router.navigate(path));
 }
 
 void bootstrap();

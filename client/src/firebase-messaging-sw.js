@@ -37,17 +37,23 @@ if (__FIREBASE_CONFIG__) {
     });
 }
 
-// 알림을 누르면 열려 있는 세티 탭을 매물 상세로 보내고, 없으면 새로 연다. 상세 화면이 notificationId로 확인 처리한다.
+// 알림을 누르면 열려 있는 세티 탭을 앞으로 가져와 매물 상세로 보내고, 없으면 새 창으로 연다.
+// 이 워커는 Firebase 전용 범위에 등록돼 세티 탭을 관리하지 않으므로 client.navigate()를 쓸 수 없다.
+// 그래서 탭에 메시지를 보내 페이지가 직접 이동한다. 상세 화면이 notificationId로 확인 처리한다.
+export const OPEN_LISTING_MESSAGE = 'setty:open-listing';
+
+async function openListing(path) {
+    const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    const client = windows.find((candidate) => new URL(candidate.url).origin === self.location.origin);
+    if (!client) {
+        await self.clients.openWindow(path);
+        return;
+    }
+    await client.focus();
+    client.postMessage({ type: OPEN_LISTING_MESSAGE, path });
+}
+
 self.addEventListener('notificationclick', (event) => {
     event.notification.close();
-    const url = new URL(event.notification.data?.url ?? '/', self.location.origin).href;
-    event.waitUntil(
-        self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
-            const client = clients.find((candidate) => 'focus' in candidate);
-            if (client) {
-                return Promise.resolve(client.navigate ? client.navigate(url) : null).then(() => client.focus());
-            }
-            return self.clients.openWindow(url);
-        })
-    );
+    event.waitUntil(openListing(event.notification.data?.url ?? '/'));
 });

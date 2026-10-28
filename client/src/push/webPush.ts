@@ -91,6 +91,20 @@ export async function clearPushToken(): Promise<void> {
     savePushToken(null);
 }
 
+// 서비스 워커(firebase-messaging-sw.js)가 알림을 누른 탭에 보내는 메시지 종류
+const OPEN_LISTING_MESSAGE = 'setty:open-listing';
+
+/** 알림을 눌렀을 때 워커가 보낸 매물 주소로 이동한다. 워커가 이 탭을 관리하지 않아 직접 이동시킬 수 없다. */
+export function listenNotificationClicks(navigate: (path: string) => void) {
+    if (!('serviceWorker' in navigator)) return;
+    navigator.serviceWorker.addEventListener('message', (event: MessageEvent) => {
+        const data = event.data as { type?: string; path?: string } | null;
+        if (data?.type === OPEN_LISTING_MESSAGE && typeof data.path === 'string' && data.path.startsWith('/')) {
+            navigate(data.path);
+        }
+    });
+}
+
 /** 화면이 열려 있을 때 온 알림은 스낵바로 알리고 바로 확인 처리한다. */
 export async function listenForegroundMessages(navigate: (path: string) => void): Promise<void> {
     const target = await messagingOrNull();
