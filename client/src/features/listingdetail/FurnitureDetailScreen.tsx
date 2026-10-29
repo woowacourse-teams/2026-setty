@@ -15,7 +15,7 @@ import {
     isTrading,
     type FurnitureDetail
 } from '../../model/furniture';
-import { routes, useNavigateBack, useNavigateToLogin } from '../../navigation';
+import { routes, useNavigateBack, useNavigateToLogin, useNavigateToLoginFromHere } from '../../navigation';
 import { readNotification } from '../../push/unreadNotifications';
 import {
     BackIconButton,
@@ -77,6 +77,7 @@ export function FurnitureDetailScreen() {
     const navigate = useNavigate();
     const navigateBack = useNavigateBack();
     const navigateToLogin = useNavigateToLogin();
+    const navigateToLoginFromHere = useNavigateToLoginFromHere();
     const [searchParams, setSearchParams] = useSearchParams();
     const [state, setState] = useState<DetailState>({ status: 'loading' });
     const [favorite, setFavorite] = useState<FavoriteState>({ isFavorited: null, isUpdating: false, requiresLogin: false });
@@ -125,7 +126,7 @@ export function FurnitureDetailScreen() {
     const toggleFavorite = async () => {
         const { isFavorited, isUpdating, requiresLogin } = favoriteRef.current;
         if (requiresLogin) {
-            navigateToLogin();
+            navigateToLoginFromHere();
             return;
         }
         if (isFavorited === null || isUpdating) return;

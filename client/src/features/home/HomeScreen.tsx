@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { getPriceVariant } from '../../analytics/priceScenario';
+import { tokenStore } from '../../api/http';
 import {
     categoryLabel,
     formatRegisteredDate,
@@ -12,7 +13,7 @@ import {
     type FurnitureSummary,
     type OrderState
 } from '../../model/furniture';
-import { routes, useNavigateBack } from '../../navigation';
+import { loginStateFrom, routes, useNavigateBack } from '../../navigation';
 import { refreshUnreadNotifications, useHasUnreadNotifications } from '../../push/unreadNotifications';
 import {
     BottomSheet,
@@ -61,7 +62,10 @@ export function HomeScreen() {
     const isSearchOpen = searchParams.has(SEARCH_PARAM);
 
     useEffect(() => {
-        enterHome(() => navigate(routes.profileEdit));
+        // 배송비 필터는 내 행정동이 있어야 하므로, 로그인 전이면 로그인부터 하게 한다
+        enterHome(() => (tokenStore.get()
+            ? navigate(routes.profileEdit)
+            : navigate(routes.login, { state: loginStateFrom({ pathname: routes.home, search: '', state: null }) })));
     }, [navigate]);
 
     const openListing = (listingId: number) => navigate(routes.furnitureDetail(listingId));
