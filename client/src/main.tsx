@@ -4,15 +4,7 @@ import { router } from './App';
 import { initializeAnalytics } from './analytics/posthog';
 import './styles/global.css';
 
-async function enableMocking() {
-    if (!__ENABLE_MSW__) return;
-
-    const { worker } = await import('./mocks/browser');
-    await worker.start({ onUnhandledRequest: 'bypass' });
-}
-
-async function bootstrap() {
-    await enableMocking();
+function bootstrap() {
     initializeAnalytics();
 
     const root = document.getElementById('root');
@@ -21,4 +13,4 @@ async function bootstrap() {
     createRoot(root).render(<RouterProvider router={router} />);
 }
 
-void bootstrap();
+bootstrap();

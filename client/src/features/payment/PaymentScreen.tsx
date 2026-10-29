@@ -131,13 +131,12 @@ function PaymentContent({ listingId, orderName, amount: initialAmount, isResumin
     // 결제할 금액. 주문을 만들기 전에는 매물 상세의 총액, 만든 뒤에는 주문 생성 응답의 총액이다
     const [amount, setAmount] = useState(initialAmount);
     const [isResuming, setIsResuming] = useState(initialIsResuming);
-    const [isWidgetLoaded, setIsWidgetLoaded] = useState(__ENABLE_MSW__);
+    const [isWidgetLoaded, setIsWidgetLoaded] = useState(false);
     // 약관 위젯이 아직 동의 상태를 알려주지 않았으면 null
     const [isAgreed, setIsAgreed] = useState<boolean | null>(null);
     const [step, setStep] = useState<PaymentStep>('IDLE');
     const widgetsRef = useRef<TossPaymentsWidgets | null>(null);
     const paymentRequested = useRef(false);
-    const navigate = useNavigate();
     const canPay = isWidgetLoaded && isAgreed !== false && step === 'IDLE';
 
     useEffect(() => {
@@ -149,7 +148,6 @@ function PaymentContent({ listingId, orderName, amount: initialAmount, isResumin
     }, [listingId, initialAmount]);
 
     useEffect(() => {
-        if (__ENABLE_MSW__) return;
         let isActive = true;
         void (async () => {
             try {
@@ -201,13 +199,6 @@ function PaymentContent({ listingId, orderName, amount: initialAmount, isResumin
         savePendingPayment({ tossOrderId, amount: totalPrice, listingId });
         paymentRequested.current = true;
 
-        if (__ENABLE_MSW__) {
-            // 목 모드: 토스 결제창 없이 결제 성공으로 돌아온 것처럼 이동한다
-            const params = new URLSearchParams({ listingId: String(listingId), paymentKey: `mock_${Date.now()}`, orderId: tossOrderId, amount: String(totalPrice) });
-            navigate(`/payment/success?${params.toString()}`, { replace: true });
-            return;
-        }
-
         try {
             const widgets = widgetsRef.current;
             if (!widgets) throw new Error('결제 수단을 불러오지 못했습니다');
@@ -245,17 +236,9 @@ function PaymentContent({ listingId, orderName, amount: initialAmount, isResumin
             canLeave
             onBack={onBack}
         >
-            {__ENABLE_MSW__ ? (
-                <p className="type-body-medium" style={{ margin: 0, padding: '16px 24px', color: 'var(--on-surface-variant)' }}>
-                    목 모드: 토스 결제위젯 없이 결제 성공을 흉내냅니다.
-                </p>
-            ) : (
-                <>
-                    <div id="payment-method" />
-                    <div id="agreement" />
-                    {!isWidgetLoaded && <CenterFill><LoadingIndicator /></CenterFill>}
-                </>
-            )}
+            <div id="payment-method" />
+            <div id="agreement" />
+            {!isWidgetLoaded && <CenterFill><LoadingIndicator /></CenterFill>}
         </PaymentScaffold>
     );
 }

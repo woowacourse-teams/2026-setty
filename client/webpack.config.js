@@ -3,7 +3,6 @@ const webpack = require('webpack');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 
-const enableMsw = process.env.ENABLE_MSW === 'true';
 // 개발 서버가 /api 요청을 넘길 백엔드 주소. 배포에서는 같은 도메인의 /api로 라우팅한다.
 const apiProxyTarget = process.env.SETTY_API_URL ?? 'http://localhost:8080';
 // 토스페이먼츠 결제위젯 클라이언트 키. 비우면 공개 문서용 테스트 키를 쓴다.
@@ -66,7 +65,6 @@ module.exports = (_, argv) => {
         },
         plugins: [
             new webpack.DefinePlugin({
-                __ENABLE_MSW__: JSON.stringify(enableMsw),
                 __TOSS_CLIENT_KEY__: JSON.stringify(tossClientKey),
                 __ENABLE_SOLD_LISTING_SCENARIO__: JSON.stringify(enableSoldListingScenario),
                 __ENABLE_PRICE_SCENARIO__: JSON.stringify(enablePriceScenario),
@@ -95,15 +93,13 @@ module.exports = (_, argv) => {
             historyApiFallback: true,
             host: '0.0.0.0',
             port: 3000,
-            proxy: enableMsw
-                ? []
-                : [
-                    {
-                        context: ['/api'],
-                        target: apiProxyTarget,
-                        changeOrigin: true
-                    }
-                ]
+            proxy: [
+                {
+                    context: ['/api'],
+                    target: apiProxyTarget,
+                    changeOrigin: true
+                }
+            ]
         },
         output: {
             filename: isProduction ? 'assets/js/[name].[contenthash:8].js' : 'bundle.js',

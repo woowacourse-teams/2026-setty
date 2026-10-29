@@ -1,6 +1,12 @@
 import { useLayoutEffect, type ReactNode } from 'react';
 import { createBrowserRouter, Navigate, Outlet, ScrollRestoration, useLocation } from 'react-router';
-import { tokenStore } from './api/http';
+import { deliveryTokenStore, tokenStore } from './api/http';
+import { DemoScreen } from './features/demo/DemoScreen';
+import { DriverRequestDetailScreen } from './features/driver/DriverRequestDetailScreen';
+import { DriverRequestsScreen } from './features/driver/DriverRequestsScreen';
+import { DriverSettlementScreen } from './features/driver/DriverSettlementScreen';
+import { DriverShipmentDetailScreen } from './features/driver/DriverShipmentDetailScreen';
+import { DriverShipmentsScreen } from './features/driver/DriverShipmentsScreen';
 import { FavoritesScreen } from './features/favorites/FavoritesScreen';
 import { HomeScreen } from './features/home/HomeScreen';
 import { FurnitureDetailScreen } from './features/listingdetail/FurnitureDetailScreen';
@@ -38,7 +44,15 @@ function RequireLogin({ children }: { children: ReactNode }) {
     return children;
 }
 
+/** 배송원 토큰이 없으면 배송원 로그인으로 보낸다. 회원 로그인과는 따로 확인한다. */
+function RequireDriverLogin({ children }: { children: ReactNode }) {
+    if (!deliveryTokenStore.get()) return <Navigate replace to={routes.driverLogin} />;
+    return children;
+}
+
 export const router = createBrowserRouter([
+    // 데모 화면은 구매자·배송원 화면을 나란히 띄우므로 휴대폰 폭으로 제한하는 AppShell 밖에 둔다
+    { path: routes.demo, Component: DemoScreen },
     {
         Component: AppShell,
         children: [
@@ -59,6 +73,11 @@ export const router = createBrowserRouter([
             { path: '/payment/success', element: <RequireLogin><PaymentReturnScreen result="success" /></RequireLogin> },
             { path: '/payment/fail', element: <RequireLogin><PaymentReturnScreen result="fail" /></RequireLogin> },
             { path: routes.paymentComplete, element: <RequireLogin><PaymentCompleteScreen /></RequireLogin> },
+            { path: routes.driverRequests, element: <RequireDriverLogin><DriverRequestsScreen /></RequireDriverLogin> },
+            { path: '/driver/requests/:deliveryId', element: <RequireDriverLogin><DriverRequestDetailScreen /></RequireDriverLogin> },
+            { path: routes.driverShipments, element: <RequireDriverLogin><DriverShipmentsScreen /></RequireDriverLogin> },
+            { path: '/driver/shipments/:deliveryId', element: <RequireDriverLogin><DriverShipmentDetailScreen /></RequireDriverLogin> },
+            { path: routes.driverSettlement, element: <RequireDriverLogin><DriverSettlementScreen /></RequireDriverLogin> },
             { path: '*', element: <Navigate replace to={routes.home} /> }
         ]
     }

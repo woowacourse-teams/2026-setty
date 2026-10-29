@@ -80,6 +80,12 @@ export function orderStatusLabel(order: Order): string {
     }
 }
 
+/** 결제가 끝나 배송원이 배차를 진행 중인 주문인지 여부. 이 동안은 화면을 주기적으로 다시 불러온다. */
+export function isDeliveryInProgress(order: Order): boolean {
+    if (order.orderStatus !== null && order.orderStatus !== 'CONFIRMED') return false;
+    return order.deliveryStatus === 'REQUESTED' || order.deliveryStatus === 'ACCEPTED' || order.deliveryStatus === 'PICKED_UP';
+}
+
 /** 취소·만료처럼 배송 흐름에서 벗어난 주문인지 여부. */
 export function isCancelFlow(order: Order): boolean {
     return order.orderStatus === 'CANCEL_PENDING'
