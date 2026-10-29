@@ -5,6 +5,7 @@ import { categoryLabel, formatWon, type FurnitureSummary } from '../../model/fur
 import { routes, useNavigateBack, useNavigateToLogin } from '../../navigation';
 import {
     BackIconButton,
+    CenterFill,
     ErrorContent,
     FavoriteCount,
     FlexibleTopAppBar,
@@ -53,7 +54,9 @@ export function FavoritesScreen() {
                 <PullToRefresh isRefreshing={isRefreshing} onRefresh={refresh}>
                     <div className={screenStyles['list-padding']}>
                         {state.data.length === 0 && (
-                            <SettyMessage description="마음에 드는 가구의 하트를 눌러 모아보세요." style={{ marginTop: 48 }} title="아직 찜한 가구가 없어요" />
+                            <CenterFill>
+                                <SettyMessage description="마음에 드는 가구의 하트를 눌러 모아보세요." title="아직 찜한 가구가 없어요" />
+                            </CenterFill>
                         )}
                         <SegmentedList>
                             {state.data.map((furniture, index) => (

@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { useNavigate } from 'react-router';
+import { useLocation, useNavigate, type Location } from 'react-router';
 import { resetUser } from './analytics/posthog';
 import { deliveryTokenStore, tokenStore } from './api/http';
 import { resetHomeStore } from './features/home/homeStore';
@@ -28,7 +28,7 @@ export const routes = {
     driverRequestDetail: (deliveryId: number) => `/driver/requests/${deliveryId}`,
     driverShipments: '/driver/shipments',
     driverShipmentDetail: (deliveryId: number) => `/driver/shipments/${deliveryId}`,
-    driverSettlement: '/driver/settlement',
+    driverMyPage: '/driver/me',
     demo: '/demo'
 } as const;
 
@@ -53,6 +53,30 @@ export function useNavigateBack(fallback: string = routes.home) {
             navigate(fallback, { replace: true });
         }
     }, [navigate, fallback]);
+}
+
+/** 로그인한 뒤 돌아갈 화면. 결제처럼 주소 밖 state가 필요한 화면도 그대로 되살린다. */
+type LoginReturnTo = Pick<Location, 'pathname' | 'search' | 'state'>;
+
+/** 로그인 화면으로 넘길 location state. 로그인한 뒤 [location]으로 돌아온다. */
+export function loginStateFrom(location: LoginReturnTo): { from: LoginReturnTo } {
+    return { from: { pathname: location.pathname, search: location.search, state: location.state } };
+}
+
+/** 로그인 화면이 받은 state에서 로그인한 뒤 돌아갈 화면을 꺼낸다. 없으면 null. */
+export function loginReturnToOf(state: unknown): LoginReturnTo | null {
+    if (typeof state !== 'object' || state === null || !('from' in state)) return null;
+    const from = state.from as LoginReturnTo | null;
+    return from && typeof from.pathname === 'string' ? from : null;
+}
+
+/** 로그인이 필요한 동작을 하면 보던 화면을 기억한 채 로그인으로 보낸다. 로그인 화면에서 뒤로 가면 보던 화면으로 돌아온다. */
+export function useNavigateToLoginFromHere() {
+    const navigate = useNavigate();
+    const location = useLocation();
+    return useCallback(() => {
+        navigate(routes.login, { state: loginStateFrom(location) });
+    }, [navigate, location]);
 }
 
 /** 로그아웃하거나 토큰이 만료되면 보던 화면을 버리고 로그인으로 보낸다. */

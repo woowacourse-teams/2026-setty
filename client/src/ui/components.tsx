@@ -223,7 +223,7 @@ export function ExtendedFab({ label, icon, expanded, onClick }: ExtendedFabProps
                 onClick={onClick}
                 type="button"
             >
-                <Icon name={icon} size={28} />
+                <Icon name={icon} size={24} />
                 <span className={styles.fab__label}>{label}</span>
             </button>
         </div>
