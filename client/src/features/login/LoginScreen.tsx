@@ -5,6 +5,7 @@ import { ApiError, NetworkError } from '../../api/http';
 import { deliveryRepository } from '../../api/deliveryRepository';
 import { userRepository } from '../../api/repositories';
 import { accountRoleOf, routes } from '../../navigation';
+import { syncPushToken } from '../../push/webPush';
 import { BottomBar, Button, LoadingIndicator, Scaffold, TextField } from '../../ui/components';
 import { AccountRoleToggle } from './AccountRoleToggle';
 import { showSnackbar } from '../../ui/snackbar';
@@ -39,6 +40,8 @@ export function LoginScreen() {
                 return;
             }
             await userRepository.login(username, password);
+            // 알림을 이미 허용한 브라우저면 새 로그인 회원으로 토큰을 다시 올린다
+            void syncPushToken();
             identifyUser(username);
             // 다른 계정으로 다시 로그인했을 수 있으므로 이전 홈 목록을 버린다
             resetHomeStore();

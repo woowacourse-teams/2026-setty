@@ -11,19 +11,25 @@ import {
     type MyFurniture,
     orderStateOf
 } from '../model/furniture';
+import { keywordCategoryOf, type Keyword, type KeywordConditions } from '../model/keyword';
 import type { Member } from '../model/member';
+import { notificationTypeOf, notifiedListingStatusOf, type Notification } from '../model/notification';
 import { deliveryStatusOf, orderStatusOrNull, type Order, type OrderStatus, type PendingOrder } from '../model/order';
 import { apiCall, tokenStore } from './http';
 import type {
     AboutMeResponse,
+    DeviceTokenRequest,
     DongResponse,
     FurnitureDetailResponse,
     FurnitureSummaryResponse,
+    KeywordConditionsRequest,
+    KeywordResponse,
     ListingCreateResponse,
     ListingListResponse,
     ListingUpsertRequest,
     LoginResponse,
     MyFurnitureResponse,
+    NotificationResponse,
     OrderCancellationResponse,
     OrderCreateResponse,
     OrderResponse,
@@ -316,5 +322,91 @@ export const paymentRepository = {
     /** 결제 실패·취소를 알려 PENDING 주문을 정리(매물 선점 해제)한다. */
     async fail(tossOrderId: string) {
         await apiCall('/api/payments/fail', { method: 'POST', body: { orderId: tossOrderId } });
+    }
+};
+
+function toKeyword(response: KeywordResponse): Keyword {
+    return {
+        id: response.id,
+        keyword: response.keyword,
+        conditions: {
+            category: keywordCategoryOf(response.category),
+            minPrice: response.minPrice ?? null,
+            maxPrice: response.maxPrice ?? null,
+            maxDeliveryFee: response.maxDeliveryFee ?? null,
+            maxTotalPrice: response.maxTotalPrice ?? null,
+            excludeKeywords: response.excludeKeywords ?? []
+        },
+        createdAt: response.createdAt
+    };
+}
+
+export const keywordRepository = {
+    async getMine(): Promise<Keyword[]> {
+        return (await apiCall<{ items: KeywordResponse[] }>('/api/me/keywords')).items.map(toKeyword);
+    },
+
+    /** 이미 등록한 키워드를 다시 보내도 서버는 조용히 넘어간다. */
+    async subscribe(keyword: string) {
+        await apiCall('/api/me/keywords', { method: 'PUT', body: { keyword } });
+    },
+
+    async updateConditions(keywordId: number, conditions: KeywordConditions) {
+        const body: KeywordConditionsRequest = conditions;
+        await apiCall(`/api/me/keywords/${keywordId}/conditions`, { method: 'PUT', body });
+    },
+
+    async unsubscribe(keywordId: number) {
+        await apiCall(`/api/me/keywords/${keywordId}`, { method: 'DELETE' });
+    }
+};
+
+function toNotification(response: NotificationResponse): Notification {
+    return {
+        id: response.id,
+        type: notificationTypeOf(response.type),
+        listingId: response.listingId,
+        title: response.title ?? null,
+        price: response.price ?? null,
+        deliveryFee: response.deliveryFee ?? null,
+        listingStatus: notifiedListingStatusOf(response.listingStatus),
+        read: response.read,
+        createdAt: response.createdAt
+    };
+}
+
+export const notificationRepository = {
+    async getMine(): Promise<Notification[]> {
+        const response = await apiCall<{ items: NotificationResponse[] }>('/api/me/notifications', { query: { size: PAGE_SIZE } });
+        return response.items.map(toNotification);
+    },
+
+    /** 알림을 열어 봤다고 서버에 알린다. 이미 확인한 알림이어도 에러가 아니다. */
+    async ack(notificationId: number) {
+        await apiCall(`/api/me/notifications/${notificationId}/ack`, { method: 'POST' });
+    },
+
+    async read(notificationId: number) {
+        await apiCall(`/api/me/notifications/${notificationId}/read`, { method: 'POST' });
+    },
+
+    async countUnread(): Promise<number> {
+        return (await apiCall<{ count: number }>('/api/me/notifications/unread-count')).count;
+    },
+
+    async readAll() {
+        await apiCall('/api/me/notifications/read', { method: 'POST' });
+    }
+};
+
+export const deviceTokenRepository = {
+    /** 브라우저가 받은 FCM 토큰을 내 기기로 등록한다. 같은 토큰을 다시 올리면 서버가 갱신만 한다. */
+    async register(token: string) {
+        const body: DeviceTokenRequest = { token, platform: 'WEB' };
+        await apiCall('/api/me/device-token', { method: 'PUT', body });
+    },
+
+    async unregister(token: string) {
+        await apiCall('/api/me/device-token', { method: 'DELETE', body: { token } });
     }
 };

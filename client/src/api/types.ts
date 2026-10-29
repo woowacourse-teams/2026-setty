@@ -140,3 +140,47 @@ export type OrderCancellationResponse = {
     orderStatus: string;
     message: string;
 };
+
+export type KeywordResponse = {
+    id: number;
+    keyword: string;
+    // 조건은 걸지 않으면 null
+    category?: string | null;
+    minPrice?: number | null;
+    maxPrice?: number | null;
+    maxDeliveryFee?: number | null;
+    maxTotalPrice?: number | null;
+    excludeKeywords?: string[] | null;
+    createdAt: string;
+};
+
+export type KeywordConditionsRequest = {
+    category: string | null;
+    minPrice: number | null;
+    maxPrice: number | null;
+    maxDeliveryFee: number | null;
+    maxTotalPrice: number | null;
+    excludeKeywords: string[];
+};
+
+export type NotificationResponse = {
+    id: number;
+    // KEYWORD. 뒤에 주문 취소 알림 등이 더해진다
+    type: string;
+    listingId: number;
+    title?: string | null;
+    price?: number | null;
+    // 보는 사람 위치로 계산한 배송비
+    deliveryFee?: number | null;
+    // AVAILABLE·TRADING·SOLD·DELETED. 매물 레코드가 없으면 null
+    listingStatus?: string | null;
+    status: string;
+    // 알림함에서 눌러 봤는지
+    read: boolean;
+    createdAt: string;
+};
+
+export type DeviceTokenRequest = {
+    token: string;
+    platform: 'WEB';
+};

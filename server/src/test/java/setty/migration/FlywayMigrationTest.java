@@ -34,7 +34,8 @@ class FlywayMigrationTest {
             "delivery_address_mgmt_no");
     private static final List<String> DELIVERY_ZONE_COLUMNS = List.of("pickup_dong_code", "pickup_zip_code",
             "delivery_dong_code", "delivery_zip_code");
-    private static final int MIGRATION_COUNT = 10;
+    private static final List<String> KEYWORD_CONDITION_COLUMNS = List.of("max_delivery_fee", "max_total_price");
+    private static final int MIGRATION_COUNT = 13;
 
     @Container
     static final MySQLContainer MYSQL = new MySQLContainer("mysql:8.4.11");
@@ -156,13 +157,13 @@ class FlywayMigrationTest {
     }
 
     @Test
-    void deliveryIndexUpgradesVersionNineWithoutChangingExistingDelivery() {
+    void laterMigrationsUpgradeVersionNineWithoutChangingExistingDelivery() {
         Flyway.configure().dataSource(dataSource).locations("classpath:db/migration")
                 .target("9").cleanDisabled(true).load().migrate();
         seedExistingRows();
         var deliveryBefore = jdbc.queryForMap("SELECT * FROM delivery WHERE id=1");
 
-        assertThat(flyway(false).migrate().migrationsExecuted).isOne();
+        assertThat(flyway(false).migrate().migrationsExecuted).isEqualTo(4);
 
         assertCurrentSchema();
         assertThat(jdbc.queryForMap("SELECT * FROM delivery WHERE id=1")).isEqualTo(deliveryBefore);
@@ -246,6 +247,10 @@ class FlywayMigrationTest {
         for (var column : DELIVERY_ZONE_COLUMNS) {
             assertThat(columnCount("delivery", column)).as("delivery.%s", column).isOne();
         }
+        for (var column : KEYWORD_CONDITION_COLUMNS) {
+            assertThat(columnCount("keyword_subscriptions", column)).as("keyword_subscriptions.%s", column).isOne();
+        }
+        assertThat(columnCount("listing_notifications", "read_at")).isOne();
         assertThat(indexColumns("delivery", "idx_delivery_requests"))
                 .isEqualTo("status,driver_id,requested_at,id");
         assertThat(indexColumns("listings", "idx_listings_delivery_filter"))
@@ -257,7 +262,7 @@ class FlywayMigrationTest {
                 SELECT COUNT(*) FROM information_schema.statistics WHERE table_schema=DATABASE()
                 AND table_name='listings' AND index_name='idx_listings_public'
                 """)).isZero();
-        for (var table : List.of("keyword_subscriptions", "listing_notifications", "device_tokens",
+        for (var table : List.of("keyword_subscriptions", "keyword_exclusions", "listing_notifications", "device_tokens",
                 "delivery_order_decision", "settlements", "settlement_order", "EVENT_PUBLICATION")) {
             assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM information_schema.tables "
                     + "WHERE table_schema=DATABASE() AND table_name=?", Integer.class, table)).as(table).isOne();
@@ -282,7 +287,10 @@ class FlywayMigrationTest {
                 || table.equals("members") && STANDARD_ADDRESS_COLUMNS.contains(name)
                 || table.equals("listings") && name.equals("zip_zone")
                 || table.equals("orders") && ORDER_PICKUP_SNAPSHOT_COLUMNS.contains(name)
-                || table.equals("delivery") && DELIVERY_ZONE_COLUMNS.contains(name);
+                || table.equals("delivery") && DELIVERY_ZONE_COLUMNS.contains(name)
+                || table.equals("keyword_subscriptions") && KEYWORD_CONDITION_COLUMNS.contains(name)
+                || table.equals("keyword_exclusions")
+                || table.equals("listing_notifications") && name.equals("read_at");
     }
 
     private int count(final String sql) {

@@ -95,13 +95,19 @@ public class FcmNotificationSender implements NotificationSender {
     }
 
     private Message toFcmMessage(final NotificationMessage message, final String token) {
-        return Message.builder()
+        final Message.Builder builder = Message.builder()
                 .setToken(token)
                 .putData("notificationId", String.valueOf(message.notificationId()))
                 .putData("listingId", String.valueOf(message.listingId()))
                 .putData("title", message.title())
-                .setAndroidConfig(AndroidConfig.builder().setPriority(toAndroidPriority(message)).build())
-                .build();
+                .setAndroidConfig(AndroidConfig.builder().setPriority(toAndroidPriority(message)).build());
+        if (message.price() != null) {
+            builder.putData("price", String.valueOf(message.price()));
+        }
+        if (message.deliveryFee() != null) {
+            builder.putData("deliveryFee", String.valueOf(message.deliveryFee()));
+        }
+        return builder.build();
     }
 
     private AndroidConfig.Priority toAndroidPriority(final NotificationMessage message) {

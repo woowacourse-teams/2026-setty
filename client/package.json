@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@tosspayments/tosspayments-sdk": "^2.8.1",
+    "firebase": "^13.1.0",
     "posthog-js": "^1.435.6",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",

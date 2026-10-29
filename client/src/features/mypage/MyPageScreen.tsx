@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router';
 import { userRepository } from '../../api/repositories';
 import type { Member } from '../../model/member';
 import { routes, useNavigateBack, useNavigateToLogin } from '../../navigation';
+import { clearPushToken } from '../../push/webPush';
 import {
     AlertDialog,
     BackIconButton,
@@ -38,6 +39,7 @@ export function MyPageScreen() {
     const logout = async () => {
         if (isLoggingOut) return;
         setIsLoggingOut(true);
+        await clearPushToken();
         await userRepository.logout();
         navigateToLogin();
     };
@@ -56,6 +58,10 @@ export function MyPageScreen() {
                         { title: '내 판매 가구', description: '등록한 가구를 관리해요', icon: 'sell', onClick: () => navigate(routes.myListings) },
                         { title: '찜한 가구', description: '마음에 둔 가구를 모아봐요', icon: 'favorite', onClick: () => navigate(routes.favorites) },
                         { title: '주문 내역', description: '구매한 가구의 배송을 확인해요', icon: 'localShipping', onClick: () => navigate(routes.orders) }
+                    ]}
+                    notificationMenus={[
+                        { title: '키워드 알림', description: '관심 키워드의 새 매물을 알려드려요', icon: 'notifications', onClick: () => navigate(routes.keywords) },
+                        { title: '알림함', description: '받은 알림을 모아봐요', icon: 'notifications', onClick: () => navigate(routes.notifications) }
                     ]}
                     accountMenus={[
                         { title: '로그아웃', icon: 'logout', onClick: () => setIsLogoutDialogVisible(true) }
@@ -84,15 +90,18 @@ type MyPageBodyProps = {
     member: Member;
     onEditProfile: () => void;
     tradeMenus: MyPageMenu[];
+    notificationMenus: MyPageMenu[];
     accountMenus: MyPageMenu[];
 };
 
-function MyPageBody({ member, onEditProfile, tradeMenus, accountMenus }: MyPageBodyProps) {
+function MyPageBody({ member, onEditProfile, tradeMenus, notificationMenus, accountMenus }: MyPageBodyProps) {
     return (
         <div style={{ padding: '0 16px 24px' }}>
             <ProfileCard member={member} onEditProfile={onEditProfile} />
             <SectionTitle style={{ marginTop: 24 }}>거래</SectionTitle>
             <MenuList menus={tradeMenus} />
+            <SectionTitle style={{ marginTop: 22 }}>알림</SectionTitle>
+            <MenuList menus={notificationMenus} />
             <SectionTitle style={{ marginTop: 22 }}>계정</SectionTitle>
             <MenuList menus={accountMenus} />
         </div>

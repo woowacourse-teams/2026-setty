@@ -41,6 +41,16 @@ public class MyKeywordController {
         return ResponseEntity.noContent().build();
     }
 
+    @PutMapping("/{subscriptionId}/conditions")
+    public ResponseEntity<Void> updateConditions(
+            @LoginMember final Long memberId,
+            @PathVariable final Long subscriptionId,
+            @RequestBody final KeywordConditionsRequest request
+    ) {
+        keywordSubscriptionService.updateConditions(memberId, subscriptionId, request.toConditions());
+        return ResponseEntity.noContent().build();
+    }
+
     @DeleteMapping("/{subscriptionId}")
     public ResponseEntity<Void> unsubscribe(
             @LoginMember final Long memberId,
