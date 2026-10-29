@@ -70,9 +70,10 @@ fun ProfileEditScreen(
     val dongCatalog by dongPickerViewModel.catalog.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     // 화면에 처음 들어올 때만 서버 값으로 폼을 채운다. 회전 등으로 다시 그려질 때는 입력을 유지한다.
+    // 프로세스 종료 후에는 ViewModel이 새로 만들어지므로 서버에서 다시 받는다.
     var isLoaded by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(Unit) {
-        if (!isLoaded) {
+        if (!isLoaded || !viewModel.isLoadRequested) {
             isLoaded = true
             viewModel.load()
         }
