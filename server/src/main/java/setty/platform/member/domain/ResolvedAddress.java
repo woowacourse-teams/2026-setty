@@ -52,6 +52,11 @@ public class ResolvedAddress {
         return new ResolvedAddress(resolution.status(), resolution.address());
     }
 
+    // 상태가 NULL이면 주소 백필 배치가 다시 해석하려 들므로, 해석할 주소가 없는 경우는 UNMATCHED로 둔다.
+    public static ResolvedAddress unmatched() {
+        return new ResolvedAddress(AddressResolution.Status.UNMATCHED, null);
+    }
+
     public String getManagementNumber() {
         return managementNumber;
     }

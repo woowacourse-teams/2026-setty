@@ -20,6 +20,7 @@ import setty.global.exception.ErrorCode;
 import setty.platform.listing.storage.ListingImageStorage;
 import setty.platform.member.domain.Member;
 import setty.platform.member.repository.MemberRepository;
+import setty.platform.member.service.MemberWithdrawalService;
 import setty.platform.order.controller.dto.OrderCreateRequest;
 import setty.platform.order.domain.Order;
 import setty.platform.order.service.OrderService;
@@ -40,6 +41,9 @@ class OrderConcurrencyTest extends MySqlIntegrationTestSupport {
     private MemberRepository memberRepository;
 
     @Autowired
+    private MemberWithdrawalService memberWithdrawalService;
+
+    @Autowired
     private JdbcTemplate jdbcTemplate;
 
     @MockitoBean
@@ -56,6 +60,7 @@ class OrderConcurrencyTest extends MySqlIntegrationTestSupport {
 
     @AfterEach
     void cleanUp() {
+        jdbcTemplate.update("DELETE FROM EVENT_PUBLICATION");
         jdbcTemplate.update("DELETE FROM delivery");
         jdbcTemplate.update("DELETE FROM orders");
         jdbcTemplate.update("DELETE FROM listing_images");
@@ -151,6 +156,66 @@ class OrderConcurrencyTest extends MySqlIntegrationTestSupport {
         final Integer orderCount = jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM orders WHERE listing_id = ?", Integer.class, LISTING_ID);
         assertThat(orderCount).isEqualTo(1);
+    }
+
+    @Test
+    void 판매자_탈퇴와_그_매물_주문이_동시에_오면_한쪽만_성공한다() throws InterruptedException {
+        final Member buyer = memberRepository.findById(FIRST_BUYER_ID).orElseThrow();
+
+        final CountDownLatch ready = new CountDownLatch(2);
+        final CountDownLatch start = new CountDownLatch(1);
+        final CountDownLatch done = new CountDownLatch(2);
+        final List<Object> results = new CopyOnWriteArrayList<>();
+        final List<Runnable> tasks = List.of(
+                () -> results.add(orderService.pending(new OrderCreateRequest(LISTING_ID), buyer)),
+                () -> {
+                    memberWithdrawalService.withdraw(SELLER_ID);
+                    results.add("withdrawn");
+                }
+        );
+
+        final ExecutorService executor = Executors.newFixedThreadPool(2);
+        for (final Runnable task : tasks) {
+            executor.submit(() -> {
+                ready.countDown();
+                try {
+                    start.await();
+                    task.run();
+                } catch (final Exception e) {
+                    results.add(e);
+                } finally {
+                    done.countDown();
+                }
+            });
+        }
+
+        ready.await();
+        start.countDown();
+        final boolean finished = done.await(10, TimeUnit.SECONDS);
+        executor.shutdownNow();
+
+        assertThat(finished).isTrue();
+        assertThat(results).hasSize(2);
+        assertThat(results.stream().filter(Exception.class::isInstance)).hasSize(1);
+
+        final Integer orderCount = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM orders WHERE listing_id = ?", Integer.class, LISTING_ID);
+        final boolean withdrawn = memberRepository.findById(SELLER_ID).orElseThrow().isWithdrawn();
+        if (withdrawn) {
+            assertThat(orderCount).isZero();
+            assertThat(errorCodeOf(results)).isEqualTo(ErrorCode.LISTING_NOT_FOUND);
+        } else {
+            assertThat(orderCount).isEqualTo(1);
+            assertThat(errorCodeOf(results)).isEqualTo(ErrorCode.MEMBER_HAS_ACTIVE_TRADE);
+        }
+    }
+
+    private ErrorCode errorCodeOf(final List<Object> results) {
+        return results.stream()
+                .filter(BusinessException.class::isInstance)
+                .map(result -> ((BusinessException) result).getErrorCode())
+                .findFirst()
+                .orElseThrow();
     }
 
     private void insertMember(final long memberId) {

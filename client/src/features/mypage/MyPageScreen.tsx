@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
+import { toUserMessage } from '../../api/errors';
 import { userRepository } from '../../api/repositories';
 import type { Member } from '../../model/member';
 import { routes, useNavigateBack, useNavigateToLogin } from '../../navigation';
@@ -17,6 +18,7 @@ import {
     SegmentedListItem
 } from '../../ui/components';
 import { Icon, type IconName } from '../../ui/Icon';
+import { showSnackbar } from '../../ui/snackbar';
 import { shapeStyle } from '../../ui/shapes';
 import { useLoad } from '../useLoad';
 import screenStyles from '../screens.module.css';
@@ -35,12 +37,29 @@ export function MyPageScreen() {
     const { state, load } = useLoad(userRepository.getMe);
     const [isLogoutDialogVisible, setIsLogoutDialogVisible] = useState(false);
     const [isLoggingOut, setIsLoggingOut] = useState(false);
+    const [isWithdrawDialogVisible, setIsWithdrawDialogVisible] = useState(false);
+    const [isWithdrawing, setIsWithdrawing] = useState(false);
 
     const logout = async () => {
         if (isLoggingOut) return;
         setIsLoggingOut(true);
         await clearPushToken();
         await userRepository.logout();
+        navigateToLogin();
+    };
+
+    const withdraw = async () => {
+        if (isWithdrawing) return;
+        setIsWithdrawing(true);
+        try {
+            await userRepository.withdraw();
+        } catch (error) {
+            showSnackbar(toUserMessage(error));
+            setIsWithdrawing(false);
+            return;
+        }
+        await clearPushToken();
+        showSnackbar('탈퇴했어요. 그동안 이용해 주셔서 고마워요.', { keepOnNextScreen: true });
         navigateToLogin();
     };
 
@@ -64,7 +83,8 @@ export function MyPageScreen() {
                         { title: '알림함', description: '받은 알림을 모아봐요', icon: 'notifications', onClick: () => navigate(routes.notifications) }
                     ]}
                     accountMenus={[
-                        { title: '로그아웃', icon: 'logout', onClick: () => setIsLogoutDialogVisible(true) }
+                        { title: '로그아웃', icon: 'logout', onClick: () => setIsLogoutDialogVisible(true) },
+                        { title: '회원 탈퇴', icon: 'delete', onClick: () => setIsWithdrawDialogVisible(true) }
                     ]}
                 />
             )}
@@ -80,6 +100,20 @@ export function MyPageScreen() {
                     onDismiss={() => setIsLogoutDialogVisible(false)}
                     text="다시 이용하려면 로그인해야 합니다."
                     title="로그아웃할까요?"
+                />
+            )}
+            {isWithdrawDialogVisible && (
+                <AlertDialog
+                    confirmDisabled={isWithdrawing}
+                    confirmLabel="탈퇴"
+                    dismissLabel="취소"
+                    onConfirm={() => {
+                        setIsWithdrawDialogVisible(false);
+                        void withdraw();
+                    }}
+                    onDismiss={() => setIsWithdrawDialogVisible(false)}
+                    text="판매 중인 가구는 내려가고 주문·결제 기록은 남아요. 진행 중인 거래가 있으면 끝난 뒤에 탈퇴할 수 있어요."
+                    title="탈퇴할까요?"
                 />
             )}
         </Scaffold>

@@ -16,6 +16,10 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     boolean existsByListingIdAndOrderStatusNotIn(Long listingId, List<OrderStatus> closedStatuses);
 
+    boolean existsByBuyerIdAndOrderStatusIn(Long buyerId, List<OrderStatus> statuses);
+
+    boolean existsByListingIdInAndOrderStatusIn(List<Long> listingIds, List<OrderStatus> statuses);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select o from Order o where o.id = :orderId")
     Optional<Order> findByIdForUpdate(@Param("orderId") Long orderId);

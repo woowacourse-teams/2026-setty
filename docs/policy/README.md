@@ -9,4 +9,5 @@
 - [배송](delivery.md): [배송 상태 전이](delivery.md#배송-상태-전이), 배송 요청, 정보 확정, 배차
 - [판매 완료·정산](completion-settlement.md): 구매자 확인, 자동 완료, 판매자·기사 정산, 정산 상태
 - [고객 상태·알림](customer-status.md): 상태 노출, 배송·주문 취소 결과 알림
+- [회원](member.md): 탈퇴 조건, 개인정보 가림, 거래 기록 보존
 - [정책 문서 운영 가이드](policy-guide.md): 정책 변경 절차

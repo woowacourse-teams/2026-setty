@@ -9,10 +9,15 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import java.time.Instant;
 
 @Entity
 @Table(name = "members")
 public class Member {
+
+    private static final String WITHDRAWN_LOGIN_ID_PREFIX = "withdrawn-";
+    private static final String WITHDRAWN_PHONE_NUMBER = "000-0000-0000";
+    private static final String WITHDRAWN_ADDRESS = "탈퇴한 회원";
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -45,6 +50,9 @@ public class Member {
 
     @Column(length = 36)
     private String token;
+
+    @Column(name = "withdrawn_at")
+    private Instant withdrawnAt;
 
     protected Member() {
     }
@@ -124,6 +132,25 @@ public class Member {
 
     public void changeResolvedAddress(final ResolvedAddress resolvedAddress) {
         this.resolvedAddress = resolvedAddress;
+    }
+
+    /**
+     * 거래 기록이 이 행을 가리키므로 행은 남기고 개인정보만 가린다.
+     * 가린 아이디는 가입 아이디 형식(영문 소문자·숫자)에 없는 하이픈을 써서 새 가입과 겹치지 않는다.
+     */
+    public void withdraw(final String unusablePasswordHash, final Instant withdrawnAt) {
+        this.loginId = WITHDRAWN_LOGIN_ID_PREFIX + id;
+        this.password = unusablePasswordHash;
+        this.phoneNumber = WITHDRAWN_PHONE_NUMBER;
+        this.address = WITHDRAWN_ADDRESS;
+        this.dongCode = null;
+        this.resolvedAddress = ResolvedAddress.unmatched();
+        this.token = null;
+        this.withdrawnAt = withdrawnAt;
+    }
+
+    public boolean isWithdrawn() {
+        return withdrawnAt != null;
     }
 
     public boolean matchPassword(final org.springframework.security.crypto.password.PasswordEncoder encoder, final String rawPassword) {

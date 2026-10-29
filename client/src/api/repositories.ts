@@ -88,6 +88,12 @@ export const userRepository = {
         } finally {
             tokenStore.clear();
         }
+    },
+
+    /** 진행 중인 거래가 있으면 서버가 거절하므로, 성공했을 때만 토큰을 지운다. */
+    async withdraw() {
+        await apiCall('/api/auth/me', { method: 'DELETE' });
+        tokenStore.clear();
     }
 };
 
