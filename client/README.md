@@ -27,7 +27,7 @@ SETTY_API_URL=https://dev.example.com npm run dev
 | 경로 | Android 화면 |
 | :-- | :-- |
 | `/login`, `/signup` | 로그인, 회원가입 |
-| `/` | 홈(카테고리·배송비 예산 필터, 검색) |
+| `/` | 홈(카테고리·상태등급·배송비 예산 필터, 검색) |
 | `/listings/:id` | 매물 상세(찜, 결제하고 주문하기) |
 | `/payment` | 결제(토스 결제위젯) |
 | `/me` | 내 정보 |

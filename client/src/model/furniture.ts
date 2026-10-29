@@ -1,11 +1,14 @@
 export const furnitureCategories = ['SOFA', 'TABLE', 'DESK', 'CHAIR', 'STORAGE', 'BED', 'ETC'] as const;
 export type FurnitureCategory = (typeof furnitureCategories)[number];
 
-// 서버가 받는 카테고리. 기타는 고를 수 없다
-export const selectableCategories = furnitureCategories.filter((category) => category !== 'ETC');
+// 매물 등록·수정과 홈 필터에서 고르는 카테고리
+export const selectableCategories = furnitureCategories;
+// 키워드 알림이 받는 카테고리. 기타 구독은 아직 없다
+export const keywordCategories = furnitureCategories.filter((category) => category !== 'ETC');
 
 /** 서버가 받는 상품 상태 등급. 좋은 등급부터 나열한다. */
 export const conditionGrades = ['S', 'A', 'B', 'C'] as const;
+export type ConditionGrade = (typeof conditionGrades)[number];
 
 export type SaleStatus = 'AVAILABLE' | 'RESERVED' | 'SOLD';
 

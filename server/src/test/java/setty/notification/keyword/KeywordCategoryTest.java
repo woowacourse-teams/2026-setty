@@ -11,10 +11,13 @@ import setty.platform.listing.domain.ListingCategory;
 
 class KeywordCategoryTest {
 
+    // 기타 매물은 카테고리 조건 없는 구독에만 알린다. 기타 구독은 아직 받지 않는다.
     @Test
-    void 매물_카테고리와_같은_값을_가진다() {
+    void 기타를_뺀_매물_카테고리와_같은_값을_가진다() {
         assertThat(Arrays.stream(KeywordCategory.values()).map(Enum::name))
-                .containsExactly(Arrays.stream(ListingCategory.values()).map(Enum::name).toArray(String[]::new));
+                .containsExactly(Arrays.stream(ListingCategory.values())
+                        .filter(category -> category != ListingCategory.ETC)
+                        .map(Enum::name).toArray(String[]::new));
     }
 
     @Test

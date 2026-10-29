@@ -1,12 +1,14 @@
 import { useSyncExternalStore } from 'react';
 import { isMemberDongRequired } from '../../api/errors';
 import { furnitureRepository, userRepository } from '../../api/repositories';
-import type { FurnitureCategory, FurniturePage, FurnitureSummary } from '../../model/furniture';
+import { conditionGrades, type ConditionGrade, type FurnitureCategory, type FurniturePage, type FurnitureSummary } from '../../model/furniture';
 import { showSnackbar } from '../../ui/snackbar';
 
 export type HomeState = {
     furnitures: FurnitureSummary[];
     selectedCategory: FurnitureCategory | null;
+    // 고른 상태등급. 비어 있으면 등급 조건 없이 받는다
+    selectedGrades: readonly ConditionGrade[];
     // 고른 배송비 예산. null이면 배송비 조건 없이 페이지를 받는다
     maxDeliveryFee: number | null;
     // 이어 받을 다음 페이지 커서. 마지막 페이지면 null
@@ -24,6 +26,7 @@ export type HomeState = {
 const initialState: HomeState = {
     furnitures: [],
     selectedCategory: null,
+    selectedGrades: [],
     maxDeliveryFee: null,
     nextCursor: null,
     isLoadingMore: false,
@@ -38,6 +41,7 @@ let state: HomeState = initialState;
 // 지금 보여주는 목록을 받은 배송비 예산. 다른 예산으로 받다 실패하면 필터를 이 값으로 되돌린다
 let shownMaxDeliveryFee: number | null = null;
 let shownCategory: FurnitureCategory | null = null;
+let shownGrades: readonly ConditionGrade[] = [];
 // 필터를 바꾸면 이전 요청의 결과가 뒤늦게 덮어쓰지 않도록 요청마다 번호를 붙인다
 let listingsRequest = 0;
 let onRequireDong: () => void = () => undefined;
@@ -72,6 +76,7 @@ export function resetHomeStore() {
     listingsRequest += 1;
     shownMaxDeliveryFee = null;
     shownCategory = null;
+    shownGrades = [];
     state = initialState;
     listeners.forEach((listener) => listener());
 }
@@ -113,7 +118,7 @@ export function refreshHome() {
  * 필터를 바꾸면 필터 줄은 그대로 둔 채 목록 자리에만 로딩을 보여줘 화면이 깜빡이지 않게 한다.
  * 아직 보여주는 목록이 없을 때만 전체 로딩을 보여준다.
  */
-function changeFilter(patch: Pick<Partial<HomeState>, 'selectedCategory' | 'maxDeliveryFee'>) {
+function changeFilter(patch: Pick<Partial<HomeState>, 'selectedCategory' | 'selectedGrades' | 'maxDeliveryFee'>) {
     const isListShown = !state.isLoading && !state.hasError;
     update(isListShown ? { ...patch, isFiltering: true } : { ...patch, isLoading: true, hasError: false });
     fetchListings();
@@ -124,6 +129,19 @@ export function selectCategory(category: FurnitureCategory | null) {
     changeFilter({ selectedCategory: category });
 }
 
+/** 등급을 켜거나 끈다. 고른 등급은 좋은 등급부터 보낸다. */
+export function toggleGrade(grade: ConditionGrade) {
+    const selected = state.selectedGrades.includes(grade)
+        ? state.selectedGrades.filter((item) => item !== grade)
+        : conditionGrades.filter((item) => item === grade || state.selectedGrades.includes(item));
+    changeFilter({ selectedGrades: selected });
+}
+
+export function clearGrades() {
+    if (state.selectedGrades.length === 0) return;
+    changeFilter({ selectedGrades: [] });
+}
+
 /** 배송비 예산을 바꾸고 첫 페이지부터 다시 받는다. null이면 필터를 해제한다. */
 export function selectMaxDeliveryFee(maxDeliveryFee: number | null) {
     if (state.maxDeliveryFee === maxDeliveryFee) return;
@@ -132,12 +150,12 @@ export function selectMaxDeliveryFee(maxDeliveryFee: number | null) {
 
 /** 현재 검색 조건의 다음 페이지를 이어 받는다. */
 export function loadMore() {
-    const { selectedCategory, maxDeliveryFee, nextCursor, isLoading, isFiltering, isRefreshing, isLoadingMore } = state;
+    const { selectedCategory, selectedGrades, maxDeliveryFee, nextCursor, isLoading, isFiltering, isRefreshing, isLoadingMore } = state;
     if (nextCursor === null) return;
     if (isLoading || isFiltering || isRefreshing || isLoadingMore) return;
     update({ isLoadingMore: true });
     const request = ++listingsRequest;
-    furnitureRepository.getFurniturePage({ category: selectedCategory, maxDeliveryFee, cursor: nextCursor })
+    furnitureRepository.getFurniturePage({ category: selectedCategory, conditionGrades: selectedGrades, maxDeliveryFee, cursor: nextCursor })
         .then((page) => {
             if (request !== listingsRequest) return;
             update((current) => {
@@ -160,13 +178,12 @@ export function loadMore() {
 function fetchListings(retainCount = 0) {
     if (retainCount > 0) update({ isRefreshing: true });
     const request = ++listingsRequest;
-    const { maxDeliveryFee, selectedCategory } = state;
+    const { maxDeliveryFee, selectedCategory, selectedGrades } = state;
+    const filter = { category: selectedCategory, conditionGrades: selectedGrades, maxDeliveryFee };
     const pageRequest = (async (): Promise<FurniturePage> => {
-        const page = await furnitureRepository.getFurniturePage({ category: selectedCategory, maxDeliveryFee });
+        const page = await furnitureRepository.getFurniturePage(filter);
         while (request === listingsRequest && page.nextCursor !== null && page.items.length < retainCount) {
-            const next = await furnitureRepository.getFurniturePage({
-                category: selectedCategory, maxDeliveryFee, cursor: page.nextCursor
-            });
+            const next = await furnitureRepository.getFurniturePage({ ...filter, cursor: page.nextCursor });
             const seen = new Set(page.items.map((item) => item.id));
             page.items.push(...next.items.filter((item) => !seen.has(item.id)));
             page.nextCursor = next.nextCursor;
@@ -178,6 +195,7 @@ function fetchListings(retainCount = 0) {
             if (request !== listingsRequest) return;
             shownMaxDeliveryFee = maxDeliveryFee;
             shownCategory = selectedCategory;
+            shownGrades = selectedGrades;
             update({
                 furnitures: page.items,
                 nextCursor: page.nextCursor,
@@ -191,7 +209,7 @@ function fetchListings(retainCount = 0) {
         .catch((error: unknown) => {
             if (request !== listingsRequest) return;
             if (isMemberDongRequired(error)) {
-                update({ selectedCategory: shownCategory, maxDeliveryFee: shownMaxDeliveryFee, isLoading: false, isFiltering: false, isRefreshing: false, isLoadingMore: false });
+                update({ selectedCategory: shownCategory, selectedGrades: shownGrades, maxDeliveryFee: shownMaxDeliveryFee, isLoading: false, isFiltering: false, isRefreshing: false, isLoadingMore: false });
                 onRequireDong();
                 return;
             }
@@ -203,7 +221,8 @@ function fetchListings(retainCount = 0) {
                 isLoadingMore: false,
                 hasError: !hasListings,
                 maxDeliveryFee: hasListings ? shownMaxDeliveryFee : current.maxDeliveryFee,
-                selectedCategory: hasListings ? shownCategory : current.selectedCategory
+                selectedCategory: hasListings ? shownCategory : current.selectedCategory,
+                selectedGrades: hasListings ? shownGrades : current.selectedGrades
             }));
             if (hasListings) showSnackbar('가구 목록을 새로고침하지 못했습니다');
         });

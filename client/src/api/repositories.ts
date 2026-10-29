@@ -2,6 +2,7 @@ import { dongDisplayName, type Dong } from '../model/dong';
 import {
     furnitureCategoryOf,
     saleStatusOf,
+    type ConditionGrade,
     type EditableListing,
     type FurnitureDetail,
     type FurniturePage,
@@ -211,14 +212,18 @@ function toUpsertRequest(draft: ListingDraft): ListingUpsertRequest {
 
 export const furnitureRepository = {
     /** 검색·필터를 전체 데이터에 적용한 뒤 한 페이지를 받는다. */
-    async getFurniturePage({ category = null, maxDeliveryFee = null, query = null, cursor = null }: {
+    async getFurniturePage({ category = null, conditionGrades = [], maxDeliveryFee = null, query = null, cursor = null }: {
         category?: FurnitureCategory | null;
+        conditionGrades?: readonly ConditionGrade[];
         maxDeliveryFee?: number | null;
         query?: string | null;
         cursor?: string | null;
     } = {}): Promise<FurniturePage> {
         const response = await apiCall<ListingListResponse>('/api/listings', {
-            query: { size: PAGE_SIZE, cursor, category, maxDeliveryFee, query }
+            query: {
+                size: PAGE_SIZE, cursor, category, maxDeliveryFee, query,
+                conditionGrade: conditionGrades.length > 0 ? conditionGrades.join(',') : null
+            }
         });
         return { items: response.items.map(toFurniture), nextCursor: response.nextCursor ?? null };
     },

@@ -3,11 +3,13 @@ import { useNavigate, useSearchParams } from 'react-router';
 import { getPriceVariant } from '../../analytics/priceScenario';
 import {
     categoryLabel,
+    conditionGrades,
     formatRegisteredDate,
     formatWon,
     PAYING_LABEL,
     selectableCategories,
     TRADING_LABEL,
+    type ConditionGrade,
     type FurnitureCategory,
     type FurnitureSummary,
     type OrderState
@@ -37,6 +39,7 @@ import { Icon } from '../../ui/Icon';
 import { shapeStyle } from '../../ui/shapes';
 import { DeliveryFeeBudget } from './deliveryFeeBudget';
 import {
+    clearGrades,
     enterHome,
     hasMore,
     loadListings,
@@ -44,6 +47,7 @@ import {
     refreshHome,
     selectCategory,
     selectMaxDeliveryFee,
+    toggleGrade,
     useHomeState,
     visibleFurnitures,
     type HomeState
@@ -176,17 +180,12 @@ function ListingList({ home, onListingClick }: { home: HomeState; onListingClick
                     options={[null, ...selectableCategories] as Array<FurnitureCategory | null>}
                     selected={home.selectedCategory}
                 />
+                <GradeFilter selectedGrades={home.selectedGrades} />
                 <DeliveryFeeFilter maxDeliveryFee={home.maxDeliveryFee} />
             </div>
             {home.isFiltering ? <CenterFill><LoadingIndicator /></CenterFill> : (
                 <>
-                    {listings.length === 0 && !canLoadMore && (
-                        home.maxDeliveryFee === null ? (
-                            <SettyMessage description="곧 새로운 가구가 올라올 거예요." style={{ marginTop: 48 }} title="아직 등록된 가구가 없어요" />
-                        ) : (
-                            <SettyMessage description="예산을 늘리거나 필터를 해제해 보세요." style={{ marginTop: 48 }} title="배송비 예산 안의 가구가 없어요" />
-                        )
-                    )}
+                    {listings.length === 0 && !canLoadMore && <EmptyListMessage home={home} />}
                     <SegmentedList>
                         {listings.map((listing, index) => (
                             <ListingItem
@@ -251,6 +250,35 @@ function ListingItem({ furniture, index, count, onClick }: { furniture: Furnitur
                 </TrailingColumn>
             )}
         />
+    );
+}
+
+/** 조건에 맞는 가구가 없을 때의 안내. 배송비만 걸었을 때는 예산을 늘리라고 안내한다. */
+function EmptyListMessage({ home }: { home: HomeState }) {
+    const hasOtherFilter = home.selectedCategory !== null || home.selectedGrades.length > 0;
+    if (!hasOtherFilter && home.maxDeliveryFee === null) {
+        return <SettyMessage description="곧 새로운 가구가 올라올 거예요." style={{ marginTop: 48 }} title="아직 등록된 가구가 없어요" />;
+    }
+    if (!hasOtherFilter) {
+        return <SettyMessage description="예산을 늘리거나 필터를 해제해 보세요." style={{ marginTop: 48 }} title="배송비 예산 안의 가구가 없어요" />;
+    }
+    return <SettyMessage description="카테고리나 등급 필터를 바꿔 보세요." style={{ marginTop: 48 }} title="조건에 맞는 가구가 없어요" />;
+}
+
+/** 상태등급 칩. "등급 전체"는 필터를 해제하고, 등급 칩은 여러 개를 켜고 끌 수 있다. */
+function GradeFilter({ selectedGrades }: { selectedGrades: readonly ConditionGrade[] }) {
+    return (
+        <ChipRow>
+            <FilterChip label="등급 전체" onClick={clearGrades} selected={selectedGrades.length === 0} />
+            {conditionGrades.map((grade) => (
+                <FilterChip
+                    key={grade}
+                    label={`${grade}급`}
+                    onClick={() => toggleGrade(grade)}
+                    selected={selectedGrades.includes(grade)}
+                />
+            ))}
+        </ChipRow>
     );
 }
 
@@ -334,14 +362,14 @@ function DeliveryFeeBudgetSheet({ initialBudget, onDismiss, onSelect }: { initia
 function SearchLayer({ home, onListingClick }: { home: HomeState; onListingClick: (listingId: number) => void }) {
     const navigateBack = useNavigateBack();
     const [query, setQuery] = useState('');
-    const search = useListingSearch(query, home.selectedCategory, home.maxDeliveryFee);
+    const search = useListingSearch(query, home.selectedCategory, home.selectedGrades, home.maxDeliveryFee);
     const results = search.items;
     const scrollRef = useRef<HTMLDivElement | null>(null);
     const triggerRef = useRef<HTMLDivElement | null>(null);
 
     useEffect(() => {
         scrollRef.current?.scrollTo({ top: 0 });
-    }, [query.trim(), home.selectedCategory, home.maxDeliveryFee]);
+    }, [query.trim(), home.selectedCategory, home.selectedGrades, home.maxDeliveryFee]);
 
     useEffect(() => {
         const trigger = triggerRef.current;
@@ -373,7 +401,7 @@ function SearchLayer({ home, onListingClick }: { home: HomeState; onListingClick
                 />
             </div>
             {!query.trim() && (
-                <SettyMessage description="판매 중인 가구의 제목으로 찾아드려요." style={{ marginTop: 48 }} title="어떤 가구를 찾으세요?" />
+                <SettyMessage description="판매 중인 가구의 제목·설명·카테고리로 찾아드려요." style={{ marginTop: 48 }} title="어떤 가구를 찾으세요?" />
             )}
             {query.trim() && !search.loading && !search.error && results.length === 0 && (
                 <SettyMessage description="다른 단어로 다시 찾아보세요." style={{ marginTop: 48 }} title="검색 결과가 없어요" />
