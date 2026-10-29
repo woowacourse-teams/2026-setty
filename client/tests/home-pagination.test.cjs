@@ -25,6 +25,7 @@ function home() {
     const store = load('features/home/homeStore.ts', {
         react: { useSyncExternalStore: (_, snapshot) => snapshot() },
         '../../api/errors': { isMemberDongRequired: error => error === 'DONG' },
+        '../../api/http': { tokenStore: { get: () => 'token' } },
         '../../model/furniture': { conditionGrades: ['S', 'A', 'B', 'C'] },
         './priceRange': { PriceFilter: { equals: (a, b) => a?.min === b?.min && a?.max === b?.max } },
         '../../api/repositories': {

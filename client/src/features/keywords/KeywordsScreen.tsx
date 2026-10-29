@@ -89,21 +89,25 @@ export function KeywordsScreen() {
                 <PullToRefresh isRefreshing={isRefreshing} onRefresh={refresh}>
                     <div className={screenStyles['list-padding']}>
                         <PushToggle />
-                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 16 }}>
-                            <TextField
-                                enterKeyHint="done"
-                                label="키워드"
-                                onChange={setInput}
-                                onEnter={() => void add()}
-                                placeholder="예: 소파, 원목 책상"
-                                style={{ flex: 1 }}
-                                supportingText={`${state.data.length}/${MAX_KEYWORDS}개 등록`}
-                                value={input}
-                            />
-                            <Button disabled={isAdding || !input.trim()} onClick={() => void add()} size="medium" style={{ marginTop: 4 }}>
-                                등록
-                            </Button>
-                        </div>
+                        <TextField
+                            enterKeyHint="done"
+                            label="키워드"
+                            onChange={setInput}
+                            onEnter={() => void add()}
+                            placeholder="예: 소파, 원목 책상"
+                            style={{ marginBottom: 16 }}
+                            supportingText={`${state.data.length}/${MAX_KEYWORDS}개 등록`}
+                            trailing={(
+                                <IconButton
+                                    disabled={isAdding || !input.trim()}
+                                    icon="add"
+                                    label="키워드 등록"
+                                    onClick={() => void add()}
+                                    variant="tonal"
+                                />
+                            )}
+                            value={input}
+                        />
                         {state.data.length === 0 && (
                             <SettyMessage
                                 description="제목에 키워드가 들어간 새 매물을 알려드려요."

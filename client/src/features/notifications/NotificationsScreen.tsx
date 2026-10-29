@@ -8,6 +8,7 @@ import { readAllNotifications, readNotification } from '../../push/unreadNotific
 import {
     BackIconButton,
     Button,
+    CenterFill,
     ErrorContent,
     FlexibleTopAppBar,
     LoadingContent,
@@ -64,11 +65,12 @@ export function NotificationsScreen() {
                 <PullToRefresh isRefreshing={isRefreshing} onRefresh={refresh}>
                     <div className={screenStyles['list-padding']}>
                         {state.data.length === 0 && (
-                            <SettyMessage
-                                description="키워드를 등록해 두면 새 매물이 올라올 때 여기에 쌓여요."
-                                style={{ marginTop: 48 }}
-                                title="아직 받은 알림이 없어요"
-                            />
+                            <CenterFill>
+                                <SettyMessage
+                                    description="키워드를 등록해 두면 새 매물이 올라올 때 여기에 쌓여요."
+                                    title="아직 받은 알림이 없어요"
+                                />
+                            </CenterFill>
                         )}
                         <SegmentedList>
                             {state.data.map((notification, index) => (
