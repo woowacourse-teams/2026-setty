@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { deliveryTokenStore, tokenStore } from '../../api/http';
+import { deliveryLoginIdStore, deliveryTokenStore, tokenStore } from '../../api/http';
 import { routes } from '../../navigation';
 import { Button, ToggleButtonGroup } from '../../ui/components';
 import styles from './demo.module.css';
@@ -32,6 +32,7 @@ export function DemoScreen() {
     const restart = () => {
         tokenStore.clear();
         deliveryTokenStore.clear();
+        deliveryLoginIdStore.clear();
         setSession((current) => current + 1);
     };
 

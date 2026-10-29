@@ -24,6 +24,9 @@
     height: 40px;
     background: var(--primary-container);
     color: var(--on-primary-container);
+    font-family: var(--font-brand);
+    font-size: 14px;
+    font-weight: 900;
 }
 
 .menu-shape {
@@ -121,22 +124,6 @@
     flex: 1;
 }
 
-.summary {
-    display: flex;
-    gap: 12px;
-}
-
-.summary__item {
-    display: flex;
-    flex: 1;
-    flex-direction: column;
-    gap: 4px;
-    padding: 12px 16px;
-    border-radius: var(--shape-large);
-    background: color-mix(in srgb, var(--on-primary-container) 8%, transparent);
-}
-
-.summary__item p,
 .hero p {
     margin: 0;
 }
@@ -145,6 +132,18 @@
     display: flex;
     flex-direction: column;
     gap: 4px;
+}
+
+.fee-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    padding-top: 16px;
+    border-top: 1px solid color-mix(in srgb, var(--on-primary-container) 16%, transparent);
+}
+
+.fee-row p {
+    margin: 0;
 }
 
 .income-stats {

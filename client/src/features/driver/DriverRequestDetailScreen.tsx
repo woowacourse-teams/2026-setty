@@ -18,6 +18,8 @@ import {
     SegmentedList,
     SegmentedListItem
 } from '../../ui/components';
+import { Icon } from '../../ui/Icon';
+import { shapeStyle } from '../../ui/shapes';
 import { showSnackbar } from '../../ui/snackbar';
 import { useLoad } from '../useLoad';
 import screenStyles from '../screens.module.css';
@@ -75,15 +77,18 @@ export function DriverRequestDetailScreen() {
             {request && (
                 <div className={`${screenStyles['list-padding']} ${styles.stack}`}>
                     <section className={screenStyles.card} style={{ background: 'var(--primary-container)', color: 'var(--on-primary-container)' }}>
-                        <div className={styles.hero}>
-                            <p className="type-label-large">{categoryText(request.furniture.category)}</p>
-                            <p className="type-headline-small-em">{request.furniture.itemName}</p>
-                        </div>
-                        <div className={styles.summary}>
-                            <div className={styles.summary__item}>
-                                <p className="type-label-medium">배송비</p>
-                                <p className="type-title-large-em">{formatWon(request.deliveryFee)}</p>
+                        <div className={screenStyles.card__header}>
+                            <div className={screenStyles.card__shape} style={{ ...shapeStyle('cookie9'), background: 'var(--primary)', color: 'var(--on-primary)' }}>
+                                <Icon name="localShipping" size={28} />
                             </div>
+                            <div className={screenStyles.card__lines}>
+                                <p className="type-label-large">{categoryText(request.furniture.category)}</p>
+                                <p className="type-headline-small-em">{request.furniture.itemName}</p>
+                            </div>
+                        </div>
+                        <div className={styles['fee-row']}>
+                            <p className="type-body-medium-em">배송비</p>
+                            <p className="type-headline-small-em">{formatWon(request.deliveryFee)}</p>
                         </div>
                     </section>
                     <section className={styles.section}>

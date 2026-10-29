@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { useLocation, useNavigate, type Location } from 'react-router';
 import { resetUser } from './analytics/posthog';
-import { deliveryTokenStore, tokenStore } from './api/http';
+import { deliveryLoginIdStore, deliveryTokenStore, tokenStore } from './api/http';
 import { resetHomeStore } from './features/home/homeStore';
 
 export const routes = {
@@ -95,6 +95,7 @@ export function useNavigateToDriverLogin() {
     const navigate = useNavigate();
     return useCallback(() => {
         deliveryTokenStore.clear();
+        deliveryLoginIdStore.clear();
         navigate(routes.driverLogin, { replace: true });
     }, [navigate]);
 }
