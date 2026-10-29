@@ -846,6 +846,7 @@
     color: var(--on-surface-variant);
     text-align: center;
     word-break: keep-all;
+    white-space: pre-line;
 }
 
 .dialog__actions {

@@ -116,7 +116,7 @@ export function MyPageScreen() {
                         void withdraw();
                     }}
                     onDismiss={() => setIsWithdrawDialogVisible(false)}
-                    text="판매 중인 가구는 내려가고 주문·결제 기록은 남아요. 진행 중인 거래가 있으면 끝난 뒤에 탈퇴할 수 있어요."
+                    text={'판매 중인 가구는 내려가요.\n진행 중인 거래가 끝나야 탈퇴할 수 있어요.'}
                     title="탈퇴할까요?"
                 />
             )}
