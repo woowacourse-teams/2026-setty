@@ -104,6 +104,8 @@
 html {
     -webkit-text-size-adjust: 100%;
     -webkit-tap-highlight-color: transparent;
+    /* 목록 길이에 따라 스크롤바가 생기고 사라져도 화면이 옆으로 밀리지 않게 자리를 비워 둔다 */
+    scrollbar-gutter: stable;
 }
 
 body {
