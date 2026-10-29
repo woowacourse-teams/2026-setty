@@ -133,7 +133,7 @@ function ListingList({ home, onListingClick }: { home: HomeState; onListingClick
 
     useEffect(() => {
         const trigger = triggerRef.current;
-        if (!canLoadMore || !trigger || home.isRefreshing || home.isLoadingMore) return;
+        if (!canLoadMore || !trigger || home.isFiltering || home.isRefreshing || home.isLoadingMore) return;
         const observer = new IntersectionObserver(([entry]) => {
             if (!entry.isIntersecting || requestedCount.current === itemCount) return;
             requestedCount.current = itemCount;
@@ -141,10 +141,10 @@ function ListingList({ home, onListingClick }: { home: HomeState; onListingClick
         }, { rootMargin: `0px 0px ${LOAD_MORE_THRESHOLD * LISTING_ITEM_HEIGHT}px 0px` });
         observer.observe(trigger);
         return () => observer.disconnect();
-    }, [canLoadMore, itemCount, home.isRefreshing, home.isLoadingMore]);
+    }, [canLoadMore, itemCount, home.isFiltering, home.isRefreshing, home.isLoadingMore]);
 
     return (
-        <div className={styles.list}>
+        <div className={home.isFiltering ? `${styles.list} ${styles['list--filtering']}` : styles.list}>
             <div className={styles['list-header']}>
                 <ToggleButtonGroup
                     ariaLabel="카테고리"
@@ -155,28 +155,32 @@ function ListingList({ home, onListingClick }: { home: HomeState; onListingClick
                 />
                 <DeliveryFeeFilter maxDeliveryFee={home.maxDeliveryFee} />
             </div>
-            {listings.length === 0 && !canLoadMore && (
-                home.maxDeliveryFee === null ? (
-                    <SettyMessage description="곧 새로운 가구가 올라올 거예요." style={{ marginTop: 48 }} title="아직 등록된 가구가 없어요" />
-                ) : (
-                    <SettyMessage description="예산을 늘리거나 필터를 해제해 보세요." style={{ marginTop: 48 }} title="배송비 예산 안의 가구가 없어요" />
-                )
-            )}
-            <SegmentedList>
-                {listings.map((listing, index) => (
-                    <ListingItem
-                        count={listings.length}
-                        furniture={listing}
-                        index={index}
-                        key={listing.id}
-                        onClick={() => onListingClick(listing.id)}
-                    />
-                ))}
-            </SegmentedList>
-            {canLoadMore && (
-                <div className={styles['load-more']} ref={triggerRef}>
-                    {home.isLoadingMore ? <LoadingIndicator /> : <Button onClick={loadMore} variant="text">더 보기</Button>}
-                </div>
+            {home.isFiltering ? <CenterFill><LoadingIndicator /></CenterFill> : (
+                <>
+                    {listings.length === 0 && !canLoadMore && (
+                        home.maxDeliveryFee === null ? (
+                            <SettyMessage description="곧 새로운 가구가 올라올 거예요." style={{ marginTop: 48 }} title="아직 등록된 가구가 없어요" />
+                        ) : (
+                            <SettyMessage description="예산을 늘리거나 필터를 해제해 보세요." style={{ marginTop: 48 }} title="배송비 예산 안의 가구가 없어요" />
+                        )
+                    )}
+                    <SegmentedList>
+                        {listings.map((listing, index) => (
+                            <ListingItem
+                                count={listings.length}
+                                furniture={listing}
+                                index={index}
+                                key={listing.id}
+                                onClick={() => onListingClick(listing.id)}
+                            />
+                        ))}
+                    </SegmentedList>
+                    {canLoadMore && (
+                        <div className={styles['load-more']} ref={triggerRef}>
+                            {home.isLoadingMore ? <LoadingIndicator /> : <Button onClick={loadMore} variant="text">더 보기</Button>}
+                        </div>
+                    )}
+                </>
             )}
         </div>
     );

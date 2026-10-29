@@ -708,6 +708,8 @@
     flex: none;
     align-items: center;
     justify-content: center;
+    /* 알약 모양 반지름은 높이의 절반으로 둔다. 999px로 두면 튕기는 전환이 0 아래로 넘어가 모서리가 잠깐 각진다 */
+    --toggle-pill-radius: 20px;
     height: 40px;
     padding: 0 16px;
     border-radius: var(--shape-small);
@@ -718,18 +720,18 @@
 }
 
 .toggle--leading {
-    border-top-left-radius: 999px;
-    border-bottom-left-radius: 999px;
+    border-top-left-radius: var(--toggle-pill-radius);
+    border-bottom-left-radius: var(--toggle-pill-radius);
 }
 
 .toggle--trailing {
-    border-top-right-radius: 999px;
-    border-bottom-right-radius: 999px;
+    border-top-right-radius: var(--toggle-pill-radius);
+    border-bottom-right-radius: var(--toggle-pill-radius);
 }
 
 /* 선택된 토글은 양 끝이 둥근 알약 모양이 된다 */
 .toggle--checked {
-    border-radius: 999px;
+    border-radius: var(--toggle-pill-radius);
     background: var(--primary);
     color: var(--on-primary);
 }

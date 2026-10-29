@@ -36,6 +36,13 @@
     padding: 0 16px 24px;
 }
 
+/* 필터를 바꾸는 동안 필터 줄 아래 남은 공간의 가운데에 로딩을 둔다 */
+.list--filtering {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+}
+
 .list-header {
     display: flex;
     flex-direction: column;
