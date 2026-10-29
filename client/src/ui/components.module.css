@@ -219,7 +219,8 @@
     justify-content: center;
     width: 40px;
     height: 40px;
-    border-radius: 999px;
+    /* 999px로 두면 누를 때 튕기는 전환이 0 아래로 넘어가 모서리가 잠깐 각지므로 크기에 맞는 원으로 둔다 */
+    border-radius: 50%;
     color: var(--on-surface-variant);
     transition: border-radius 200ms cubic-bezier(0.3, 1.6, 0.6, 1), background-color 150ms ease;
 }
