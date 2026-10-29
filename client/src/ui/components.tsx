@@ -418,11 +418,12 @@ export function TrailingColumn({ children }: { children: ReactNode }) {
 }
 
 /** 목록 카드 오른쪽 아래의 찜 수. 찜이 없으면 그리지 않는다. */
+/** 매물을 찜한 사람 수. 내가 찜했는지와 헷갈리지 않게 빈 하트로 그린다. */
 export function FavoriteCount({ count }: { count: number }) {
     if (count < 1) return null;
     return (
         <span aria-label={`찜 ${count}개`} className={cx(styles['favorite-count'], 'type-label-medium')}>
-            <Icon name="favoriteFilled" size={14} />
+            <Icon name="favorite" size={14} />
             {count}
         </span>
     );
