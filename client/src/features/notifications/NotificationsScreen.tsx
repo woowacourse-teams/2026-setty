@@ -84,7 +84,7 @@ export function NotificationsScreen() {
                                     leading={!isRead(notification) && <span aria-label="안 읽음" className={styles['unread-dot']} role="img" />}
                                     onClick={() => open(notification)}
                                     overline={<span className={closedClass(notification)}>{`관심 키워드의 새 매물 · ${formatNotifiedAt(notification.createdAt)}`}</span>}
-                                    style={isRead(notification) ? undefined : { background: 'var(--secondary-container)' }}
+                                    style={isRead(notification) ? undefined : { background: 'color-mix(in srgb, var(--primary) 10%, var(--surface-container))' }}
                                     supporting={<NotifiedListingSummary notification={notification} />}
                                 />
                             ))}
