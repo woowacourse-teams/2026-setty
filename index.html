@@ -410,6 +410,32 @@
       .fig svg [stroke="#7D5260"], .fig svg [stroke="#EFB8C8"] { stroke: var(--tertiary); } .fig svg [fill="#7D5260"], .fig svg [fill="#EFB8C8"] { fill: var(--tertiary); }
       .fig svg [stroke="#ECE6F0"] { stroke: var(--outline-variant); }
     }
+    .fold { grid-column: 1 / -1; }
+    .fold > summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 10px; padding: 14px 18px; border-radius: 16px; background: var(--surface-container-high); font-weight: 800; font-size: .9375rem; }
+    .fold > summary::-webkit-details-marker { display: none; }
+    .fold > summary::before { content: ""; width: 10px; height: 10px; border-right: 2.5px solid var(--primary); border-bottom: 2.5px solid var(--primary); transform: rotate(-45deg); transition: transform 200ms; }
+    .fold[open] > summary { margin-bottom: 12px; }
+    .fold[open] > summary::before { transform: rotate(45deg); }
+    .fold > summary:focus-visible { outline: 3px solid var(--primary); outline-offset: 2px; }
+    /* 설계 문서의 구조 그림: 클래스로 칠한다 */
+    .fig .diagram text { font-family: "Paperlogy", "Apple SD Gothic Neo", sans-serif; font-weight: 600; }
+    .fig .diagram .pt { font-size: 17px; fill: var(--on-surface); }
+    .fig .diagram .lb { font-size: 14px; fill: var(--on-surface-variant); }
+    .fig .diagram .rl, .fig .diagram .sl { font-size: 14px; fill: var(--on-surface); }
+    .fig .diagram .wl, .fig .diagram .co { font-size: 13px; fill: var(--tertiary); }
+    .fig .diagram .cm, .fig .diagram .rb { fill: var(--primary); }
+    .fig .diagram .cn { fill: var(--surface-container-highest); }
+    .fig .diagram .ra { fill: var(--tertiary-container); stroke: var(--tertiary); stroke-width: 1; }
+    .fig .diagram .rx { fill: none; stroke: var(--outline); stroke-width: 1; stroke-dasharray: 3 3; }
+    .fig .diagram .cu { fill: var(--primary-container); stroke: var(--primary); stroke-width: 1.2; }
+    .fig .diagram .wq { fill: var(--tertiary-container); stroke: var(--tertiary); stroke-width: 1; stroke-dasharray: 4 3; }
+    .fig .diagram .jx { fill: none; stroke: var(--outline-variant); stroke-width: 1.2; }
+    .fig .diagram .bk { fill: var(--surface-container-highest); stroke: var(--outline-variant); stroke-width: 1; }
+    .fig .diagram .bk.hi { fill: var(--primary-container); stroke: var(--primary); stroke-width: 1.4; }
+    .fig .diagram .ln2 { stroke: var(--on-surface-variant); stroke-width: 1.6; fill: none; }
+    .fig .diagram .mkf { fill: var(--on-surface-variant); }
+    .fig .diagram .axl { stroke: var(--outline-variant); stroke-width: 1.2; }
+    @media (max-width: 720px) { .fig.diagram img, .fig.diagram svg { min-width: 600px; } }
     .chart { padding: 18px 20px 16px; border-radius: 20px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--outline-variant); }
     .chart-title { margin: 0 0 14px; font-size: .875rem; font-weight: 800; }
     .chart-rows { display: grid; grid-template-columns: minmax(96px, auto) 1fr auto; gap: 10px 10px; align-items: center; }
@@ -429,10 +455,6 @@
     .axis span:first-child { transform: none; }
     .axis span:last-child { transform: translateX(-100%); }
     .chart-note { margin: 12px 0 0; font-size: .75rem; font-weight: 600; color: var(--on-surface-variant); }
-    .figs details { grid-column: 1 / -1; }
-    .figs summary { cursor: pointer; padding: 12px 16px; border-radius: 14px; background: var(--surface-container-high); font-weight: 800; font-size: .9375rem; }
-    .figs details[open] summary { margin-bottom: 12px; }
-    .figs details .figs { display: grid; }
     .tech-tag.tag-plan { background: var(--tertiary); color: var(--on-primary); }
     @media (max-width: 720px) { .figs { grid-template-columns: 1fr; } .fig img, .fig svg { min-width: 720px; } .chart-rows { grid-template-columns: 84px 1fr auto; } }
     @media (max-width: 960px) { .tech { grid-template-columns: 1fr; } }
@@ -797,7 +819,7 @@
               <h3>"배송비 3만 원 안에서 배송되는 가구만" 한 번의 조회로</h3>
               <ol class="pfr">
                 <li><span class="pfr-label">문제</span><p>배송비는 구매자마다 달라요. 출발·도착 동 사이 거리와 가구 부피로 정해지니, <b>매물마다 배송비를 계산해 거르면</b> 목록 조회가 수천 번의 계산이 되고 목표 부하에서 p95(요청 100건 중 느린 쪽 5번째)가 1.8초까지 늘어났어요.</p></li>
-                <li><span class="pfr-label">풀이</span><p>서울 전체의 동 사이 거리를 미리 재서 <b>거리표 한 장</b>으로 두고, 구매자 행 한 줄만 읽어 예산을 통과하는 구역을 찾아요. 통과 구역은 번호가 이어지니 <b>범위로 묶어 한 쿼리</b>에 넣어요. 거리표는 파일을 메모리에 매핑해 두 앱이 함께 쓰니 무중단 배포 중에도 한 벌이에요. 구역은 행정동에서 <b>우편번호 구역</b>으로 더 촘촘하게 바꿨어요.</p></li>
+                <li><span class="pfr-label">풀이</span><p>서울 전체의 동 사이 거리를 미리 재서 <b>거리표 한 장</b>으로 두고, 구매자 행 한 줄만 읽어 예산을 통과하는 구역을 찾아요. 통과 구역은 번호가 이어지니 <b>범위로 묶어 한 쿼리</b>에 넣어요. DB는 <b>id만 먼저 골라</b> 본문은 보여 줄 21개만 읽고, 커넥션은 요청당 한 번만 빌려요. 거리표는 파일을 메모리에 매핑해 두 앱이 함께 쓰니 무중단 배포 중에도 한 벌이에요. 구역은 행정동에서 <b>우편번호 구역</b>으로 더 촘촘하게 바꿨어요.</p></li>
                 <li><span class="pfr-label">결과</span><p>실제 앱에서 같은 부하로 잰 전후예요. 최대 처리량은 1.9배가 됐고, 요금 구간이 실제 도로 거리와 어긋나는 비율은 22.1%에서 7.1%로 줄었어요. 거리표가 쓰는 앱 서버 메모리는 약 48MB예요.</p></li>
               </ol>
             </div>
@@ -808,6 +830,54 @@
               <div class="stat"><p class="stat-label">앱 서버 메모리</p><p class="stat-value">48<small>MB</small></p><p class="stat-before">거리표 매핑 · 배포 중에도 한 벌</p></div>
             </div>
             <div class="figs">
+      <details class="fold">
+        <summary>① 왜 거리표인가 · 정확도와 메모리</summary>
+        <div class="figs">
+      <div class="chart" role="img" aria-label="요금 구간 불일치율: 직선 거리 79.6%, 보정 직선 24.2%, 구 단위 거리표 52.0%, 행정동 거리표 18.1%. 합격선 5%">
+        <p class="chart-title">요금 구간 불일치율 · 거리를 어떻게 재느냐</p>
+        <div class="chart-rows">
+        <span></span><div class="mk"><span class="goal-label" style="left:5.00%">합격선 5%</span></div><span></span>
+        <span class="l">직선 거리 그대로</span><div class="track"><div class="fill out" style="width:79.60%"></div><span class="goal" style="left:5.00%"></span></div><span class="v">79.6%</span>
+        <span class="l">직선 × 1.28 보정</span><div class="track"><div class="fill out" style="width:24.20%"></div><span class="goal" style="left:5.00%"></span></div><span class="v">24.2%</span>
+        <span class="l">구 단위 거리표</span><div class="track"><div class="fill out" style="width:52.00%"></div><span class="goal" style="left:5.00%"></span></div><span class="v">52.0%</span>
+        <span class="l">행정동 거리표</span><div class="track"><div class="fill pick" style="width:18.10%"></div><span class="goal" style="left:5.00%"></span></div><span class="v">18.1%</span>
+        <span></span><div class="axis"><span style="left:0.00%">0%</span><span style="left:25.00%">25%</span><span style="left:50.00%">50%</span><span style="left:75.00%">75%</span><span style="left:100.00%">100%</span></div><span></span>
+        </div>
+        <p class="chart-note">매물·구매자 무작위 쌍, 직선 20km 이내. 요금 구간은 3km마다 한 단계예요. 행정동 표도 합격선엔 못 미쳐서 더 촘촘한 구역은 ④에서 다뤄요.</p>
+      </div>
+      <div class="chart" role="img" aria-label="서버에 계속 올려 두는 메모리: 길찾기 엔진 약 156MB, 결과 캐시 10.63MB, 통과 목록 7.21MB, 행정동 거리표 0.73MB">
+        <p class="chart-title">서버에 계속 올려 두는 메모리</p>
+        <div class="chart-rows">
+        <span class="l">길찾기 엔진</span><div class="track"><div class="fill out" style="width:97.50%"></div></div><span class="v">약 156MB</span>
+        <span class="l">결과 캐시</span><div class="track"><div class="fill " style="width:6.64%"></div></div><span class="v">10.63MB</span>
+        <span class="l">통과 목록 캐시</span><div class="track"><div class="fill " style="width:4.51%"></div></div><span class="v">7.21MB</span>
+        <span class="l">행정동 거리표</span><div class="track"><div class="fill pick" style="width:0.46%"></div></div><span class="v">0.73MB</span>
+        <span></span><div class="axis"><span style="left:0.00%">0</span><span style="left:31.25%">50</span><span style="left:62.50%">100</span><span style="left:93.75%">150MB</span></div><span></span>
+        </div>
+        <p class="chart-note">거리표는 427 × 427칸 × 4바이트 = 0.73MB로 엔진의 0.47%예요.</p>
+      </div>
+      <figure class="fig wide diagram" data-svg="assets/sketch/d1-overview.svg">
+        <div class="fig-scroll"><img src="assets/sketch/d1-overview.svg" width="900" height="175" loading="lazy" alt="구현 한눈에. 서버가 켜질 때 거리표 0.73MB를 메모리에 올리고, 요청이 오면 메모리에서 통과하는 판매자 동네 목록을 계산하고, DB는 그 목록을 조건으로 색인에서 최신순 21개만 읽는다." /></div>
+        <figcaption><b>배송비 계산은 서버 메모리에서 끝나고, DB는 필터 색인만 읽어요.</b>서버가 켜질 때 거리표를 올려 두고, 요청이 오면 통과하는 판매자 구역 목록을 메모리에서 구해 DB에 조건으로 넘겨요.</figcaption>
+      </figure>
+        </div>
+      </details>
+      <details class="fold">
+        <summary>② 검색 구조 · 처리량</summary>
+        <div class="figs">
+      <div class="chart" role="img" aria-label="p95 100ms를 지킨 최대 처리량: 즉석 계산 1,500건/초, 거리표 조회 3,000건/초, 통과 목록 3,000건/초, 결과 캐시 5,000건/초 이상, 도로명 단위 엔진 100건/초. 목표 1,000건">
+        <p class="chart-title">p95 100ms를 지킨 최대 처리량 · 사전 계산 방식 비교</p>
+        <div class="chart-rows">
+        <span></span><div class="mk"><span class="goal-label" style="left:20.00%">목표 1,000건</span></div><span></span>
+        <span class="l">요청마다 즉석 계산</span><div class="track"><div class="fill " style="width:30.00%"></div><span class="goal" style="left:20.00%"></span></div><span class="v">1,500건/초</span>
+        <span class="l">거리표 조회</span><div class="track"><div class="fill pick" style="width:60.00%"></div><span class="goal" style="left:20.00%"></span></div><span class="v">3,000건/초</span>
+        <span class="l">통과 목록 캐시</span><div class="track"><div class="fill " style="width:60.00%"></div><span class="goal" style="left:20.00%"></span></div><span class="v">3,000건/초</span>
+        <span class="l">결과 캐시</span><div class="track"><div class="fill " style="width:100.00%"></div><span class="goal" style="left:20.00%"></span></div><span class="v">5,000건/초 이상</span>
+        <span class="l">도로명 단위 · 엔진</span><div class="track"><div class="fill out" style="width:2.00%"></div><span class="goal" style="left:20.00%"></span></div><span class="v">100건/초</span>
+        <span></span><div class="axis"><span style="left:0.00%">0</span><span style="left:20.00%">1,000</span><span style="left:60.00%">3,000</span><span style="left:100.00%">5,000건/초</span></div><span></span>
+        </div>
+        <p class="chart-note">가짜 매물 100만 건, 노트북 Docker. 결과 캐시는 측정 상한 5,000건에서도 기준을 지켰지만, 메모리와 갱신 부담이 있어 거리표 조회를 골랐어요.</p>
+      </div>
       <figure class="fig wide" data-svg="assets/sketch/s13-map.svg">
         <div class="fig-scroll"><img src="assets/sketch/s13-map.svg" width="1400" height="1040" loading="lazy" alt="예산 안에 드는 칸을 지도 위에서 어떻게 묶나. 칸이 잘아지면 같은 넓이를 덮는 번호가 늘어 조건문이 길어지고, 격자 번호는 줄 단위로 이어져 줄마다 범위 하나로 묶으면 조건 6개가 된다." /></div>
         <figcaption><b>예산 안 칸을 지도 위에서 줄 단위 범위로 묶어요.</b>칸이 잘아지면 번호가 늘어 조건문이 길어지는데(행정동 1,891자 → 500m 격자 8,283자), 줄마다 이어진 번호를 범위 하나로 묶으면 조건 6개로 줄어요. 읽는 행 수는 그대로예요.</figcaption>
@@ -824,31 +894,48 @@
         <span class="l">173m 격자 · 범위 묶기</span><div class="track"><div class="fill pick" style="width:24.00%"></div><span class="goal" style="left:14.29%"></span></div><span class="v">1,680건/초</span>
         <span></span><div class="axis"><span style="left:0.00%">0</span><span style="left:14.29%">1,000</span><span style="left:42.86%">3,000</span><span style="left:100.00%">7,000건/초</span></div><span></span>
         </div>
-        <p class="chart-note">가짜 매물 100만 건, 노트북 Docker MySQL, 3회 중앙값(10-16 · 10-20). 점선은 목표 초당 1,000건이에요.</p>
+        <p class="chart-note">가짜 매물 100만 건, 노트북 Docker MySQL, 3회 중앙값. 점선은 목표 초당 1,000건이에요.</p>
       </div>
-      <div class="chart" role="img" aria-label="실제 앱 최대 처리량: 행정동 초당 917건, 우편번호 초당 1,777건. 목표 1,000건">
-        <p class="chart-title">최대 처리량 · 실제 앱, 바꾸기 전후</p>
-        <div class="chart-rows">
-        <span></span><div class="mk"><span class="goal-label" style="left:50.00%">목표 1,000건</span></div><span></span>
-        <span class="l">전 · 행정동 표</span><div class="track"><div class="fill out" style="width:45.85%"></div><span class="goal" style="left:50.00%"></span></div><span class="v">917건/초</span>
-        <span class="l">후 · 우편번호 표</span><div class="track"><div class="fill pick" style="width:88.85%"></div><span class="goal" style="left:50.00%"></span></div><span class="v">1,777건/초</span>
-        <span></span><div class="axis"><span style="left:0.00%">0</span><span style="left:50.00%">1,000</span><span style="left:100.00%">2,000건/초</span></div><span></span>
         </div>
-        <p class="chart-note">커넥션 20개가 응답 즉시 다음 요청을 보낼 때 1초에 끝낸 요청 수, 3회 중앙값. 같은 날 같은 데이터로 잰 노트북 측정이에요(10-26).</p>
-      </div>
-      <figure class="fig wide" data-svg="assets/sketch/s5-mmap.svg">
-        <div class="fig-scroll"><img src="assets/sketch/s5-mmap.svg" width="1400" height="640" loading="lazy" alt="무중단 배포 중에는 앱이 둘. 힙에 올리면 거리표가 두 벌 126.5MB, 파일을 메모리 매핑하면 한 벌 63.2MB를 같이 읽는다." /></div>
-        <figcaption><b>무중단 배포 중엔 앱이 둘이라 힙에 올리면 거리표가 두 벌이에요.</b>파일을 메모리 매핑하면 두 앱이 한 벌을 같이 읽고, 모자라면 운영체제가 비울 수 있어요. 배포 중 가용 메모리 최저 약 257MB에서 두 벌은 54%, 한 벌은 25%예요.</figcaption>
+      </details>
+      <details class="fold">
+        <summary>③ 실제 코드 · 쿼리와 커넥션</summary>
+        <div class="figs">
+      <figure class="fig wide diagram" data-svg="assets/sketch/d3-query.svg">
+        <div class="fig-scroll"><img src="assets/sketch/d3-query.svg" width="900" height="300" loading="lazy" alt="쿼리 개선 전후. 전에는 색인에서 지나간 매물마다 본문을 읽어 확인했고, 후에는 색인 안에서 동과 부피를 확인해 맞는 매물만 본문을 읽는다." /></div>
+        <figcaption><b>id만 먼저 골라 본문은 보여 줄 21개만 읽어요.</b>전에는 색인에서 지나간 매물마다 본문을 읽어 확인했고, 후에는 색인 안에서 구역과 부피를 확인해 맞는 매물만 본문을 읽어요.</figcaption>
       </figure>
-      <div class="chart" role="img" aria-label="요금 구간 불일치: 행정동 26.0%, 우편번호 8.7%. 109,185쌍 표본">
-        <p class="chart-title">요금 구간 불일치율 · 실제 앱, 바꾸기 전후</p>
+      <div class="chart" role="img" aria-label="표 본문 행 읽기: 전 1,318행, 후 21행">
+        <p class="chart-title">표 본문 행 읽기 · 매물 5만 건, 맞는 매물 1.4%</p>
         <div class="chart-rows">
-        <span class="l">전 · 행정동 표</span><div class="track"><div class="fill out" style="width:86.67%"></div></div><span class="v">26.0%</span>
-        <span class="l">후 · 우편번호 표</span><div class="track"><div class="fill pick" style="width:29.00%"></div></div><span class="v">8.7%</span>
-        <span></span><div class="axis"><span style="left:0.00%">0%</span><span style="left:33.33%">10%</span><span style="left:66.67%">20%</span><span style="left:100.00%">30%</span></div><span></span>
+        <span class="l">전 · 지나간 매물마다 본문 확인</span><div class="track"><div class="fill out" style="width:87.87%"></div></div><span class="v">1,318행</span>
+        <span class="l">후 · id만 먼저 고르기</span><div class="track"><div class="fill pick" style="width:1.40%"></div></div><span class="v">21행</span>
+        <span></span><div class="axis"><span style="left:0.00%">0</span><span style="left:33.33%">500</span><span style="left:66.67%">1,000</span><span style="left:100.00%">1,500행</span></div><span></span>
         </div>
-        <p class="chart-note">구매자 60명 × 매물 2,000건 중 직선 20km 이내 109,185쌍. 회원 주소 표본이라 위 22.1 → 7.1%(주소 전체 표본)와 표본이 달라요.</p>
+        <p class="chart-note">훑는 색인 항목은 전후 모두 1,318개예요. 읽은 페이지는 4,055 → 114, 쿼리 시간은 약 1.4~1.7ms → 0.7~1.2ms였어요.</p>
       </div>
+      <figure class="fig wide diagram" data-svg="assets/sketch/d4-connection.svg">
+        <div class="fig-scroll"><img src="assets/sketch/d4-connection.svg" width="900" height="230" loading="lazy" alt="커넥션 빌리기 전후. 전에는 구매자 동네, 목록, 대표 사진을 읽을 때마다 커넥션을 따로 빌려 줄을 설 수 있는 곳이 세 번, 후에는 한 번 빌려 세 쿼리를 이어 읽고 JSON 변환 전에 반납한다." /></div>
+        <figcaption><b>커넥션은 요청당 한 번만 빌려요.</b>Docker 실험에서 먼저 막힌 곳은 DB가 아니라 커넥션 풀이었어요. 실제 코드에서 세 쿼리를 한 커넥션으로 이어 읽고 JSON 변환 전에 반납하니 줄을 설 수 있는 곳이 세 번에서 한 번이 됐어요.</figcaption>
+      </figure>
+      <div class="chart" role="img" aria-label="동시 30명 응답 시간 전후: p95 56에서 40ms, p99 99에서 57ms, 가장 느린 요청 170에서 115ms">
+        <p class="chart-title">동시 30명 응답 시간 · 커넥션을 요청당 한 번만 빌리게</p>
+        <div class="chart-rows">
+        <span class="l">p95 · 전</span><div class="track"><div class="fill out" style="width:28.00%"></div></div><span class="v">56ms</span>
+        <span class="l">p95 · 후</span><div class="track"><div class="fill pick" style="width:20.00%"></div></div><span class="v">40ms</span>
+        <span class="l">p99 · 전</span><div class="track"><div class="fill out" style="width:49.50%"></div></div><span class="v">99ms</span>
+        <span class="l">p99 · 후</span><div class="track"><div class="fill pick" style="width:28.50%"></div></div><span class="v">57ms</span>
+        <span class="l">가장 느린 요청 · 전</span><div class="track"><div class="fill out" style="width:85.00%"></div></div><span class="v">170ms</span>
+        <span class="l">가장 느린 요청 · 후</span><div class="track"><div class="fill pick" style="width:57.50%"></div></div><span class="v">115ms</span>
+        <span></span><div class="axis"><span style="left:0.00%">0</span><span style="left:25.00%">50</span><span style="left:50.00%">100</span><span style="left:75.00%">150</span><span style="left:100.00%">200ms</span></div><span></span>
+        </div>
+        <p class="chart-note">커넥션 풀 10개 그대로, 같은 묶음 안의 전후만 비교했어요. 중앙값은 11 → 20ms로 조금 늘었어요.</p>
+      </div>
+        </div>
+      </details>
+      <details class="fold">
+        <summary>④ 더 촘촘하게 · 우편번호 구역으로</summary>
+        <div class="figs">
       <div class="chart" role="img" aria-label="요금 구간 불일치율, 건물 표본: 행정동 18.1%, 500m 격자 10.1%, 250m 격자 6.6%, 173m 격자 5.7%. 합격선 5%">
         <p class="chart-title">촘촘할수록 얼마나 맞나 · 요금 구간 불일치율</p>
         <div class="chart-rows">
@@ -859,17 +946,37 @@
         <span class="l">173m 격자 · 8,033칸</span><div class="track"><div class="fill " style="width:28.50%"></div><span class="goal" style="left:25.00%"></span></div><span class="v">5.7%</span>
         <span></span><div class="axis"><span style="left:0.00%">0%</span><span style="left:25.00%">5%</span><span style="left:50.00%">10%</span><span style="left:75.00%">15%</span><span style="left:100.00%">20%</span></div><span></span>
         </div>
-        <p class="chart-note">서울 주거 건물 59,797곳 표본 88,710쌍(10-20). 가장 잘게 나눈 173m도 합격선 5%에는 조금 못 미쳐요.</p>
+        <p class="chart-note">서울 주거 건물 59,797곳 표본 88,710쌍. 가장 잘게 나눈 173m도 합격선 5%에는 조금 못 미쳐요.</p>
       </div>
-              <details>
-                <summary>왜 격자가 아니라 우편번호 구역인가</summary>
-                <div class="figs">
       <figure class="fig wide" data-svg="assets/sketch/s4-zip.svg">
         <div class="fig-scroll"><img src="assets/sketch/s4-zip.svg" width="1400" height="700" loading="lazy" alt="구역 번호를 어디서 얻나. 250m 격자는 주소를 좌표로 바꿀 자료가 한 번 더 필요하고 불일치 6.9%, 표 68.5MB. 우편번호는 주소만으로 되고 불일치 7.1%, 표 63.2MB." /></div>
-        <figcaption><b>정확도와 표 크기는 거의 같고, 다른 건 "좌표가 필요한가" 하나예요.</b>격자는 회원 주소를 좌표로 바꿀 자료가 한 번 더 필요하지만, 우편번호는 주소만으로 구역이 정해져요. 그래서 우편번호로 정했어요(10-23).</figcaption>
+        <figcaption><b>정확도와 표 크기는 거의 같고, 다른 건 "좌표가 필요한가" 하나예요.</b>격자는 회원 주소를 좌표로 바꿀 자료가 한 번 더 필요하지만, 우편번호는 주소만으로 구역이 정해져요. 그래서 우편번호로 정했어요.</figcaption>
       </figure>
-                </div>
-              </details>
+      <div class="chart" role="img" aria-label="실제 앱 최대 처리량: 행정동 초당 917건, 우편번호 초당 1,777건. 목표 1,000건">
+        <p class="chart-title">최대 처리량 · 실제 앱, 바꾸기 전후</p>
+        <div class="chart-rows">
+        <span></span><div class="mk"><span class="goal-label" style="left:50.00%">목표 1,000건</span></div><span></span>
+        <span class="l">전 · 행정동 표</span><div class="track"><div class="fill out" style="width:45.85%"></div><span class="goal" style="left:50.00%"></span></div><span class="v">917건/초</span>
+        <span class="l">후 · 우편번호 표</span><div class="track"><div class="fill pick" style="width:88.85%"></div><span class="goal" style="left:50.00%"></span></div><span class="v">1,777건/초</span>
+        <span></span><div class="axis"><span style="left:0.00%">0</span><span style="left:50.00%">1,000</span><span style="left:100.00%">2,000건/초</span></div><span></span>
+        </div>
+        <p class="chart-note">커넥션 20개가 응답 즉시 다음 요청을 보낼 때 1초에 끝낸 요청 수, 3회 중앙값. 같은 날 같은 데이터로 잰 노트북 측정이에요.</p>
+      </div>
+      <div class="chart" role="img" aria-label="요금 구간 불일치: 행정동 26.0%, 우편번호 8.7%. 109,185쌍 표본">
+        <p class="chart-title">요금 구간 불일치율 · 실제 앱, 바꾸기 전후</p>
+        <div class="chart-rows">
+        <span class="l">전 · 행정동 표</span><div class="track"><div class="fill out" style="width:86.67%"></div></div><span class="v">26.0%</span>
+        <span class="l">후 · 우편번호 표</span><div class="track"><div class="fill pick" style="width:29.00%"></div></div><span class="v">8.7%</span>
+        <span></span><div class="axis"><span style="left:0.00%">0%</span><span style="left:33.33%">10%</span><span style="left:66.67%">20%</span><span style="left:100.00%">30%</span></div><span></span>
+        </div>
+        <p class="chart-note">구매자 60명 × 매물 2,000건 중 직선 20km 이내 109,185쌍. 회원 주소 표본이라 위 22.1 → 7.1%(주소 전체 표본)와 표본이 달라요.</p>
+      </div>
+      <figure class="fig wide" data-svg="assets/sketch/s5-mmap.svg">
+        <div class="fig-scroll"><img src="assets/sketch/s5-mmap.svg" width="1400" height="640" loading="lazy" alt="무중단 배포 중에는 앱이 둘. 힙에 올리면 거리표가 두 벌 126.5MB, 파일을 메모리 매핑하면 한 벌 63.2MB를 같이 읽는다." /></div>
+        <figcaption><b>무중단 배포 중엔 앱이 둘이라 힙에 올리면 거리표가 두 벌이에요.</b>파일을 메모리 매핑하면 두 앱이 한 벌을 같이 읽고, 모자라면 운영체제가 비울 수 있어요. 배포 중 가용 메모리 최저 약 257MB에서 두 벌은 54%, 한 벌은 25%예요.</figcaption>
+      </figure>
+        </div>
+      </details>
             </div>
             <div class="tech-foot">
               <p class="tech-note">노트북에서 같은 조건으로 전후를 잰 값이에요. 운영은 행정동 표로 동작하고, 우편번호 구역은 적용을 준비하고 있어요.</p>
@@ -893,6 +1000,10 @@
               <div class="stat"><p class="stat-label">등록 응답 p95 · 1만 명</p><p class="stat-value">393<small>ms</small></p><p class="stat-before">발송 완료 평균 0.80초</p></div>
               <div class="stat"><p class="stat-label">중복 · 누락</p><p class="stat-value">0<small>건</small></p><p class="stat-before">매물 35건 × 구독자 1,000명</p></div>
             </div>
+            <div class="figs">
+      <details class="fold">
+        <summary>발송 흐름과 전후 막대</summary>
+        <div class="figs">
             <div class="flow-line" role="img" aria-label="매물 등록이 알림을 한 번에 저장하고 바로 응답한 뒤, 커밋 후 이벤트가 500건씩 묶어 병렬로 푸시를 보내는 흐름">
               <span class="node hi">매물 등록</span><span class="arrow">→</span>
               <span class="node">알림 1,000건 한 번에 저장</span><span class="arrow">→</span>
@@ -907,6 +1018,9 @@
               <div class="bar-row"><span class="bar-name">등록 응답</span><div class="bar" style="--w: 100%">116.9초 · 시간 초과</div><div class="bar after" style="--w: 0.2%">183ms</div></div>
               <div class="bar-row"><span class="bar-name">발송 완료</span><div class="bar" style="--w: 100%">116.9초</div><div class="bar after" style="--w: 0.2%">0.20초</div></div>
               <p class="bar-legend">막대 길이는 항목마다 큰 값을 100으로 둔 비율이에요.</p>
+            </div>
+        </div>
+      </details>
             </div>
             <div class="tech-foot">
               <p class="tech-note">개발 서버에 부하를 걸어 잰 값이에요. 푸시 왕복 시간은 실측한 113ms를 썼어요.</p>
@@ -931,6 +1045,9 @@
               <div class="stat"><p class="stat-label">후보 거르기의 엔진 호출</p><p class="stat-value">0<small>회</small></p><p class="stat-before">거리표만 쓰고, 엔진은 마지막 확인에만</p></div>
             </div>
             <div class="figs">
+      <details class="fold">
+        <summary>한 것과 구상 · 그림과 계산값</summary>
+        <div class="figs">
       <figure class="fig wide" data-svg="assets/sketch/s8-domain.svg">
         <div class="fig-scroll"><img src="assets/sketch/s8-domain.svg" width="1400" height="800" loading="lazy" alt="위치가 움직이느냐로 갈린다. 고정된 집은 주소 글자를 표준 주소로 해석해 우편번호 구역으로, 지금 운영은 회원이 고른 행정동으로, 움직이는 배송원은 GPS 좌표를 격자 칸 번호로 바꿔 칸 캐시의 콜을 본다." /></div>
         <figcaption><b>고정된 집은 우편번호, 지금 운영은 행정동, 움직이는 배송원은 좌표 → 격자 칸이에요.</b>왼쪽 열은 코드가 머지됐지만 운영은 아직 꺼져 있고, 오른쪽 열은 확정 전 구상이에요. 거리는 어느 표현이든 배송비 계산 모듈의 거리표에서만 재요.</figcaption>
@@ -956,6 +1073,8 @@
         </div>
         <p class="chart-note">모두 계산값이고 확정 전 구상이에요(10-28 토론). 콜 하나는 한 쌍에만 들어가니 있는 쌍만 담으면 칸 크기와 관계없이 콜 수에 비례해요.</p>
       </div>
+        </div>
+      </details>
             </div>
             <div class="tech-foot">
               <p class="tech-note">한 것은 머지된 내용(10-26 · 10-27)이고, 구상은 10-28 토론 기준으로 결정 대기예요. 그림의 숫자는 계산값이에요.</p>
@@ -1028,8 +1147,10 @@
     video.addEventListener("timeupdate", markChapter);
     markChapter();
 
-    // 손그림 SVG를 받아 본문에 넣는다. 그래야 글꼴과 다크 모드 색이 페이지를 따른다. 못 받으면 img가 그대로 남는다.
-    document.querySelectorAll("[data-svg]").forEach(async (figure) => {
+    // 손그림 SVG는 접기를 펼칠 때 받아 본문에 넣는다. 그래야 글꼴과 다크 모드 색이 페이지를 따르고, 안 펼친 그림은 내려받지 않는다. 못 받으면 img가 남는다.
+    const inlineSketch = async (figure) => {
+      if (figure.dataset.loaded) return;
+      figure.dataset.loaded = "1";
       try {
         const markup = await (await fetch(figure.dataset.svg)).text();
         const svg = new DOMParser().parseFromString(markup, "image/svg+xml").documentElement;
@@ -1037,8 +1158,12 @@
         svg.setAttribute("role", "img");
         svg.setAttribute("aria-label", figure.querySelector("img").alt);
         figure.querySelector("img").replaceWith(document.adoptNode(svg));
-      } catch (e) { /* img 유지 */ }
-    });
+      } catch (e) { delete figure.dataset.loaded; }
+    };
+    document.querySelectorAll(".fold").forEach((fold) => fold.addEventListener("toggle", () => {
+      if (fold.open) fold.querySelectorAll("[data-svg]").forEach(inlineSketch);
+    }));
+    document.querySelectorAll("[data-svg]").forEach((figure) => { if (!figure.closest(".fold")) inlineSketch(figure); });
 
     // 기술 소개의 장면 버튼: 사용 영상의 해당 구간으로 이동해 재생한다
     document.querySelectorAll("[data-scene]").forEach((button) => button.addEventListener("click", () => {
