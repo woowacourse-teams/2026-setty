@@ -47,10 +47,15 @@ public class MemberWithdrawalService {
 
     @Transactional
     public void withdraw(final Long memberId) {
-        final Member member = memberRepository.findByIdForUpdate(memberId)
+        // 탈퇴 요청이 두 번 와도 먼저 끝난 탈퇴를 다시 하지 않는다
+        memberRepository.lockActiveId(memberId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_TOKEN));
         final List<Long> listingIds = listingService.lockActiveListingIdsOf(memberId);
+        // 잠금 없는 읽기는 처음 읽는 시점의 스냅숏을 쓴다. 매물 잠금을 기다리는 사이 커밋된 주문까지 보려면
+        // 잠금을 다 잡은 다음에 처음 읽어야 하므로, 회원 객체도 거래 확인 뒤에 읽는다.
         validateNoActiveTrade(memberId, listingIds);
+        final Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_TOKEN));
 
         listingService.deleteDeletableListings(listingIds);
         favoriteRepository.deleteAllByMemberId(memberId);

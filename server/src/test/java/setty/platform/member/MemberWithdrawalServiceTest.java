@@ -6,15 +6,24 @@ import static org.mockito.Mockito.verify;
 import static setty.global.event.EventPublicationTestSupport.awaitEventsHandled;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.Future;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.CountDownLatch;
+import java.util.Map;
+import java.util.ArrayList;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import setty.address.AddressResolution.Status;
 import setty.global.exception.BusinessException;
 import setty.global.exception.ErrorCode;
@@ -25,6 +34,8 @@ import setty.platform.member.domain.Member;
 import setty.platform.member.repository.MemberRepository;
 import setty.platform.member.service.AuthService;
 import setty.platform.member.service.MemberWithdrawalService;
+import setty.platform.member.controller.dto.UpdateDongRequest;
+import setty.platform.member.controller.dto.UpdateProfileRequest;
 import setty.support.MySqlIntegrationTestSupport;
 
 @SpringBootTest
@@ -175,6 +186,92 @@ class MemberWithdrawalServiceTest extends MySqlIntegrationTestSupport {
         final Member rejoined = authService.signup(
                 new SignupRequest("member101", "password123", "010-1234-5678", "가상 주소", null));
         assertThat(rejoined.getId()).isNotEqualTo(MEMBER_ID);
+    }
+
+    @Test
+    void 이미_탈퇴했으면_다시_탈퇴하지_않는다() {
+        memberWithdrawalService.withdraw(MEMBER_ID);
+        final String maskedPassword = memberRepository.findById(MEMBER_ID).orElseThrow().getPassword();
+
+        assertThatThrownBy(() -> memberWithdrawalService.withdraw(MEMBER_ID))
+                .isInstanceOf(BusinessException.class)
+                .extracting(e -> ((BusinessException) e).getErrorCode())
+                .isEqualTo(ErrorCode.INVALID_TOKEN);
+        assertThat(memberRepository.findById(MEMBER_ID).orElseThrow().getPassword()).isEqualTo(maskedPassword);
+    }
+
+    @Test
+    void 탈퇴한_회원은_정보_수정_동_변경_로그아웃을_할_수_없다() {
+        memberWithdrawalService.withdraw(MEMBER_ID);
+
+        for (final Runnable update : List.<Runnable>of(
+                () -> authService.updateProfile(MEMBER_ID, new UpdateProfileRequest("010-1111-2222", "새 주소")),
+                () -> authService.updateDong(MEMBER_ID, new UpdateDongRequest("1111053000")),
+                () -> authService.logout(MEMBER_ID))) {
+            assertThatThrownBy(update::run)
+                    .isInstanceOf(BusinessException.class)
+                    .extracting(e -> ((BusinessException) e).getErrorCode())
+                    .isEqualTo(ErrorCode.INVALID_TOKEN);
+        }
+        assertWithdrawnAndMasked();
+    }
+
+    @RepeatedTest(5)
+    void 탈퇴와_로그인이_동시에_와도_탈퇴가_되살아나지_않는다() throws Exception {
+        jdbcTemplate.update("UPDATE members SET password = ? WHERE id = ?",
+                new BCryptPasswordEncoder().encode("password123"), MEMBER_ID);
+
+        runTogether(
+                () -> authService.login(new LoginRequest("member101", "password123")),
+                () -> memberWithdrawalService.withdraw(MEMBER_ID)
+        );
+
+        assertWithdrawnAndMasked();
+    }
+
+    @RepeatedTest(5)
+    void 탈퇴와_정보_수정이_동시에_와도_탈퇴가_되살아나지_않는다() throws Exception {
+        runTogether(
+                () -> authService.updateProfile(MEMBER_ID, new UpdateProfileRequest("010-1111-2222", "새 주소")),
+                () -> memberWithdrawalService.withdraw(MEMBER_ID)
+        );
+
+        assertWithdrawnAndMasked();
+    }
+
+    private void assertWithdrawnAndMasked() {
+        final Map<String, Object> row = jdbcTemplate.queryForMap(
+                "SELECT login_id, phone_number, token, withdrawn_at FROM members WHERE id = ?", MEMBER_ID);
+        assertThat(row.get("withdrawn_at")).isNotNull();
+        assertThat(row.get("login_id")).isEqualTo("withdrawn-101");
+        assertThat(row.get("phone_number")).isEqualTo("000-0000-0000");
+        assertThat(row.get("token")).isNull();
+    }
+
+    // 두 작업을 동시에 출발시키고 둘 다 끝날 때까지 기다린다. 어느 쪽이 실패하든 결과만 모은다.
+    private void runTogether(final Runnable first, final Runnable second) throws Exception {
+        final CountDownLatch start = new CountDownLatch(1);
+        final ExecutorService executor = Executors.newFixedThreadPool(2);
+        try {
+            final List<Future<?>> futures = new ArrayList<>();
+            for (final Runnable task : List.of(first, second)) {
+                futures.add(executor.submit(() -> {
+                    start.await();
+                    try {
+                        task.run();
+                    } catch (final BusinessException ignored) {
+                        // 순서에 따라 한쪽이 거절되는 것은 정상이다
+                    }
+                    return null;
+                }));
+            }
+            start.countDown();
+            for (final Future<?> future : futures) {
+                future.get(10, TimeUnit.SECONDS);
+            }
+        } finally {
+            executor.shutdownNow();
+        }
     }
 
     private void assertActiveTradeRejected() {

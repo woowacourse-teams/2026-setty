@@ -81,6 +81,11 @@ public class OrderService {
                 request.listingId(), List.of(OrderStatus.EXPIRED, OrderStatus.CANCELLED))) {
             throw new BusinessException(ErrorCode.ALREADY_ORDERED);
         }
+        // 구매자 행을 먼저 잠가 같은 구매자의 탈퇴와 순서를 정한다. 탈퇴가 먼저 끝났으면 주문을 받지 않는다.
+        // 탈퇴도 회원 행 다음에 매물 행을 잠그므로 잠그는 순서가 같아 서로 기다리다 멈추지 않는다.
+        if (memberRepository.lockActiveIdForShare(buyer.getId()).isEmpty()) {
+            throw new BusinessException(ErrorCode.INVALID_TOKEN);
+        }
         // 매물 행을 잠가 같은 매물의 주문 시도를 직렬화하고, 잠금을 기다리는 사이 같은 구매자가 만든 주문이 있으면 그것을 돌려준다.
         listingRepository.findActiveByIdForUpdate(request.listingId());
         final Optional<Order> createdWhileWaiting =

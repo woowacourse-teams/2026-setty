@@ -1,6 +1,7 @@
 package setty.platform.order;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -208,6 +209,71 @@ class OrderConcurrencyTest extends MySqlIntegrationTestSupport {
             assertThat(orderCount).isEqualTo(1);
             assertThat(errorCodeOf(results)).isEqualTo(ErrorCode.MEMBER_HAS_ACTIVE_TRADE);
         }
+    }
+
+    @Test
+    void 구매자_탈퇴와_그_구매자의_주문이_동시에_오면_한쪽만_성공한다() throws InterruptedException {
+        final Member buyer = memberRepository.findById(FIRST_BUYER_ID).orElseThrow();
+
+        final List<Object> results = runTogether(
+                () -> orderService.pending(new OrderCreateRequest(LISTING_ID), buyer),
+                () -> {
+                    memberWithdrawalService.withdraw(FIRST_BUYER_ID);
+                    return "withdrawn";
+                }
+        );
+
+        assertThat(results.stream().filter(Exception.class::isInstance)).hasSize(1);
+        final Integer orderCount = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM orders WHERE buyer_id = ?", Integer.class, FIRST_BUYER_ID);
+        final boolean withdrawn = memberRepository.findById(FIRST_BUYER_ID).orElseThrow().isWithdrawn();
+        if (withdrawn) {
+            assertThat(orderCount).isZero();
+            assertThat(errorCodeOf(results)).isEqualTo(ErrorCode.INVALID_TOKEN);
+        } else {
+            assertThat(orderCount).isEqualTo(1);
+            assertThat(errorCodeOf(results)).isEqualTo(ErrorCode.MEMBER_HAS_ACTIVE_TRADE);
+        }
+    }
+
+    @Test
+    void 탈퇴한_구매자는_주문할_수_없다() {
+        final Member staleBuyer = memberRepository.findById(FIRST_BUYER_ID).orElseThrow();
+        memberWithdrawalService.withdraw(FIRST_BUYER_ID);
+
+        assertThatThrownBy(() -> orderService.pending(new OrderCreateRequest(LISTING_ID), staleBuyer))
+                .isInstanceOf(BusinessException.class)
+                .extracting(e -> ((BusinessException) e).getErrorCode())
+                .isEqualTo(ErrorCode.INVALID_TOKEN);
+        assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM orders", Integer.class)).isZero();
+    }
+
+    private List<Object> runTogether(final java.util.concurrent.Callable<Object> first,
+                                     final java.util.concurrent.Callable<Object> second) throws InterruptedException {
+        final CountDownLatch ready = new CountDownLatch(2);
+        final CountDownLatch start = new CountDownLatch(1);
+        final CountDownLatch done = new CountDownLatch(2);
+        final List<Object> results = new CopyOnWriteArrayList<>();
+        final ExecutorService executor = Executors.newFixedThreadPool(2);
+        for (final java.util.concurrent.Callable<Object> task : List.of(first, second)) {
+            executor.submit(() -> {
+                ready.countDown();
+                try {
+                    start.await();
+                    results.add(task.call());
+                } catch (final Exception e) {
+                    results.add(e);
+                } finally {
+                    done.countDown();
+                }
+            });
+        }
+        ready.await();
+        start.countDown();
+        assertThat(done.await(10, TimeUnit.SECONDS)).isTrue();
+        executor.shutdownNow();
+        assertThat(results).hasSize(2);
+        return results;
     }
 
     private ErrorCode errorCodeOf(final List<Object> results) {
