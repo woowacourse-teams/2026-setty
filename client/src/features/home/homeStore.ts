@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from 'react';
 import { isMemberDongRequired } from '../../api/errors';
+import { tokenStore } from '../../api/http';
 import { furnitureRepository, userRepository } from '../../api/repositories';
 import type { FurnitureCategory, FurniturePage, FurnitureSummary } from '../../model/furniture';
 import { showSnackbar } from '../../ui/snackbar';
@@ -91,8 +92,9 @@ export function enterHome(requireDong: () => void) {
     loadProfile();
 }
 
-/** 프로필은 부가 정보라 실패해도 알리지 않고 기본 아이콘을 유지한다. */
+/** 프로필은 부가 정보라 실패해도 알리지 않고 기본 아이콘을 유지한다. 로그인 전이면 묻지 않는다. */
 function loadProfile() {
+    if (!tokenStore.get()) return;
     userRepository.getMe()
         .then((member) => update({ profileInitial: member.loginId.slice(0, 1).toUpperCase() }))
         .catch(() => undefined);

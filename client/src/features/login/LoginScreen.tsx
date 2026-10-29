@@ -4,7 +4,7 @@ import { identifyUser } from '../../analytics/posthog';
 import { ApiError, NetworkError } from '../../api/http';
 import { deliveryRepository } from '../../api/deliveryRepository';
 import { userRepository } from '../../api/repositories';
-import { accountRoleOf, routes } from '../../navigation';
+import { accountRoleOf, loginReturnToOf, routes } from '../../navigation';
 import { syncPushToken } from '../../push/webPush';
 import { BottomBar, Button, LoadingIndicator, Scaffold, TextField } from '../../ui/components';
 import { AccountRoleToggle } from './AccountRoleToggle';
@@ -24,7 +24,8 @@ function loginErrorMessage(error: unknown): string {
 
 export function LoginScreen() {
     const navigate = useNavigate();
-    const role = accountRoleOf(useLocation().search);
+    const location = useLocation();
+    const role = accountRoleOf(location.search);
     const isDriver = role === 'driver';
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
@@ -45,7 +46,13 @@ export function LoginScreen() {
             identifyUser(username);
             // 다른 계정으로 다시 로그인했을 수 있으므로 이전 홈 목록을 버린다
             resetHomeStore();
-            navigate(routes.home, { replace: true });
+            // 로그인이 필요해 들어왔으면 하려던 화면으로 돌아간다
+            const returnTo = loginReturnToOf(location.state);
+            if (returnTo) {
+                navigate(`${returnTo.pathname}${returnTo.search}`, { replace: true, state: returnTo.state });
+            } else {
+                navigate(routes.home, { replace: true });
+            }
         } catch (error) {
             setIsLoading(false);
             showSnackbar(loginErrorMessage(error));
