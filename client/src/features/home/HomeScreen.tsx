@@ -14,6 +14,7 @@ import {
     type FurnitureSummary,
     type OrderState
 } from '../../model/furniture';
+import { digitsOnly } from '../../model/member';
 import { routes, useNavigateBack } from '../../navigation';
 import { refreshUnreadNotifications, useHasUnreadNotifications } from '../../push/unreadNotifications';
 import {
@@ -31,6 +32,7 @@ import {
     SegmentedList,
     SegmentedListItem,
     SettyMessage,
+    TextField,
     ToggleButtonGroup,
     TopAppBar,
     TrailingColumn
@@ -38,16 +40,18 @@ import {
 import { Icon } from '../../ui/Icon';
 import { shapeStyle } from '../../ui/shapes';
 import { DeliveryFeeBudget } from './deliveryFeeBudget';
+import { PriceFilter, type PriceRange } from './priceRange';
 import {
-    clearGrades,
+    clearFilters,
     enterHome,
     hasMore,
     loadListings,
     loadMore,
     refreshHome,
     selectCategory,
+    selectGrades,
     selectMaxDeliveryFee,
-    toggleGrade,
+    selectPriceRange,
     useHomeState,
     visibleFurnitures,
     type HomeState
@@ -180,8 +184,7 @@ function ListingList({ home, onListingClick }: { home: HomeState; onListingClick
                     options={[null, ...selectableCategories] as Array<FurnitureCategory | null>}
                     selected={home.selectedCategory}
                 />
-                <GradeFilter selectedGrades={home.selectedGrades} />
-                <DeliveryFeeFilter maxDeliveryFee={home.maxDeliveryFee} />
+                <FilterBar home={home} />
             </div>
             {home.isFiltering ? <CenterFill><LoadingIndicator /></CenterFill> : (
                 <>
@@ -255,73 +258,146 @@ function ListingItem({ furniture, index, count, onClick }: { furniture: Furnitur
 
 /** 조건에 맞는 가구가 없을 때의 안내. 배송비만 걸었을 때는 예산을 늘리라고 안내한다. */
 function EmptyListMessage({ home }: { home: HomeState }) {
-    const hasOtherFilter = home.selectedCategory !== null || home.selectedGrades.length > 0;
+    const hasOtherFilter = home.selectedCategory !== null || home.selectedGrades.length > 0 || home.priceRange !== null;
     if (!hasOtherFilter && home.maxDeliveryFee === null) {
         return <SettyMessage description="곧 새로운 가구가 올라올 거예요." style={{ marginTop: 48 }} title="아직 등록된 가구가 없어요" />;
     }
     if (!hasOtherFilter) {
         return <SettyMessage description="예산을 늘리거나 필터를 해제해 보세요." style={{ marginTop: 48 }} title="배송비 예산 안의 가구가 없어요" />;
     }
-    return <SettyMessage description="카테고리나 등급 필터를 바꿔 보세요." style={{ marginTop: 48 }} title="조건에 맞는 가구가 없어요" />;
-}
-
-/** 상태등급 칩. "등급 전체"는 필터를 해제하고, 등급 칩은 여러 개를 켜고 끌 수 있다. */
-function GradeFilter({ selectedGrades }: { selectedGrades: readonly ConditionGrade[] }) {
-    return (
-        <ChipRow>
-            <FilterChip label="등급 전체" onClick={clearGrades} selected={selectedGrades.length === 0} />
-            {conditionGrades.map((grade) => (
-                <FilterChip
-                    key={grade}
-                    label={`${grade}급`}
-                    onClick={() => toggleGrade(grade)}
-                    selected={selectedGrades.includes(grade)}
-                />
-            ))}
-        </ChipRow>
-    );
+    return <SettyMessage description="카테고리·등급·가격 필터를 바꿔 보세요." style={{ marginTop: 48 }} title="조건에 맞는 가구가 없어요" />;
 }
 
 /**
- * 배송비 예산 칩. "배송비 전체"는 필터를 해제하고, 정해 둔 예산 칩은 다시 누르면 해제한다.
- * 정해 둔 예산에 없는 값은 직접 입력해 고르고, 고른 값은 직접 입력 칩에 보여준다.
+ * 필터 칩 줄. 등급·가격·배송비 칩은 누르면 시트가 열리고, 고른 값이 있으면 칩에 값을 보여 주며 강조된다.
+ * 하나라도 걸려 있으면 맨 앞에 초기화 칩이 나온다.
  */
-function DeliveryFeeFilter({ maxDeliveryFee }: { maxDeliveryFee: number | null }) {
-    const [isBudgetSheetVisible, setIsBudgetSheetVisible] = useState(false);
-    const customBudget = maxDeliveryFee !== null && !DeliveryFeeBudget.PRESETS.includes(maxDeliveryFee) ? maxDeliveryFee : null;
+function FilterBar({ home }: { home: HomeState }) {
+    const [openSheet, setOpenSheet] = useState<'grade' | 'price' | 'deliveryFee' | null>(null);
+    const hasFilter = home.selectedGrades.length > 0 || home.priceRange !== null || home.maxDeliveryFee !== null;
+    const close = () => setOpenSheet(null);
     return (
         <>
             <ChipRow>
-                <FilterChip label="배송비 전체" onClick={() => selectMaxDeliveryFee(null)} selected={maxDeliveryFee === null} />
-                {DeliveryFeeBudget.PRESETS.map((budget) => {
-                    const isSelected = maxDeliveryFee === budget;
-                    return (
-                        <FilterChip
-                            key={budget}
-                            label={`${DeliveryFeeBudget.format(budget)} 이하`}
-                            onClick={() => selectMaxDeliveryFee(isSelected ? null : budget)}
-                            selected={isSelected}
-                        />
-                    );
-                })}
+                {hasFilter && <FilterChip ariaLabel="필터 초기화" label="" leadingIcon="refresh" onClick={clearFilters} selected={false} />}
                 <FilterChip
-                    label={customBudget !== null ? `${DeliveryFeeBudget.format(customBudget)} 이하` : '직접 설정'}
-                    leadingIcon="edit"
-                    onClick={() => setIsBudgetSheetVisible(true)}
-                    selected={customBudget !== null}
+                    label={home.selectedGrades.length > 0 ? `${home.selectedGrades.join('·')}급` : '등급'}
+                    onClick={() => setOpenSheet('grade')}
+                    selected={home.selectedGrades.length > 0}
+                    trailingIcon="expandMore"
+                />
+                <FilterChip
+                    label={home.priceRange !== null ? PriceFilter.label(home.priceRange) : '가격'}
+                    onClick={() => setOpenSheet('price')}
+                    selected={home.priceRange !== null}
+                    trailingIcon="expandMore"
+                />
+                <FilterChip
+                    label={home.maxDeliveryFee !== null ? `배송비 ${DeliveryFeeBudget.format(home.maxDeliveryFee)} 이하` : '배송비'}
+                    onClick={() => setOpenSheet('deliveryFee')}
+                    selected={home.maxDeliveryFee !== null}
+                    trailingIcon="expandMore"
                 />
             </ChipRow>
-            {isBudgetSheetVisible && (
+            {openSheet === 'grade' && (
+                <GradeSheet initialGrades={home.selectedGrades} onDismiss={close} onSelect={(grades) => { close(); selectGrades(grades); }} />
+            )}
+            {openSheet === 'price' && (
+                <PriceRangeSheet initialRange={home.priceRange} onDismiss={close} onSelect={(range) => { close(); selectPriceRange(range); }} />
+            )}
+            {openSheet === 'deliveryFee' && (
                 <DeliveryFeeBudgetSheet
-                    initialBudget={maxDeliveryFee ?? DeliveryFeeBudget.DEFAULT}
-                    onDismiss={() => setIsBudgetSheetVisible(false)}
-                    onSelect={(budget) => {
-                        setIsBudgetSheetVisible(false);
-                        selectMaxDeliveryFee(budget);
-                    }}
+                    initialBudget={home.maxDeliveryFee ?? DeliveryFeeBudget.DEFAULT}
+                    onDismiss={close}
+                    onSelect={(budget) => { close(); selectMaxDeliveryFee(budget); }}
                 />
             )}
         </>
+    );
+}
+
+/** 상태등급을 여러 개 고르는 시트. 아무것도 안 고르고 적용하면 필터를 푼다. */
+function GradeSheet({ initialGrades, onDismiss, onSelect }: { initialGrades: readonly ConditionGrade[]; onDismiss: () => void; onSelect: (grades: readonly ConditionGrade[]) => void }) {
+    const [grades, setGrades] = useState<readonly ConditionGrade[]>(initialGrades);
+    const toggle = (grade: ConditionGrade) => {
+        setGrades((current) => current.includes(grade) ? current.filter((item) => item !== grade) : [...current, grade]);
+    };
+    return (
+        <BottomSheet label="상태등급" onDismiss={onDismiss}>
+            <div className={screenStyles['sheet-padding']}>
+                <h2 className="type-title-large-em" style={{ margin: 0 }}>상태등급</h2>
+                <p className="type-body-medium-em" style={{ margin: '4px 0 16px', color: 'var(--on-surface-variant)' }}>
+                    여러 등급을 같이 고를 수 있어요.
+                </p>
+                <ChipRow>
+                    {conditionGrades.map((grade) => (
+                        <FilterChip key={grade} label={`${grade}급`} onClick={() => toggle(grade)} selected={grades.includes(grade)} />
+                    ))}
+                </ChipRow>
+                <div className={styles['sheet-actions']}>
+                    <Button onClick={() => onSelect([])} size="medium" variant="outlined">필터 해제</Button>
+                    <Button onClick={() => onSelect(grades)} size="medium">적용</Button>
+                </div>
+            </div>
+        </BottomSheet>
+    );
+}
+
+/** 물건 가격 범위를 고르는 시트. 상한 칩으로 바로 고르거나 최소·최대를 직접 넣는다. [onSelect]에 null을 넘기면 필터를 해제한다. */
+function PriceRangeSheet({ initialRange, onDismiss, onSelect }: { initialRange: PriceRange | null; onDismiss: () => void; onSelect: (range: PriceRange | null) => void }) {
+    const [min, setMin] = useState(initialRange?.min === null || initialRange === null ? '' : String(initialRange.min));
+    const [max, setMax] = useState(initialRange?.max === null || initialRange === null ? '' : String(initialRange.max));
+    const range: PriceRange = { min: min === '' ? null : Number(min), max: max === '' ? null : Number(max) };
+    const tooLarge = (range.min ?? 0) > PriceFilter.MAX || (range.max ?? 0) > PriceFilter.MAX;
+    const orderError = range.min !== null && range.max !== null && range.min > range.max;
+    const canApply = !tooLarge && !orderError && (range.min !== null || range.max !== null);
+    return (
+        <BottomSheet label="물건 가격" onDismiss={onDismiss}>
+            <div className={screenStyles['sheet-padding']}>
+                <h2 className="type-title-large-em" style={{ margin: 0 }}>물건 가격</h2>
+                <p className="type-body-medium-em" style={{ margin: '4px 0 16px', color: 'var(--on-surface-variant)' }}>
+                    배송비를 뺀 가격이에요. 한쪽만 넣어도 돼요.
+                </p>
+                <ChipRow style={{ marginBottom: 16 }}>
+                    {PriceFilter.PRESETS.map((preset) => {
+                        const isSelected = range.min === null && range.max === preset;
+                        return (
+                            <FilterChip
+                                key={preset}
+                                label={PriceFilter.label({ min: null, max: preset })}
+                                onClick={() => { setMin(''); setMax(isSelected ? '' : String(preset)); }}
+                                selected={isSelected}
+                            />
+                        );
+                    })}
+                </ChipRow>
+                <div style={{ display: 'flex', gap: 8 }}>
+                    <TextField
+                        inputMode="numeric"
+                        isError={orderError || (range.min ?? 0) > PriceFilter.MAX}
+                        label="최소"
+                        onChange={(value) => setMin(digitsOnly(value, PriceFilter.MAX_DIGITS))}
+                        suffix="원"
+                        value={min}
+                    />
+                    <TextField
+                        inputMode="numeric"
+                        isError={orderError || (range.max ?? 0) > PriceFilter.MAX}
+                        label="최대"
+                        onChange={(value) => setMax(digitsOnly(value, PriceFilter.MAX_DIGITS))}
+                        suffix="원"
+                        value={max}
+                    />
+                </div>
+                <p className="type-label-medium" style={{ margin: '8px 0 0', color: orderError ? 'var(--error)' : 'var(--on-surface-variant)' }}>
+                    {orderError ? '최소가 최대보다 커요' : '1억 원까지'}
+                </p>
+                <div className={styles['sheet-actions']}>
+                    <Button onClick={() => onSelect(null)} size="medium" variant="outlined">필터 해제</Button>
+                    <Button disabled={!canApply} onClick={() => onSelect(range)} size="medium">적용</Button>
+                </div>
+            </div>
+        </BottomSheet>
     );
 }
 
@@ -362,14 +438,14 @@ function DeliveryFeeBudgetSheet({ initialBudget, onDismiss, onSelect }: { initia
 function SearchLayer({ home, onListingClick }: { home: HomeState; onListingClick: (listingId: number) => void }) {
     const navigateBack = useNavigateBack();
     const [query, setQuery] = useState('');
-    const search = useListingSearch(query, home.selectedCategory, home.selectedGrades, home.maxDeliveryFee);
+    const search = useListingSearch(query, home.selectedCategory, home.selectedGrades, home.priceRange, home.maxDeliveryFee);
     const results = search.items;
     const scrollRef = useRef<HTMLDivElement | null>(null);
     const triggerRef = useRef<HTMLDivElement | null>(null);
 
     useEffect(() => {
         scrollRef.current?.scrollTo({ top: 0 });
-    }, [query.trim(), home.selectedCategory, home.selectedGrades, home.maxDeliveryFee]);
+    }, [query.trim(), home.selectedCategory, home.selectedGrades, home.priceRange, home.maxDeliveryFee]);
 
     useEffect(() => {
         const trigger = triggerRef.current;

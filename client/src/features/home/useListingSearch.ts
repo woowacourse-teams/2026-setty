@@ -1,14 +1,18 @@
 import { useEffect, useRef, useState } from 'react';
 import { furnitureRepository } from '../../api/repositories';
 import type { ConditionGrade, FurnitureCategory, FurniturePage } from '../../model/furniture';
+import type { PriceRange } from './priceRange';
 
 type SearchState = FurniturePage & { key: string; loading: boolean; error: boolean };
 
 export function useListingSearch(
-    query: string, category: FurnitureCategory | null, conditionGrades: readonly ConditionGrade[], maxDeliveryFee: number | null
+    query: string, category: FurnitureCategory | null, conditionGrades: readonly ConditionGrade[],
+    priceRange: PriceRange | null, maxDeliveryFee: number | null
 ) {
     const keyword = query.trim();
-    const key = JSON.stringify([keyword, category, conditionGrades, maxDeliveryFee]);
+    const minPrice = priceRange?.min ?? null;
+    const maxPrice = priceRange?.max ?? null;
+    const key = JSON.stringify([keyword, category, conditionGrades, minPrice, maxPrice, maxDeliveryFee]);
     const [state, setState] = useState<SearchState>({ key: '', items: [], nextCursor: null, loading: false, error: false });
     const [retry, setRetry] = useState(0);
     const generation = useRef(0);
@@ -22,7 +26,7 @@ export function useListingSearch(
         setState({ key, items: [], nextCursor: null, loading: !!keyword, error: false });
         if (!keyword) return;
         const timer = window.setTimeout(() => {
-            furnitureRepository.getFurniturePage({ query: keyword, category, conditionGrades, maxDeliveryFee })
+            furnitureRepository.getFurniturePage({ query: keyword, category, conditionGrades, minPrice, maxPrice, maxDeliveryFee })
                 .then((page) => {
                     if (request !== generation.current || activeKey.current !== key) return;
                     setState({ ...page, key, loading: false, error: false });
@@ -40,7 +44,7 @@ export function useListingSearch(
         loadingMore.current = true;
         const request = generation.current;
         setState((current) => ({ ...current, loading: true, error: false }));
-        furnitureRepository.getFurniturePage({ query: keyword, category, conditionGrades, maxDeliveryFee, cursor: state.nextCursor })
+        furnitureRepository.getFurniturePage({ query: keyword, category, conditionGrades, minPrice, maxPrice, maxDeliveryFee, cursor: state.nextCursor })
             .then((page) => {
                 if (request !== generation.current || activeKey.current !== key) return;
                 loadingMore.current = false;

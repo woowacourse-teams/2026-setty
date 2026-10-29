@@ -183,6 +183,42 @@ class ListingGradeSearchApiTest extends MySqlIntegrationTestSupport {
         assertThat(ids(read(get("/api/listings").param("category", "ETC")))).containsExactly(listingId);
     }
 
+    @Test
+    void 가격은_하한_상한_범위로_거르고_다른_조건과_함께_걸린다() throws Exception {
+        long cheap = insertPriced("의자 3만", "CHAIR", "S", 30_000);
+        long mid = insertPriced("의자 10만", "CHAIR", "S", 100_000);
+        long expensive = insertPriced("의자 25만", "CHAIR", "S", 250_000);
+        long midButB = insertPriced("의자 10만 B급", "CHAIR", "B", 100_000);
+
+        assertThat(ids(read(get("/api/listings").param("maxPrice", "100000")))).containsExactly(midButB, mid, cheap);
+        assertThat(ids(read(get("/api/listings").param("minPrice", "100000")))).containsExactly(midButB, expensive, mid);
+        assertThat(ids(read(get("/api/listings").param("minPrice", "50000").param("maxPrice", "200000"))))
+                .containsExactly(midButB, mid);
+        assertThat(ids(read(get("/api/listings").param("minPrice", "50000").param("maxPrice", "200000")
+                .param("conditionGrade", "S").param("query", "의자")))).containsExactly(mid);
+        assertThat(ids(read(get("/api/listings").param("maxPrice", "100000").param("size", "1")
+                .param("maxDeliveryFee", "40000").header(HttpHeaders.AUTHORIZATION, "Bearer token-" + BUYER_ID))))
+                .containsExactly(midButB);
+    }
+
+    @Test
+    void 가격_범위가_어긋나거나_등록_상한을_넘으면_거절한다() throws Exception {
+        for (String[] params : List.of(new String[]{"minPrice", "-1"}, new String[]{"maxPrice", "100000001"},
+                new String[]{"minPrice", "abc"})) {
+            mockMvc.perform(get("/api/listings").param(params[0], params[1])).andExpect(status().isBadRequest());
+        }
+        mockMvc.perform(get("/api/listings").param("minPrice", "200000").param("maxPrice", "100000"))
+                .andExpect(status().isBadRequest());
+        mockMvc.perform(get("/api/listings").param("minPrice", "0").param("maxPrice", "100000000"))
+                .andExpect(status().isOk());
+    }
+
+    private long insertPriced(String title, String category, String grade, int price) {
+        long id = insert(title, "", category, grade);
+        jdbcTemplate.update("UPDATE listings SET price = ? WHERE id = ?", price, id);
+        return id;
+    }
+
     private long insert(String title, String description, String category, String grade) {
         long id = nextId++;
         Timestamp at = Timestamp.from(BASE.plusSeconds(id));

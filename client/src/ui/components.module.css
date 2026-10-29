@@ -687,10 +687,15 @@
     padding-left: 8px;
 }
 
+.chip--with-trailing-icon {
+    gap: 4px;
+    padding-right: 8px;
+}
+
 .chip--selected {
     border-color: transparent;
-    background: var(--secondary-container);
-    color: var(--on-secondary-container);
+    background: var(--primary);
+    color: var(--on-primary);
 }
 
 .toggle-group {

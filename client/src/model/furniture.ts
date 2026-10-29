@@ -187,6 +187,14 @@ export function formatWon(value: number): string {
     return `${wonFormat.format(value)}원`;
 }
 
+/** 15000 → "1.5만 원", 20000 → "2만 원", 만·천 단위로 떨어지지 않으면 "23,500원" */
+export function formatCompactWon(value: number): string {
+    if (value % 1_000 !== 0 || value < 10_000) return formatWon(value);
+    const man = Math.floor(value / 10_000);
+    const thousand = Math.floor((value % 10_000) / 1_000);
+    return thousand === 0 ? `${man}만 원` : `${man}.${thousand}만 원`;
+}
+
 /** ISO-8601 문자열(예: 2026-09-30T05:03:41Z)에서 "9.30" 형태의 등록일을 만든다. */
 export function formatRegisteredDate(createdAt: string): string {
     if (createdAt.length < 10) return '';

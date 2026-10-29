@@ -52,6 +52,7 @@ public class ListingService {
     private static final Logger log = LoggerFactory.getLogger(ListingService.class);
     public static final int DEFAULT_PAGE_SIZE = 20;
     private static final int MAXIMUM_PAGE_SIZE = 100;
+    private static final int MAXIMUM_PRICE = 100_000_000;
 
     private static final List<OrderStatus> CLOSED_ORDER_STATUSES = List.of(OrderStatus.EXPIRED, OrderStatus.CANCELLED);
     private static final List<OrderStatus> OPEN_ORDER_STATUSES =
@@ -108,7 +109,7 @@ public class ListingService {
     // 트랜잭션을 걸지 않는다. JPA 트랜잭션을 열면 조회 내내 커넥션을 붙잡으므로 쿼리마다 바로 반납하는 JDBC 조회만 쓴다.
     public List<ListingView.Summary> findAvailableListings(String buyerToken) {
         return listingQueryRepository.inOneConnection(reader ->
-                findAvailable(reader, null, null, null, null, buyerOf(reader, buyerToken), null, null, null).items());
+                findAvailable(reader, null, null, null, null, buyerOf(reader, buyerToken), ListingFilter.NONE).items());
     }
 
     public ListingView.SummaryPage findAvailableListings(
@@ -117,12 +118,13 @@ public class ListingService {
             String buyerToken,
             Integer maxDeliveryFee
     ) {
-        return findAvailableListings(cursor, size, buyerToken, maxDeliveryFee, null, null, null);
+        return findAvailableListings(cursor, size, buyerToken, maxDeliveryFee, null, null, null, null, null);
     }
 
     public ListingView.SummaryPage findAvailableListings(
             ListingCursor cursor, int size, String buyerToken, Integer maxDeliveryFee,
-            String query, ListingCategory category, List<ConditionGrade> conditionGrades
+            String query, ListingCategory category, List<ConditionGrade> conditionGrades,
+            Integer minPrice, Integer maxPrice
     ) {
         String keyword = query == null || query.isBlank() ? null : query.strip();
         if (keyword != null && keyword.length() > 100) {
@@ -131,12 +133,14 @@ public class ListingService {
         if (size < 1 || size > MAXIMUM_PAGE_SIZE) {
             throw new BusinessException(INVALID_REQUEST);
         }
+        validatePriceRange(minPrice, maxPrice);
         ListingSearchTerms search = keyword == null ? null : ListingSearchTerms.of(keyword);
         List<ConditionGrade> grades = conditionGrades == null || conditionGrades.isEmpty() ? null : conditionGrades;
+        ListingFilter filter = new ListingFilter(search, category, grades, minPrice, maxPrice);
         return listingQueryRepository.inOneConnection(reader -> {
             Buyer buyer = buyerOf(reader, buyerToken);
             if (maxDeliveryFee == null) {
-                return findAvailable(reader, cursor, size, null, null, buyer, search, category, grades);
+                return findAvailable(reader, cursor, size, null, null, buyer, filter);
             }
             if (!buyer.member()) {
                 throw new BusinessException(INVALID_TOKEN);
@@ -144,10 +148,27 @@ public class ListingService {
             // 우편번호 구역이 있는 구매자에게는 구역이 있는 매물만 거른다. 동 필터가 동 없는 매물을 빼는 것과 같은 규칙이다.
             if (deliveryFeeService.zipEnabled() && buyer.zipZone() != null) {
                 return findAvailable(reader, cursor, size, null,
-                        deliveryFeeService.sellerZipZonesWithinFee(buyer.zipZone(), maxDeliveryFee), buyer, search, category, grades);
+                        deliveryFeeService.sellerZipZonesWithinFee(buyer.zipZone(), maxDeliveryFee), buyer, filter);
             }
-            return findAvailable(reader, cursor, size, sellerDongCodesWithin(buyer, maxDeliveryFee), null, buyer, search, category, grades);
+            return findAvailable(reader, cursor, size, sellerDongCodesWithin(buyer, maxDeliveryFee), null, buyer, filter);
         });
+    }
+
+    // 가격은 등록 상한(1억)과 같은 범위만 받는다
+    private static void validatePriceRange(Integer minPrice, Integer maxPrice) {
+        if ((minPrice != null && (minPrice < 0 || minPrice > MAXIMUM_PRICE))
+                || (maxPrice != null && (maxPrice < 0 || maxPrice > MAXIMUM_PRICE))
+                || (minPrice != null && maxPrice != null && minPrice > maxPrice)) {
+            throw new BusinessException(INVALID_REQUEST);
+        }
+    }
+
+    // 목록 조회에 거는 조건 묶음. 배송비 조건은 구매자에 따라 달라 따로 넘긴다.
+    private record ListingFilter(
+            ListingSearchTerms search, ListingCategory category, List<ConditionGrade> conditionGrades,
+            Integer minPrice, Integer maxPrice
+    ) {
+        static final ListingFilter NONE = new ListingFilter(null, null, null, null, null);
     }
 
     // 매물 조회는 비로그인도 허용해 인터셉터가 회원을 읽지 않는다. JPA로 회원을 읽으면 OSIV 아래에서
@@ -191,9 +212,7 @@ public class ListingService {
             Map<VolumeTier, List<String>> sellerDongCodes,
             Map<VolumeTier, List<ZoneRange>> sellerZipZones,
             Buyer buyer,
-            ListingSearchTerms search,
-            ListingCategory category,
-            List<ConditionGrade> conditionGrades
+            ListingFilter filter
     ) {
         // 예산 안에 드는 판매자 동·구역이 하나도 없으면 DB에 묻지 않는다
         if ((sellerDongCodes != null && sellerDongCodes.isEmpty())
@@ -207,9 +226,11 @@ public class ListingService {
                 size == null ? null : size + 1,
                 sellerDongCodes,
                 sellerZipZones,
-                search,
-                category,
-                conditionGrades
+                filter.search(),
+                filter.category(),
+                filter.conditionGrades(),
+                filter.minPrice(),
+                filter.maxPrice()
         ));
         boolean hasNext = size != null && rows.size() > size;
         List<ListingQueryRepository.Row> page = hasNext ? rows.subList(0, size) : rows;

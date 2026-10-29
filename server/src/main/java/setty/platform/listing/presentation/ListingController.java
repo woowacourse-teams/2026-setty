@@ -65,11 +65,13 @@ public class ListingController {
             @RequestParam(required = false) Integer maxDeliveryFee,
             @RequestParam(required = false) String query,
             @RequestParam(required = false) ListingCategory category,
-            @RequestParam(required = false) List<ConditionGrade> conditionGrade
+            @RequestParam(required = false) List<ConditionGrade> conditionGrade,
+            @RequestParam(required = false) Integer minPrice,
+            @RequestParam(required = false) Integer maxPrice
     ) {
         // 페이징을 아직 사용하지 않는 클라이언트의 무조건 전체 조회 계약은 유지한다.
         if (cursor == null && size == null && maxDeliveryFee == null && query == null && category == null
-                && conditionGrade == null) {
+                && conditionGrade == null && minPrice == null && maxPrice == null) {
             return ResponseEntity.ok(new ListingPageResponse(
                     listingService.findAvailableListings(bearerToken(authorization)), null));
         }
@@ -77,7 +79,7 @@ public class ListingController {
                 ListingCursor.parse(cursor),
                 size == null ? ListingService.DEFAULT_PAGE_SIZE : size,
                 bearerToken(authorization),
-                maxDeliveryFee, query, category, conditionGrade
+                maxDeliveryFee, query, category, conditionGrade, minPrice, maxPrice
         );
         return ResponseEntity.ok(new ListingPageResponse(page.items(), page.nextCursor()));
     }

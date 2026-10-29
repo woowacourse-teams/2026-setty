@@ -48,7 +48,8 @@ public class ListingQueryRepository {
             Instant cursorCreatedAt, Long cursorId, Integer limit,
             Map<VolumeTier, List<String>> sellerDongCodes,
             Map<VolumeTier, List<ZoneRange>> sellerZipZones,
-            ListingSearchTerms search, ListingCategory category, List<ConditionGrade> conditionGrades
+            ListingSearchTerms search, ListingCategory category, List<ConditionGrade> conditionGrades,
+            Integer minPrice, Integer maxPrice
     ) {
         StringBuilder where = new StringBuilder(" WHERE deleted_at IS NULL AND sale_status = 'AVAILABLE'");
         List<Object> args = new ArrayList<>();
@@ -63,6 +64,14 @@ public class ListingQueryRepository {
             where.append(" AND condition_grade IN (")
                     .append(String.join(",", Collections.nCopies(conditionGrades.size(), "?"))).append(")");
             conditionGrades.forEach(grade -> args.add(grade.name()));
+        }
+        if (minPrice != null) {
+            where.append(" AND price >= ?");
+            args.add(minPrice);
+        }
+        if (maxPrice != null) {
+            where.append(" AND price <= ?");
+            args.add(maxPrice);
         }
         if (cursorCreatedAt != null) {
             where.append(" AND (created_at < ? OR (created_at = ? AND id < ?))");

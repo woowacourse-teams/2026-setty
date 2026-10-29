@@ -212,16 +212,20 @@ function toUpsertRequest(draft: ListingDraft): ListingUpsertRequest {
 
 export const furnitureRepository = {
     /** 검색·필터를 전체 데이터에 적용한 뒤 한 페이지를 받는다. */
-    async getFurniturePage({ category = null, conditionGrades = [], maxDeliveryFee = null, query = null, cursor = null }: {
+    async getFurniturePage({
+        category = null, conditionGrades = [], minPrice = null, maxPrice = null, maxDeliveryFee = null, query = null, cursor = null
+    }: {
         category?: FurnitureCategory | null;
         conditionGrades?: readonly ConditionGrade[];
+        minPrice?: number | null;
+        maxPrice?: number | null;
         maxDeliveryFee?: number | null;
         query?: string | null;
         cursor?: string | null;
     } = {}): Promise<FurniturePage> {
         const response = await apiCall<ListingListResponse>('/api/listings', {
             query: {
-                size: PAGE_SIZE, cursor, category, maxDeliveryFee, query,
+                size: PAGE_SIZE, cursor, category, minPrice, maxPrice, maxDeliveryFee, query,
                 conditionGrade: conditionGrades.length > 0 ? conditionGrades.join(',') : null
             }
         });
