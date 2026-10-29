@@ -9,6 +9,7 @@ import {
     deliveryStatusLabel,
     deliverySteps,
     isCancelFlow,
+    isDeliveryInProgress,
     orderedTotalPrice,
     orderStatusDescription,
     orderStatusLabel,
@@ -38,6 +39,7 @@ import { Icon } from '../../ui/Icon';
 import { shapeStyle } from '../../ui/shapes';
 import { showSnackbar } from '../../ui/snackbar';
 import { useLoad } from '../useLoad';
+import { usePolling } from '../usePolling';
 import screenStyles from '../screens.module.css';
 
 const CANCEL_POLL_COUNT = 3;
@@ -54,6 +56,8 @@ export function OrderDetailScreen() {
     const [isCancelDialogVisible, setIsCancelDialogVisible] = useState(false);
     const [isCancelling, setIsCancelling] = useState(false);
     const order = state.status === 'success' ? state.data : null;
+    // 배송원이 배차를 진행하면 새로고침하지 않아도 진행 단계가 바뀌도록 조용히 다시 불러온다
+    usePolling(() => void fetch(), order !== null && isDeliveryInProgress(order) && !isCancelling);
 
     /**
      * 취소를 요청한다. 202 응답은 접수 결과일 뿐이라 주문 상세를 다시 조회해 최종 상태를 확인한다.

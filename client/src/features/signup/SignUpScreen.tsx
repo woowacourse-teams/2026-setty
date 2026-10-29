@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import { useNavigate } from 'react-router';
+import { useLocation, useNavigate } from 'react-router';
 import { ApiError, NetworkError } from '../../api/http';
 import { userRepository } from '../../api/repositories';
 import {
@@ -9,15 +9,17 @@ import {
     isPhoneNumberValid,
     PHONE_NUMBER_MAX_DIGITS
 } from '../../model/member';
-import { routes } from '../../navigation';
+import { accountRoleOf, routes } from '../../navigation';
 import { BottomBar, Button, LoadingIndicator, Scaffold, TextField } from '../../ui/components';
 import { showSnackbar } from '../../ui/snackbar';
 import { DongField, useDongCatalog } from '../dong/DongField';
+import { AccountRoleToggle } from '../login/AccountRoleToggle';
+import { DriverSignUpScreen } from './DriverSignUpScreen';
 import styles from '../screens.module.css';
 
-const LOGIN_ID_REGEX = /^[a-z0-9]{4,20}$/;
-const PASSWORD_MIN_LENGTH = 8;
-const PASSWORD_MAX_LENGTH = 64;
+export const LOGIN_ID_REGEX = /^[a-z0-9]{4,20}$/;
+export const PASSWORD_MIN_LENGTH = 8;
+export const PASSWORD_MAX_LENGTH = 64;
 
 type SignUpForm = {
     loginId: string;
@@ -47,7 +49,7 @@ function fieldErrors(form: SignUpForm) {
     };
 }
 
-function signUpErrorMessage(error: unknown): string {
+export function signUpErrorMessage(error: unknown): string {
     if (error instanceof ApiError) {
         switch (error.code) {
             case 'DUPLICATE_LOGIN_ID':
@@ -64,7 +66,13 @@ function signUpErrorMessage(error: unknown): string {
     return '알 수 없는 에러가 발생했습니다';
 }
 
+/** 회원가입. 주소의 `?role=driver`면 배송원 회원가입을 보여준다. */
 export function SignUpScreen() {
+    const role = accountRoleOf(useLocation().search);
+    return role === 'driver' ? <DriverSignUpScreen /> : <MemberSignUpScreen />;
+}
+
+function MemberSignUpScreen() {
     const navigate = useNavigate();
     const { catalog, reload } = useDongCatalog();
     const [form, setForm] = useState<SignUpForm>({
@@ -121,6 +129,7 @@ export function SignUpScreen() {
             )}
         >
             <div className={styles['form-column']}>
+                <AccountRoleToggle path={routes.signUp} role="member" />
                 <h1 className="type-headline-large-em" style={{ margin: 0 }}>SETTY 회원가입</h1>
                 <p className={`${styles.lead} type-body-large-em`}>{'계정을 만들고\nSETTY에서 중고 가구 거래를 시작하세요.'}</p>
                 <SignUpSection title="계정 정보">
@@ -190,7 +199,7 @@ export function SignUpScreen() {
     );
 }
 
-function SignUpSection({ title, children }: { title: string; children: ReactNode }) {
+export function SignUpSection({ title, children }: { title: string; children: ReactNode }) {
     return (
         <section className={styles['form-section']}>
             <h2 className={`${styles['form-section__title']} type-title-medium-em`}>{title}</h2>

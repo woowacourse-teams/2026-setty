@@ -20,7 +20,7 @@ phases:
             ! -path 'client/coverage/*' \
             ! -path 'client/.webpack-cache/*' \
             -print0 | LC_ALL=C sort -z | xargs -0 sha256sum
-          env | LC_ALL=C sort | awk -F= '$1 == "ENABLE_MSW" || $1 ~ /^SETTY_/'
+          env | LC_ALL=C sort | awk -F= '$1 ~ /^SETTY_/'
         } | sha256sum | awk '{print $1}' > /tmp/current-frontend-source.sha256
         if aws s3 cp "s3://${DEPLOY_BUCKET}/${DEPLOY_STATE_KEY}" /tmp/previous-frontend-source.sha256 --only-show-errors 2>/dev/null \
           && cmp -s /tmp/current-frontend-source.sha256 /tmp/previous-frontend-source.sha256; then

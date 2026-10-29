@@ -1,29 +1,34 @@
-const TOKEN_KEY = 'setty:credential-token';
+function createTokenStore(key: string) {
+    return {
+        get(): string {
+            try {
+                return window.localStorage.getItem(key) ?? '';
+            } catch {
+                return '';
+            }
+        },
+        set(token: string) {
+            try {
+                window.localStorage.setItem(key, token);
+            } catch {
+                // 저장소를 쓸 수 없으면 이번 화면에서만 로그인한 것으로 본다
+            }
+        },
+        clear() {
+            try {
+                window.localStorage.removeItem(key);
+            } catch {
+                // 저장소를 쓸 수 없으면 지울 토큰도 없다
+            }
+        }
+    };
+}
 
 /** 로그인 토큰. Android 앱처럼 브라우저를 닫았다 열어도 로그인을 유지한다. */
-export const tokenStore = {
-    get(): string {
-        try {
-            return window.localStorage.getItem(TOKEN_KEY) ?? '';
-        } catch {
-            return '';
-        }
-    },
-    set(token: string) {
-        try {
-            window.localStorage.setItem(TOKEN_KEY, token);
-        } catch {
-            // 저장소를 쓸 수 없으면 이번 화면에서만 로그인한 것으로 본다
-        }
-    },
-    clear() {
-        try {
-            window.localStorage.removeItem(TOKEN_KEY);
-        } catch {
-            // 저장소를 쓸 수 없으면 지울 토큰도 없다
-        }
-    }
-};
+export const tokenStore = createTokenStore('setty:credential-token');
+
+/** 배송원 로그인 토큰. 회원 토큰과 따로 두어 한 브라우저에서 구매자와 배송원으로 함께 로그인할 수 있다. */
+export const deliveryTokenStore = createTokenStore('setty:delivery-token');
 
 /** 서버가 `{ code, message }`로 내려준 에러. */
 export class ApiError extends Error {
@@ -50,6 +55,8 @@ type RequestOptions = {
     method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
     body?: unknown;
     query?: Record<string, string | number | null | undefined>;
+    // 어느 계정의 토큰을 붙일지. 배송원 API는 'delivery'
+    auth?: 'member' | 'delivery';
 };
 
 function isErrorBody(body: unknown): body is { code: string; message: string } {
@@ -62,14 +69,14 @@ function isErrorBody(body: unknown): body is { code: string; message: string } {
 }
 
 /** API를 호출하고 서버 에러 응답을 [ApiError]로, 연결 실패를 [NetworkError]로 바꿔 던진다. */
-export async function apiCall<T>(path: string, { method = 'GET', body, query }: RequestOptions = {}): Promise<T> {
+export async function apiCall<T>(path: string, { method = 'GET', body, query, auth = 'member' }: RequestOptions = {}): Promise<T> {
     const url = new URL(path, window.location.origin);
     Object.entries(query ?? {}).forEach(([key, value]) => {
         if (value !== null && value !== undefined) url.searchParams.set(key, String(value));
     });
 
     const headers: Record<string, string> = {};
-    const token = tokenStore.get();
+    const token = (auth === 'delivery' ? deliveryTokenStore : tokenStore).get();
     if (token) headers.Authorization = `Bearer ${token}`;
 
     let requestBody: BodyInit | undefined;

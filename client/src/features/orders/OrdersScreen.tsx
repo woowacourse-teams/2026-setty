@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router';
 import { orderRepository } from '../../api/repositories';
 import { formatWon } from '../../model/furniture';
-import { isCancelFlow, orderedTotalPrice, orderStatusLabel, type Order } from '../../model/order';
+import { isCancelFlow, isDeliveryInProgress, orderedTotalPrice, orderStatusLabel, type Order } from '../../model/order';
 import { routes, useNavigateBack, useNavigateToLogin } from '../../navigation';
 import {
     BackIconButton,
@@ -17,13 +17,15 @@ import {
     StatusBadge
 } from '../../ui/components';
 import { useLoad } from '../useLoad';
+import { usePolling } from '../usePolling';
 import screenStyles from '../screens.module.css';
 
 export function OrdersScreen() {
     const navigate = useNavigate();
     const navigateBack = useNavigateBack();
     const navigateToLogin = useNavigateToLogin();
-    const { state, isRefreshing, load, refresh } = useLoad(orderRepository.getMyOrders);
+    const { state, isRefreshing, load, refresh, fetch } = useLoad(orderRepository.getMyOrders);
+    usePolling(() => void fetch(), state.status === 'success' && state.data.some(isDeliveryInProgress));
 
     return (
         <Scaffold topBar={<FlexibleTopAppBar navigation={<BackIconButton onBack={navigateBack} />} title="주문 내역" />}>

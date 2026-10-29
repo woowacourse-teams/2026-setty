@@ -1,16 +1,19 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { isUnauthorized, toLoadError, toUserMessage, type LoadState } from '../api/errors';
-import { useNavigateToLogin } from '../navigation';
+import { useNavigateToDriverLogin, useNavigateToLogin } from '../navigation';
 import { showSnackbar } from '../ui/snackbar';
 
 /**
  * 화면에 들어올 때 불러오고, 당겨서 새로고침하는 데이터.
  * 이미 보여주는 데이터가 있을 때 새로고침이 실패하면 데이터를 유지한 채 알리고, 로그인이 풀렸으면 로그인으로 보낸다.
+ * 배송원 화면은 [account]를 'driver'로 넘겨 배송원 로그인으로 보낸다.
  */
-export function useLoad<T>(fetcher: () => Promise<T>) {
+export function useLoad<T>(fetcher: () => Promise<T>, account: 'member' | 'driver' = 'member') {
     const [state, setState] = useState<LoadState<T>>({ status: 'loading' });
     const [isRefreshing, setIsRefreshing] = useState(false);
-    const navigateToLogin = useNavigateToLogin();
+    const navigateToMemberLogin = useNavigateToLogin();
+    const navigateToDriverLogin = useNavigateToDriverLogin();
+    const navigateToLogin = account === 'driver' ? navigateToDriverLogin : navigateToMemberLogin;
     const stateRef = useRef(state);
     stateRef.current = state;
     const fetcherRef = useRef(fetcher);

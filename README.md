@@ -46,7 +46,7 @@ SETTY는 구매자가 판매자와 운송 서비스를 오가며 직접 조율�
 
 - [배송비 정책](server/src/main/java/setty/platform/listing/domain/DeliveryFeePolicy.java): 가구 부피에 따라 예상 배송비를 계산합니다.
 - [매물 상세](client/src/features/listingdetail/FurnitureDetailScreen.tsx): 매물 가격, 배송비, 총액을 함께 표시합니다.
-- [결제 화면](client/src/features/payment/PaymentScreen.tsx): 주문을 생성하고 결제 위젯을 엽니다. 목 모드에서는 결제 성공을 모의합니다.
+- [결제 화면](client/src/features/payment/PaymentScreen.tsx): 주문을 생성하고 결제 위젯을 엽니다.
 - [배송 정책](docs/policy/delivery.md): 결제 확정 이후 배송 요청과 상태 전이를 정의합니다.
 
 ## 📚 문서와 협업
