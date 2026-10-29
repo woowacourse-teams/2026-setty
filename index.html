@@ -118,6 +118,9 @@
     .brand { display: flex; flex-direction: column; text-decoration: none; line-height: 1.15; }
     .brand strong { font-weight: 900; font-size: 1.5rem; letter-spacing: -.01em; }
     .brand span { font-size: .8125rem; color: var(--on-surface-variant); font-weight: 600; }
+    .topnav { display: flex; align-items: center; gap: 4px; margin-left: auto; margin-right: 12px; }
+    .topnav a { padding: 10px 14px; border-radius: 999px; text-decoration: none; font-weight: 800; font-size: .9375rem; color: var(--on-surface-variant); }
+    .topnav a:hover { background: var(--surface-container-high); }
 
     /* ---------- 히어로 ---------- */
     .hero { padding: 8px 0 24px; }
@@ -324,6 +327,7 @@
     @media (max-width: 720px) { .screenshots { grid-template-columns: 1fr; } }
 
     /* ---------- 배송비 정책 ---------- */
+    .fee-basis { margin: -24px 0 14px; font-size: .9375rem; font-weight: 800; color: var(--primary); }
     .fee-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
     .fee {
       position: relative; overflow: hidden;
@@ -337,6 +341,49 @@
     .fee-size { margin: 0; font-weight: 800; color: var(--primary); }
     .fee-price { margin: 4px 0 6px; font-size: 2rem; font-weight: 900; line-height: 1.2; }
     .fee-desc { margin: 0; color: var(--on-surface-variant); font-weight: 600; font-size: .9375rem; }
+
+    /* ---------- 기술 소개: 문제 → 풀이 → 결과 카드와 전후 수치 ---------- */
+    .tech-grid { display: grid; gap: 12px; }
+    .tech[hidden] { display: none; }
+    .tech {
+      display: grid; grid-template-columns: 1.1fr .9fr; gap: 28px 36px;
+      padding: 36px 32px; border-radius: var(--radius-xl);
+      background: var(--surface-container-low); box-shadow: inset 0 0 0 1px var(--outline-variant);
+    }
+    .tech-main { background: var(--surface-container); box-shadow: none; }
+    .tech-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 10px; }
+    .tech-tag { padding: 4px 10px; border-radius: 8px; background: var(--primary); color: var(--on-primary); font-size: .75rem; font-weight: 800; }
+    .tech-tag.tag-second { background: var(--tertiary-container); color: var(--on-tertiary-container); }
+    .tech-where { font-size: .8125rem; font-weight: 700; color: var(--on-surface-variant); }
+    .tech h3 { margin: 0 0 20px; font-size: clamp(1.375rem, 2.4vw, 1.75rem); font-weight: 900; line-height: 1.25; letter-spacing: -.01em; }
+    .pfr { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+    .pfr li { display: grid; grid-template-columns: 44px 1fr; gap: 12px; align-items: start; padding: 14px 16px; border-radius: 16px; background: var(--surface); }
+    .pfr-label { padding-top: 3px; font-size: .8125rem; font-weight: 800; color: var(--primary); }
+    .pfr p { margin: 0; font-weight: 600; font-size: .9375rem; color: var(--on-surface-variant); }
+    .pfr p b { color: var(--on-surface); font-weight: 800; }
+    .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-content: start; }
+    .stat { padding: 18px 18px 16px; border-radius: 20px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--outline-variant); }
+    .stat.hi { background: var(--primary-container); color: var(--on-primary-container); box-shadow: none; }
+    .stat-label { margin: 0 0 6px; font-size: .8125rem; font-weight: 800; color: var(--primary); }
+    .stat.hi .stat-label { color: inherit; }
+    .stat-value { margin: 0; font-size: clamp(1.5rem, 2.8vw, 2rem); font-weight: 900; line-height: 1.1; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+    .stat-value small { font-size: .55em; font-weight: 800; margin-left: 2px; }
+    .stat-before { margin: 6px 0 0; font-size: .8125rem; font-weight: 700; color: var(--on-surface-variant); font-variant-numeric: tabular-nums; }
+    .stat.hi .stat-before { color: inherit; opacity: .85; }
+    /* 거리표 한 줄에서 예산을 통과하는 구역이 이어진 범위로 묶이는 모습 */
+    .strip { grid-column: 1 / -1; padding: 16px 18px; border-radius: 20px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--outline-variant); }
+    .strip-title { margin: 0 0 10px; font-size: .8125rem; font-weight: 800; color: var(--on-surface-variant); }
+    .cells { display: grid; grid-template-columns: repeat(24, 1fr); gap: 3px; }
+    .cells span { aspect-ratio: 1; border-radius: 4px; background: var(--surface-container-highest); }
+    .cells span.on { background: var(--primary); }
+    .ranges { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+    .ranges span { padding: 3px 9px; border-radius: 6px; background: var(--primary-container); color: var(--on-primary-container); font-size: .75rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+    .ranges em { font-style: normal; align-self: center; font-size: .8125rem; font-weight: 700; color: var(--on-surface-variant); }
+    .tech-foot { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+    .tech-note { margin: 0; font-size: .8125rem; font-weight: 600; color: var(--on-surface-variant); }
+    .tech-foot .btn svg { width: 20px; height: 20px; }
+    @media (max-width: 960px) { .tech { grid-template-columns: 1fr; } }
+    @media (max-width: 520px) { .tech { padding: 28px 20px; } .stats { grid-template-columns: 1fr; } }
 
     /* ---------- 마지막 CTA ---------- */
     .final {
@@ -373,6 +420,7 @@
     }
     @media (max-width: 520px) {
       .topbar .wrap { height: 64px; }
+      .topnav { display: none; }
       .brand strong { font-size: 1.3125rem; }
       .hero-card { padding: 40px 20px 24px; border-radius: 36px; }
       .cta-row .btn { flex: 1 1 100%; }
@@ -412,6 +460,10 @@
         <strong>SETTY</strong>
         <span>무거운 중고 가구를 더 가볍게</span>
       </a>
+      <nav class="topnav" aria-label="페이지 안 이동">
+        <a href="#howto">사용법</a>
+        <a href="#tech">기술 소개</a>
+      </nav>
       <a class="btn btn-tonal btn-small" href="https://www.setty.cloud">시작하기</a>
     </div>
   </header>
@@ -630,7 +682,7 @@
         <p class="capture-note">2026.10.15 운영 웹 서비스 화면 · 매물과 금액은 촬영 시점의 예시예요. 화면을 누르면 크게 볼 수 있어요.</p>
         <div class="note reveal">
           <svg aria-hidden="true"><use href="#i-bell" /></svg>
-          <span><b>이번 업데이트 예정 · Android 키워드 알림</b><br />찾는 가구의 키워드를 등록하면, 해당 키워드가 제목에 들어간 새 매물을 알려드려요.</span>
+          <span><b>Android 키워드 알림</b><br />찾는 가구의 키워드를 등록하면, 해당 키워드가 제목에 들어간 새 매물을 알려드려요. 구독자가 많아도 등록이 느려지지 않게 만든 방법은 <a href="#tech">기술 소개</a>에 있어요.</span>
         </div>
       </div>
     </section>
@@ -638,9 +690,10 @@
     <!-- 배송비 -->
     <section id="fee">
       <div class="wrap">
-        <p class="eyebrow reveal">현재 제공 중인 배송비 안내</p>
+        <p class="eyebrow reveal">배송비 안내</p>
         <h2 class="reveal">결제 전에,<br />배송비까지 확인해요</h2>
-        <p class="section-lead reveal">현재는 가로 × 세로 × 높이로 구한 부피에 따라 아래 정액을 적용해요. 목록과 상세 화면에서 상품값에 배송비를 더한 총액을 먼저 확인하세요.</p>
+        <p class="section-lead reveal">배송비는 가구 부피와 출발·도착 동 사이 도로 거리로 정해요. 기본 10,000원에 부피 단계와 거리 단계마다 5,000원을 더하고, 목록과 상세 화면에서 상품값에 배송비를 더한 총액을 먼저 보여드려요.</p>
+        <p class="fee-basis reveal">출발·도착 동 사이 거리가 3km 이내일 때</p>
         <div class="fee-grid">
           <div class="fee reveal">
             <svg class="fee-shape" viewBox="0 0 100 100" aria-hidden="true"><use href="#s-cookie6" /></svg>
@@ -662,8 +715,76 @@
           </div>
         </div>
         <div class="upcoming reveal">
-          <h3>다음 업데이트 · 거리도 함께 반영할 예정이에요</h3>
-          <p>서울의 출발·도착 동 사이 도로 거리와 가구 부피를 함께 고려해 예상 배송비를 계산해요. 배송비를 포함한 총액으로 예산에 맞는 가구도 찾을 수 있게 준비했어요. 동 단위의 예상 거리이므로 개별 주소 사이의 정확한 운송 견적과는 차이가 있어요.</p>
+          <h3>거리가 멀면 · 3km를 넘을 때마다 5,000원</h3>
+          <p>서울 출발·도착 동 사이 도로 거리가 3km를 넘으면 3km마다 5,000원을 더해요. 동 단위의 예상 거리라 개별 주소 사이의 정확한 운송 견적과는 차이가 있어요. 목록에서는 배송비 예산을 정해 그 안에서 배송되는 가구만 볼 수 있어요.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 기술 소개 -->
+    <section id="tech">
+      <div class="wrap">
+        <div class="howto-head">
+          <div>
+            <p class="eyebrow reveal">기술 소개</p>
+            <h2 class="reveal">배송비까지 더한 검색을,<br />빠르고 가볍게</h2>
+            <p class="section-lead reveal">가장 공들인 두 가지예요. 어떤 문제가 있었고, 어떻게 풀었고, 숫자가 어떻게 바뀌었는지 적었어요.</p>
+          </div>
+          <div class="connected reveal" role="tablist" aria-label="기술 소개 주제">
+            <button type="button" role="tab" id="tab-fee" aria-selected="true" aria-controls="tech-fee">배송비 예산 필터</button>
+            <button type="button" role="tab" id="tab-keyword" aria-selected="false" aria-controls="tech-keyword" tabindex="-1">키워드 알림</button>
+          </div>
+        </div>
+
+        <div class="tech-grid reveal">
+          <article class="tech tech-main" id="tech-fee" role="tabpanel" aria-labelledby="tab-fee">
+            <div>
+              <div class="tech-head"><span class="tech-tag">주력 · 배송비 예산 필터</span><span class="tech-where">앱 홈 · 매물 목록</span></div>
+              <h3>"배송비 3만 원 안에서 배송되는 가구만" 한 번의 조회로</h3>
+              <ol class="pfr">
+                <li><span class="pfr-label">문제</span><p>배송비는 구매자마다 달라요. 출발·도착 동 사이 거리와 가구 부피로 정해지니, <b>매물마다 배송비를 계산해 거르면</b> 목록 조회가 수천 번의 계산이 되고 목표 부하에서 p95(요청 100건 중 느린 쪽 5번째)가 1.8초까지 늘어났어요.</p></li>
+                <li><span class="pfr-label">풀이</span><p>서울 전체의 동 사이 거리를 미리 재서 <b>거리표 한 장</b>으로 두고, 구매자 행 한 줄만 읽어 예산을 통과하는 구역을 찾아요. 통과 구역은 번호가 이어지니 <b>범위로 묶어 한 쿼리</b>에 넣어요. 거리표는 파일을 메모리에 매핑해 두 앱이 함께 쓰니 무중단 배포 중에도 한 벌이에요. 구역은 행정동에서 <b>우편번호 구역</b>으로 더 촘촘하게 바꿨어요.</p></li>
+                <li><span class="pfr-label">결과</span><p>실제 앱에서 같은 부하로 잰 전후예요. 최대 처리량은 1.9배가 됐고, 요금 구간이 실제 도로 거리와 어긋나는 비율은 22.1%에서 7.1%로 줄었어요. 거리표가 쓰는 앱 서버 메모리는 약 48MB예요.</p></li>
+              </ol>
+            </div>
+            <div class="stats">
+              <div class="stat hi"><p class="stat-label">p95 응답 · 목표 부하</p><p class="stat-value">4.9<small>ms</small></p><p class="stat-before">바꾸기 전 1.8초</p></div>
+              <div class="stat"><p class="stat-label">최대 처리량</p><p class="stat-value">1,777<small>건/초</small></p><p class="stat-before">바꾸기 전 917건/초 · 1.9배</p></div>
+              <div class="stat"><p class="stat-label">요금 구간 불일치</p><p class="stat-value">7.1<small>%</small></p><p class="stat-before">행정동 표 22.1% → 우편번호 표</p></div>
+              <div class="stat"><p class="stat-label">앱 서버 메모리</p><p class="stat-value">48<small>MB</small></p><p class="stat-before">거리표 매핑 · 배포 중에도 한 벌</p></div>
+              <div class="strip" role="img" aria-label="구매자 기준 거리표 한 줄에서 예산을 통과하는 구역이 이어진 범위 세 개로 묶이는 그림">
+                <p class="strip-title">구매자 행 한 줄 · 예산을 통과하는 구역(보라)은 번호가 이어져요</p>
+                <div class="cells" aria-hidden="true"><span></span><span></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span></span><span></span><span class="on"></span><span class="on"></span><span></span><span></span><span></span><span></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span></span><span></span><span></span></div>
+                <div class="ranges" aria-hidden="true"><span>3~7</span><span>10~11</span><span>16~21</span><em>→ 조건 3개로 한 쿼리</em></div>
+              </div>
+            </div>
+            <div class="tech-foot">
+              <p class="tech-note">노트북에서 같은 조건으로 전후를 잰 값이에요. 운영은 행정동 표로 동작하고, 우편번호 구역은 적용을 준비하고 있어요.</p>
+              <button type="button" class="btn btn-tonal btn-small" data-scene="21">영상 0:21 장면 보기<svg aria-hidden="true"><use href="#i-chevron" /></svg></button>
+            </div>
+          </article>
+
+          <article class="tech" id="tech-keyword" role="tabpanel" aria-labelledby="tab-keyword" hidden>
+            <div>
+              <div class="tech-head"><span class="tech-tag tag-second">키워드 알림</span><span class="tech-where">앱 · 내 정보 · 키워드</span></div>
+              <h3>구독자가 1만 명이어도 매물 등록은 느려지지 않게</h3>
+              <ol class="pfr">
+                <li><span class="pfr-label">문제</span><p>매물이 올라오면 그 키워드를 구독한 사람 모두에게 알림을 보내요. 등록하는 동안 <b>구독자마다 차례로 푸시를 보내면</b> 등록 응답이 구독자 수만큼 늘어나, 구독자 1,000명에서 서버 안에서만 116.9초가 걸려 시간 초과(504)가 났어요.</p></li>
+                <li><span class="pfr-label">풀이</span><p>등록할 때는 알림을 <b>한 번에 저장하고 바로 응답</b>해요. 발송은 저장이 끝난 뒤 이벤트로 넘겨 <b>500건씩 묶어 병렬</b>로 보내고, 실패분은 3회 다시 시도해요. 메시지 큐 같은 서버를 더 두지 않고 서버 한 대로 풀었어요.</p></li>
+                <li><span class="pfr-label">결과</span><p>구독자 1,000명에서 등록 응답 p95가 183ms, 1만 명에서도 393ms예요. 마지막 구독자까지 발송이 끝나는 시간은 116.9초에서 0.20초가 됐어요.</p></li>
+              </ol>
+            </div>
+            <div class="stats">
+              <div class="stat hi"><p class="stat-label">등록 응답 p95 · 구독자 1,000명</p><p class="stat-value">183<small>ms</small></p><p class="stat-before">바꾸기 전 116.9초 · 시간 초과</p></div>
+              <div class="stat"><p class="stat-label">발송 완료까지 · 1,000명</p><p class="stat-value">0.20<small>초</small></p><p class="stat-before">바꾸기 전 116.9초</p></div>
+              <div class="stat"><p class="stat-label">등록 응답 p95 · 1만 명</p><p class="stat-value">393<small>ms</small></p><p class="stat-before">발송 완료 평균 0.80초</p></div>
+              <div class="stat"><p class="stat-label">중복 · 누락</p><p class="stat-value">0<small>건</small></p><p class="stat-before">매물 35건 × 구독자 1,000명</p></div>
+            </div>
+            <div class="tech-foot">
+              <p class="tech-note">개발 서버에 부하를 걸어 잰 값이에요. 푸시 왕복 시간은 실측한 113ms를 썼어요.</p>
+              <button type="button" class="btn btn-tonal btn-small" data-scene="69">영상 1:09 장면 보기<svg aria-hidden="true"><use href="#i-chevron" /></svg></button>
+            </div>
+          </article>
         </div>
       </div>
     </section>
@@ -731,23 +852,31 @@
     video.addEventListener("timeupdate", markChapter);
     markChapter();
 
-    // 구매자/판매자 사용법 탭
-    const tabs = document.querySelectorAll('[role="tab"]');
-    const select = (tab) => {
-      tabs.forEach((t) => {
-        const selected = t === tab;
-        t.setAttribute("aria-selected", String(selected));
-        t.tabIndex = selected ? 0 : -1;
-        document.getElementById(t.getAttribute("aria-controls")).hidden = !selected;
-      });
-    };
-    tabs.forEach((tab, index) => {
-      tab.addEventListener("click", () => select(tab));
-      tab.addEventListener("keydown", (event) => {
-        if (event.key !== "ArrowRight" && event.key !== "ArrowLeft") return;
-        const next = tabs[(index + (event.key === "ArrowRight" ? 1 : tabs.length - 1)) % tabs.length];
-        select(next);
-        next.focus();
+    // 기술 소개의 장면 버튼: 사용 영상의 해당 구간으로 이동해 재생한다
+    document.querySelectorAll("[data-scene]").forEach((button) => button.addEventListener("click", () => {
+      chapters.find((b) => b.dataset.time === button.dataset.scene)?.click();
+      video.scrollIntoView({ behavior: "smooth", block: "center" });
+    }));
+
+    // 사용법(구매자/판매자)과 기술 소개(배송비 예산 필터/키워드 알림) 탭. 화살표 키는 같은 묶음 안에서만 돈다.
+    document.querySelectorAll('[role="tablist"]').forEach((tablist) => {
+      const tabs = [...tablist.querySelectorAll('[role="tab"]')];
+      const select = (tab) => {
+        tabs.forEach((t) => {
+          const selected = t === tab;
+          t.setAttribute("aria-selected", String(selected));
+          t.tabIndex = selected ? 0 : -1;
+          document.getElementById(t.getAttribute("aria-controls")).hidden = !selected;
+        });
+      };
+      tabs.forEach((tab, index) => {
+        tab.addEventListener("click", () => select(tab));
+        tab.addEventListener("keydown", (event) => {
+          if (event.key !== "ArrowRight" && event.key !== "ArrowLeft") return;
+          const next = tabs[(index + (event.key === "ArrowRight" ? 1 : tabs.length - 1)) % tabs.length];
+          select(next);
+          next.focus();
+        });
       });
     });
   </script>
