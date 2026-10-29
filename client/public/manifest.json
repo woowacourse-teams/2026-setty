@@ -9,7 +9,7 @@
     "theme_color": "#fef7ff",
     "lang": "ko",
     "icons": [
-        { "src": "/setty-favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
-        { "src": "/setty-apple-touch-icon.png", "sizes": "180x180", "type": "image/png", "purpose": "any" }
+        { "src": "/setty-favicon.svg?v=2", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+        { "src": "/setty-apple-touch-icon.png?v=2", "sizes": "180x180", "type": "image/png", "purpose": "any" }
     ]
 }
