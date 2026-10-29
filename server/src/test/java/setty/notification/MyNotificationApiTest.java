@@ -20,6 +20,8 @@ import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import setty.deliveryfee.DeliveryFeeService;
+import setty.deliveryfee.VolumeTier;
 import setty.platform.listing.storage.ListingImageStorage;
 import setty.support.MySqlIntegrationTestSupport;
 
@@ -37,6 +39,9 @@ class MyNotificationApiTest extends MySqlIntegrationTestSupport {
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
+
+    @Autowired
+    private DeliveryFeeService deliveryFeeService;
 
     @MockitoBean
     private ListingImageStorage listingImageStorage;
@@ -254,6 +259,47 @@ class MyNotificationApiTest extends MySqlIntegrationTestSupport {
                 .andExpect(status().isNoContent());
 
         assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM device_tokens", Integer.class)).isZero();
+    }
+
+    @Test
+    void 같은_시각의_알림도_페이지별_순서와_읽음_상태를_유지한다() throws Exception {
+        insertListing(71L, "원목 책상", false);
+        insertListing(72L, "삭제된 의자", true);
+        insertNotification(7_001L, 71L, MEMBER_ID, "2026-10-01 00:00:00");
+        insertNotification(7_002L, 72L, MEMBER_ID, "2026-10-01 00:00:00");
+        jdbcTemplate.update("UPDATE listing_notifications SET read_at = NOW(6) WHERE id = 7002");
+        mockMvc.perform(get("/api/me/notifications").header(HttpHeaders.AUTHORIZATION, TOKEN)
+                        .param("page", "0").param("size", "1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items.length()").value(1))
+                .andExpect(jsonPath("$.items[0].id").value(7_002))
+                .andExpect(jsonPath("$.items[0].title").value("삭제된 의자"))
+                .andExpect(jsonPath("$.items[0].listingStatus").value("DELETED"))
+                .andExpect(jsonPath("$.items[0].read").value(true));
+        mockMvc.perform(get("/api/me/notifications").header(HttpHeaders.AUTHORIZATION, TOKEN)
+                        .param("page", "1").param("size", "1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[0].id").value(7_001))
+                .andExpect(jsonPath("$.items[0].read").value(false));
+        mockMvc.perform(get("/api/me/notifications").header(HttpHeaders.AUTHORIZATION, TOKEN)
+                        .param("page", "2").param("size", "1"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.items.length()").value(0));
+    }
+
+    @Test
+    void 알림_배송비는_받는_사람의_현재_행정동으로_계산한다() throws Exception {
+        insertListing(71L, "원목 책상", false);
+        insertNotification(7_001L, 71L, MEMBER_ID, "2026-10-01 00:00:00");
+        jdbcTemplate.update("UPDATE listings SET dong_code = '1111053000' WHERE id = 71");
+        jdbcTemplate.update("UPDATE members SET dong_code = '1156054000' WHERE id = ?", MEMBER_ID);
+        int expected = deliveryFeeService.feeOrDefault("1111053000", null, "1156054000", null,
+                VolumeTier.SMALL, 10_000);
+        assertThat(expected).isNotEqualTo(10_000);
+        mockMvc.perform(get("/api/me/notifications").header(HttpHeaders.AUTHORIZATION, TOKEN))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.items[0].deliveryFee").value(expected));
+        jdbcTemplate.update("UPDATE members SET dong_code = NULL WHERE id = ?", MEMBER_ID);
+        mockMvc.perform(get("/api/me/notifications").header(HttpHeaders.AUTHORIZATION, TOKEN))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.items[0].deliveryFee").value(10_000));
     }
 
     private void insertMember(long id) {
