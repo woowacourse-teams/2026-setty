@@ -1,0 +1,304 @@
+{
+  "date": "2026-10-29",
+  "source_commit": "06d8da7d54a4599d430d8a212a23647d6beebb77",
+  "baseline_commit": "b650b5d703f84ae5f39f475d8089cf658c1c69cc",
+  "runtime": {
+    "java": "Amazon Corretto 21.0.5",
+    "python": "3.13.2",
+    "mysql": "8.4.11",
+    "docker": "29.6.2"
+  },
+  "server_tests": {
+    "counts": {
+      "tests": 798,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 1,
+      "passed": 797
+    },
+    "suites": 95,
+    "skipped_cases": [
+      {
+        "class": "setty.notification.send.fcm.FcmDryRunMeasurementTest",
+        "test": "알림_500건을_dry_run으로_한_번에_보내는_시간을_잰다()",
+        "reason": "FCM_DRY_RUN_TOKEN 및 SETTY_NOTIFICATION_FCM_CREDENTIALS_PATH를 명시해야 실행하는 외부 FCM 측정 테스트"
+      }
+    ]
+  },
+  "deployment_script_tests": {
+    "tests": 30,
+    "failures": 0,
+    "elapsed_seconds": 31.945
+  },
+  "shell_syntax": "passed",
+  "client_type_check": "passed",
+  "lab_settings": {
+    "staleness_seconds": 15,
+    "check_interval_seconds": 1,
+    "resubmission_interval_seconds": 1,
+    "blue_original_listener_case_resubmission_interval": "PT24H",
+    "order_scans": "PT24H"
+  },
+  "runs": [
+    {
+      "label": "same_version",
+      "run_id": "20261029-pre-pr-03",
+      "started_at": "2026-10-29T01:32:41.271678+00:00",
+      "finished_at": "2026-10-29T01:34:08.963799+00:00",
+      "green_jar_sha256": "fb9c613236dffcb96a54ae2ba4e7a2e2ed8ac979912f9b551f2aea0201230a11",
+      "blue_jar_sha256": "fb9c613236dffcb96a54ae2ba4e7a2e2ed8ac979912f9b551f2aea0201230a11",
+      "verifier_sha256": "8add6726ad72328ef15047a03ac09705fdbb2f52a881da3caaadf80dd978482a",
+      "status": "passed",
+      "container_removed": true,
+      "cases": [
+        {
+          "name": "payment_listener_sigkill",
+          "order_id": 1001,
+          "killed_pid": 36756,
+          "green_pid": 36210,
+          "before": {
+            "order": "PENDING",
+            "payment": "DONE",
+            "payments": 1,
+            "deliveries": 0,
+            "seller_settlements": 0
+          },
+          "interrupted_publication": {
+            "id": "1e3c2b55-f386-4fba-8332-740cb5c48b0a",
+            "type": "setty.common.PaymentCompleted",
+            "status": "PROCESSING",
+            "attempts": 1,
+            "listener": "setty.platform.order.controller.OrderEventListener.onPaymentCompleted(setty.common.PaymentCompleted)"
+          },
+          "after": {
+            "order": "CONFIRMED",
+            "payment": "DONE",
+            "payments": 1,
+            "deliveries": 1,
+            "seller_settlements": 1
+          },
+          "recovery_seconds": 17.411
+        },
+        {
+          "name": "delivery_listener_sigkill",
+          "order_id": 1002,
+          "killed_pid": 36814,
+          "green_pid": 36210,
+          "before": {
+            "order": "CONFIRMED",
+            "payment": "DONE",
+            "payments": 1,
+            "deliveries": 0,
+            "seller_settlements": 1
+          },
+          "interrupted_publication": {
+            "id": "a6e6fde7-453a-4fae-bb6c-f1aaef1ec4e2",
+            "type": "setty.common.OrderConfirmed",
+            "status": "PROCESSING",
+            "attempts": 1,
+            "listener": "setty.delivery.event.DeliveryEventListener.handle(setty.common.OrderConfirmed)"
+          },
+          "after": {
+            "order": "CONFIRMED",
+            "payment": "DONE",
+            "payments": 1,
+            "deliveries": 1,
+            "seller_settlements": 1
+          },
+          "recovery_seconds": 16.687
+        },
+        {
+          "name": "live_listener_overlap",
+          "publication": {
+            "id": "6f543af8-cc9c-4dd9-9ea8-101ea80d9ab2",
+            "type": "setty.common.PaymentCompleted",
+            "status": "PROCESSING",
+            "attempts": 2,
+            "listener": "setty.platform.order.controller.OrderEventListener.onPaymentCompleted(setty.common.PaymentCompleted)"
+          },
+          "original_pid": 36877,
+          "retry_pid": 36210,
+          "before": {
+            "order": "PENDING",
+            "payment": "DONE",
+            "payments": 1,
+            "deliveries": 0,
+            "seller_settlements": 0
+          },
+          "after": {
+            "order": "CONFIRMED",
+            "payment": "DONE",
+            "payments": 1,
+            "deliveries": 1,
+            "seller_settlements": 1
+          }
+        },
+        {
+          "name": "duplicate_payment_and_order_events",
+          "copies": 4,
+          "orders": {
+            "1001": {
+              "order": "CONFIRMED",
+              "payment": "DONE",
+              "payments": 1,
+              "deliveries": 1,
+              "seller_settlements": 1
+            },
+            "1002": {
+              "order": "CONFIRMED",
+              "payment": "DONE",
+              "payments": 1,
+              "deliveries": 1,
+              "seller_settlements": 1
+            },
+            "1003": {
+              "order": "CONFIRMED",
+              "payment": "DONE",
+              "payments": 1,
+              "deliveries": 1,
+              "seller_settlements": 1
+            }
+          }
+        },
+        {
+          "name": "retry_exhaustion",
+          "remaining": "FAILED:5",
+          "observation_seconds": 3
+        }
+      ]
+    },
+    {
+      "label": "mixed_version",
+      "run_id": "20261029-pre-pr-05-mixed",
+      "started_at": "2026-10-29T01:36:17.552000+00:00",
+      "finished_at": "2026-10-29T01:37:50.944884+00:00",
+      "green_jar_sha256": "fb9c613236dffcb96a54ae2ba4e7a2e2ed8ac979912f9b551f2aea0201230a11",
+      "blue_jar_sha256": "000298f1406972772004c5fad761012bbf88b3acd1a68b50f8d179ced2b2c0e1",
+      "verifier_sha256": "4c7465990e68011cf544a393792b449e8b8e2107986eb180bd5d6dc9b667def9",
+      "status": "passed",
+      "container_removed": true,
+      "cases": [
+        {
+          "name": "payment_listener_sigkill",
+          "order_id": 1001,
+          "killed_pid": 37968,
+          "green_pid": 37963,
+          "before": {
+            "order": "PENDING",
+            "payment": "DONE",
+            "payments": 1,
+            "deliveries": 0,
+            "seller_settlements": 0
+          },
+          "interrupted_publication": {
+            "id": "ca4aac7d-d5de-44d9-a01b-1a815834452b",
+            "type": "setty.common.PaymentCompleted",
+            "status": "PROCESSING",
+            "attempts": 1,
+            "listener": "setty.platform.order.controller.OrderEventListener.onPaymentCompleted(setty.common.PaymentCompleted)"
+          },
+          "after": {
+            "order": "CONFIRMED",
+            "payment": "DONE",
+            "payments": 1,
+            "deliveries": 1,
+            "seller_settlements": 1
+          },
+          "recovery_seconds": 17.279
+        },
+        {
+          "name": "delivery_listener_sigkill",
+          "order_id": 1002,
+          "killed_pid": 38098,
+          "green_pid": 37963,
+          "before": {
+            "order": "CONFIRMED",
+            "payment": "DONE",
+            "payments": 1,
+            "deliveries": 0,
+            "seller_settlements": 1
+          },
+          "interrupted_publication": {
+            "id": "d7c9247e-2930-4d6c-a8d0-4cad6b397557",
+            "type": "setty.common.OrderConfirmed",
+            "status": "PROCESSING",
+            "attempts": 1,
+            "listener": "setty.delivery.event.DeliveryEventListener.handle(setty.common.OrderConfirmed)"
+          },
+          "after": {
+            "order": "CONFIRMED",
+            "payment": "DONE",
+            "payments": 1,
+            "deliveries": 1,
+            "seller_settlements": 1
+          },
+          "recovery_seconds": 17.413
+        },
+        {
+          "name": "live_listener_overlap",
+          "publication": {
+            "id": "79f6e409-698a-4703-94c8-565661a46737",
+            "type": "setty.common.PaymentCompleted",
+            "status": "PROCESSING",
+            "attempts": 2,
+            "listener": "setty.platform.order.controller.OrderEventListener.onPaymentCompleted(setty.common.PaymentCompleted)"
+          },
+          "original_pid": 38200,
+          "retry_pid": 37963,
+          "before": {
+            "order": "PENDING",
+            "payment": "DONE",
+            "payments": 1,
+            "deliveries": 0,
+            "seller_settlements": 0
+          },
+          "after": {
+            "order": "CONFIRMED",
+            "payment": "DONE",
+            "payments": 1,
+            "deliveries": 1,
+            "seller_settlements": 1
+          }
+        },
+        {
+          "name": "duplicate_payment_and_order_events",
+          "copies": 4,
+          "orders": {
+            "1001": {
+              "order": "CONFIRMED",
+              "payment": "DONE",
+              "payments": 1,
+              "deliveries": 1,
+              "seller_settlements": 1
+            },
+            "1002": {
+              "order": "CONFIRMED",
+              "payment": "DONE",
+              "payments": 1,
+              "deliveries": 1,
+              "seller_settlements": 1
+            },
+            "1003": {
+              "order": "CONFIRMED",
+              "payment": "DONE",
+              "payments": 1,
+              "deliveries": 1,
+              "seller_settlements": 1
+            }
+          }
+        },
+        {
+          "name": "retry_exhaustion",
+          "remaining": "FAILED:5",
+          "observation_seconds": 3
+        }
+      ]
+    }
+  ],
+  "limits": [
+    "운영 기본 감시 5분, 검사 30초, 재발행 1분의 지연 측정은 아님",
+    "Nginx 및 systemd와 AWS 배포 미수행",
+    "주문 만료 경합과 외부 PG/푸시 검증 제외",
+    "원격 CI 및 PR 리뷰는 PR 생성 후 확인 필요"
+  ]
+}
