@@ -154,7 +154,8 @@
     gap: 8px;
     min-height: 40px;
     padding: 0 24px;
-    border-radius: 999px;
+    /* 높이의 절반으로 둔다. 999px처럼 크게 두면 누를 때 튀는 곡선이 12px를 지나 0까지 내려가 잠깐 각진 사각형이 된다 */
+    border-radius: 20px;
     font-family: var(--font-brand);
     font-size: 16px;
     line-height: 24px;
@@ -171,6 +172,7 @@
 .button--medium {
     min-height: 56px;
     padding: 0 28px;
+    border-radius: 28px;
 }
 
 .button--full {
