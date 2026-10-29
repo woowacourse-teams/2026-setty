@@ -41,7 +41,6 @@ import {
     loadListings,
     loadMore,
     refreshHome,
-    searchFurnitures,
     selectCategory,
     selectMaxDeliveryFee,
     useHomeState,
@@ -50,6 +49,7 @@ import {
 } from './homeStore';
 import screenStyles from '../screens.module.css';
 import styles from './home.module.css';
+import { useListingSearch } from './useListingSearch';
 
 const SEARCH_PARAM = 'search';
 
@@ -133,7 +133,7 @@ function ListingList({ home, onListingClick }: { home: HomeState; onListingClick
 
     useEffect(() => {
         const trigger = triggerRef.current;
-        if (!canLoadMore || !trigger) return;
+        if (!canLoadMore || !trigger || home.isRefreshing || home.isLoadingMore) return;
         const observer = new IntersectionObserver(([entry]) => {
             if (!entry.isIntersecting || requestedCount.current === itemCount) return;
             requestedCount.current = itemCount;
@@ -141,7 +141,7 @@ function ListingList({ home, onListingClick }: { home: HomeState; onListingClick
         }, { rootMargin: `0px 0px ${LOAD_MORE_THRESHOLD * LISTING_ITEM_HEIGHT}px 0px` });
         observer.observe(trigger);
         return () => observer.disconnect();
-    }, [canLoadMore, itemCount]);
+    }, [canLoadMore, itemCount, home.isRefreshing, home.isLoadingMore]);
 
     return (
         <div className={styles.list}>
@@ -307,9 +307,30 @@ function DeliveryFeeBudgetSheet({ initialBudget, onDismiss, onSelect }: { initia
 function SearchLayer({ home, onListingClick }: { home: HomeState; onListingClick: (listingId: number) => void }) {
     const navigateBack = useNavigateBack();
     const [query, setQuery] = useState('');
-    const results = searchFurnitures(home, query);
+    const search = useListingSearch(query, home.selectedCategory, home.maxDeliveryFee);
+    const results = search.items;
+    const scrollRef = useRef<HTMLDivElement | null>(null);
+    const triggerRef = useRef<HTMLDivElement | null>(null);
+
+    useEffect(() => {
+        scrollRef.current?.scrollTo({ top: 0 });
+    }, [query.trim(), home.selectedCategory, home.maxDeliveryFee]);
+
+    useEffect(() => {
+        const trigger = triggerRef.current;
+        if (!trigger || !search.nextCursor || search.loading || search.error) return;
+        const observer = new IntersectionObserver(([entry]) => {
+            if (entry.isIntersecting) search.loadMore();
+        }, {
+            root: scrollRef.current,
+            rootMargin: `0px 0px ${LOAD_MORE_THRESHOLD * LISTING_ITEM_HEIGHT}px 0px`
+        });
+        observer.observe(trigger);
+        return () => observer.disconnect();
+    }, [search.nextCursor, search.loading, search.error, search.loadMore]);
+
     return (
-        <div className={styles['search-layer']}>
+        <div className={styles['search-layer']} ref={scrollRef}>
             <div className={styles['search-bar']}>
                 <IconButton icon="arrowBack" label="검색 닫기" onClick={navigateBack} />
                 <input
@@ -317,6 +338,7 @@ function SearchLayer({ home, onListingClick }: { home: HomeState; onListingClick
                     autoFocus
                     className={styles['search-bar__input']}
                     enterKeyHint="search"
+                    maxLength={100}
                     onChange={(event) => setQuery(event.target.value)}
                     placeholder="중고 가구 검색"
                     type="search"
@@ -326,11 +348,14 @@ function SearchLayer({ home, onListingClick }: { home: HomeState; onListingClick
             {!query.trim() && (
                 <SettyMessage description="판매 중인 가구의 제목으로 찾아드려요." style={{ marginTop: 48 }} title="어떤 가구를 찾으세요?" />
             )}
-            {query.trim() && results.length === 0 && (
+            {query.trim() && !search.loading && !search.error && results.length === 0 && (
                 <SettyMessage description="다른 단어로 다시 찾아보세요." style={{ marginTop: 48 }} title="검색 결과가 없어요" />
             )}
+            {search.loading && results.length === 0 && <LoadingIndicator />}
+            {search.error && results.length === 0 && <SettyMessage title="검색 결과를 불러오지 못했어요"
+                action={<Button onClick={search.retry}>다시 시도</Button>} />}
             {results.length > 0 && (
-                <div className={styles['search-results']}>
+                <div aria-label="검색 결과" className={styles['search-results']} role="region">
                     <SegmentedList>
                         {results.map((listing, index) => (
                             <ListingItem
@@ -342,6 +367,13 @@ function SearchLayer({ home, onListingClick }: { home: HomeState; onListingClick
                             />
                         ))}
                     </SegmentedList>
+                    {search.nextCursor && (
+                        <div className={styles['load-more']} ref={triggerRef}>
+                            {search.loading && <LoadingIndicator />}
+                            {search.error && <SettyMessage title="가구를 더 불러오지 못했어요"
+                                action={<Button onClick={search.loadMore}>다시 시도</Button>} />}
+                        </div>
+                    )}
                 </div>
             )}
         </div>

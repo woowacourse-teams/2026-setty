@@ -320,6 +320,66 @@ class ListingDeliveryFeeFilterApiTest extends MySqlIntegrationTestSupport {
         assertThat(ids(read(get("/api/listings")))).hasSize(listings.size());
     }
 
+    @Test
+    void 전체_데이터에서_검색과_카테고리를_적용한_뒤_동일시각도_빠짐없이_페이징한다() throws Exception {
+        jdbcTemplate.update("UPDATE listings SET created_at = ?, title = CONCAT('Desk ', id)", Timestamp.from(BASE));
+        jdbcTemplate.update("UPDATE listings SET category = 'DESK' WHERE id <= 5");
+        assertThat(ids(read(get("/api/listings").param("size", "2")))).doesNotContain(1L, 2L, 3L, 4L, 5L);
+        List<Long> actual = new ArrayList<>();
+        String cursor = null;
+        do {
+            MockHttpServletRequestBuilder request = get("/api/listings").param("size", "2")
+                    .param("query", "  dEsK  ").param("category", "DESK");
+            if (cursor != null) request.param("cursor", cursor);
+            JsonNode page = read(request);
+            actual.addAll(ids(page));
+            cursor = page.hasNonNull("nextCursor") ? page.get("nextCursor").asString() : null;
+        } while (cursor != null);
+        assertThat(actual).containsExactly(5L, 4L, 3L, 2L, 1L);
+        assertThat(ids(read(get("/api/listings")))).hasSize(listings.size());
+    }
+
+    @Test
+    void 검색_카테고리_배송비의_교집합은_기존_응답_필드를_유지한다() throws Exception {
+        JsonNode baseline = read(filtered(20_000).param("size", "100"));
+        long target = ids(baseline).getLast();
+        jdbcTemplate.update("UPDATE listings SET title = '100%_Desk', category = 'DESK' WHERE id = ?", target);
+        JsonNode page = read(filtered(20_000).param("size", "1").param("query", "%_").param("category", "DESK"));
+        JsonNode full = read(filtered(20_000).param("size", "100"));
+        JsonNode expected = null;
+        for (JsonNode item : full.get("items")) if (item.get("id").asLong() == target) expected = item;
+        assertThat(page.get("items").get(0)).isEqualTo(expected);
+        assertThat(ids(page)).containsExactly(target);
+        assertThat(ids(read(filtered(20_000).param("query", "존재하지않는가구")))).isEmpty();
+        assertThat(ids(read(filtered(20_000).param("query", "100%").param("category", "SOFA")))).isEmpty();
+    }
+
+    @Test
+    void 검색은_삭제와_판매완료_매물을_빼고_입력을_검증한다() throws Exception {
+        jdbcTemplate.update("UPDATE listings SET title = '검색 대상'");
+        jdbcTemplate.update("UPDATE listings SET deleted_at = NOW(6) WHERE id = 1");
+        jdbcTemplate.update("UPDATE listings SET sale_status = 'SOLD' WHERE id = 2");
+        assertThat(ids(read(get("/api/listings").param("query", "검색").param("size", "100"))))
+                .hasSize(listings.size() - 2).doesNotContain(1L, 2L);
+        for (String category : List.of("UNKNOWN", "chair")) {
+            mockMvc.perform(get("/api/listings").param("category", category)).andExpect(status().isBadRequest());
+        }
+        mockMvc.perform(get("/api/listings").param("query", "x".repeat(101))).andExpect(status().isBadRequest());
+        mockMvc.perform(get("/api/listings").param("query", "검색").param("size", "0"))
+                .andExpect(status().isBadRequest());
+        mockMvc.perform(get("/api/listings").param("query", "검색").param("cursor", "invalid"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void 제목_검색은_악센트와_SQL_특수문자를_일반_문자로_구분한다() throws Exception {
+        jdbcTemplate.update("UPDATE listings SET title = 'Café' WHERE id = 1");
+        jdbcTemplate.update("UPDATE listings SET title = 'Cafe' WHERE id = 2");
+        assertThat(ids(read(get("/api/listings").param("query", "cafe")))).containsExactly(2L);
+        assertThat(ids(read(get("/api/listings").param("query", "CAFÉ")))).containsExactly(1L);
+        assertThat(ids(read(get("/api/listings").param("query", "' OR 1=1 --")))).isEmpty();
+    }
+
     private int expectedFee(Listing listing) {
         if (listing.dongCode() == null) {
             return FIXED_FEE;
