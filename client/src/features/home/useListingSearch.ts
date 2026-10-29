@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { isUnauthorized } from '../../api/errors';
 import { furnitureRepository } from '../../api/repositories';
 import type { ConditionGrade, FurnitureCategory, FurniturePage } from '../../model/furniture';
 import type { PriceRange } from './priceRange';
@@ -7,8 +8,12 @@ type SearchState = FurniturePage & { key: string; loading: boolean; error: boole
 
 export function useListingSearch(
     query: string, category: FurnitureCategory | null, conditionGrades: readonly ConditionGrade[],
-    priceRange: PriceRange | null, maxDeliveryFee: number | null
+    priceRange: PriceRange | null, maxDeliveryFee: number | null,
+    // 배송비 필터를 켠 채 토큰이 끊겨 401이 오면 부른다
+    onUnauthorized: () => void = () => undefined
 ) {
+    const onUnauthorizedRef = useRef(onUnauthorized);
+    onUnauthorizedRef.current = onUnauthorized;
     const keyword = query.trim();
     const minPrice = priceRange?.min ?? null;
     const maxPrice = priceRange?.max ?? null;
@@ -31,9 +36,10 @@ export function useListingSearch(
                     if (request !== generation.current || activeKey.current !== key) return;
                     setState({ ...page, key, loading: false, error: false });
                 })
-                .catch(() => {
+                .catch((error: unknown) => {
                     if (request !== generation.current || activeKey.current !== key) return;
                     setState({ key, items: [], nextCursor: null, loading: false, error: true });
+                    if (isUnauthorized(error)) onUnauthorizedRef.current();
                 });
         }, 300);
         return () => { window.clearTimeout(timer); generation.current += 1; };
@@ -54,10 +60,11 @@ export function useListingSearch(
                         nextCursor: page.nextCursor, loading: false, error: false };
                 });
             })
-            .catch(() => {
+            .catch((error: unknown) => {
                 if (request !== generation.current || activeKey.current !== key) return;
                 loadingMore.current = false;
                 setState((current) => ({ ...current, loading: false, error: true }));
+                if (isUnauthorized(error)) onUnauthorizedRef.current();
             });
     };
 

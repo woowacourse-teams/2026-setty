@@ -184,9 +184,13 @@ export function loadMore() {
                 };
             });
         })
-        .catch(() => {
+        .catch((error: unknown) => {
             if (request !== listingsRequest) return;
             update({ isLoadingMore: false });
+            if (isUnauthorized(error)) {
+                onRequireLogin();
+                return;
+            }
             showSnackbar('가구를 더 불러오지 못했습니다');
         });
 }

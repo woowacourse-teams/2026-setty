@@ -135,7 +135,12 @@ public class ListingService {
         }
         validatePriceRange(minPrice, maxPrice);
         ListingSearchTerms search = keyword == null ? null : ListingSearchTerms.of(keyword);
-        List<ConditionGrade> grades = conditionGrades == null || conditionGrades.isEmpty() ? null : conditionGrades;
+        // conditionGrade=S, 처럼 빈 값이 섞이면 Spring이 null로 바꾸므로 빼고 본다
+        List<ConditionGrade> grades = conditionGrades == null ? List.of()
+                : conditionGrades.stream().filter(Objects::nonNull).distinct().toList();
+        if (grades.isEmpty()) {
+            grades = null;
+        }
         ListingFilter filter = new ListingFilter(search, category, grades, minPrice, maxPrice);
         return listingQueryRepository.inOneConnection(reader -> {
             Buyer buyer = buyerOf(reader, buyerToken);

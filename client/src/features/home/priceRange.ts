@@ -10,9 +10,9 @@ export const PriceFilter = {
     MAX: 100_000_000,
     MAX_DIGITS: 9,
 
-    /** "5만 원 이하", "5만 원 이상", "5만~20만 원" */
+    /** "5만 원 이하", "5만 원 이상", "5만~20만 원", "5,000~20만 원" */
     label(range: PriceRange): string {
-        if (range.min !== null && range.max !== null) return `${formatCompactWon(range.min).replace(' 원', '')}~${formatCompactWon(range.max)}`;
+        if (range.min !== null && range.max !== null) return `${formatCompactWon(range.min).replace(/ ?원$/, '')}~${formatCompactWon(range.max)}`;
         if (range.max !== null) return `${formatCompactWon(range.max)} 이하`;
         return `${formatCompactWon(range.min ?? 0)} 이상`;
     },

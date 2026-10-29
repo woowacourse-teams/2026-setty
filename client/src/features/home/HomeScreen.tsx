@@ -390,7 +390,8 @@ function GradeSheet({ initialGrades, onDismiss, onSelect }: { initialGrades: rea
 function PriceRangeSheet({ initialRange, onDismiss, onSelect }: { initialRange: PriceRange | null; onDismiss: () => void; onSelect: (range: PriceRange | null) => void }) {
     const [min, setMin] = useState(initialRange?.min === null || initialRange === null ? '' : String(initialRange.min));
     const [max, setMax] = useState(initialRange?.max === null || initialRange === null ? '' : String(initialRange.max));
-    const range: PriceRange = { min: min === '' ? null : Number(min), max: max === '' ? null : Number(max) };
+    // 최소 0원은 하한이 없는 것과 같으므로 조건에서 뺀다
+    const range: PriceRange = { min: min === '' || Number(min) === 0 ? null : Number(min), max: max === '' ? null : Number(max) };
     const tooLarge = (range.min ?? 0) > PriceFilter.MAX || (range.max ?? 0) > PriceFilter.MAX;
     const orderError = range.min !== null && range.max !== null && range.min > range.max;
     const canApply = !tooLarge && !orderError && (range.min !== null || range.max !== null);
@@ -514,8 +515,12 @@ function DeliveryFeeBudgetSheet({ initialBudget, onDismiss, onSelect }: { initia
 
 function SearchLayer({ home, onListingClick }: { home: HomeState; onListingClick: (listingId: number) => void }) {
     const navigateBack = useNavigateBack();
+    const navigateToLogin = useNavigateToLogin();
     const [query, setQuery] = useState('');
-    const search = useListingSearch(query, home.selectedCategory, home.selectedGrades, home.priceRange, home.maxDeliveryFee);
+    const search = useListingSearch(query, home.selectedCategory, home.selectedGrades, home.priceRange, home.maxDeliveryFee, () => {
+        showSnackbar('로그인이 만료됐어요. 다시 로그인해 주세요.', { keepOnNextScreen: true });
+        navigateToLogin();
+    });
     const results = search.items;
     const scrollRef = useRef<HTMLDivElement | null>(null);
     const triggerRef = useRef<HTMLDivElement | null>(null);

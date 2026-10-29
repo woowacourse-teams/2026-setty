@@ -116,6 +116,16 @@ class ListingGradeSearchApiTest extends MySqlIntegrationTestSupport {
     }
 
     @Test
+    void 등급에_빈_값이_섞여도_나머지_등급으로만_거른다() throws Exception {
+        long s = insert("S급 의자", "", "CHAIR", "S");
+        insert("A급 의자", "", "CHAIR", "A");
+
+        assertThat(ids(read(get("/api/listings").param("conditionGrade", "S,")))).containsExactly(s);
+        assertThat(ids(read(get("/api/listings").param("conditionGrade", "S").param("conditionGrade", "")))).containsExactly(s);
+        assertThat(ids(read(get("/api/listings").param("conditionGrade", ",")))).hasSize(2);
+    }
+
+    @Test
     void 등급_필터는_삭제와_판매완료_매물을_빼고_모르는_등급은_거절한다() throws Exception {
         long deleted = insert("지운 의자", "", "CHAIR", "S");
         long sold = insert("팔린 의자", "", "CHAIR", "S");

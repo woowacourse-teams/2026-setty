@@ -127,6 +127,13 @@ test('토큰이 끊겨 배송비 필터가 401이면 이전 필터로 되돌리�
     assert.equal(login, 1); assert.equal(dong, 0); assert.equal(messages.length, 0);
     assert.equal(store.useHomeState().maxDeliveryFee, null); assert.deepEqual(ids(store), [1]);
 });
+test('이어 받다가 401이면 스낵바 없이 로그인으로 보낸다', async () => {
+    const { store, requests, messages } = home(); let login = 0;
+    store.enterHome(() => {}, () => login++); requests[0].resolve(page([2], 'next')); await settle();
+    store.loadMore(); requests[1].reject('UNAUTHORIZED'); await settle();
+    assert.equal(login, 1); assert.equal(messages.length, 0); assert.deepEqual(ids(store), [2]);
+    assert.equal(store.useHomeState().isLoadingMore, false);
+});
 test('repository는 size=20과 조건을 보내고 찜 수와 거래 상태를 보존한다', async () => {
     const requests = [];
     const { furnitureRepository } = load('api/repositories.ts', {

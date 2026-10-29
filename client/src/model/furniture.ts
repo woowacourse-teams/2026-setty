@@ -187,8 +187,9 @@ export function formatWon(value: number): string {
     return `${wonFormat.format(value)}원`;
 }
 
-/** 15000 → "1.5만 원", 20000 → "2만 원", 만·천 단위로 떨어지지 않으면 "23,500원" */
+/** 15000 → "1.5만 원", 20000 → "2만 원", 100000000 → "1억 원", 만·천 단위로 떨어지지 않으면 "23,500원" */
 export function formatCompactWon(value: number): string {
+    if (value >= 100_000_000) return value % 100_000_000 === 0 ? `${value / 100_000_000}억 원` : formatWon(value);
     if (value % 1_000 !== 0 || value < 10_000) return formatWon(value);
     const man = Math.floor(value / 10_000);
     const thousand = Math.floor((value % 10_000) / 1_000);
