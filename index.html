@@ -382,6 +382,31 @@
     .tech-foot { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
     .tech-note { margin: 0; font-size: .8125rem; font-weight: 600; color: var(--on-surface-variant); }
     .tech-foot .btn svg { width: 20px; height: 20px; }
+    /* 기술 소개 시각 자료: 앱 정지 화면과 전후 막대, 발송 흐름 */
+    .tech-visuals { grid-column: 1 / -1; display: grid; grid-template-columns: auto 1fr; gap: 20px; align-items: stretch; }
+    .shots { display: flex; gap: 14px; }
+    .shot { margin: 0; width: 150px; }
+    .shot .shot-phone { padding: 5px; border-radius: 24px; background: var(--inverse-surface); }
+    .shot img { display: block; width: 100%; height: auto; border-radius: 19px; }
+    .shot figcaption { margin-top: 8px; font-size: .8125rem; font-weight: 700; color: var(--on-surface-variant); line-height: 1.4; }
+    .shot figcaption b { display: block; color: var(--on-surface); font-weight: 800; }
+    .bars { display: grid; gap: 14px; align-content: start; padding: 18px 20px; border-radius: 20px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--outline-variant); }
+    .bars-title { margin: 0; font-size: .8125rem; font-weight: 800; color: var(--on-surface-variant); }
+    .bar-row { display: grid; grid-template-columns: 84px 1fr; gap: 4px 12px; align-items: center; }
+    .bar-name { grid-row: span 2; font-size: .875rem; font-weight: 800; }
+    .bar { display: flex; align-items: center; gap: 8px; min-width: 0; font-size: .8125rem; font-weight: 700; color: var(--on-surface-variant); font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .bar::before { content: ""; display: block; height: 14px; width: var(--w); min-width: 4px; border-radius: 4px; background: var(--outline-variant); }
+    .bar.after::before { background: var(--primary); }
+    .bar.after { color: var(--on-surface); font-weight: 800; }
+    .bar-legend { margin: 0; font-size: .75rem; font-weight: 700; color: var(--on-surface-variant); }
+    .flow-line { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 16px 18px; border-radius: 20px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--outline-variant); }
+    .flow-line .node { padding: 8px 12px; border-radius: 10px; background: var(--surface-container-high); font-size: .8125rem; font-weight: 800; }
+    .flow-line .node.hi { background: var(--primary); color: var(--on-primary); }
+    .flow-line .node.soft { background: var(--tertiary-container); color: var(--on-tertiary-container); }
+    .flow-line .arrow { font-size: .8125rem; font-weight: 800; color: var(--on-surface-variant); }
+    .flow-line .cut { align-self: stretch; width: 2px; margin: 0 4px; border-left: 2px dashed var(--outline); }
+    @media (max-width: 720px) { .tech-visuals { grid-template-columns: 1fr; } .shots { justify-content: center; } }
+    @media (max-width: 520px) { .shot { width: 130px; } .bar-row { grid-template-columns: 70px 1fr; } }
     @media (max-width: 960px) { .tech { grid-template-columns: 1fr; } }
     @media (max-width: 520px) { .tech { padding: 28px 20px; } .stats { grid-template-columns: 1fr; } }
 
@@ -758,6 +783,25 @@
                 <div class="ranges" aria-hidden="true"><span>3~7</span><span>10~11</span><span>16~21</span><em>→ 조건 3개로 한 쿼리</em></div>
               </div>
             </div>
+            <div class="tech-visuals">
+              <div class="shots">
+                <figure class="shot">
+                  <div class="shot-phone"><img src="assets/screenshots/budget-sheet.jpg" width="540" height="960" loading="lazy" alt="배송비 예산 화면. 슬라이더로 6.5만 원 이하를 고르고 적용 버튼을 누른다." /></div>
+                  <figcaption><b>1. 예산 정하기</b>내 행정동까지 이 금액 안으로 배송되는 가구만</figcaption>
+                </figure>
+                <figure class="shot">
+                  <div class="shot-phone"><img src="assets/screenshots/budget-list.jpg" width="540" height="960" loading="lazy" alt="8만 원 이하로 거른 매물 목록. 각 매물에 배송비를 포함한 총액이 보인다." /></div>
+                  <figcaption><b>2. 거른 목록</b>총액에 배송비가 포함돼 있어요</figcaption>
+                </figure>
+              </div>
+              <div class="bars" role="img" aria-label="바꾸기 전과 후를 막대로 비교. p95 응답 1.8초에서 4.9ms, 최대 처리량 917건에서 1,777건, 요금 구간 불일치 22.1%에서 7.1%.">
+                <p class="bars-title">바꾸기 전(회색) → 후(보라) · 같은 부하, 노트북 측정</p>
+                <div class="bar-row"><span class="bar-name">p95 응답</span><div class="bar" style="--w: 100%">1.8초</div><div class="bar after" style="--w: 0.3%">4.9ms</div></div>
+                <div class="bar-row"><span class="bar-name">최대 처리량</span><div class="bar" style="--w: 52%">917건/초</div><div class="bar after" style="--w: 100%">1,777건/초</div></div>
+                <div class="bar-row"><span class="bar-name">요금 구간 불일치</span><div class="bar" style="--w: 100%">22.1%</div><div class="bar after" style="--w: 32%">7.1%</div></div>
+                <p class="bar-legend">막대 길이는 항목마다 큰 값을 100으로 둔 비율이에요.</p>
+              </div>
+            </div>
             <div class="tech-foot">
               <p class="tech-note">노트북에서 같은 조건으로 전후를 잰 값이에요. 운영은 행정동 표로 동작하고, 우편번호 구역은 적용을 준비하고 있어요.</p>
               <button type="button" class="btn btn-tonal btn-small" data-scene="21">영상 0:21 장면 보기<svg aria-hidden="true"><use href="#i-chevron" /></svg></button>
@@ -779,6 +823,21 @@
               <div class="stat"><p class="stat-label">발송 완료까지 · 1,000명</p><p class="stat-value">0.20<small>초</small></p><p class="stat-before">바꾸기 전 116.9초</p></div>
               <div class="stat"><p class="stat-label">등록 응답 p95 · 1만 명</p><p class="stat-value">393<small>ms</small></p><p class="stat-before">발송 완료 평균 0.80초</p></div>
               <div class="stat"><p class="stat-label">중복 · 누락</p><p class="stat-value">0<small>건</small></p><p class="stat-before">매물 35건 × 구독자 1,000명</p></div>
+            </div>
+            <div class="flow-line" role="img" aria-label="매물 등록이 알림을 한 번에 저장하고 바로 응답한 뒤, 커밋 후 이벤트가 500건씩 묶어 병렬로 푸시를 보내는 흐름">
+              <span class="node hi">매물 등록</span><span class="arrow">→</span>
+              <span class="node">알림 1,000건 한 번에 저장</span><span class="arrow">→</span>
+              <span class="node hi">바로 응답 183ms</span>
+              <span class="cut" aria-hidden="true"></span>
+              <span class="node soft">저장 뒤 이벤트</span><span class="arrow">→</span>
+              <span class="node">500건씩 묶어 병렬 발송</span><span class="arrow">→</span>
+              <span class="node soft">푸시 발송 · 실패 3회 재시도</span>
+            </div>
+            <div class="bars" style="grid-column: 1 / -1" role="img" aria-label="바꾸기 전과 후를 막대로 비교. 구독자 1,000명에서 등록 응답 116.9초에서 0.183초, 발송 완료 116.9초에서 0.20초.">
+              <p class="bars-title">바꾸기 전(회색) → 후(보라) · 구독자 1,000명, 개발 서버</p>
+              <div class="bar-row"><span class="bar-name">등록 응답</span><div class="bar" style="--w: 100%">116.9초 · 시간 초과</div><div class="bar after" style="--w: 0.2%">183ms</div></div>
+              <div class="bar-row"><span class="bar-name">발송 완료</span><div class="bar" style="--w: 100%">116.9초</div><div class="bar after" style="--w: 0.2%">0.20초</div></div>
+              <p class="bar-legend">막대 길이는 항목마다 큰 값을 100으로 둔 비율이에요.</p>
             </div>
             <div class="tech-foot">
               <p class="tech-note">개발 서버에 부하를 걸어 잰 값이에요. 푸시 왕복 시간은 실측한 113ms를 썼어요.</p>
