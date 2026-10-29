@@ -42,6 +42,7 @@ import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 import setty.deliveryfee.DeliveryFeeService;
 import setty.deliveryfee.VolumeTier;
 import setty.global.exception.GlobalExceptionHandler;
+import setty.platform.favorite.repository.FavoriteRepository;
 import setty.platform.listing.application.ListingRecorder;
 import setty.platform.listing.application.ListingService;
 import setty.platform.listing.domain.ConditionGrade;
@@ -98,9 +99,9 @@ class ListingTimingHttpIntegrationTest {
 
     @Test
     void actualControllerAndServiceProduceJsonAndOneCorrelatedStructuredLog() throws Exception {
-        when(context.getBean(ListingQueryRepository.class).findAvailable(null, null, null, null))
+        when(context.getBean(ListingQueryRepository.class).findAvailable(null, null, null, null, null, null, null))
                 .thenReturn(List.of(new ListingQueryRepository.Row(7L, "test desk", 50000, 10000, ListingCategory.DESK,
-                        ConditionGrade.A, 80, 50, 70, false, Instant.parse("2026-10-01T00:00:00Z"), null, VolumeTier.SMALL)));
+                        ConditionGrade.A, 80, 50, 70, false, Instant.parse("2026-10-01T00:00:00Z"), null, null, VolumeTier.SMALL)));
         when(context.getBean(ListingQueryRepository.class).findThumbnailObjectKeys(List.of(7L)))
                 .thenReturn(Map.of(7L, "first.jpg"));
         when(context.getBean(ListingImageStorage.class).publicUrl("first.jpg")).thenReturn("https://example.test/first.jpg");
@@ -133,7 +134,7 @@ class ListingTimingHttpIntegrationTest {
 
     @Test
     void handledRepositoryFailureRetains500AndMarksOnlyAttemptedStage() throws Exception {
-        when(context.getBean(ListingQueryRepository.class).findAvailable(null, null, null, null))
+        when(context.getBean(ListingQueryRepository.class).findAvailable(null, null, null, null, null, null, null))
                 .thenThrow(new IllegalStateException("synthetic failure"));
         HttpResponse<String> response = get();
         assertThat(response.statusCode()).isEqualTo(500);
@@ -179,6 +180,7 @@ class ListingTimingHttpIntegrationTest {
         @Bean ListingRepository listingRepository() { return mock(ListingRepository.class); }
         @Bean ListingImageRepository imageRepository() { return mock(ListingImageRepository.class); }
         @Bean OrderRepository orderRepository() { return mock(OrderRepository.class); }
+        @Bean FavoriteRepository favoriteRepository() { return mock(FavoriteRepository.class); }
         @Bean DeliveryFeeService deliveryFeeService() { return mock(DeliveryFeeService.class); }
         @Bean ListingImageStorage imageStorage() { return mock(ListingImageStorage.class); }
         @Bean ListingQueryRepository listingQueryRepository() { return mock(ListingQueryRepository.class); }

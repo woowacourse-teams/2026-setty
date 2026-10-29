@@ -38,3 +38,9 @@
 - 합의: 수락은 서브패스 없이 `POST /api/delivery/requests/{deliveryId}`. 앱은 이 형태로 구현돼 있다.
 - 현재 서버(develop `DeliveryController`)에는 아직 `POST /api/delivery/requests/{deliveryId}/acceptance`가 남아 있어, 서버에서 제거가 머지되기 전까지 **수락만 404**가 난다(목록·상세·수령·완료는 정상).
 - 서버 제거 반영 시 별도 조치 불필요(앱은 이미 대상 경로 사용).
+
+## 8. 배차 취소 — 1차 처리(#548)
+
+- 내 배차 상세(`ACCEPTED`)의 '배차 취소' → 확인 창(`lib/confirm.ts`, 웹은 `window.confirm`) → `POST .../cancellation`. 성공하면 상세를 닫고 내 배차 목록은 포커스 재조회로 다시 불러온다.
+- 취소한 요청은 거절과 같이 `rejectedStore`로 이번 세션 동안 홈에서 숨긴다. 다른 기사에게는 바로 다시 보인다.
+- 미정(서버 정책 `docs/policy/delivery.md` 확인 필요): 반복 취소 제한, 취소 이력, 취소한 기사에게 다시 보일지, 취소 사유 입력, 판매자·구매자 알림.

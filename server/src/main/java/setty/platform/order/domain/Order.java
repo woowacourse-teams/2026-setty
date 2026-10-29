@@ -1,6 +1,8 @@
 package setty.platform.order.domain;
 
+import jakarta.persistence.AttributeOverride;
 import jakarta.persistence.Column;
+import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -56,14 +58,31 @@ public class Order {
     @Column(name = "delivery_fee", updatable = false)
     private Integer deliveryFee;
 
-    @Column(name = "delivery_dong_code", length = 10, updatable = false)
-    private String deliveryDongCode;
+    @Embedded
+    @AttributeOverride(name = "address",
+            column = @Column(name = "pickup_address", length = 200, updatable = false))
+    @AttributeOverride(name = "phoneNumber",
+            column = @Column(name = "pickup_phone_number", length = 13, updatable = false))
+    @AttributeOverride(name = "dongCode",
+            column = @Column(name = "pickup_dong_code", length = 10, updatable = false))
+    @AttributeOverride(name = "zipCode",
+            column = @Column(name = "pickup_zip_code", length = 5, updatable = false))
+    @AttributeOverride(name = "managementNumber",
+            column = @Column(name = "pickup_address_mgmt_no", length = 25, updatable = false))
+    private OrderPlace pickup;
 
-    @Column(name = "delivery_address", length = 200, updatable = false)
-    private String deliveryAddress;
-
-    @Column(name = "delivery_phone_number", length = 13, updatable = false)
-    private String deliveryPhoneNumber;
+    @Embedded
+    @AttributeOverride(name = "address",
+            column = @Column(name = "delivery_address", length = 200, updatable = false))
+    @AttributeOverride(name = "phoneNumber",
+            column = @Column(name = "delivery_phone_number", length = 13, updatable = false))
+    @AttributeOverride(name = "dongCode",
+            column = @Column(name = "delivery_dong_code", length = 10, updatable = false))
+    @AttributeOverride(name = "zipCode",
+            column = @Column(name = "delivery_zip_code", length = 5, updatable = false))
+    @AttributeOverride(name = "managementNumber",
+            column = @Column(name = "delivery_address_mgmt_no", length = 25, updatable = false))
+    private OrderPlace destination;
 
     protected Order() {
     }
@@ -146,15 +165,13 @@ public class Order {
             final Long buyerId,
             final Instant pendingExpiresAt,
             final int deliveryFee,
-            final String deliveryDongCode,
-            final String deliveryAddress,
-            final String deliveryPhoneNumber
+            final OrderPlace pickup,
+            final OrderPlace destination
     ) {
         final Order order = pending(listingId, buyerId, pendingExpiresAt);
         order.deliveryFee = deliveryFee;
-        order.deliveryDongCode = deliveryDongCode;
-        order.deliveryAddress = deliveryAddress;
-        order.deliveryPhoneNumber = deliveryPhoneNumber;
+        order.pickup = pickup;
+        order.destination = destination;
         return order;
     }
 
@@ -181,6 +198,10 @@ public class Order {
     // 같은 상태 중복 이벤트는 무시(멱등), 그 외 불일치는 예외 — 버그를 조용히 삼키지 않는다.
     public void syncDeliveryStatus(final DeliveryStatus newStatus, final Instant changedAt) {
         if (this.deliveryStatus == newStatus) {
+            // 배차 취소 뒤 새 기사의 수락이 취소보다 먼저 도착한 경우다. 수락 시각을 새 배차로 바꿔 늦게 온 취소가 되돌리지 못하게 한다.
+            if (newStatus == DeliveryStatus.ACCEPTED && changedAt != null) {
+                this.deliveryStatusChangedAt = changedAt;
+            }
             return;
         }
         if (this.deliveryStatus != expectedPreviousStatusOf(newStatus)) {
@@ -191,6 +212,19 @@ public class Order {
         }
         this.deliveryStatus = newStatus;
         this.deliveryStatusChangedAt = changedAt;
+    }
+
+    // 이벤트는 순서가 바뀌어 도착할 수 있어 시각 크기가 아니라 같은 배차인지로 판단한다. 다르면 이미 새 배차가 반영된 것이다.
+    public boolean reopenDelivery(final Instant cancelledAcceptedAt, final Instant changedAt) {
+        if (cancelledAcceptedAt == null || changedAt == null) {
+            throw new BusinessException(ErrorCode.INVALID_REQUEST);
+        }
+        if (deliveryStatus != DeliveryStatus.ACCEPTED || !cancelledAcceptedAt.equals(deliveryStatusChangedAt)) {
+            return false;
+        }
+        this.deliveryStatus = DeliveryStatus.REQUESTED;
+        this.deliveryStatusChangedAt = changedAt;
+        return true;
     }
 
     // 배송 완료된 주문만 판매 완료할 수 있다. 이미 판매 완료된 주문이면 false.
@@ -266,15 +300,12 @@ public class Order {
         return deliveryFee;
     }
 
-    public String getDeliveryDongCode() {
-        return deliveryDongCode;
+    // 모든 칸이 NULL인 도입 전 주문은 null이다.
+    public OrderPlace getPickup() {
+        return pickup;
     }
 
-    public String getDeliveryAddress() {
-        return deliveryAddress;
-    }
-
-    public String getDeliveryPhoneNumber() {
-        return deliveryPhoneNumber;
+    public OrderPlace getDestination() {
+        return destination;
     }
 }

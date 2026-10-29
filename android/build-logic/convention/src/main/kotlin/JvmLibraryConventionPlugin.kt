@@ -1,4 +1,4 @@
-import com.aksworns22.setty.configureKotlinJvm
+import com.setty.android.configureKotlinJvm
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.kotlin.dsl.apply

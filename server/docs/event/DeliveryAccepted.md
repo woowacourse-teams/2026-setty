@@ -10,7 +10,7 @@
 
 | 수신자 | 처리 |
 | --- | --- |
-| [`OrderEventListener#onDeliveryAccepted`](../../src/main/java/setty/platform/order/controller/OrderEventListener.java) | 주문의 배송 상태를 `ACCEPTED`로 동기화한다. |
+| [`OrderEventListener#onDeliveryAccepted`](../../src/main/java/setty/platform/order/controller/OrderEventListener.java) | 주문의 배송 상태를 `ACCEPTED`로 동기화한다. 이미 `ACCEPTED`이고 수락 시각이 다르면(배차 취소 뒤 다른 기사의 수락이 취소보다 먼저 도착) 수락 시각만 새 값으로 바꾼다. |
 | [`ListingDeliveryEventListener#onDeliveryAccepted`](../../src/main/java/setty/platform/listing/application/ListingDeliveryEventListener.java) | 주문에 연결된 매물을 배송 예약 상태로 전이한다. |
 
 ## 다음 확인할 이벤트 문서

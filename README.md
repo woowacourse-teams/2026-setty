@@ -36,7 +36,7 @@ SETTY는 구매자가 판매자와 운송 서비스를 오가며 직접 조율�
 
 | 경로 | 역할 | 기술 |
 | :-- | :-- | :-- |
-| [`client/`](client/) | 구매자·판매자 웹, 매물 탐색과 결제 | React · TypeScript · Webpack |
+| [`client/`](client/) | 구매자·판매자 모바일 웹, 매물 탐색과 결제 | React · TypeScript · Webpack |
 | [`android/`](android/) | Android 앱, 매물 탐색과 판매자 화면 | Kotlin · Jetpack Compose |
 | [`apps/driver/`](apps/driver/) | 기사 앱, 요청 수락부터 배송 완료까지 | Expo · React Native · TypeScript |
 | [`server/`](server/) | 회원·매물·주문·결제·배송 API | Java 21 · Spring Boot · MySQL |
@@ -45,8 +45,8 @@ SETTY는 구매자가 판매자와 운송 서비스를 오가며 직접 조율�
 ### 코드에서 확인하는 핵심 흐름
 
 - [배송비 정책](server/src/main/java/setty/platform/listing/domain/DeliveryFeePolicy.java): 가구 부피에 따라 예상 배송비를 계산합니다.
-- [매물 상세](client/src/components/ProductDetail.tsx): 매물 가격, 배송비, 총액을 함께 표시합니다.
-- [결제 화면](client/src/components/PaymentCheckout.tsx): 주문을 생성하고 결제 위젯을 엽니다. 목 모드에서는 결제 성공을 모의합니다.
+- [매물 상세](client/src/features/listingdetail/FurnitureDetailScreen.tsx): 매물 가격, 배송비, 총액을 함께 표시합니다.
+- [결제 화면](client/src/features/payment/PaymentScreen.tsx): 주문을 생성하고 결제 위젯을 엽니다. 목 모드에서는 결제 성공을 모의합니다.
 - [배송 정책](docs/policy/delivery.md): 결제 확정 이후 배송 요청과 상태 전이를 정의합니다.
 
 ## 📚 문서와 협업
@@ -64,4 +64,51 @@ SETTY는 구매자가 판매자와 운송 서비스를 오가며 직접 조율�
 | --- | --- |
 | <img width="670" height="392" alt="image" src="https://github.com/user-attachments/assets/704b5a54-5a89-402b-938f-9c99bf8351ef" /> | <img width="876" height="547" alt="image" src="https://github.com/user-attachments/assets/5f72bb87-5bae-4bdd-9d34-856a185f59a0" /> |
 
+## 시스템 인프라와 배포 파이프라인
 
+dev·prod는 각각 EC2 한 대에서 Spring Boot와 MySQL을 함께 실행합니다. 그림에는 서비스 요청, 공통 외부 연동과 관측, 빌드·배포 흐름을 구분했습니다. 확인이 필요한 설정은 그림에 표시했습니다.
+
+![SETTY 시스템 인프라 아키텍처와 배포 파이프라인](docs/images/system-infrastructure.png)
+
+[확대 가능한 SVG 원본](docs/images/system-infrastructure.svg)
+
+---
+
+## 🧭 실서비스 운영을 보류한 이유
+
+> [!IMPORTANT]
+> **SETTY는 실제 결제와 가구 운송을 수반하는 실서비스 운영을 진행하지 않기로 했습니다.**
+> 직접 운반의 법적 조건, 거래·운송 중개에 필요한 운영 요건, 초기 매물 확보 경로의 제약을 고려해 프로젝트 기간에는 **구매부터 배송 완료까지의 시스템 구현과 테스트 환경의 검증**에 집중했습니다.
+
+```mermaid
+flowchart TD
+    A["직접 운반<br/>자가용 화물자동차의 유상운송 제한"] --> D["실서비스 운영 보류"]
+    B["용달 업체 중개<br/>사업자등록과 중개 운영 요건 검토"] --> D
+    C["당근을 통한 매물 모집<br/>운영정책에 따른 이용 제한 위험"] --> D
+    D --> E["구매·배송 흐름 구현<br/>테스트 결제와 가상 시나리오로 검증"]
+
+    classDef constraint fill:#fff3e0,stroke:#d97706,color:#5c3700;
+    classDef decision fill:#fff1f2,stroke:#be123c,color:#881337;
+    classDef validation fill:#e0f2fe,stroke:#0284c7,color:#0c4a6e;
+    class A,B,C constraint;
+    class D decision;
+    class E validation;
+```
+
+실거래가 성립하려면 판매자·구매자·배송원을 같은 지역과 일정에 맞춰 연결하고, 배송과 거래 중 발생하는 문제에도 대응해야 합니다. 팀은 이러한 운영 준비와 개발을 함께 수행하는 비용을 고려해 전체 거래 흐름을 구현하는 범위를 선택했습니다.
+
+법령·정책의 적용 조건과 운영 보류의 결정 과정은 위키에, 스프린트별 관측 결과와 해석 범위는 유저 데이터 리포트에 기록했습니다.
+
+| 기록 | 확인할 내용 |
+| :-- | :-- |
+| 🧭 [실서비스 운영 보류 배경](https://github.com/woowacourse-teams/2026-setty/wiki/SETTY%EC%9D%98-%EC%8B%A4%EC%84%9C%EB%B9%84%EC%8A%A4-%EC%9A%B4%EC%98%81-%EB%B3%B4%EB%A5%98-%EB%B0%B0%EA%B2%BD) | 직접 운반·용달 중개·매물 모집의 제약, 개발 범위 전환과 운영 재검토 조건 |
+| 📊 [유저 데이터 리포트](https://conscious-garlic-b97.notion.site/3eb2dbc171878094a3a0d075fa917ae1?source=copy_link) | 스프린트별 가상 시나리오, 결제 기준 WAU·전환율과 판매자 상태 재확인 관측 |
+
+<details>
+<summary>가상 시나리오에서 확인한 범위</summary>
+
+결제 승인부터 주문 확정, 배차 요청·수락, 배송 완료 상태 처리와 판매 완료 반영까지 이어지는 흐름과 이벤트 수집을 확인했습니다.
+
+**리포트의 WAU와 전환율은 테스트 결제·가상 트래픽 기준입니다.** 사전에 지정한 행동을 실행한 결과이므로 실제 사용자의 결제 의사, 실제 가구 운송, 제품 개선 효과를 입증하는 데이터로 해석하지 않습니다.
+
+</details>

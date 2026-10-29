@@ -35,7 +35,7 @@ class SettlementEventListenerTest {
         listener.handle(new OrderConfirmed(
                 1L, "가상 원목 의자", "CHAIR", "서울시 가상구 출발로 1", "서울시 가상구 도착로 2",
                 10_000, "010-0000-0001", "010-0000-0002", 100L, 10L, 150_000,
-                null
+                null, null, null, null
         ));
 
         verify(settlementService).recordSeller(eq(1L), eq(10L), eq(100L), eq(150_000), any(Instant.class));

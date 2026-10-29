@@ -15,6 +15,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -214,7 +215,7 @@ class ListingApiTest extends MySqlIntegrationTestSupport {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items[1].thumbnailUrl")
                         .value("https://images.example.test/setty/images/listings/test-1.jpg"));
-        assertThat(listingService.findSummaries(List.of(listingId, otherId), null))
+        assertThat(listingService.findSummaries(List.of(listingId, otherId), null, null))
                 .extracting(ListingView.Summary::id, ListingView.Summary::thumbnailUrl)
                 .containsExactly(
                         org.assertj.core.api.Assertions.tuple(listingId,
@@ -257,7 +258,7 @@ class ListingApiTest extends MySqlIntegrationTestSupport {
                 .andExpect(jsonPath("$.items[0].id").value(listingId))
                 .andExpect(jsonPath("$.items[0].thumbnailUrl").value(org.hamcrest.Matchers.nullValue()));
         assertThat(listingService.findMine(SELLER_ID).getFirst().thumbnailUrl()).isNull();
-        assertThat(listingService.findSummaries(List.of(listingId), null).getFirst().thumbnailUrl()).isNull();
+        assertThat(listingService.findSummaries(List.of(listingId), null, null).getFirst().thumbnailUrl()).isNull();
     }
 
     @Test
@@ -444,12 +445,12 @@ class ListingApiTest extends MySqlIntegrationTestSupport {
         long listingId = createListing(SELLER_ID, "구매 흐름 확인용 가상 소파");
         long retainedImageId = firstImageId(listingId);
 
-        ListingView.PurchaseInfo firstPurchase = listingService.registerPurchaseRequest(listingId, null, null);
+        ListingView.PurchaseInfo firstPurchase = listingService.registerPurchaseRequest(listingId, null, null, null);
 
         assertThat(firstPurchase.listingId()).isEqualTo(listingId);
         assertThat(firstPurchase.sellerId()).isEqualTo(SELLER_ID);
         assertThat(firstPurchase.totalPrice()).isEqualTo(130_000);
-        assertThatThrownBy(() -> listingService.registerPurchaseRequest(listingId, SECOND_BUYER_ID, null))
+        assertThatThrownBy(() -> listingService.registerPurchaseRequest(listingId, SECOND_BUYER_ID, null, null))
                 .isInstanceOfSatisfying(
                         BusinessException.class,
                         exception -> assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.ALREADY_ORDERED)
@@ -501,7 +502,7 @@ class ListingApiTest extends MySqlIntegrationTestSupport {
         long listingId = createListing(SELLER_ID, "결제 진행 표시 확인용 가상 의자");
         assertPurchaseRequestShown(listingId, false);
 
-        listingService.registerPurchaseRequest(listingId, FIRST_BUYER_ID, null);
+        listingService.registerPurchaseRequest(listingId, FIRST_BUYER_ID, null, null);
         assertPurchaseRequestShown(listingId, true);
 
         listingService.releasePurchaseRequestForExpiredPendingOrder(listingId);
@@ -509,9 +510,63 @@ class ListingApiTest extends MySqlIntegrationTestSupport {
     }
 
     @Test
+    void 결제_대기_주문을_가진_구매자에게만_상세에_내_결제_대기_표시를_준다() throws Exception {
+        long listingId = createListing(SELLER_ID, "내 결제 대기 표시 확인용 가상 의자");
+        listingService.registerPurchaseRequest(listingId, FIRST_BUYER_ID, null, null);
+        long orderId = insertPendingOrder(listingId, FIRST_BUYER_ID);
+
+        assertPurchaseRequestedByMe(listingId, bearerToken(FIRST_BUYER_ID), true);
+        assertPurchaseRequestedByMe(listingId, bearerToken(SECOND_BUYER_ID), false);
+        assertPurchaseRequestedByMe(listingId, null, false);
+
+        jdbcTemplate.update("UPDATE orders SET pending_expires_at = DATE_SUB(NOW(6), INTERVAL 1 SECOND) WHERE id = ?", orderId);
+        assertPurchaseRequestedByMe(listingId, bearerToken(FIRST_BUYER_ID), false);
+    }
+
+    @Test
+    void 결제가_끝난_매물은_거래중으로_표시하고_주문한_구매자에게만_내_주문_id를_준다() throws Exception {
+        long listingId = createListing(SELLER_ID, "거래중 표시 확인용 가상 의자");
+        assertOrderState(listingId, "NONE");
+
+        listingService.registerPurchaseRequest(listingId, FIRST_BUYER_ID, null, null);
+        long orderId = insertPendingOrder(listingId, FIRST_BUYER_ID);
+        assertOrderState(listingId, "PAYING");
+        assertMyOrderId(listingId, bearerToken(FIRST_BUYER_ID), orderId);
+
+        jdbcTemplate.update("UPDATE orders SET order_status = 'CONFIRMED' WHERE id = ?", orderId);
+        assertOrderState(listingId, "TRADING");
+        assertMyOrderId(listingId, bearerToken(FIRST_BUYER_ID), orderId);
+        assertMyOrderId(listingId, bearerToken(SECOND_BUYER_ID), null);
+        assertMyOrderId(listingId, null, null);
+        assertPurchaseRequestedByMe(listingId, bearerToken(FIRST_BUYER_ID), false);
+    }
+
+    @Test
+    void 찜_수를_목록과_상세에_보여_주고_찜한_본인과_비로그인이_같은_수를_본다() throws Exception {
+        long listingId = createListing(SELLER_ID, "찜 수 확인용 가상 의자");
+        assertFavoriteCount(listingId, null, 0);
+        assertFavoriteCount(listingId, bearerToken(FIRST_BUYER_ID), 0);
+
+        mockMvc.perform(put("/api/me/favorites/{listingId}", listingId)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(FIRST_BUYER_ID)))
+                .andExpect(status().isNoContent());
+        mockMvc.perform(put("/api/me/favorites/{listingId}", listingId)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(SECOND_BUYER_ID)))
+                .andExpect(status().isNoContent());
+        assertFavoriteCount(listingId, null, 2);
+        assertFavoriteCount(listingId, bearerToken(FIRST_BUYER_ID), 2);
+
+        mockMvc.perform(delete("/api/me/favorites/{listingId}", listingId)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(SECOND_BUYER_ID)))
+                .andExpect(status().isNoContent());
+        assertFavoriteCount(listingId, null, 1);
+        assertFavoriteCount(listingId, bearerToken(FIRST_BUYER_ID), 1);
+    }
+
+    @Test
     void concurrentDeliveryReservationsAllowOnlyOneWinner() throws Exception {
         long listingId = createListing(SELLER_ID, "동시 예약 확인용 가상 침대");
-        listingService.registerPurchaseRequest(listingId, null, null);
+        listingService.registerPurchaseRequest(listingId, null, null, null);
 
         CountDownLatch ready = new CountDownLatch(2);
         CountDownLatch start = new CountDownLatch(1);
@@ -559,7 +614,7 @@ class ListingApiTest extends MySqlIntegrationTestSupport {
         long second = createListing(SELLER_ID, "두 번째 책상");
         long third = createListing(SELLER_ID, "세 번째 책상");
 
-        List<ListingView.Summary> summaries = listingService.findSummaries(List.of(third, first, second), null);
+        List<ListingView.Summary> summaries = listingService.findSummaries(List.of(third, first, second), null, null);
 
         assertThat(summaries)
                 .extracting(ListingView.Summary::id)
@@ -572,7 +627,7 @@ class ListingApiTest extends MySqlIntegrationTestSupport {
         long deleted = createListing(SELLER_ID, "삭제될 책상");
         jdbcTemplate.update("UPDATE listings SET deleted_at = NOW(6) WHERE id = ?", deleted);
 
-        List<ListingView.Summary> summaries = listingService.findSummaries(List.of(kept, deleted), null);
+        List<ListingView.Summary> summaries = listingService.findSummaries(List.of(kept, deleted), null, null);
 
         assertThat(summaries)
                 .extracting(ListingView.Summary::id)
@@ -619,7 +674,7 @@ class ListingApiTest extends MySqlIntegrationTestSupport {
             throw new IllegalStateException("가상 동시 구매 신청 테스트 시작 신호를 받지 못했습니다");
         }
         try {
-            listingService.registerPurchaseRequest(listingId, buyerId, null);
+            listingService.registerPurchaseRequest(listingId, buyerId, null, null);
             return true;
         } catch (BusinessException exception) {
             assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.ALREADY_ORDERED);
@@ -717,7 +772,71 @@ class ListingApiTest extends MySqlIntegrationTestSupport {
         return objectMapper.readTree(result.getResponse().getContentAsByteArray());
     }
 
+    private void assertPurchaseRequestedByMe(long listingId, String bearerToken, boolean expected) throws Exception {
+        var request = get("/api/listings/{listingId}", listingId);
+        if (bearerToken != null) {
+            request = request.header(HttpHeaders.AUTHORIZATION, bearerToken);
+        }
+        mockMvc.perform(request)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.hasPurchaseRequest").value(true))
+                .andExpect(jsonPath("$.purchaseRequestedByMe").value(expected));
+    }
+
+    private void assertOrderState(long listingId, String expected) throws Exception {
+        mockMvc.perform(get("/api/listings"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[0].id").value(listingId))
+                .andExpect(jsonPath("$.items[0].orderState").value(expected));
+        mockMvc.perform(get("/api/listings/{listingId}", listingId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.orderState").value(expected));
+    }
+
+    private void assertFavoriteCount(long listingId, String bearerToken, int expected) throws Exception {
+        var listRequest = get("/api/listings");
+        var detailRequest = get("/api/listings/{listingId}", listingId);
+        if (bearerToken != null) {
+            listRequest = listRequest.header(HttpHeaders.AUTHORIZATION, bearerToken);
+            detailRequest = detailRequest.header(HttpHeaders.AUTHORIZATION, bearerToken);
+        }
+        mockMvc.perform(listRequest)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[0].id").value(listingId))
+                .andExpect(jsonPath("$.items[0].favoriteCount").value(expected));
+        mockMvc.perform(detailRequest)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.favoriteCount").value(expected));
+    }
+
+    private void assertMyOrderId(long listingId, String bearerToken, Long expected) throws Exception {
+        var request = get("/api/listings/{listingId}", listingId);
+        if (bearerToken != null) {
+            request = request.header(HttpHeaders.AUTHORIZATION, bearerToken);
+        }
+        JsonNode detail = read(mockMvc.perform(request).andExpect(status().isOk()).andReturn());
+        if (expected == null) {
+            assertThat(detail.get("myOrderId").isNull()).isTrue();
+        } else {
+            assertThat(detail.get("myOrderId").asLong()).isEqualTo(expected);
+        }
+    }
+
+    // 만료 시각은 DB 시계로 넣는다. JDBC로 Timestamp를 바인딩하면 시간대 변환이 서버 쪽과 달라 어긋난다.
+    private long insertPendingOrder(long listingId, long buyerId) {
+        jdbcTemplate.update(
+                """
+                INSERT INTO orders (listing_id, buyer_id, delivery_status, order_status, pending_expires_at)
+                VALUES (?, ?, 'PENDING', 'PENDING', DATE_ADD(NOW(6), INTERVAL 5 MINUTE))
+                """,
+                listingId, buyerId);
+        return jdbcTemplate.queryForObject(
+                "SELECT id FROM orders WHERE listing_id = ? AND buyer_id = ?", Long.class, listingId, buyerId);
+    }
+
     private void deleteListingsAndMembers() {
+        jdbcTemplate.update("DELETE FROM favorites");
+        jdbcTemplate.update("DELETE FROM orders");
         jdbcTemplate.update("DELETE FROM listing_images");
         jdbcTemplate.update("DELETE FROM listings");
         jdbcTemplate.update("DELETE FROM members");

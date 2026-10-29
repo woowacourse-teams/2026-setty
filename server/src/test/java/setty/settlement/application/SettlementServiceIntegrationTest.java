@@ -169,7 +169,7 @@ class SettlementServiceIntegrationTest extends MySqlIntegrationTestSupport {
                 LISTING_ID,
                 SELLER_ID,
                 ITEM_PRICE,
-                null
+                null, null, null, null
         ));
         publishCommitted(new DeliveryDelivered(5L, ORDER_ID, RECORDED_AT, DRIVER_ID, DELIVERY_FEE));
         publishCommitted(new OrderCompleted(ORDER_ID, DECIDED_AT));

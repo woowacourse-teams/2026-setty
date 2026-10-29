@@ -1,4 +1,5 @@
 import posthog from 'posthog-js';
+import { getPriceScenarioEventProperties } from './priceScenario';
 
 /**
  * 사용자 행동 수집(PostHog).
@@ -8,6 +9,7 @@ import posthog from 'posthog-js';
  *
  * 수집 범위: 경로 변경마다 $pageview, 자동 클릭 수집, 커스텀 이벤트 7종, 로그인 아이디 identify.
  * MSW 모의 결제는 공통 속성 is_mock으로 구분한다. 이벤트 이름과 속성은 AnalyticsEventName 및 호출부에서 관리한다.
+ * 배송비 표시 시나리오의 실행 ID·A/B 조건·is_synthetic은 커스텀 이벤트에만 추가한다.
  * 비밀번호·연락처·주소 같은 입력값은 리플레이에서 마스킹하고 이벤트 속성에는 넣지 않는다.
  */
 
@@ -59,7 +61,7 @@ export function initializeAnalytics() {
 
 export function trackEvent(name: AnalyticsEventName, properties: EventProperties = {}) {
     if (!initializeAnalytics()) return;
-    posthog.capture(name, properties);
+    posthog.capture(name, { ...properties, ...getPriceScenarioEventProperties() });
 }
 
 /** 로그인 성공 시 아이디로 사람을 식별한다. 같은 기기를 여러 명이 쓸 때 세션을 가르기 위해서다. */

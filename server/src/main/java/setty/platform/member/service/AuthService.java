@@ -24,11 +24,17 @@ public class AuthService {
 
     private final MemberRepository memberRepository;
     private final DeliveryFeeService deliveryFeeService;
+    private final MemberAddressResolver memberAddressResolver;
     private final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
-    public AuthService(final MemberRepository memberRepository, final DeliveryFeeService deliveryFeeService) {
+    public AuthService(
+            final MemberRepository memberRepository,
+            final DeliveryFeeService deliveryFeeService,
+            final MemberAddressResolver memberAddressResolver
+    ) {
         this.memberRepository = memberRepository;
         this.deliveryFeeService = deliveryFeeService;
+        this.memberAddressResolver = memberAddressResolver;
     }
 
     @Transactional
@@ -47,6 +53,7 @@ public class AuthService {
                 request.address(),
                 request.dongCode()
         );
+        memberAddressResolver.resolve(member);
         try {
             return memberRepository.saveAndFlush(member);
         } catch (final DataIntegrityViolationException e) {
@@ -86,6 +93,7 @@ public class AuthService {
         final Member member = memberRepository.findById(memberId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_TOKEN));
         member.updateContact(request.phoneNumber(), request.address());
+        memberAddressResolver.resolve(member);
         return MemberMeResponse.from(member);
     }
 

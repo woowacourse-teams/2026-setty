@@ -58,6 +58,12 @@ export const deliveryApi = {
     await httpPost<void>(`/api/delivery/shipments/${deliveryId}/pickup`);
   },
 
+  /** POST /api/delivery/shipments/{deliveryId}/cancellation — 픽업 전 배차 취소(응답 바디 없음) */
+  async cancelShipment(deliveryId: number): Promise<void> {
+    if (config.useMock) return deliveryMock.cancelShipment(deliveryId);
+    await httpPost<void>(`/api/delivery/shipments/${deliveryId}/cancellation`);
+  },
+
   /** POST /api/delivery/shipments/{deliveryId}/completion — 배송 완료(응답 바디 없음) */
   async completeShipment(deliveryId: number): Promise<void> {
     if (config.useMock) return deliveryMock.completeShipment(deliveryId);

@@ -1,4 +1,4 @@
-import com.aksworns22.setty.configureKotlinAndroid
+import com.setty.android.configureKotlinAndroid
 import com.android.build.api.dsl.ApplicationExtension
 import org.gradle.api.Plugin
 import org.gradle.api.Project

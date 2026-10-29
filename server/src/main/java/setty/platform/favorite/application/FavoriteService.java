@@ -50,9 +50,9 @@ public class FavoriteService {
     }
 
     @Transactional(readOnly = true)
-    public List<ListingView.Summary> findMine(final Long memberId, final String buyerDongCode) {
+    public List<ListingView.Summary> findMine(final Long memberId, final String buyerDongCode, final String buyerZipCode) {
         final List<Long> listingIds = favoriteRepository.findListingIdsByMemberIdOrderByCreatedAtDesc(memberId);
-        return listingService.findSummaries(listingIds, buyerDongCode);
+        return listingService.findSummaries(listingIds, buyerDongCode, buyerZipCode);
     }
 
     private void saveIgnoringDuplicate(final Favorite favorite) {

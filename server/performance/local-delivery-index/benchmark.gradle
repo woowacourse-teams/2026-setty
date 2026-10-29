@@ -1,0 +1,15 @@
+// Explicit local experiment only; excluded from normal CI tests.
+def experimentDirectory = gradle.startParameter.initScripts
+        .find { it.name == 'benchmark.gradle' }.parentFile
+allprojects {
+    plugins.withId('java') {
+        sourceSets.test.java.srcDir(new File(experimentDirectory, 'src/test/java'))
+        tasks.named('test') {
+            useJUnitPlatform { includeTags 'local-delivery-index' }
+            systemProperty 'delivery.index.output',
+                    gradle.startParameter.systemPropertiesArgs.getOrDefault(
+                            'delivery.index.output', 'build/reports/delivery-index')
+            testLogging { events 'passed', 'failed', 'standardOut'; exceptionFormat 'full' }
+        }
+    }
+}
