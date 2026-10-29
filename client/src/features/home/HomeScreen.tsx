@@ -41,6 +41,7 @@ import {
     TrailingColumn
 } from '../../ui/components';
 import { Icon } from '../../ui/Icon';
+import { showSnackbar } from '../../ui/snackbar';
 import { shapeStyle } from '../../ui/shapes';
 import { DeliveryFeeBudget } from './deliveryFeeBudget';
 import { PriceFilter, type PriceRange } from './priceRange';
@@ -77,7 +78,10 @@ export function HomeScreen() {
         enterHome(() => (tokenStore.get()
             ? navigate(routes.profileEdit)
             : navigate(routes.login, { state: loginStateFrom({ pathname: routes.home, search: '', state: null }) })),
-        navigateToLogin);
+        () => {
+            showSnackbar('로그인이 만료됐어요. 다시 로그인해 주세요.', { keepOnNextScreen: true });
+            navigateToLogin();
+        });
     }, [navigate, navigateToLogin]);
 
     const openListing = (listingId: number) => navigate(routes.furnitureDetail(listingId));
@@ -312,9 +316,6 @@ function EmptyListMessage({ home }: { home: HomeState }) {
  */
 function FilterBar({ home }: { home: HomeState }) {
     const [openSheet, setOpenSheet] = useState<'grade' | 'price' | 'deliveryFee' | null>(null);
-    // 배송비는 내 행정동으로 계산하므로 로그인 전이면 시트 대신 로그인으로 보낸다. 로그인하면 홈으로 돌아온다
-    const navigateToLoginFromHere = useNavigateToLoginFromHere();
-    const openDeliveryFeeSheet = () => (tokenStore.get() ? setOpenSheet('deliveryFee') : navigateToLoginFromHere());
     const hasFilter = home.selectedGrades.length > 0 || home.priceRange !== null || home.maxDeliveryFee !== null;
     const close = () => setOpenSheet(null);
     return (
@@ -335,7 +336,7 @@ function FilterBar({ home }: { home: HomeState }) {
                 />
                 <FilterChip
                     label={home.maxDeliveryFee !== null ? `배송비 ${DeliveryFeeBudget.format(home.maxDeliveryFee)} 이하` : '배송비'}
-                    onClick={openDeliveryFeeSheet}
+                    onClick={() => setOpenSheet('deliveryFee')}
                     selected={home.maxDeliveryFee !== null}
                     trailingIcon="expandMore"
                 />
@@ -346,7 +347,8 @@ function FilterBar({ home }: { home: HomeState }) {
             {openSheet === 'price' && (
                 <PriceRangeSheet initialRange={home.priceRange} onDismiss={close} onSelect={(range) => { close(); selectPriceRange(range); }} />
             )}
-            {openSheet === 'deliveryFee' && (
+            {openSheet === 'deliveryFee' && !tokenStore.get() && <DeliveryFeeLoginSheet onDismiss={close} />}
+            {openSheet === 'deliveryFee' && tokenStore.get() && (
                 <DeliveryFeeBudgetSheet
                     initialBudget={home.maxDeliveryFee ?? DeliveryFeeBudget.DEFAULT}
                     onDismiss={close}
@@ -436,6 +438,25 @@ function PriceRangeSheet({ initialRange, onDismiss, onSelect }: { initialRange: 
                 <div className={styles['sheet-actions']}>
                     <Button onClick={() => onSelect(null)} size="medium" variant="outlined">필터 해제</Button>
                     <Button disabled={!canApply} onClick={() => onSelect(range)} size="medium">적용</Button>
+                </div>
+            </div>
+        </BottomSheet>
+    );
+}
+
+/** 배송비는 내 동네 기준으로 계산하므로, 로그인 전에는 이유를 알려 주고 로그인을 고르게 한다. 로그인하면 홈으로 돌아온다. */
+function DeliveryFeeLoginSheet({ onDismiss }: { onDismiss: () => void }) {
+    const navigateToLoginFromHere = useNavigateToLoginFromHere();
+    return (
+        <BottomSheet label="배송비" onDismiss={onDismiss}>
+            <div className={screenStyles['sheet-padding']}>
+                <h2 className="type-title-large-em" style={{ margin: 0 }}>배송비는 내 동네 기준으로 계산해요</h2>
+                <p className="type-body-medium-em" style={{ margin: '8px 0 0', color: 'var(--on-surface-variant)' }}>
+                    판매자 동네에서 내 동네까지 거리로 배송비가 정해져요. 로그인하면 원하는 배송비 안의 가구만 볼 수 있어요.
+                </p>
+                <div className={styles['sheet-actions']}>
+                    <Button onClick={onDismiss} size="medium" variant="outlined">닫기</Button>
+                    <Button onClick={() => { onDismiss(); navigateToLoginFromHere(); }} size="medium">로그인하기</Button>
                 </div>
             </div>
         </BottomSheet>
