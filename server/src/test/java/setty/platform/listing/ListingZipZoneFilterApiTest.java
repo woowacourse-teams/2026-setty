@@ -293,6 +293,24 @@ class ListingZipZoneFilterApiTest extends MySqlIntegrationTestSupport {
         return listings.stream().filter(listing -> listing.id() == id).findFirst().orElseThrow();
     }
 
+    @Test
+    void 우편번호_배송비와_검색_카테고리의_교집합을_페이징한다() throws Exception {
+        JsonNode baseline = read(filtered(ZIP_BUYER_ID, 20_000).param("size", "100"));
+        List<Long> expected = ids(baseline);
+        jdbcTemplate.update("UPDATE listings SET title = 'Zip Desk', category = 'DESK'");
+        List<Long> actual = new ArrayList<>();
+        String cursor = null;
+        do {
+            MockHttpServletRequestBuilder request = filtered(ZIP_BUYER_ID, 20_000).param("size", "2")
+                    .param("query", "zip").param("category", "DESK");
+            if (cursor != null) request.param("cursor", cursor);
+            JsonNode page = read(request);
+            actual.addAll(ids(page));
+            cursor = page.hasNonNull("nextCursor") ? page.get("nextCursor").asString() : null;
+        } while (cursor != null);
+        assertThat(actual).isNotEmpty().containsExactlyElementsOf(expected);
+    }
+
     private MockHttpServletRequestBuilder filtered(long buyerId, int maxDeliveryFee) {
         return get("/api/listings")
                 .param("maxDeliveryFee", String.valueOf(maxDeliveryFee))

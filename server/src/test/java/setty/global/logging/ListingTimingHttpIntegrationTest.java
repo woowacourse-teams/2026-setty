@@ -99,7 +99,7 @@ class ListingTimingHttpIntegrationTest {
 
     @Test
     void actualControllerAndServiceProduceJsonAndOneCorrelatedStructuredLog() throws Exception {
-        when(context.getBean(ListingQueryRepository.class).findAvailable(null, null, null, null, null))
+        when(context.getBean(ListingQueryRepository.class).findAvailable(null, null, null, null, null, null, null))
                 .thenReturn(List.of(new ListingQueryRepository.Row(7L, "test desk", 50000, 10000, ListingCategory.DESK,
                         ConditionGrade.A, 80, 50, 70, false, Instant.parse("2026-10-01T00:00:00Z"), null, null, VolumeTier.SMALL)));
         when(context.getBean(ListingQueryRepository.class).findThumbnailObjectKeys(List.of(7L)))
@@ -134,7 +134,7 @@ class ListingTimingHttpIntegrationTest {
 
     @Test
     void handledRepositoryFailureRetains500AndMarksOnlyAttemptedStage() throws Exception {
-        when(context.getBean(ListingQueryRepository.class).findAvailable(null, null, null, null, null))
+        when(context.getBean(ListingQueryRepository.class).findAvailable(null, null, null, null, null, null, null))
                 .thenThrow(new IllegalStateException("synthetic failure"));
         HttpResponse<String> response = get();
         assertThat(response.statusCode()).isEqualTo(500);
