@@ -9,8 +9,8 @@ import {
     AlertDialog,
     BackIconButton,
     Button,
+    CenterFill,
     ErrorContent,
-    ExtendedFab,
     FlexibleTopAppBar,
     FurnitureThumbnail,
     IconButton,
@@ -34,7 +34,6 @@ export function MyListingsScreen() {
     const { state, isRefreshing, load, refresh, setData } = useLoad(furnitureRepository.getMyFurniture);
     const [deleteTarget, setDeleteTarget] = useState<number | null>(null);
     const [deletingId, setDeletingId] = useState<number | null>(null);
-    const [isFabExpanded, setIsFabExpanded] = useState(true);
     const listRef = useRef<HTMLDivElement>(null);
     const observedSoldListingIds = useRef(new Set<number>());
 
@@ -62,13 +61,6 @@ export function MyListingsScreen() {
         return () => observer.disconnect();
     }, [state]);
 
-    // 목록을 내리면 등록 버튼을 아이콘만 남기고 접는다
-    useEffect(() => {
-        const onScroll = () => setIsFabExpanded(window.scrollY < 120);
-        window.addEventListener('scroll', onScroll, { passive: true });
-        return () => window.removeEventListener('scroll', onScroll);
-    }, []);
-
     const openCreate = () => navigate(routes.listingCreate);
 
     const remove = async (listingId: number) => {
@@ -91,7 +83,6 @@ export function MyListingsScreen() {
 
     return (
         <Scaffold
-            floatingActionButton={<ExtendedFab expanded={isFabExpanded} icon="add" label="가구 등록" onClick={openCreate} />}
             topBar={<FlexibleTopAppBar navigation={<BackIconButton onBack={navigateBack} />} title="내 판매 가구" />}
         >
             {state.status === 'loading' && <LoadingContent />}
@@ -100,15 +91,15 @@ export function MyListingsScreen() {
             )}
             {state.status === 'success' && (
                 <PullToRefresh isRefreshing={isRefreshing} onRefresh={refresh}>
-                    {/* FAB에 마지막 항목이 가리지 않도록 아래 여백을 넉넉히 둔다 */}
-                    <div className={`${screenStyles['list-padding']} ${screenStyles['list-padding--fab']}`} ref={listRef}>
+                    <div className={screenStyles['list-padding']} ref={listRef}>
                         {state.data.length === 0 && (
-                            <SettyMessage
-                                action={<Button onClick={openCreate}>가구 등록하기</Button>}
-                                description="쓰지 않는 가구를 올리고 새 주인을 찾아보세요."
-                                style={{ marginTop: 48 }}
-                                title="아직 등록한 가구가 없어요"
-                            />
+                            <CenterFill>
+                                <SettyMessage
+                                    action={<Button onClick={openCreate}>가구 등록하기</Button>}
+                                    description="쓰지 않는 가구를 올리고 새 주인을 찾아보세요."
+                                    title="아직 등록한 가구가 없어요"
+                                />
+                            </CenterFill>
                         )}
                         <SegmentedList>
                             {state.data.map((furniture, index) => (

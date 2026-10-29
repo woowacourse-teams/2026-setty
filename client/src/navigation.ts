@@ -28,7 +28,7 @@ export const routes = {
     driverRequestDetail: (deliveryId: number) => `/driver/requests/${deliveryId}`,
     driverShipments: '/driver/shipments',
     driverShipmentDetail: (deliveryId: number) => `/driver/shipments/${deliveryId}`,
-    driverSettlement: '/driver/settlement',
+    driverMyPage: '/driver/me',
     demo: '/demo'
 } as const;
 

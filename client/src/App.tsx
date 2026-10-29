@@ -4,7 +4,7 @@ import { deliveryTokenStore, tokenStore } from './api/http';
 import { DemoScreen } from './features/demo/DemoScreen';
 import { DriverRequestDetailScreen } from './features/driver/DriverRequestDetailScreen';
 import { DriverRequestsScreen } from './features/driver/DriverRequestsScreen';
-import { DriverSettlementScreen } from './features/driver/DriverSettlementScreen';
+import { DriverMyPageScreen } from './features/driver/DriverMyPageScreen';
 import { DriverShipmentDetailScreen } from './features/driver/DriverShipmentDetailScreen';
 import { DriverShipmentsScreen } from './features/driver/DriverShipmentsScreen';
 import { FavoritesScreen } from './features/favorites/FavoritesScreen';
@@ -84,7 +84,7 @@ export const router = createBrowserRouter([
             { path: '/driver/requests/:deliveryId', element: <RequireDriverLogin><DriverRequestDetailScreen /></RequireDriverLogin> },
             { path: routes.driverShipments, element: <RequireDriverLogin><DriverShipmentsScreen /></RequireDriverLogin> },
             { path: '/driver/shipments/:deliveryId', element: <RequireDriverLogin><DriverShipmentDetailScreen /></RequireDriverLogin> },
-            { path: routes.driverSettlement, element: <RequireDriverLogin><DriverSettlementScreen /></RequireDriverLogin> },
+            { path: routes.driverMyPage, element: <RequireDriverLogin><DriverMyPageScreen /></RequireDriverLogin> },
             { path: '*', element: <Navigate replace to={routes.home} /> }
         ]
     }

@@ -1,32 +1,31 @@
 import { useNavigate } from 'react-router';
 import { deliveryRepository } from '../../api/deliveryRepository';
 import { isShipmentInProgress, type DeliverySummary } from '../../model/delivery';
-import { routes, useNavigateToDriverLogin } from '../../navigation';
+import { routes, useNavigateBack, useNavigateToDriverLogin } from '../../navigation';
 import {
+    BackIconButton,
+    CenterFill,
     ErrorContent,
+    FlexibleTopAppBar,
     LoadingContent,
     PullToRefresh,
     Scaffold,
     SectionTitle,
     SegmentedList,
-    SettyMessage,
-    TopAppBar
+    SettyMessage
 } from '../../ui/components';
 import { useLoad } from '../useLoad';
 import screenStyles from '../screens.module.css';
 import { DeliveryListItem } from './DeliveryParts';
-import { DriverTabBar } from './DriverTabBar';
 import styles from './driver.module.css';
 
 export function DriverShipmentsScreen() {
+    const navigateBack = useNavigateBack(routes.driverRequests);
     const navigateToDriverLogin = useNavigateToDriverLogin();
     const { state, isRefreshing, load, refresh } = useLoad(deliveryRepository.getShipments, 'driver');
 
     return (
-        <Scaffold
-            bottomBar={<DriverTabBar current="shipments" />}
-            topBar={<TopAppBar title={<span className="type-title-large-em">내 배차</span>} />}
-        >
+        <Scaffold topBar={<FlexibleTopAppBar navigation={<BackIconButton onBack={navigateBack} />} title="내 배차" />}>
             {state.status === 'loading' && <LoadingContent />}
             {state.status === 'error' && (
                 <ErrorContent isUnauthorized={state.isUnauthorized} message={state.message} onRequireLogin={navigateToDriverLogin} onRetry={load} />
@@ -35,11 +34,12 @@ export function DriverShipmentsScreen() {
                 <PullToRefresh isRefreshing={isRefreshing} onRefresh={refresh}>
                     <div className={`${screenStyles['list-padding']} ${styles.stack}`}>
                         {state.data.length === 0 ? (
-                            <SettyMessage
-                                description="배차 요청에서 마음에 드는 배송을 수락해 보세요."
-                                style={{ marginTop: 48 }}
-                                title="아직 수락한 배차가 없어요"
-                            />
+                            <CenterFill>
+                                <SettyMessage
+                                    description="배차 요청에서 마음에 드는 배송을 수락해 보세요."
+                                    title="아직 수락한 배차가 없어요"
+                                />
+                            </CenterFill>
                         ) : (
                             <>
                                 <ShipmentSection shipments={state.data.filter((item) => isShipmentInProgress(item.status))} title="진행 중" />

@@ -4,6 +4,7 @@ import { userRepository } from '../../api/repositories';
 import type { Member } from '../../model/member';
 import { routes, useNavigateBack, useNavigateToLogin } from '../../navigation';
 import { clearPushToken } from '../../push/webPush';
+import { resetHomeStore } from '../home/homeStore';
 import {
     AlertDialog,
     BackIconButton,
@@ -41,7 +42,9 @@ export function MyPageScreen() {
         setIsLoggingOut(true);
         await clearPushToken();
         await userRepository.logout();
-        navigateToLogin();
+        // 홈에 남은 프로필 첫 글자를 지우고 로그인 전 홈으로 보낸다
+        resetHomeStore();
+        navigate(routes.home, { replace: true });
     };
 
     return (
@@ -60,7 +63,7 @@ export function MyPageScreen() {
                         { title: '주문 내역', description: '구매한 가구의 배송을 확인해요', icon: 'localShipping', onClick: () => navigate(routes.orders) }
                     ]}
                     notificationMenus={[
-                        { title: '키워드 알림', description: '관심 키워드의 새 매물을 알려드려요', icon: 'notifications', onClick: () => navigate(routes.keywords) },
+                        { title: '키워드 알림', description: '관심 키워드의 새 매물을 알려드려요', icon: 'tag', onClick: () => navigate(routes.keywords) },
                         { title: '알림함', description: '받은 알림을 모아봐요', icon: 'notifications', onClick: () => navigate(routes.notifications) }
                     ]}
                     accountMenus={[
@@ -158,7 +161,7 @@ function ProfileCard({ member, onEditProfile }: { member: Member; onEditProfile:
                 </div>
             </div>
             <p className="type-body-large-em" style={{ margin: 0, fontWeight: 400 }}>{member.address}</p>
-            <Button fullWidth onClick={onEditProfile} variant="tonal">정보 수정</Button>
+            <Button fullWidth onClick={onEditProfile}>정보 수정</Button>
         </section>
     );
 }
