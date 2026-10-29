@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { deliveryRepository, subscribeRequestEvents } from '../../api/deliveryRepository';
+import { deliveryLoginIdStore } from '../../api/http';
 import { routes, useNavigateToDriverLogin } from '../../navigation';
 import {
     CenterFill,
@@ -27,6 +28,8 @@ export function DriverRequestsScreen() {
     const navigateToDriverLogin = useNavigateToDriverLogin();
     const { state, isRefreshing, load, refresh, fetch } = useLoad(deliveryRepository.getRequests, 'driver');
 
+    const profileInitial = deliveryLoginIdStore.get().slice(0, 1).toUpperCase();
+
     const [isLive, setIsLive] = useState(false);
     const [isFabExpanded, setIsFabExpanded] = useState(true);
 
@@ -48,7 +51,7 @@ export function DriverRequestsScreen() {
                     actions={(
                         <button aria-label="내 정보" className={styles['profile-button']} onClick={() => navigate(routes.driverMyPage)} type="button">
                             <span className={styles['profile-button__shape']} style={shapeStyle('cookie9')}>
-                                <Icon name="accountCircle" size={20} />
+                                {profileInitial || <Icon name="accountCircle" size={20} />}
                             </span>
                         </button>
                     )}

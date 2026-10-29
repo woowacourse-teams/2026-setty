@@ -30,6 +30,9 @@ export const tokenStore = createTokenStore('setty:credential-token');
 /** 배송원 로그인 토큰. 회원 토큰과 따로 두어 한 브라우저에서 구매자와 배송원으로 함께 로그인할 수 있다. */
 export const deliveryTokenStore = createTokenStore('setty:delivery-token');
 
+/** 배송원 로그인 아이디. 배송원 내 정보 API가 없어 프로필 앞글자를 보여 주려고 로그인할 때 함께 남긴다. */
+export const deliveryLoginIdStore = createTokenStore('setty:delivery-login-id');
+
 /** 서버가 `{ code, message }`로 내려준 에러. */
 export class ApiError extends Error {
     readonly code: string;
