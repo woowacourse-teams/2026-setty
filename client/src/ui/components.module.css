@@ -716,7 +716,6 @@
     background: var(--surface-container);
     color: var(--on-surface-variant);
     white-space: nowrap;
-    transition: border-radius 250ms cubic-bezier(0.3, 1.6, 0.6, 1), background-color 150ms ease, color 150ms ease;
 }
 
 .toggle--leading {
@@ -729,11 +728,15 @@
     border-bottom-right-radius: var(--toggle-pill-radius);
 }
 
-/* 선택된 토글은 양 끝이 둥근 알약 모양이 된다 */
+/*
+ * 선택된 토글은 양 끝이 둥근 알약 모양이 된다.
+ * 전환은 선택될 때만 걸어 선택이 풀리는 토글은 바로 돌아가게 해 시선이 새로 고른 토글에만 가게 한다
+ */
 .toggle--checked {
     border-radius: var(--toggle-pill-radius);
     background: var(--primary);
     color: var(--on-primary);
+    transition: border-radius 250ms cubic-bezier(0.3, 1.6, 0.6, 1), background-color 150ms ease, color 150ms ease;
 }
 
 /* ---------- 스낵바 ---------- */
