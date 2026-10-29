@@ -63,7 +63,8 @@ export function MyPageScreen() {
         }
         await clearPushToken();
         showSnackbar('탈퇴했어요. 그동안 이용해 주셔서 고마워요.', { keepOnNextScreen: true });
-        navigateToLogin();
+        resetHomeStore();
+        navigate(routes.home, { replace: true });
     };
 
     return (
