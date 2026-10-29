@@ -89,6 +89,8 @@ test('repository는 size=20과 조건을 보내고 찜 수와 거래 상태를 �
     const { furnitureRepository } = load('api/repositories.ts', {
         '../model/dong': { dongDisplayName: () => '동' },
         '../model/furniture': { furnitureCategoryOf: value => value, orderStateOf: value => value },
+        '../model/keyword': {},
+        '../model/notification': {},
         '../model/order': {},
         './http': { apiCall: async (url, options) => { requests.push({ url, options }); return {
             items: [{ id: 1, category: 'DESK', favoriteCount: 3, orderState: 'TRADING', totalPrice: 300 }], nextCursor: 'next'
