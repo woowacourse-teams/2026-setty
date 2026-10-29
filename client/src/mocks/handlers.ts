@@ -246,17 +246,24 @@ export const handlers = [
         const url = new URL(request.url);
         const available = listings
             .filter((listing) => !listing.deleted && listing.saleStatus === 'AVAILABLE')
-            .sort((left, right) => right.createdAt.localeCompare(left.createdAt));
+            .sort((left, right) => right.createdAt.localeCompare(left.createdAt) || right.id - left.id);
         const maxDeliveryFee = url.searchParams.get('maxDeliveryFee');
-        if (maxDeliveryFee === null) return HttpResponse.json({ items: available.map(summaryOf) });
-
-        // 배송비 예산으로 거르려면 로그인과 회원 행정동이 필요하다
-        const member = currentMember(request);
-        if (!member) return unauthorized();
-        if (!member.dongCode) return error(400, 'MEMBER_DONG_REQUIRED', '행정동을 먼저 설정해 주세요');
+        const category = url.searchParams.get('category');
+        const query = url.searchParams.get('query')?.trim().toLowerCase();
+        if (maxDeliveryFee !== null) {
+            const member = currentMember(request);
+            if (!member) return unauthorized();
+            if (!member.dongCode) return error(400, 'MEMBER_DONG_REQUIRED', '행정동을 먼저 설정해 주세요');
+        }
+        const filtered = available.filter((listing) =>
+            (maxDeliveryFee === null || deliveryFeeOf(listing) <= Number(maxDeliveryFee))
+            && (!category || listing.category === category)
+            && (!query || listing.title.toLowerCase().includes(query)));
+        if (!url.searchParams.has('size') && !url.searchParams.has('cursor') && maxDeliveryFee === null && !category && !query) {
+            return HttpResponse.json({ items: filtered.map(summaryOf) });
+        }
         const size = Number(url.searchParams.get('size') ?? 20);
         const cursor = Number(url.searchParams.get('cursor') ?? 0);
-        const filtered = available.filter((listing) => deliveryFeeOf(listing) <= Number(maxDeliveryFee));
         const page = filtered.slice(cursor, cursor + size);
         const nextCursor = cursor + size < filtered.length ? String(cursor + size) : null;
         return HttpResponse.json({ items: page.map(summaryOf), nextCursor });

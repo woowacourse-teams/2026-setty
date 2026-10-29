@@ -10,9 +10,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
+import com.google.firebase.remoteconfig.FirebaseRemoteConfig
 import com.setty.android.devtools.model.AppBuildInfo
+import com.setty.android.devtools.remoteconfig.RemoteConfigOverrideStore
 import com.setty.android.devtools.scenario.MockScenarioStore
 import com.setty.android.devtools.ui.DevToolsScreen
+import com.setty.android.devtools.ui.RemoteConfigPanel
+import com.setty.android.devtools.ui.UpdateScenarioPanel
+import com.setty.android.devtools.update.UpdateScenarioStore
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.joinAll
@@ -27,6 +32,16 @@ class DevToolsActivity : ComponentActivity() {
 
     @Inject
     lateinit var buildInfo: AppBuildInfo
+
+    // 바인딩은 앱의 RemoteConfigModule이 제공한다
+    @Inject
+    lateinit var remoteConfig: FirebaseRemoteConfig
+
+    @Inject
+    lateinit var remoteConfigOverrideStore: RemoteConfigOverrideStore
+
+    @Inject
+    lateinit var updateScenarioStore: UpdateScenarioStore
 
     private val scenarioWriteJobs = mutableListOf<Job>()
     private var isRestarting = false
@@ -57,7 +72,13 @@ class DevToolsActivity : ComponentActivity() {
                                 restartSettyApp()
                             }
                         }
-                    }
+                    },
+                    remoteConfigContent = {
+                        RemoteConfigPanel(remoteConfig = remoteConfig, overrideStore = remoteConfigOverrideStore)
+                    },
+                    updateScenarioContent = {
+                        UpdateScenarioPanel(store = updateScenarioStore, overrideStore = remoteConfigOverrideStore)
+                    },
                 )
             }
         }

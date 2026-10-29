@@ -8,7 +8,8 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 /**
- * 처리에 실패한 모듈 간 이벤트를 주기적으로 다시 발행한다. 리스너는 같은 이벤트를 여러 번 받아도 되도록 멱등하게 처리한다.
+ * 예외로 실패했거나 Modulith의 staleness 감시가 FAILED로 전환한 발행 기록을 주기적으로 다시 발행한다.
+ * 리스너는 같은 이벤트를 여러 번 받아도 되도록 멱등하게 처리한다.
  * 최대 시도 횟수를 넘긴 건은 발행 기록(EVENT_PUBLICATION)에 FAILED로 남겨 원인을 확인한 뒤 처리한다.
  */
 @Component

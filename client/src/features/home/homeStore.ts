@@ -7,9 +7,9 @@ import { showSnackbar } from '../../ui/snackbar';
 export type HomeState = {
     furnitures: FurnitureSummary[];
     selectedCategory: FurnitureCategory | null;
-    // 고른 배송비 예산. null이면 거르지 않고 전체를 한 번에 받는다
+    // 고른 배송비 예산. null이면 배송비 조건 없이 페이지를 받는다
     maxDeliveryFee: number | null;
-    // 배송비로 거를 때 이어 받을 다음 페이지 커서. 마지막 페이지면 null
+    // 이어 받을 다음 페이지 커서. 마지막 페이지면 null
     nextCursor: string | null;
     isLoadingMore: boolean;
     // 프로필 버튼에 보여줄 아이디 첫 글자. 회원 정보를 아직 못 받았으면 null
@@ -34,6 +34,7 @@ const initialState: HomeState = {
 let state: HomeState = initialState;
 // 지금 보여주는 목록을 받은 배송비 예산. 다른 예산으로 받다 실패하면 필터를 이 값으로 되돌린다
 let shownMaxDeliveryFee: number | null = null;
+let shownCategory: FurnitureCategory | null = null;
 // 필터를 바꾸면 이전 요청의 결과가 뒤늦게 덮어쓰지 않도록 요청마다 번호를 붙인다
 let listingsRequest = 0;
 let onRequireDong: () => void = () => undefined;
@@ -56,25 +57,18 @@ export function useHomeState(): HomeState {
 }
 
 export function hasMore(home: HomeState): boolean {
-    return home.maxDeliveryFee !== null && home.nextCursor !== null;
+    return home.nextCursor !== null;
 }
 
 export function visibleFurnitures(home: HomeState): FurnitureSummary[] {
-    if (home.selectedCategory === null) return home.furnitures;
-    return home.furnitures.filter((furniture) => furniture.category === home.selectedCategory);
-}
-
-/** 불러온 판매 중 가구에서 제목에 [query]가 들어간 가구를 찾는다. 서버 검색 API가 없어 화면에서 거른다. */
-export function searchFurnitures(home: HomeState, query: string): FurnitureSummary[] {
-    const keyword = query.trim().toLowerCase();
-    if (!keyword) return [];
-    return home.furnitures.filter((furniture) => furniture.title.toLowerCase().includes(keyword));
+    return home.furnitures;
 }
 
 /** 다른 계정으로 로그인하거나 로그아웃하면 이전 목록을 버린다. */
 export function resetHomeStore() {
     listingsRequest += 1;
     shownMaxDeliveryFee = null;
+    shownCategory = null;
     state = initialState;
     listeners.forEach((listener) => listener());
 }
@@ -82,14 +76,14 @@ export function resetHomeStore() {
 /**
  * 홈에 들어올 때마다 부른다. 다른 화면에서 가구를 등록·수정·삭제하고 돌아와도
  * 보여주는 목록이 있으면 로딩 없이 최신 목록으로 바꾼다.
- * 배송비로 거른 목록은 첫 페이지만 다시 받으면 이어 받은 페이지가 사라지므로 그대로 둔다.
+ * 복귀 시에는 이미 읽은 범위만 페이지로 다시 읽어 스크롤 위치와 최신 상태를 유지한다.
  */
 export function enterHome(requireDong: () => void) {
     onRequireDong = requireDong;
     if (state.furnitures.length === 0) {
         loadListings();
-    } else if (state.maxDeliveryFee === null) {
-        fetchListings();
+    } else {
+        fetchListings(state.furnitures.length);
     }
     loadProfile();
 }
@@ -113,7 +107,9 @@ export function refreshHome() {
 }
 
 export function selectCategory(category: FurnitureCategory | null) {
-    update({ selectedCategory: category });
+    if (state.selectedCategory === category) return;
+    update({ selectedCategory: category, isLoading: true, hasError: false });
+    fetchListings();
 }
 
 /** 배송비 예산을 바꾸고 첫 페이지부터 다시 받는다. null이면 필터를 해제한다. */
@@ -123,14 +119,14 @@ export function selectMaxDeliveryFee(maxDeliveryFee: number | null) {
     fetchListings();
 }
 
-/** 배송비로 거른 목록의 다음 페이지를 이어 받는다. */
+/** 현재 검색 조건의 다음 페이지를 이어 받는다. */
 export function loadMore() {
-    const { maxDeliveryFee, nextCursor, isLoading, isRefreshing, isLoadingMore } = state;
-    if (maxDeliveryFee === null || nextCursor === null) return;
+    const { selectedCategory, maxDeliveryFee, nextCursor, isLoading, isRefreshing, isLoadingMore } = state;
+    if (nextCursor === null) return;
     if (isLoading || isRefreshing || isLoadingMore) return;
     update({ isLoadingMore: true });
     const request = ++listingsRequest;
-    furnitureRepository.getFurnitureWithinDeliveryFee(maxDeliveryFee, nextCursor)
+    furnitureRepository.getFurniturePage({ category: selectedCategory, maxDeliveryFee, cursor: nextCursor })
         .then((page) => {
             if (request !== listingsRequest) return;
             update((current) => {
@@ -150,16 +146,27 @@ export function loadMore() {
         });
 }
 
-function fetchListings() {
+function fetchListings(retainCount = 0) {
+    if (retainCount > 0) update({ isRefreshing: true });
     const request = ++listingsRequest;
-    const maxDeliveryFee = state.maxDeliveryFee;
-    const pageRequest: Promise<FurniturePage> = maxDeliveryFee === null
-        ? furnitureRepository.getFurniture().then((items) => ({ items, nextCursor: null }))
-        : furnitureRepository.getFurnitureWithinDeliveryFee(maxDeliveryFee, null);
+    const { maxDeliveryFee, selectedCategory } = state;
+    const pageRequest = (async (): Promise<FurniturePage> => {
+        const page = await furnitureRepository.getFurniturePage({ category: selectedCategory, maxDeliveryFee });
+        while (request === listingsRequest && page.nextCursor !== null && page.items.length < retainCount) {
+            const next = await furnitureRepository.getFurniturePage({
+                category: selectedCategory, maxDeliveryFee, cursor: page.nextCursor
+            });
+            const seen = new Set(page.items.map((item) => item.id));
+            page.items.push(...next.items.filter((item) => !seen.has(item.id)));
+            page.nextCursor = next.nextCursor;
+        }
+        return page;
+    })();
     pageRequest
         .then((page) => {
             if (request !== listingsRequest) return;
             shownMaxDeliveryFee = maxDeliveryFee;
+            shownCategory = selectedCategory;
             update({
                 furnitures: page.items,
                 nextCursor: page.nextCursor,
@@ -172,7 +179,7 @@ function fetchListings() {
         .catch((error: unknown) => {
             if (request !== listingsRequest) return;
             if (isMemberDongRequired(error)) {
-                update({ maxDeliveryFee: shownMaxDeliveryFee, isLoading: false, isRefreshing: false, isLoadingMore: false });
+                update({ selectedCategory: shownCategory, maxDeliveryFee: shownMaxDeliveryFee, isLoading: false, isRefreshing: false, isLoadingMore: false });
                 onRequireDong();
                 return;
             }
@@ -182,7 +189,8 @@ function fetchListings() {
                 isRefreshing: false,
                 isLoadingMore: false,
                 hasError: !hasListings,
-                maxDeliveryFee: hasListings ? shownMaxDeliveryFee : current.maxDeliveryFee
+                maxDeliveryFee: hasListings ? shownMaxDeliveryFee : current.maxDeliveryFee,
+                selectedCategory: hasListings ? shownCategory : current.selectedCategory
             }));
             if (hasListings) showSnackbar('가구 목록을 새로고침하지 못했습니다');
         });

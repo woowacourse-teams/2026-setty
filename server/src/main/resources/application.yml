@@ -35,8 +35,15 @@ spring:
           enabled: false
       # 처리 완료된 발행 기록은 지워 테이블이 계속 쌓이지 않게 한다. 미완료·실패 건만 남는다.
       completion-mode: delete
-      # 처리 도중 서버가 내려가 남은 발행 기록은 재시작 시 다시 발행한다.
-      republish-outstanding-events-on-restart: true
+      # 블루그린 중 다른 JVM의 실행 중 이벤트를 시작 시 다시 가져오지 않는다.
+      republish-outstanding-events-on-restart: false
+      staleness:
+        # 임시 기준. 정상 큐 대기와 실행시간을 측정한 뒤 조정한다. 명시한 기간은 양수여야 한다.
+        published: ${SETTY_EVENT_STALENESS_PUBLISHED:PT5M}
+        processing: ${SETTY_EVENT_STALENESS_PROCESSING:PT5M}
+        resubmitted: ${SETTY_EVENT_STALENESS_RESUBMITTED:PT5M}
+        # 오래 남은 기록을 FAILED로 바꾸면 기존 실패 재발행 스케줄러가 회수한다.
+        check-interval: ${SETTY_EVENT_STALENESS_CHECK_INTERVAL:PT30S}
 
   task:
     execution:
@@ -62,6 +69,8 @@ management:
         enabled: false
 
 setty:
+  events:
+    resubmission-interval: ${SETTY_EVENT_RESUBMISSION_INTERVAL:PT1M}
   delivery:
     request-sse:
       # 임시 보호 상한. 운영 용량은 연결·목록 조회 부하와 전체 메모리 측정으로 확인한다.

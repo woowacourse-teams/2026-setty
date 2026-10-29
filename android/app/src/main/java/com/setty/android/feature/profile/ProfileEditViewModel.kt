@@ -70,8 +70,13 @@ class ProfileEditViewModel(
     private val _event = Channel<ProfileEditEvent>(Channel.BUFFERED)
     val event = _event.receiveAsFlow()
 
+    /** [load]를 불렀는지. 프로세스 종료 후 새로 만들어지면 false라 서버에서 다시 받는다. */
+    var isLoadRequested: Boolean = false
+        private set
+
     /** 서버의 현재 회원 정보로 입력 폼을 채운다. */
     fun load() {
+        isLoadRequested = true
         viewModelScope.launch {
             _uiState.value = ProfileEditUiState()
             runCatching {

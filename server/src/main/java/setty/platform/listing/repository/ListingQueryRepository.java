@@ -44,14 +44,22 @@ public class ListingQueryRepository {
     }
 
     public List<Row> findAvailable(
-            Instant cursorCreatedAt,
-            Long cursorId,
-            Integer limit,
+            Instant cursorCreatedAt, Long cursorId, Integer limit,
             Map<VolumeTier, List<String>> sellerDongCodes,
-            Map<VolumeTier, List<ZoneRange>> sellerZipZones
+            Map<VolumeTier, List<ZoneRange>> sellerZipZones,
+            String keyword, ListingCategory category
     ) {
         StringBuilder where = new StringBuilder(" WHERE deleted_at IS NULL AND sale_status = 'AVAILABLE'");
         List<Object> args = new ArrayList<>();
+        if (keyword != null) {
+            // 기존 화면처럼 대소문자를 무시한 제목 부분 검색. %, _도 와일드카드가 아닌 문자다.
+            where.append(" AND LOCATE(CAST(LOWER(?) AS BINARY), CAST(LOWER(title) AS BINARY)) > 0");
+            args.add(keyword);
+        }
+        if (category != null) {
+            where.append(" AND category = ?");
+            args.add(category.name());
+        }
         if (cursorCreatedAt != null) {
             where.append(" AND (created_at < ? OR (created_at = ? AND id < ?))");
             Timestamp createdAt = Timestamp.from(cursorCreatedAt);
@@ -85,7 +93,7 @@ public class ListingQueryRepository {
             return jdbcTemplate.query(SELECT_COLUMNS + " FROM listings" + where + page,
                     ListingQueryRepository::mapRow, args.toArray());
         }
-        // id만 고르면 idx_listings_delivery_filter 안에서 정렬과 (부피, 행정동) 조건이 끝난다.
+        // 배송비 조건으로 먼저 id를 고른다. 제목 검색이 있으면 제목 확인을 위한 본문 접근도 필요하다.
         // 본문 컬럼까지 한 번에 읽으면 첫 페이지(ref 접근)에서 조건을 색인 안에서 거르지 못해 안 맞는 행까지 읽는다.
         return jdbcTemplate.query(
                 SELECT_COLUMNS + " FROM listings JOIN (SELECT id FROM listings" + where + page + ") picked USING (id)"

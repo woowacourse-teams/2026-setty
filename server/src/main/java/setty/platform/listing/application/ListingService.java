@@ -33,6 +33,7 @@ import setty.platform.favorite.repository.FavoriteRepository;
 import setty.platform.listing.domain.DeliveryFeePolicy;
 import setty.platform.listing.domain.Dimensions;
 import setty.platform.listing.domain.Listing;
+import setty.platform.listing.domain.ListingCategory;
 import setty.platform.listing.domain.ListingImage;
 import setty.platform.listing.domain.SaleStatus;
 import setty.platform.listing.repository.ListingImageRepository;
@@ -105,7 +106,7 @@ public class ListingService {
     // 트랜잭션을 걸지 않는다. JPA 트랜잭션을 열면 조회 내내 커넥션을 붙잡으므로 쿼리마다 바로 반납하는 JDBC 조회만 쓴다.
     public List<ListingView.Summary> findAvailableListings(String buyerToken) {
         return listingQueryRepository.inOneConnection(reader ->
-                findAvailable(reader, null, null, null, null, buyerOf(reader, buyerToken)).items());
+                findAvailable(reader, null, null, null, null, buyerOf(reader, buyerToken), null, null).items());
     }
 
     public ListingView.SummaryPage findAvailableListings(
@@ -114,13 +115,24 @@ public class ListingService {
             String buyerToken,
             Integer maxDeliveryFee
     ) {
+        return findAvailableListings(cursor, size, buyerToken, maxDeliveryFee, null, null);
+    }
+
+    public ListingView.SummaryPage findAvailableListings(
+            ListingCursor cursor, int size, String buyerToken, Integer maxDeliveryFee,
+            String query, ListingCategory category
+    ) {
+        String keyword = query == null || query.isBlank() ? null : query.strip();
+        if (keyword != null && keyword.length() > 100) {
+            throw new BusinessException(INVALID_REQUEST);
+        }
         if (size < 1 || size > MAXIMUM_PAGE_SIZE) {
             throw new BusinessException(INVALID_REQUEST);
         }
         return listingQueryRepository.inOneConnection(reader -> {
             Buyer buyer = buyerOf(reader, buyerToken);
             if (maxDeliveryFee == null) {
-                return findAvailable(reader, cursor, size, null, null, buyer);
+                return findAvailable(reader, cursor, size, null, null, buyer, keyword, category);
             }
             if (!buyer.member()) {
                 throw new BusinessException(INVALID_TOKEN);
@@ -128,9 +140,9 @@ public class ListingService {
             // 우편번호 구역이 있는 구매자에게는 구역이 있는 매물만 거른다. 동 필터가 동 없는 매물을 빼는 것과 같은 규칙이다.
             if (deliveryFeeService.zipEnabled() && buyer.zipZone() != null) {
                 return findAvailable(reader, cursor, size, null,
-                        deliveryFeeService.sellerZipZonesWithinFee(buyer.zipZone(), maxDeliveryFee), buyer);
+                        deliveryFeeService.sellerZipZonesWithinFee(buyer.zipZone(), maxDeliveryFee), buyer, keyword, category);
             }
-            return findAvailable(reader, cursor, size, sellerDongCodesWithin(buyer, maxDeliveryFee), null, buyer);
+            return findAvailable(reader, cursor, size, sellerDongCodesWithin(buyer, maxDeliveryFee), null, buyer, keyword, category);
         });
     }
 
@@ -174,7 +186,9 @@ public class ListingService {
             Integer size,
             Map<VolumeTier, List<String>> sellerDongCodes,
             Map<VolumeTier, List<ZoneRange>> sellerZipZones,
-            Buyer buyer
+            Buyer buyer,
+            String keyword,
+            ListingCategory category
     ) {
         // 예산 안에 드는 판매자 동·구역이 하나도 없으면 DB에 묻지 않는다
         if ((sellerDongCodes != null && sellerDongCodes.isEmpty())
@@ -187,7 +201,9 @@ public class ListingService {
                 cursor == null ? null : cursor.id(),
                 size == null ? null : size + 1,
                 sellerDongCodes,
-                sellerZipZones
+                sellerZipZones,
+                keyword,
+                category
         ));
         boolean hasNext = size != null && rows.size() > size;
         List<ListingQueryRepository.Row> page = hasNext ? rows.subList(0, size) : rows;

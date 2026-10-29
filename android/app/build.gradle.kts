@@ -19,8 +19,8 @@ android {
 
     defaultConfig {
         applicationId = "com.setty.android"
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "1.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -77,6 +77,8 @@ dependencies {
     implementation(libs.toss.payments)
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.messaging)
+    implementation(libs.firebase.config)
+    implementation(libs.play.app.update)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     androidTestImplementation(libs.androidx.espresso.core)

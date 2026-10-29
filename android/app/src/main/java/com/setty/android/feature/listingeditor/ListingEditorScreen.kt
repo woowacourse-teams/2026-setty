@@ -91,9 +91,10 @@ fun ListingEditorScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     // 화면에 처음 들어올 때만 폼을 초기화한다. 회전 등으로 다시 그려질 때는 입력을 유지한다.
+    // 프로세스 종료 후에는 ViewModel이 SavedStateHandle로 입력을 복원하므로 다시 시작하지 않는다.
     var isStarted by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(Unit) {
-        if (!isStarted) {
+        if (!isStarted || !viewModel.isStarted) {
             isStarted = true
             viewModel.start(listingId)
         }

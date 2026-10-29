@@ -1,9 +1,11 @@
 package com.setty.android.feature.listingeditor
 
 import android.net.Uri
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.setty.android.SettyApp
@@ -112,6 +114,7 @@ sealed interface ListingEditorEvent {
 
 class ListingEditorViewModel(
     private val furnitureRepository: FurnitureRepository,
+    private val savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ListingEditorUiState())
@@ -122,10 +125,27 @@ class ListingEditorViewModel(
 
     private var loadJob: Job? = null
 
+    /** [start]가 호출됐는지. 프로세스 종료 후에도 [SavedStateHandle]로 복원된다. */
+    val isStarted: Boolean
+        get() = savedStateHandle[KEY_STARTED] ?: false
+
+    init {
+        if (isStarted) restore()
+        // 입력 중인 폼을 저장해 프로세스가 종료돼도 복원한다. 사진은 권한 문제로 저장하지 않는다
+        viewModelScope.launch {
+            uiState.collect { state ->
+                if (state.loadState is LoadUiState.Success) saveForm(state)
+            }
+        }
+    }
+
     /** 편집 화면을 새로 시작한다. [listingId]가 있으면 기존 매물을 불러와 폼을 채운다. */
     fun start(listingId: Long?) {
         loadJob?.cancel()
-        _uiState.value = ListingEditorUiState(listingId = listingId)
+        FORM_KEYS.forEach { savedStateHandle.remove<Any>(it) }
+        savedStateHandle[KEY_STARTED] = true
+        savedStateHandle[KEY_LISTING_ID] = listingId
+        _uiState.value = ListingEditorUiState(listingId = listingId, loadState = initialLoadState(listingId))
         if (listingId != null) load(listingId)
     }
 
@@ -133,7 +153,42 @@ class ListingEditorViewModel(
         _uiState.value.listingId?.let(::load)
     }
 
-    private fun load(listingId: Long) {
+    /** 프로세스 종료 전 입력을 복원한다. 수정 중이었다면 기존 사진만 다시 불러온다. */
+    private fun restore() {
+        val listingId: Long? = savedStateHandle[KEY_LISTING_ID]
+        val hasSavedForm = savedStateHandle.contains(KEY_TITLE)
+        _uiState.value = ListingEditorUiState(
+            listingId = listingId,
+            loadState = initialLoadState(listingId),
+            title = savedStateHandle[KEY_TITLE] ?: "",
+            description = savedStateHandle[KEY_DESCRIPTION] ?: "",
+            price = savedStateHandle[KEY_PRICE] ?: "",
+            category = savedStateHandle.get<String>(KEY_CATEGORY)?.let(FurnitureCategory::valueOf),
+            conditionGrade = savedStateHandle[KEY_CONDITION_GRADE],
+            widthCm = savedStateHandle[KEY_WIDTH_CM] ?: "",
+            depthCm = savedStateHandle[KEY_DEPTH_CM] ?: "",
+            heightCm = savedStateHandle[KEY_HEIGHT_CM] ?: "",
+        )
+        if (listingId != null) load(listingId, keepForm = hasSavedForm)
+    }
+
+    // 수정할 매물을 받기 전의 빈 폼이 저장되지 않도록 처음부터 Loading으로 둔다
+    private fun initialLoadState(listingId: Long?): LoadUiState<Unit> =
+        if (listingId != null) LoadUiState.Loading else LoadUiState.Success(Unit)
+
+    private fun saveForm(state: ListingEditorUiState) {
+        savedStateHandle[KEY_TITLE] = state.title
+        savedStateHandle[KEY_DESCRIPTION] = state.description
+        savedStateHandle[KEY_PRICE] = state.price
+        savedStateHandle[KEY_CATEGORY] = state.category?.name
+        savedStateHandle[KEY_CONDITION_GRADE] = state.conditionGrade
+        savedStateHandle[KEY_WIDTH_CM] = state.widthCm
+        savedStateHandle[KEY_DEPTH_CM] = state.depthCm
+        savedStateHandle[KEY_HEIGHT_CM] = state.heightCm
+    }
+
+    /** [keepForm]이면 복원한 입력을 유지하고 기존 사진만 채운다. */
+    private fun load(listingId: Long, keepForm: Boolean = false) {
         loadJob = viewModelScope.launch {
             _uiState.update { it.copy(loadState = LoadUiState.Loading) }
             runCatching {
@@ -141,18 +196,22 @@ class ListingEditorViewModel(
             }.onSuccess { listing ->
                 val draft = listing.draft
                 _uiState.update {
-                    it.copy(
-                        loadState = LoadUiState.Success(Unit),
-                        title = draft.title,
-                        description = draft.description,
-                        price = draft.price.toString(),
-                        category = draft.category,
-                        conditionGrade = draft.conditionGrade,
-                        widthCm = draft.widthCm.toString(),
-                        depthCm = draft.depthCm.toString(),
-                        heightCm = draft.heightCm.toString(),
-                        retainedImages = listing.images,
-                    )
+                    if (keepForm) {
+                        it.copy(loadState = LoadUiState.Success(Unit), retainedImages = listing.images)
+                    } else {
+                        it.copy(
+                            loadState = LoadUiState.Success(Unit),
+                            title = draft.title,
+                            description = draft.description,
+                            price = draft.price.toString(),
+                            category = draft.category,
+                            conditionGrade = draft.conditionGrade,
+                            widthCm = draft.widthCm.toString(),
+                            depthCm = draft.depthCm.toString(),
+                            heightCm = draft.heightCm.toString(),
+                            retainedImages = listing.images,
+                        )
+                    }
                 }
             }.onFailure { throwable ->
                 _uiState.update { it.copy(loadState = throwable.toLoadError()) }
@@ -232,10 +291,25 @@ class ListingEditorViewModel(
         private const val PRICE_MAX_DIGITS = 10
         private const val DIMENSION_MAX_DIGITS = 5
 
+        private const val KEY_STARTED = "listing_editor_started"
+        private const val KEY_LISTING_ID = "listing_editor_listing_id"
+        private const val KEY_TITLE = "listing_editor_title"
+        private const val KEY_DESCRIPTION = "listing_editor_description"
+        private const val KEY_PRICE = "listing_editor_price"
+        private const val KEY_CATEGORY = "listing_editor_category"
+        private const val KEY_CONDITION_GRADE = "listing_editor_condition_grade"
+        private const val KEY_WIDTH_CM = "listing_editor_width_cm"
+        private const val KEY_DEPTH_CM = "listing_editor_depth_cm"
+        private const val KEY_HEIGHT_CM = "listing_editor_height_cm"
+        private val FORM_KEYS = listOf(
+            KEY_TITLE, KEY_DESCRIPTION, KEY_PRICE, KEY_CATEGORY, KEY_CONDITION_GRADE,
+            KEY_WIDTH_CM, KEY_DEPTH_CM, KEY_HEIGHT_CM,
+        )
+
         val Factory = viewModelFactory {
             initializer {
                 val appContainer = (this[APPLICATION_KEY] as SettyApp).appContainer
-                ListingEditorViewModel(appContainer.furnitureRepository)
+                ListingEditorViewModel(appContainer.furnitureRepository, createSavedStateHandle())
             }
         }
     }

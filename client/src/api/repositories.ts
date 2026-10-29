@@ -5,6 +5,7 @@ import {
     type EditableListing,
     type FurnitureDetail,
     type FurniturePage,
+    type FurnitureCategory,
     type FurnitureSummary,
     type ListingDraft,
     type MyFurniture,
@@ -209,14 +210,15 @@ function toUpsertRequest(draft: ListingDraft): ListingUpsertRequest {
 }
 
 export const furnitureRepository = {
-    async getFurniture(): Promise<FurnitureSummary[]> {
-        return (await apiCall<ListingListResponse>('/api/listings')).items.map(toFurniture);
-    },
-
-    /** 배송비가 [maxDeliveryFee] 이하인 매물 한 페이지를 받는다. 첫 페이지는 [cursor]를 null로 넘긴다. */
-    async getFurnitureWithinDeliveryFee(maxDeliveryFee: number, cursor: string | null): Promise<FurniturePage> {
+    /** 검색·필터를 전체 데이터에 적용한 뒤 한 페이지를 받는다. */
+    async getFurniturePage({ category = null, maxDeliveryFee = null, query = null, cursor = null }: {
+        category?: FurnitureCategory | null;
+        maxDeliveryFee?: number | null;
+        query?: string | null;
+        cursor?: string | null;
+    } = {}): Promise<FurniturePage> {
         const response = await apiCall<ListingListResponse>('/api/listings', {
-            query: { maxDeliveryFee, size: PAGE_SIZE, cursor }
+            query: { size: PAGE_SIZE, cursor, category, maxDeliveryFee, query }
         });
         return { items: response.items.map(toFurniture), nextCursor: response.nextCursor ?? null };
     },
