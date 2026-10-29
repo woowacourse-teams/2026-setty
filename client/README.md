@@ -9,9 +9,6 @@ Android 앱(`android/`)의 구매자·판매자 화면을 모바일 브라우저
 cd client
 npm install
 
-# 서버 없이 목 데이터로 확인 (테스트 계정: setty01 / password1)
-npm run dev:msw
-
 # 로컬 서버(기본 http://localhost:8080)에 붙이기
 npm run dev
 SETTY_API_URL=https://dev.example.com npm run dev
@@ -22,7 +19,6 @@ SETTY_API_URL=https://dev.example.com npm run dev
 
 | 변수 | 설명 |
 | :-- | :-- |
-| `ENABLE_MSW` | `true`면 MSW 목 서버로 동작한다. 결제는 토스 결제창 없이 성공으로 처리한다. |
 | `SETTY_API_URL` | 개발 서버가 `/api`를 넘길 백엔드 주소. |
 | `SETTY_TOSS_CLIENT_KEY` | 토스페이먼츠 결제위젯 클라이언트 키. 비우면 공개 문서용 테스트 키를 쓴다. |
 

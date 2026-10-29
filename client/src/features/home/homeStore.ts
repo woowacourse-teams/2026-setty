@@ -15,6 +15,8 @@ export type HomeState = {
     // 프로필 버튼에 보여줄 아이디 첫 글자. 회원 정보를 아직 못 받았으면 null
     profileInitial: string | null;
     isLoading: boolean;
+    // 필터를 바꿔 첫 페이지를 다시 받는 중. 필터 줄은 두고 목록 자리에만 로딩을 보여준다
+    isFiltering: boolean;
     isRefreshing: boolean;
     hasError: boolean;
 };
@@ -27,6 +29,7 @@ const initialState: HomeState = {
     isLoadingMore: false,
     profileInitial: null,
     isLoading: true,
+    isFiltering: false,
     isRefreshing: false,
     hasError: false
 };
@@ -106,24 +109,32 @@ export function refreshHome() {
     loadProfile();
 }
 
+/**
+ * 필터를 바꾸면 필터 줄은 그대로 둔 채 목록 자리에만 로딩을 보여줘 화면이 깜빡이지 않게 한다.
+ * 아직 보여주는 목록이 없을 때만 전체 로딩을 보여준다.
+ */
+function changeFilter(patch: Pick<Partial<HomeState>, 'selectedCategory' | 'maxDeliveryFee'>) {
+    const isListShown = !state.isLoading && !state.hasError;
+    update(isListShown ? { ...patch, isFiltering: true } : { ...patch, isLoading: true, hasError: false });
+    fetchListings();
+}
+
 export function selectCategory(category: FurnitureCategory | null) {
     if (state.selectedCategory === category) return;
-    update({ selectedCategory: category, isLoading: true, hasError: false });
-    fetchListings();
+    changeFilter({ selectedCategory: category });
 }
 
 /** 배송비 예산을 바꾸고 첫 페이지부터 다시 받는다. null이면 필터를 해제한다. */
 export function selectMaxDeliveryFee(maxDeliveryFee: number | null) {
     if (state.maxDeliveryFee === maxDeliveryFee) return;
-    update({ maxDeliveryFee, isLoading: true, hasError: false });
-    fetchListings();
+    changeFilter({ maxDeliveryFee });
 }
 
 /** 현재 검색 조건의 다음 페이지를 이어 받는다. */
 export function loadMore() {
-    const { selectedCategory, maxDeliveryFee, nextCursor, isLoading, isRefreshing, isLoadingMore } = state;
+    const { selectedCategory, maxDeliveryFee, nextCursor, isLoading, isFiltering, isRefreshing, isLoadingMore } = state;
     if (nextCursor === null) return;
-    if (isLoading || isRefreshing || isLoadingMore) return;
+    if (isLoading || isFiltering || isRefreshing || isLoadingMore) return;
     update({ isLoadingMore: true });
     const request = ++listingsRequest;
     furnitureRepository.getFurniturePage({ category: selectedCategory, maxDeliveryFee, cursor: nextCursor })
@@ -171,6 +182,7 @@ function fetchListings(retainCount = 0) {
                 furnitures: page.items,
                 nextCursor: page.nextCursor,
                 isLoading: false,
+                isFiltering: false,
                 isRefreshing: false,
                 isLoadingMore: false,
                 hasError: false
@@ -179,13 +191,14 @@ function fetchListings(retainCount = 0) {
         .catch((error: unknown) => {
             if (request !== listingsRequest) return;
             if (isMemberDongRequired(error)) {
-                update({ selectedCategory: shownCategory, maxDeliveryFee: shownMaxDeliveryFee, isLoading: false, isRefreshing: false, isLoadingMore: false });
+                update({ selectedCategory: shownCategory, maxDeliveryFee: shownMaxDeliveryFee, isLoading: false, isFiltering: false, isRefreshing: false, isLoadingMore: false });
                 onRequireDong();
                 return;
             }
             const hasListings = state.furnitures.length > 0;
             update((current) => ({
                 isLoading: false,
+                isFiltering: false,
                 isRefreshing: false,
                 isLoadingMore: false,
                 hasError: !hasListings,

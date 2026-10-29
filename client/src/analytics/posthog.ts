@@ -8,13 +8,14 @@ import { getPriceScenarioEventProperties } from './priceScenario';
  * 아래 함수들이 모두 아무 일도 하지 않는다. 세션 리플레이는 PostHog 프로젝트 설정에서 켠다.
  *
  * 수집 범위: 경로 변경마다 $pageview, 자동 클릭 수집, 커스텀 이벤트 7종, 로그인 아이디 identify.
- * MSW 모의 결제는 공통 속성 is_mock으로 구분한다. 이벤트 이름과 속성은 AnalyticsEventName 및 호출부에서 관리한다.
+ * 이벤트 이름과 속성은 AnalyticsEventName 및 호출부에서 관리한다.
  * 배송비 표시 시나리오의 실행 ID·A/B 조건·is_synthetic은 커스텀 이벤트에만 추가한다.
  * 비밀번호·연락처·주소 같은 입력값은 리플레이에서 마스킹하고 이벤트 속성에는 넣지 않는다.
  */
 
 const KEY_PATTERN = /^phc_[A-Za-z0-9]+$/;
-const COMMON_PROPERTIES = { is_mock: __ENABLE_MSW__ };
+// 목 모드는 없어졌지만 기존 대시보드가 is_mock = false로 거를 수 있어 같은 값을 계속 보낸다
+const COMMON_PROPERTIES = { is_mock: false };
 
 let initialized = false;
 

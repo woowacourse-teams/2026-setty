@@ -83,7 +83,6 @@ function analyticsWith(scenario) {
     const captures = [];
     const sdk = { init() {}, capture: (name, properties) => captures.push({ name, properties }) };
     const analytics = loadModule('posthog.ts', {
-        __ENABLE_MSW__: false,
         __POSTHOG_KEY__: 'phc_fixturekey',
         __POSTHOG_HOST__: 'http://127.0.0.1'
     }, { 'posthog-js': sdk, './priceScenario': scenario });

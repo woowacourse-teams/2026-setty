@@ -184,8 +184,10 @@ export function FurnitureDetailScreen() {
                     actions={listing && (
                         <span className={styles['favorite-action']}>
                             <IconButton
+                                aria-busy={favorite.isUpdating}
                                 aria-pressed={favorite.isFavorited === true}
-                                disabled={favorite.isFavorited === null || favorite.isUpdating}
+                                // 요청 중 연속 클릭은 toggleFavorite가 막는다. 비활성으로 바꾸면 아이콘이 잠깐 흐려져 깜빡인다
+                                disabled={favorite.isFavorited === null}
                                 icon={favorite.isFavorited ? 'favoriteFilled' : 'favorite'}
                                 label={favorite.isFavorited ? '찜 해제' : '찜하기'}
                                 onClick={() => void toggleFavorite()}

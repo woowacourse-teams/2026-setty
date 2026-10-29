@@ -5,15 +5,7 @@ import { initializeAnalytics } from './analytics/posthog';
 import { listenForegroundMessages, listenNotificationClicks, syncPushToken } from './push/webPush';
 import './styles/global.css';
 
-async function enableMocking() {
-    if (!__ENABLE_MSW__) return;
-
-    const { worker } = await import('./mocks/browser');
-    await worker.start({ onUnhandledRequest: 'bypass' });
-}
-
-async function bootstrap() {
-    await enableMocking();
+function bootstrap() {
     initializeAnalytics();
 
     const root = document.getElementById('root');
@@ -25,4 +17,4 @@ async function bootstrap() {
     listenNotificationClicks((path) => void router.navigate(path));
 }
 
-void bootstrap();
+bootstrap();

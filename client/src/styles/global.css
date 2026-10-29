@@ -1,4 +1,4 @@
-/* Android 앱은 Material 3 Expressive 기본 보라 테마(동적 색이 없을 때)를 쓴다. 같은 색 역할을 CSS 토큰으로 옮긴다. */
+/* 색 역할 이름은 Material 3를 따르고, 값은 파란 강조색과 푸른빛이 도는 회색 단계로 맞춘다. 다크 모드도 같은 단계에서 고른다. */
 @font-face { font-family: 'Paperlogy'; font-weight: 100; font-display: swap; src: url('/fonts/paperlogy_1thin.ttf') format('truetype'); }
 @font-face { font-family: 'Paperlogy'; font-weight: 200; font-display: swap; src: url('/fonts/paperlogy_2extralight.ttf') format('truetype'); }
 @font-face { font-family: 'Paperlogy'; font-weight: 300; font-display: swap; src: url('/fonts/paperlogy_3light.ttf') format('truetype'); }
@@ -10,37 +10,37 @@
 @font-face { font-family: 'Paperlogy'; font-weight: 900; font-display: swap; src: url('/fonts/paperlogy_9black.ttf') format('truetype'); }
 
 :root {
-    --primary: #6750a4;
+    --primary: #3182f6;
     --on-primary: #ffffff;
-    --primary-container: #eaddff;
-    --on-primary-container: #4f378b;
-    --secondary: #625b71;
+    --primary-container: #e8f3ff;
+    --on-primary-container: #1b64da;
+    --secondary: #4e5968;
     --on-secondary: #ffffff;
-    --secondary-container: #e8def8;
-    --on-secondary-container: #4a4458;
-    --tertiary: #7d5260;
+    --secondary-container: #f2f4f6;
+    --on-secondary-container: #333d4b;
+    --tertiary: #109595;
     --on-tertiary: #ffffff;
-    --tertiary-container: #ffd8e4;
-    --on-tertiary-container: #633b48;
-    --error: #b3261e;
+    --tertiary-container: #edf8f8;
+    --on-tertiary-container: #097575;
+    --error: #f04452;
     --on-error: #ffffff;
-    --error-container: #f9dedc;
-    --on-error-container: #8c1d18;
-    --surface: #fef7ff;
-    --on-surface: #1d1b20;
-    --on-surface-variant: #49454f;
-    --outline: #79747e;
-    --outline-variant: #cac4d0;
+    --error-container: #ffeeee;
+    --on-error-container: #d22030;
+    --surface: #ffffff;
+    --on-surface: #191f28;
+    --on-surface-variant: #6b7684;
+    --outline: #b0b8c1;
+    --outline-variant: #e5e8eb;
     --surface-container-lowest: #ffffff;
-    --surface-container-low: #f7f2fa;
-    --surface-container: #f3edf7;
-    --surface-container-high: #ece6f0;
-    --surface-container-highest: #e6e0e9;
-    --inverse-surface: #322f35;
-    --inverse-on-surface: #f5eff7;
-    --inverse-primary: #d0bcff;
+    --surface-container-low: #f9fafb;
+    --surface-container: #f9fafb;
+    --surface-container-high: #f2f4f6;
+    --surface-container-highest: #f2f4f6;
+    --inverse-surface: #333d4b;
+    --inverse-on-surface: #ffffff;
+    --inverse-primary: #64a8ff;
     --scrim: rgb(0 0 0 / 32%);
-    --backdrop: #e9e3ee;
+    --backdrop: #f2f4f6;
 
     --font-brand: 'Paperlogy', system-ui, -apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
     --font-plain: system-ui, -apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', 'Roboto', sans-serif;
@@ -60,36 +60,36 @@
 
 @media (prefers-color-scheme: dark) {
     :root {
-        --primary: #d0bcff;
-        --on-primary: #381e72;
-        --primary-container: #4f378b;
-        --on-primary-container: #eaddff;
-        --secondary: #ccc2dc;
-        --on-secondary: #332d41;
-        --secondary-container: #4a4458;
-        --on-secondary-container: #e8def8;
-        --tertiary: #efb8c8;
-        --on-tertiary: #492532;
-        --tertiary-container: #633b48;
-        --on-tertiary-container: #ffd8e4;
-        --error: #f2b8b5;
-        --on-error: #601410;
-        --error-container: #8c1d18;
-        --on-error-container: #f9dedc;
-        --surface: #141218;
-        --on-surface: #e6e0e9;
-        --on-surface-variant: #cac4d0;
-        --outline: #938f99;
-        --outline-variant: #49454f;
-        --surface-container-lowest: #0f0d13;
-        --surface-container-low: #1d1b20;
-        --surface-container: #211f26;
-        --surface-container-high: #2b2930;
-        --surface-container-highest: #36343b;
-        --inverse-surface: #e6e0e9;
-        --inverse-on-surface: #322f35;
-        --inverse-primary: #6750a4;
-        --backdrop: #0b0a0e;
+        --primary: #4593fc;
+        --on-primary: #ffffff;
+        --primary-container: #194aa6;
+        --on-primary-container: #c9e2ff;
+        --secondary: #b0b8c1;
+        --on-secondary: #191f28;
+        --secondary-container: #333d4b;
+        --on-secondary-container: #e5e8eb;
+        --tertiary: #58c7c7;
+        --on-tertiary: #076565;
+        --tertiary-container: #076565;
+        --on-tertiary-container: #bce9e9;
+        --error: #f66570;
+        --on-error: #ffffff;
+        --error-container: #a51926;
+        --on-error-container: #ffd4d6;
+        --surface: #191f28;
+        --on-surface: #f2f4f6;
+        --on-surface-variant: #b0b8c1;
+        --outline: #6b7684;
+        --outline-variant: #333d4b;
+        --surface-container-lowest: #101418;
+        --surface-container-low: #191f28;
+        --surface-container: #222a35;
+        --surface-container-high: #2a333f;
+        --surface-container-highest: #333d4b;
+        --inverse-surface: #f2f4f6;
+        --inverse-on-surface: #191f28;
+        --inverse-primary: #3182f6;
+        --backdrop: #101418;
 
         color-scheme: dark;
     }
@@ -104,6 +104,8 @@
 html {
     -webkit-text-size-adjust: 100%;
     -webkit-tap-highlight-color: transparent;
+    /* 목록 길이에 따라 스크롤바가 생기고 사라져도 화면이 옆으로 밀리지 않게 자리를 비워 둔다 */
+    scrollbar-gutter: stable;
 }
 
 body {
