@@ -4,7 +4,7 @@ import type {
     DeliverySummary,
     ShipmentDetail
 } from '../model/delivery';
-import { apiCall, deliveryTokenStore } from './http';
+import { apiCall, deliveryLoginIdStore, deliveryTokenStore } from './http';
 
 const delivery = { auth: 'delivery' } as const;
 
@@ -12,6 +12,7 @@ export const deliveryRepository = {
     async login(loginId: string, password: string) {
         const result = await apiCall<{ token: string }>('/api/delivery/auth/login', { method: 'POST', body: { loginId, password } });
         deliveryTokenStore.set(result.token);
+        deliveryLoginIdStore.set(loginId);
     },
 
     async signUp(form: DeliverySignUpForm) {

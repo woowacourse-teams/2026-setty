@@ -223,7 +223,7 @@ export function ExtendedFab({ label, icon, expanded, onClick }: ExtendedFabProps
                 onClick={onClick}
                 type="button"
             >
-                <Icon name={icon} size={28} />
+                <Icon name={icon} size={24} />
                 <span className={styles.fab__label}>{label}</span>
             </button>
         </div>
@@ -785,7 +785,7 @@ export function PullToRefresh({ isRefreshing, onRefresh, enabled = true, childre
 
 // ---------- 진행 표시 ----------
 
-/** 진행한 구간은 물결선으로, 남은 구간은 직선으로 그린다. */
+/** 진행한 구간은 물결선으로, 남은 구간은 직선으로 그린다. 물결은 진행 방향으로 계속 흐른다. */
 export function WavyProgress({ progress }: { progress: number }) {
     const width = 400;
     const height = 14;
@@ -793,10 +793,24 @@ export function WavyProgress({ progress }: { progress: number }) {
     const progressWidth = Math.max(0, Math.min(1, progress)) * width;
     const wavelength = 24;
     const amplitude = 3;
-    let wave = `M 0 ${middle}`;
-    for (let x = 0; x <= progressWidth; x += 2) {
-        wave += ` L ${x} ${middle + amplitude * Math.sin((x / wavelength) * Math.PI * 2)}`;
-    }
+    // 물결 한 파장을 이만큼 동안 흘려 보낸다
+    const periodMillis = 1000;
+    const waveRef = useRef<SVGPathElement | null>(null);
+    const wavePath = (phase: number) => {
+        let wave = `M 0 ${middle}`;
+        for (let x = 0; x <= progressWidth; x += 2) {
+            wave += ` L ${x} ${middle + amplitude * Math.sin((x / wavelength - phase) * Math.PI * 2)}`;
+        }
+        return wave;
+    };
+    useEffect(() => {
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+        let frame = requestAnimationFrame(function draw(time) {
+            waveRef.current?.setAttribute('d', wavePath(time / periodMillis));
+            frame = requestAnimationFrame(draw);
+        });
+        return () => cancelAnimationFrame(frame);
+    });
     const gap = 8;
     return (
         <svg
@@ -819,7 +833,7 @@ export function WavyProgress({ progress }: { progress: number }) {
                     y2={middle}
                 />
             )}
-            <path d={wave} fill="none" stroke="var(--primary)" strokeLinecap="round" strokeWidth={4} vectorEffect="non-scaling-stroke" />
+            <path d={wavePath(0)} fill="none" ref={waveRef} stroke="var(--primary)" strokeLinecap="round" strokeWidth={4} vectorEffect="non-scaling-stroke" />
         </svg>
     );
 }

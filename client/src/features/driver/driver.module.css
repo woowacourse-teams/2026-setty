@@ -1,34 +1,40 @@
 /* 배송원 화면 */
 
-.tab-bar {
-    display: flex;
-    width: 100%;
+.brand {
+    font-family: var(--font-brand);
+    font-size: 24px;
+    line-height: 32px;
+    font-weight: 900;
 }
 
-.tab {
-    display: flex;
-    flex: 1;
-    flex-direction: column;
+.profile-button {
+    display: inline-flex;
     align-items: center;
-    gap: 4px;
-    color: var(--on-surface-variant);
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    margin-right: 4px;
 }
 
-.tab__indicator {
+.profile-button__shape {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 64px;
-    height: 32px;
-    border-radius: 16px;
-    transition: background-color 160ms ease;
+    width: 40px;
+    height: 40px;
+    background: var(--primary-container);
+    color: var(--on-primary-container);
+    font-family: var(--font-brand);
+    font-size: 14px;
+    font-weight: 900;
 }
 
-.tab--active {
-    color: var(--on-surface);
-}
-
-.tab--active .tab__indicator {
+.menu-shape {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
     background: var(--secondary-container);
     color: var(--on-secondary-container);
 }
@@ -118,22 +124,6 @@
     flex: 1;
 }
 
-.summary {
-    display: flex;
-    gap: 12px;
-}
-
-.summary__item {
-    display: flex;
-    flex: 1;
-    flex-direction: column;
-    gap: 4px;
-    padding: 12px 16px;
-    border-radius: var(--shape-large);
-    background: color-mix(in srgb, var(--on-primary-container) 8%, transparent);
-}
-
-.summary__item p,
 .hero p {
     margin: 0;
 }
@@ -142,4 +132,36 @@
     display: flex;
     flex-direction: column;
     gap: 4px;
+}
+
+.fee-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    padding-top: 16px;
+    border-top: 1px solid color-mix(in srgb, var(--on-primary-container) 16%, transparent);
+}
+
+.fee-row p {
+    margin: 0;
+}
+
+.income-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 0;
+    padding-top: 16px;
+    border-top: 1px solid color-mix(in srgb, var(--on-primary-container) 16%, transparent);
+}
+
+.income-stats__row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.income-stats__row dt,
+.income-stats__row dd {
+    margin: 0;
 }

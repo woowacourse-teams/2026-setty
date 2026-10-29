@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from 'react';
+import { tokenStore } from '../api/http';
 import { notificationRepository } from '../api/repositories';
 
 let hasUnread = false;
@@ -12,6 +13,10 @@ function update(next: boolean) {
 
 /** 서버에서 안 읽은 알림이 있는지 다시 읽는다. 로그인 전이거나 실패하면 표시를 끈다. */
 export async function refreshUnreadNotifications(): Promise<void> {
+    if (!tokenStore.get()) {
+        update(false);
+        return;
+    }
     try {
         update((await notificationRepository.countUnread()) > 0);
     } catch {

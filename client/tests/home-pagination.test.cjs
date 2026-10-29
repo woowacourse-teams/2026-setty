@@ -23,6 +23,7 @@ function home() {
     const store = load('features/home/homeStore.ts', {
         react: { useSyncExternalStore: (_, snapshot) => snapshot() },
         '../../api/errors': { isMemberDongRequired: error => error === 'DONG' },
+        '../../api/http': { tokenStore: { get: () => 'token' } },
         '../../api/repositories': {
             furnitureRepository: { getFurniturePage: params => new Promise((resolve, reject) => requests.push({ params, resolve, reject })) },
             userRepository: { getMe: async () => ({ loginId: 'tester' }) }

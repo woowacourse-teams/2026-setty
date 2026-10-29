@@ -4,7 +4,7 @@ import { deliveryTokenStore, tokenStore } from './api/http';
 import { DemoScreen } from './features/demo/DemoScreen';
 import { DriverRequestDetailScreen } from './features/driver/DriverRequestDetailScreen';
 import { DriverRequestsScreen } from './features/driver/DriverRequestsScreen';
-import { DriverSettlementScreen } from './features/driver/DriverSettlementScreen';
+import { DriverMyPageScreen } from './features/driver/DriverMyPageScreen';
 import { DriverShipmentDetailScreen } from './features/driver/DriverShipmentDetailScreen';
 import { DriverShipmentsScreen } from './features/driver/DriverShipmentsScreen';
 import { FavoritesScreen } from './features/favorites/FavoritesScreen';
@@ -24,7 +24,7 @@ import { PaymentReturnScreen } from './features/payment/PaymentReturnScreen';
 import { PaymentScreen } from './features/payment/PaymentScreen';
 import { ProfileEditScreen } from './features/profile/ProfileEditScreen';
 import { SignUpScreen } from './features/signup/SignUpScreen';
-import { routes } from './navigation';
+import { loginStateFrom, routes } from './navigation';
 import { onScreenChanged } from './ui/snackbar';
 import componentStyles from './ui/components.module.css';
 
@@ -41,9 +41,10 @@ function AppShell() {
     );
 }
 
-/** 로그인 토큰이 없으면 로그인 화면으로 보낸다. 앱도 로그인 화면에서 시작한다. */
+/** 로그인 토큰이 없으면 로그인 화면으로 보내고, 로그인한 뒤 이 화면으로 돌아오게 한다. */
 function RequireLogin({ children }: { children: ReactNode }) {
-    if (!tokenStore.get()) return <Navigate replace to={routes.login} />;
+    const location = useLocation();
+    if (!tokenStore.get()) return <Navigate replace state={loginStateFrom(location)} to={routes.login} />;
     return children;
 }
 
@@ -61,8 +62,8 @@ export const router = createBrowserRouter([
         children: [
             { path: routes.login, Component: LoginScreen },
             { path: routes.signUp, Component: SignUpScreen },
-            { index: true, element: <RequireLogin><HomeScreen /></RequireLogin> },
-            // 매물 상세는 공유한 주소로 바로 들어올 수 있게 로그인 없이 연다
+            // 매물 목록·상세는 로그인 없이 둘러볼 수 있게 열고, 찜·구매처럼 로그인이 필요할 때 로그인으로 보낸다
+            { index: true, Component: HomeScreen },
             { path: '/listings/:listingId', Component: FurnitureDetailScreen },
             { path: routes.myPage, element: <RequireLogin><MyPageScreen /></RequireLogin> },
             { path: routes.profileEdit, element: <RequireLogin><ProfileEditScreen /></RequireLogin> },
@@ -83,7 +84,7 @@ export const router = createBrowserRouter([
             { path: '/driver/requests/:deliveryId', element: <RequireDriverLogin><DriverRequestDetailScreen /></RequireDriverLogin> },
             { path: routes.driverShipments, element: <RequireDriverLogin><DriverShipmentsScreen /></RequireDriverLogin> },
             { path: '/driver/shipments/:deliveryId', element: <RequireDriverLogin><DriverShipmentDetailScreen /></RequireDriverLogin> },
-            { path: routes.driverSettlement, element: <RequireDriverLogin><DriverSettlementScreen /></RequireDriverLogin> },
+            { path: routes.driverMyPage, element: <RequireDriverLogin><DriverMyPageScreen /></RequireDriverLogin> },
             { path: '*', element: <Navigate replace to={routes.home} /> }
         ]
     }

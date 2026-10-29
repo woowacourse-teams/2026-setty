@@ -154,7 +154,8 @@
     gap: 8px;
     min-height: 40px;
     padding: 0 24px;
-    border-radius: 999px;
+    /* 높이의 절반으로 둔다. 999px처럼 크게 두면 누를 때 튀는 곡선이 12px를 지나 0까지 내려가 잠깐 각진 사각형이 된다 */
+    border-radius: 20px;
     font-family: var(--font-brand);
     font-size: 16px;
     line-height: 24px;
@@ -171,6 +172,7 @@
 .button--medium {
     min-height: 56px;
     padding: 0 28px;
+    border-radius: 28px;
 }
 
 .button--full {
@@ -261,19 +263,22 @@
 .fab__button {
     display: inline-flex;
     align-items: center;
-    gap: 12px;
-    height: 80px;
-    min-width: 80px;
-    padding: 0 26px;
-    border-radius: 20px;
-    background: var(--primary-container);
-    color: var(--on-primary-container);
-    box-shadow: 0 3px 6px rgb(0 0 0 / 18%), 0 1px 3px rgb(0 0 0 / 14%);
+    gap: 8px;
+    height: 56px;
+    min-width: 56px;
+    padding: 0 24px 0 20px;
+    border-radius: 28px;
+    background: var(--primary);
+    color: var(--on-primary);
     font-family: var(--font-brand);
-    font-size: 18px;
-    font-weight: 700;
+    font-size: 16px;
+    font-weight: 800;
     pointer-events: auto;
-    transition: padding 250ms ease, gap 250ms ease;
+    transition: padding 250ms ease, gap 250ms ease, transform 150ms ease;
+}
+
+.fab__button:active {
+    transform: scale(0.96);
 }
 
 .fab__label {
@@ -286,7 +291,7 @@
 .fab__button--collapsed {
     gap: 0;
     justify-content: center;
-    padding: 0 28px;
+    padding: 0 16px;
 }
 
 .fab__button--collapsed .fab__label {
@@ -675,22 +680,24 @@
     flex: none;
     align-items: center;
     gap: 8px;
-    height: 32px;
+    height: 40px;
     padding: 0 16px;
-    border: 1px solid var(--outline-variant);
     border-radius: var(--shape-small);
+    background: var(--surface-container);
     color: var(--on-surface-variant);
     white-space: nowrap;
+    transition: border-radius 250ms cubic-bezier(0.3, 1.6, 0.6, 1), background-color 150ms ease, color 150ms ease;
 }
 
 .chip--with-icon {
-    padding-left: 8px;
+    padding-left: 12px;
 }
 
+/* 고른 칩은 카테고리 토글처럼 알약 모양의 강조색이 된다 */
 .chip--selected {
-    border-color: transparent;
-    background: var(--secondary-container);
-    color: var(--on-secondary-container);
+    border-radius: 999px;
+    background: var(--primary);
+    color: var(--on-primary);
 }
 
 .toggle-group {

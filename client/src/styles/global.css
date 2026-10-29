@@ -136,6 +136,16 @@ button:disabled {
     cursor: default;
 }
 
+/* 마우스·터치로 누를 때는 브라우저 기본 포커스 테두리를 숨기고, 키보드로 이동할 때만 보여준다 */
+button:focus:not(:focus-visible) {
+    outline: none;
+}
+
+button:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
 img {
     display: block;
 }

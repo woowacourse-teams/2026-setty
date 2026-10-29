@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { getPriceVariant } from '../../analytics/priceScenario';
+import { tokenStore } from '../../api/http';
 import {
     categoryLabel,
     formatRegisteredDate,
@@ -12,13 +13,15 @@ import {
     type FurnitureSummary,
     type OrderState
 } from '../../model/furniture';
-import { routes, useNavigateBack } from '../../navigation';
+import { loginStateFrom, routes, useNavigateBack } from '../../navigation';
 import { refreshUnreadNotifications, useHasUnreadNotifications } from '../../push/unreadNotifications';
 import {
+    BottomBar,
     BottomSheet,
     Button,
     CenterFill,
     ChipRow,
+    ExtendedFab,
     FavoriteCount,
     FilterChip,
     FurnitureThumbnail,
@@ -61,13 +64,28 @@ export function HomeScreen() {
     const isSearchOpen = searchParams.has(SEARCH_PARAM);
 
     useEffect(() => {
-        enterHome(() => navigate(routes.profileEdit));
+        // 배송비 필터는 내 행정동이 있어야 하므로, 로그인 전이면 로그인부터 하게 한다
+        enterHome(() => (tokenStore.get()
+            ? navigate(routes.profileEdit)
+            : navigate(routes.login, { state: loginStateFrom({ pathname: routes.home, search: '', state: null }) })));
     }, [navigate]);
 
     const openListing = (listingId: number) => navigate(routes.furnitureDetail(listingId));
 
+    const isLoggedIn = Boolean(tokenStore.get());
+    const [isFabExpanded, setIsFabExpanded] = useState(true);
+    // 목록을 내리면 등록 버튼을 아이콘만 남기고 접는다
+    useEffect(() => {
+        const onScroll = () => setIsFabExpanded(window.scrollY < 120);
+        window.addEventListener('scroll', onScroll, { passive: true });
+        return () => window.removeEventListener('scroll', onScroll);
+    }, []);
+
     return (
         <Scaffold
+            // 로그인 전에는 가구 등록 대신 배송원 안내를 아래에 띄운다
+            bottomBar={!isLoggedIn && <DriverBanner onClick={() => navigate(routes.driverLogin)} />}
+            floatingActionButton={isLoggedIn && <ExtendedFab expanded={isFabExpanded} icon="add" label="가구 등록" onClick={() => navigate(routes.listingCreate)} />}
             topBar={(
                 <TopAppBar
                     actions={(
@@ -107,6 +125,24 @@ export function HomeScreen() {
                 />
             )}
         </Scaffold>
+    );
+}
+
+/** 로그인하지 않은 방문자에게 배송원 로그인을 권한다. */
+function DriverBanner({ onClick }: { onClick: () => void }) {
+    return (
+        <BottomBar>
+            <button className={styles['driver-banner']} onClick={onClick} type="button">
+                <span className={styles['driver-banner__shape']} style={shapeStyle('cookie6')}>
+                    <Icon name="localShipping" size={20} />
+                </span>
+                <span className={styles['driver-banner__lines']}>
+                    <span className="type-title-medium-em">배송원이신가요?</span>
+                    <span className="type-label-medium">가까운 가구 배송을 골라 가볍게 시작해보세요</span>
+                </span>
+                <Icon name="chevronRight" />
+            </button>
+        </BottomBar>
     );
 }
 
@@ -167,7 +203,7 @@ function ListingList({ home, onListingClick }: { home: HomeState; onListingClick
     }, [canLoadMore, itemCount, home.isFiltering, home.isRefreshing, home.isLoadingMore]);
 
     return (
-        <div className={home.isFiltering ? `${styles.list} ${styles['list--filtering']}` : styles.list}>
+        <div className={styles.list}>
             <div className={styles['list-header']}>
                 <ToggleButtonGroup
                     ariaLabel="카테고리"
@@ -182,9 +218,13 @@ function ListingList({ home, onListingClick }: { home: HomeState; onListingClick
                 <>
                     {listings.length === 0 && !canLoadMore && (
                         home.maxDeliveryFee === null ? (
-                            <SettyMessage description="곧 새로운 가구가 올라올 거예요." style={{ marginTop: 48 }} title="아직 등록된 가구가 없어요" />
+                            <CenterFill>
+                                <SettyMessage description="곧 새로운 가구가 올라올 거예요." title="아직 등록된 가구가 없어요" />
+                            </CenterFill>
                         ) : (
-                            <SettyMessage description="예산을 늘리거나 필터를 해제해 보세요." style={{ marginTop: 48 }} title="배송비 예산 안의 가구가 없어요" />
+                            <CenterFill>
+                                <SettyMessage description="예산을 늘리거나 필터를 해제해 보세요." title="배송비 예산 안의 가구가 없어요" />
+                            </CenterFill>
                         )
                     )}
                     <SegmentedList>
@@ -278,7 +318,6 @@ function DeliveryFeeFilter({ maxDeliveryFee }: { maxDeliveryFee: number | null }
                 })}
                 <FilterChip
                     label={customBudget !== null ? `${DeliveryFeeBudget.format(customBudget)} 이하` : '직접 설정'}
-                    leadingIcon="edit"
                     onClick={() => setIsBudgetSheetVisible(true)}
                     selected={customBudget !== null}
                 />
@@ -300,6 +339,7 @@ function DeliveryFeeFilter({ maxDeliveryFee }: { maxDeliveryFee: number | null }
 /** 슬라이더로 배송비 예산을 고르는 시트. [onSelect]에 null을 넘기면 필터를 해제한다. */
 function DeliveryFeeBudgetSheet({ initialBudget, onDismiss, onSelect }: { initialBudget: number; onDismiss: () => void; onSelect: (budget: number | null) => void }) {
     const [budget, setBudget] = useState(Math.min(DeliveryFeeBudget.MAX, Math.max(DeliveryFeeBudget.MIN, initialBudget)));
+    const progress = (budget - DeliveryFeeBudget.MIN) / (DeliveryFeeBudget.MAX - DeliveryFeeBudget.MIN);
     return (
         <BottomSheet label="배송비 예산" onDismiss={onDismiss}>
             <div className={screenStyles['sheet-padding']}>
@@ -308,16 +348,30 @@ function DeliveryFeeBudgetSheet({ initialBudget, onDismiss, onSelect }: { initia
                     내 행정동까지 이 금액 안으로 배송되는 가구만 보여드려요.
                 </p>
                 <p className={`${styles['budget-amount']} type-display-small-em`}>{DeliveryFeeBudget.format(budget)} 이하</p>
-                <input
-                    aria-label="배송비 예산"
+                {/* 기본 슬라이더는 투명하게 겹쳐 조작만 맡기고, 트랙과 손잡이는 직접 그린다 */}
+                <div
                     className={styles.slider}
-                    max={DeliveryFeeBudget.MAX}
-                    min={DeliveryFeeBudget.MIN}
-                    onChange={(event) => setBudget(Number(event.target.value))}
-                    step={DeliveryFeeBudget.STEP}
-                    type="range"
-                    value={budget}
-                />
+                    style={{ '--slider-progress': progress } as CSSProperties}
+                >
+                    <input
+                        aria-label="배송비 예산"
+                        className={styles.slider__input}
+                        max={DeliveryFeeBudget.MAX}
+                        min={DeliveryFeeBudget.MIN}
+                        onChange={(event) => setBudget(Number(event.target.value))}
+                        step={DeliveryFeeBudget.STEP}
+                        type="range"
+                        value={budget}
+                    />
+                    {progress > 0 && <span aria-hidden className={styles['slider__track--active']} />}
+                    {/* 손잡이가 끝에 닿으면 남은 트랙이 없고, 끝에 가까우면 끝 점이 손잡이와 겹치므로 숨긴다 */}
+                    {progress < 1 && (
+                        <span aria-hidden className={styles['slider__track--inactive']}>
+                            {progress < 0.9 && <span className={styles['slider__stop']} />}
+                        </span>
+                    )}
+                    <span aria-hidden className={styles.slider__handle} />
+                </div>
                 <div className={`${styles['slider-range']} type-label-medium`}>
                     <span>{DeliveryFeeBudget.format(DeliveryFeeBudget.MIN)}</span>
                     <span>{DeliveryFeeBudget.format(DeliveryFeeBudget.MAX)}</span>
@@ -359,28 +413,38 @@ function SearchLayer({ home, onListingClick }: { home: HomeState; onListingClick
     return (
         <div className={styles['search-layer']} ref={scrollRef}>
             <div className={styles['search-bar']}>
-                <IconButton icon="arrowBack" label="검색 닫기" onClick={navigateBack} />
-                <input
-                    aria-label="중고 가구 검색"
-                    autoFocus
-                    className={styles['search-bar__input']}
-                    enterKeyHint="search"
-                    maxLength={100}
-                    onChange={(event) => setQuery(event.target.value)}
-                    placeholder="중고 가구 검색"
-                    type="search"
-                    value={query}
-                />
+                <div className={styles['search-field']}>
+                    <IconButton icon="arrowBack" iconSize={20} label="검색 닫기" onClick={navigateBack} />
+                    <input
+                        aria-label="중고 가구 검색"
+                        autoFocus
+                        className={styles['search-field__input']}
+                        enterKeyHint="search"
+                        maxLength={100}
+                        onChange={(event) => setQuery(event.target.value)}
+                        placeholder="중고 가구 검색"
+                        type="search"
+                        value={query}
+                    />
+                    {query && <IconButton icon="close" iconSize={20} label="검색어 지우기" onClick={() => setQuery('')} />}
+                </div>
             </div>
             {!query.trim() && (
-                <SettyMessage description="판매 중인 가구의 제목으로 찾아드려요." style={{ marginTop: 48 }} title="어떤 가구를 찾으세요?" />
+                <CenterFill>
+                    <SettyMessage description="판매 중인 가구의 제목으로 찾아드려요." title="어떤 가구를 찾으세요?" />
+                </CenterFill>
             )}
             {query.trim() && !search.loading && !search.error && results.length === 0 && (
-                <SettyMessage description="다른 단어로 다시 찾아보세요." style={{ marginTop: 48 }} title="검색 결과가 없어요" />
+                <CenterFill>
+                    <SettyMessage description="다른 단어로 다시 찾아보세요." title="검색 결과가 없어요" />
+                </CenterFill>
             )}
-            {search.loading && results.length === 0 && <LoadingIndicator />}
-            {search.error && results.length === 0 && <SettyMessage title="검색 결과를 불러오지 못했어요"
-                action={<Button onClick={search.retry}>다시 시도</Button>} />}
+            {search.loading && results.length === 0 && <CenterFill><LoadingIndicator /></CenterFill>}
+            {search.error && results.length === 0 && (
+                <CenterFill>
+                    <SettyMessage action={<Button onClick={search.retry}>다시 시도</Button>} title="검색 결과를 불러오지 못했어요" />
+                </CenterFill>
+            )}
             {results.length > 0 && (
                 <div aria-label="검색 결과" className={styles['search-results']} role="region">
                     <SegmentedList>
