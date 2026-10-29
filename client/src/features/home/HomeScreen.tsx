@@ -16,7 +16,7 @@ import {
     type OrderState
 } from '../../model/furniture';
 import { digitsOnly } from '../../model/member';
-import { loginStateFrom, routes, useNavigateBack } from '../../navigation';
+import { loginStateFrom, routes, useNavigateBack, useNavigateToLogin, useNavigateToLoginFromHere } from '../../navigation';
 import { refreshUnreadNotifications, useHasUnreadNotifications } from '../../push/unreadNotifications';
 import {
     BottomBar,
@@ -71,12 +71,14 @@ export function HomeScreen() {
     const [searchParams] = useSearchParams();
     const isSearchOpen = searchParams.has(SEARCH_PARAM);
 
+    const navigateToLogin = useNavigateToLogin();
     useEffect(() => {
         // 배송비 필터는 내 행정동이 있어야 하므로, 로그인 전이면 로그인부터 하게 한다
         enterHome(() => (tokenStore.get()
             ? navigate(routes.profileEdit)
-            : navigate(routes.login, { state: loginStateFrom({ pathname: routes.home, search: '', state: null }) })));
-    }, [navigate]);
+            : navigate(routes.login, { state: loginStateFrom({ pathname: routes.home, search: '', state: null }) })),
+        navigateToLogin);
+    }, [navigate, navigateToLogin]);
 
     const openListing = (listingId: number) => navigate(routes.furnitureDetail(listingId));
 
@@ -310,6 +312,9 @@ function EmptyListMessage({ home }: { home: HomeState }) {
  */
 function FilterBar({ home }: { home: HomeState }) {
     const [openSheet, setOpenSheet] = useState<'grade' | 'price' | 'deliveryFee' | null>(null);
+    // 배송비는 내 행정동으로 계산하므로 로그인 전이면 시트 대신 로그인으로 보낸다. 로그인하면 홈으로 돌아온다
+    const navigateToLoginFromHere = useNavigateToLoginFromHere();
+    const openDeliveryFeeSheet = () => (tokenStore.get() ? setOpenSheet('deliveryFee') : navigateToLoginFromHere());
     const hasFilter = home.selectedGrades.length > 0 || home.priceRange !== null || home.maxDeliveryFee !== null;
     const close = () => setOpenSheet(null);
     return (
@@ -330,7 +335,7 @@ function FilterBar({ home }: { home: HomeState }) {
                 />
                 <FilterChip
                     label={home.maxDeliveryFee !== null ? `배송비 ${DeliveryFeeBudget.format(home.maxDeliveryFee)} 이하` : '배송비'}
-                    onClick={() => setOpenSheet('deliveryFee')}
+                    onClick={openDeliveryFeeSheet}
                     selected={home.maxDeliveryFee !== null}
                     trailingIcon="expandMore"
                 />

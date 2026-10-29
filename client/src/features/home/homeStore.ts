@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react';
-import { isMemberDongRequired } from '../../api/errors';
+import { isMemberDongRequired, isUnauthorized } from '../../api/errors';
 import { tokenStore } from '../../api/http';
 import { furnitureRepository, userRepository } from '../../api/repositories';
 import { conditionGrades, type ConditionGrade, type FurnitureCategory, type FurniturePage, type FurnitureSummary } from '../../model/furniture';
@@ -51,6 +51,7 @@ let shownPriceRange: PriceRange | null = null;
 // 필터를 바꾸면 이전 요청의 결과가 뒤늦게 덮어쓰지 않도록 요청마다 번호를 붙인다
 let listingsRequest = 0;
 let onRequireDong: () => void = () => undefined;
+let onRequireLogin: () => void = () => undefined;
 const listeners = new Set<() => void>();
 
 function update(patch: Partial<HomeState> | ((current: HomeState) => Partial<HomeState>)) {
@@ -93,8 +94,9 @@ export function resetHomeStore() {
  * 보여주는 목록이 있으면 로딩 없이 최신 목록으로 바꾼다.
  * 복귀 시에는 이미 읽은 범위만 페이지로 다시 읽어 스크롤 위치와 최신 상태를 유지한다.
  */
-export function enterHome(requireDong: () => void) {
+export function enterHome(requireDong: () => void, requireLogin: () => void = () => undefined) {
     onRequireDong = requireDong;
+    onRequireLogin = requireLogin;
     if (state.furnitures.length === 0) {
         loadListings();
     } else {
@@ -234,9 +236,10 @@ function fetchListings(retainCount = 0) {
         })
         .catch((error: unknown) => {
             if (request !== listingsRequest) return;
-            if (isMemberDongRequired(error)) {
+            // 배송비 필터는 내 행정동으로 계산하므로, 동이 없으면 정보 수정으로, 토큰이 끊겼으면 로그인으로 보낸다
+            if (isMemberDongRequired(error) || isUnauthorized(error)) {
                 update({ selectedCategory: shownCategory, selectedGrades: shownGrades, priceRange: shownPriceRange, maxDeliveryFee: shownMaxDeliveryFee, isLoading: false, isFiltering: false, isRefreshing: false, isLoadingMore: false });
-                onRequireDong();
+                (isUnauthorized(error) ? onRequireLogin : onRequireDong)();
                 return;
             }
             const hasListings = state.furnitures.length > 0;

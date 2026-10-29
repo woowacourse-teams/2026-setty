@@ -24,7 +24,7 @@ function home() {
     const requests = [], messages = [];
     const store = load('features/home/homeStore.ts', {
         react: { useSyncExternalStore: (_, snapshot) => snapshot() },
-        '../../api/errors': { isMemberDongRequired: error => error === 'DONG' },
+        '../../api/errors': { isMemberDongRequired: error => error === 'DONG', isUnauthorized: error => error === 'UNAUTHORIZED' },
         '../../api/http': { tokenStore: { get: () => 'token' } },
         '../../model/furniture': { conditionGrades: ['S', 'A', 'B', 'C'] },
         './priceRange': { PriceFilter: { equals: (a, b) => a?.min === b?.min && a?.max === b?.max } },
@@ -119,6 +119,13 @@ test('주소 오류는 목록을 유지하며 안내하고 계정 초기화는 �
     store.loadMore(); requests[2].reject(new Error()); await settle();
     store.loadMore(); assert.equal(requests[3].params.cursor, 'next');
     store.resetHomeStore(); requests[3].resolve(page([2])); await settle(); assert.deepEqual(ids(store), []);
+});
+test('토큰이 끊겨 배송비 필터가 401이면 이전 필터로 되돌리고 로그인으로 보낸다', async () => {
+    const { store, requests, messages } = home(); let dong = 0, login = 0;
+    store.enterHome(() => dong++, () => login++); requests[0].resolve(page([1], 'next')); await settle();
+    store.selectMaxDeliveryFee(10000); requests[1].reject('UNAUTHORIZED'); await settle();
+    assert.equal(login, 1); assert.equal(dong, 0); assert.equal(messages.length, 0);
+    assert.equal(store.useHomeState().maxDeliveryFee, null); assert.deepEqual(ids(store), [1]);
 });
 test('repository는 size=20과 조건을 보내고 찜 수와 거래 상태를 보존한다', async () => {
     const requests = [];
