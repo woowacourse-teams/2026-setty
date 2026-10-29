@@ -25,6 +25,8 @@ internal fun DevToolsScreen(
     onScenarioToggle: (FailureScenario, Boolean) -> Unit,
     onRestartClick: () -> Unit,
     modifier: Modifier = Modifier,
+    remoteConfigContent: @Composable () -> Unit = {},
+    updateScenarioContent: @Composable () -> Unit = {},
 ) {
     Scaffold(
         modifier = modifier,
@@ -46,6 +48,13 @@ internal fun DevToolsScreen(
                     )
                 }
             }
+
+            item { SectionTitle("원격 설정") }
+            item { remoteConfigContent() }
+
+            item { SectionTitle("인앱 업데이트 재현") }
+            item { updateScenarioContent() }
+
             item {
                 Button(
                     onClick = onRestartClick,
