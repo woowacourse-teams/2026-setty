@@ -3,6 +3,7 @@ package com.setty.android.data
 import android.content.Context
 import com.setty.android.BuildConfig
 import com.setty.android.di.NetworkInterceptorsEntryPoint
+import com.setty.android.di.RemoteConfigEntryPoint
 import com.setty.android.network.AuthInterceptor
 import com.setty.android.network.BasePathInterceptor
 import com.setty.android.network.SettyNetworkApi
@@ -88,4 +89,9 @@ class AppContainer(
     val keywordRepository = KeywordRepository(
         settyNetworkApi = settyNetworkApi,
     )
+
+    // ViewModel Factory가 꺼내 쓸 수 있게 Hilt가 만든 싱글턴을 그대로 넘긴다
+    val remoteConfigRepository: RemoteConfigRepository =
+        EntryPointAccessors.fromApplication(context, RemoteConfigEntryPoint::class.java)
+            .remoteConfigRepository()
 }

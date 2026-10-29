@@ -70,6 +70,7 @@ fun MyPageScreen(
     viewModel: MyPageViewModel = viewModel(factory = MyPageViewModel.Factory),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val isKeywordNotificationEnabled by viewModel.isKeywordNotificationEnabled.collectAsStateWithLifecycle()
     // 뒤로 가기로 돌아온 화면은 목록을 유지한 채 갱신하고, 새로 연 화면은 처음부터 불러온다
     var isStarted by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(Unit) {
@@ -83,6 +84,7 @@ fun MyPageScreen(
     }
     MyPageContent(
         uiState = uiState,
+        isKeywordNotificationEnabled = isKeywordNotificationEnabled,
         onBack = onBack,
         onRetry = { viewModel.load() },
         onEditProfile = onEditProfile,
@@ -100,6 +102,7 @@ fun MyPageScreen(
 @Composable
 private fun MyPageContent(
     uiState: MyPageUiState,
+    isKeywordNotificationEnabled: Boolean,
     onBack: () -> Unit,
     onRetry: () -> Unit,
     onEditProfile: () -> Unit,
@@ -142,6 +145,7 @@ private fun MyPageContent(
 
             is LoadUiState.Success -> MyPageBody(
                 member = member.data,
+                isKeywordNotificationEnabled = isKeywordNotificationEnabled,
                 contentPadding = innerPadding,
                 onEditProfile = onEditProfile,
                 onMyListingsClick = onMyListingsClick,
@@ -187,6 +191,7 @@ private fun MyPageContent(
 @Composable
 private fun MyPageBody(
     member: Member,
+    isKeywordNotificationEnabled: Boolean,
     contentPadding: PaddingValues,
     onEditProfile: () -> Unit,
     onMyListingsClick: () -> Unit,
@@ -201,8 +206,9 @@ private fun MyPageBody(
         MyPageMenu("찜한 가구", "마음에 둔 가구를 모아봐요", R.drawable.outline_favorite_24, onFavoritesClick),
         MyPageMenu("주문 내역", "구매한 가구의 배송을 확인해요", R.drawable.outline_local_shipping_24, onOrdersClick),
     )
-    val notificationMenus = listOf(
-        MyPageMenu("키워드 알림", "관심 키워드의 새 매물을 알려드려요", R.drawable.outline_notifications_24, onKeywordsClick),
+    val notificationMenus = listOfNotNull(
+        MyPageMenu("키워드 알림", "관심 키워드의 새 매물을 알려드려요", R.drawable.outline_notifications_24, onKeywordsClick)
+            .takeIf { isKeywordNotificationEnabled },
         MyPageMenu("알림함", "받은 매물 알림을 모아봐요", R.drawable.outline_search_24, onNotificationsClick),
     )
     val accountMenus = listOf(
@@ -360,6 +366,7 @@ private fun MyPageContentPreview() {
                     )
                 )
             ),
+            isKeywordNotificationEnabled = true,
             onBack = {},
             onRetry = {},
             onEditProfile = {},

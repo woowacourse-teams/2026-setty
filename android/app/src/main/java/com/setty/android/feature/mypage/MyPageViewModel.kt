@@ -7,6 +7,7 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.setty.android.SettyApp
 import com.setty.android.data.DeviceTokenRepository
+import com.setty.android.data.RemoteConfigRepository
 import com.setty.android.data.UserRepository
 import com.setty.android.feature.common.LoadUiState
 import com.setty.android.feature.common.toLoadError
@@ -30,7 +31,11 @@ enum class MyPageEvent {
 class MyPageViewModel(
     private val userRepository: UserRepository,
     private val deviceTokenRepository: DeviceTokenRepository,
+    remoteConfigRepository: RemoteConfigRepository,
 ) : ViewModel() {
+
+    // 킬 스위치가 꺼지면 열려 있는 화면에서도 키워드 알림 메뉴가 바로 사라진다
+    val isKeywordNotificationEnabled = remoteConfigRepository.isKeywordNotificationEnabled
 
     private val _uiState = MutableStateFlow(MyPageUiState())
     val uiState = _uiState.asStateFlow()
@@ -72,7 +77,11 @@ class MyPageViewModel(
         val Factory = viewModelFactory {
             initializer {
                 val appContainer = (this[APPLICATION_KEY] as SettyApp).appContainer
-                MyPageViewModel(appContainer.userRepository, appContainer.deviceTokenRepository)
+                MyPageViewModel(
+                    appContainer.userRepository,
+                    appContainer.deviceTokenRepository,
+                    appContainer.remoteConfigRepository,
+                )
             }
         }
     }
