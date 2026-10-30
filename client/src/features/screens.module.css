@@ -1,0 +1,121 @@
+/* 여러 화면이 함께 쓰는 본문 배치 */
+
+.form-column {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 32px 32px 16px;
+}
+
+.form-column--compact {
+    padding-top: 16px;
+}
+
+.form-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-top: 12px;
+}
+
+.form-section__title {
+    margin: 0;
+    color: var(--primary);
+}
+
+.lead {
+    margin: 0;
+    white-space: pre-line;
+}
+
+.inline-link {
+    align-self: flex-start;
+    padding: 4px 0;
+    text-align: left;
+}
+
+.inline-link__muted {
+    color: var(--on-surface-variant);
+}
+
+.inline-link__strong {
+    color: var(--primary);
+    font-weight: 700;
+}
+
+.list-padding {
+    /* 빈 화면 안내(CenterFill)가 남은 높이의 가운데에 오도록 화면 높이를 채운다 */
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    padding: 8px 16px 24px;
+}
+
+.price-primary {
+    color: var(--primary);
+    font-weight: 800;
+}
+
+.tertiary-text {
+    color: var(--tertiary);
+}
+
+.card {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 20px;
+    border-radius: var(--shape-extra-large);
+}
+
+.card__header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.card__shape {
+    display: flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 64px;
+    height: 64px;
+}
+
+.card__lines {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+.card__lines p {
+    margin: 0;
+}
+
+.total-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 20px 16px;
+    border-radius: var(--shape-extra-small) var(--shape-extra-small) var(--shape-large) var(--shape-large);
+    background: var(--primary-container);
+    color: var(--on-primary-container);
+}
+
+.total-row__amount {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.sheet-title {
+    margin: 0;
+    padding: 0 24px 8px;
+}
+
+.sheet-padding {
+    padding: 0 24px 24px;
+}

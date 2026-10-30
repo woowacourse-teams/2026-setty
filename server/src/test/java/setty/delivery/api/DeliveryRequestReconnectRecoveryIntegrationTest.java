@@ -153,7 +153,7 @@ class DeliveryRequestReconnectRecoveryIntegrationTest extends MySqlIntegrationTe
                 10L,
                 1L,
                 150_000,
-                null
+                null, null, null, null
         );
     }
 }

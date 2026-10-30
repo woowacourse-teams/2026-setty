@@ -5,6 +5,8 @@ public record NotificationMessage(
         Long memberId,
         Long listingId,
         String title,
+        Integer price,
+        Integer deliveryFee,
         Priority priority
 ) {
 

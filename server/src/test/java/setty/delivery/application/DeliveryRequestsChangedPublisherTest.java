@@ -13,6 +13,7 @@ import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.mockito.InOrder;
 import org.springframework.context.ApplicationEventPublisher;
+import setty.common.DeliveryAssignmentCancelled;
 import setty.delivery.domain.DeliveryId;
 import setty.delivery.domain.DriverId;
 import setty.delivery.domain.OrderId;
@@ -44,8 +45,8 @@ class DeliveryRequestsChangedPublisherTest {
                 OrderId.from(1L),
                 FurnitureInfo.of("가상 원목 의자", "CHAIR"),
                 DeliveryRoute.of(
-                        DeliveryPoint.pickup("서울시 가상구 출발로 1", "010-0000-0001"),
-                        DeliveryPoint.destination("서울시 가상구 도착로 2", "010-0000-0002")
+                        DeliveryPoint.pickup("서울시 가상구 출발로 1", "010-0000-0001", null, null),
+                        DeliveryPoint.destination("서울시 가상구 도착로 2", "010-0000-0002", null, null)
                 ),
                 EstimatedDeliveryFee.from(10_000),
                 REQUESTED_AT
@@ -72,6 +73,36 @@ class DeliveryRequestsChangedPublisherTest {
 
         service.accept(new DeliveryId(1L), new DriverId(3L), REQUESTED_AT);
 
+        verify(eventPublisher).publishEvent(isA(DeliveryRequestsChanged.class));
+    }
+
+    @Test
+    void assignmentCancellationPublishesRequestListChangedAndCancelledAcceptance() {
+        final DeliveryRepository deliveryRepository = mock(DeliveryRepository.class);
+        final ApplicationEventPublisher eventPublisher = mock(ApplicationEventPublisher.class);
+        final Instant acceptedAt = REQUESTED_AT.plusSeconds(60);
+        final Instant cancelledAt = REQUESTED_AT.plusSeconds(120);
+        final Delivery delivery = Delivery.request(
+                OrderId.from(2L),
+                FurnitureInfo.of("가상 원목 의자", "CHAIR"),
+                DeliveryRoute.of(
+                        DeliveryPoint.pickup("서울시 가상구 출발로 1", "010-0000-0001", null, null),
+                        DeliveryPoint.destination("서울시 가상구 도착로 2", "010-0000-0002", null, null)
+                ),
+                EstimatedDeliveryFee.from(10_000),
+                REQUESTED_AT
+        );
+        delivery.accept(new DriverId(3L), acceptedAt);
+        when(deliveryRepository.findByIdForUpdate(anyLong())).thenReturn(Optional.of(delivery));
+        final DeliveryLifecycleService service = new DeliveryLifecycleService(
+                deliveryRepository,
+                mock(DeliveryOrderDecisionRepository.class),
+                eventPublisher
+        );
+
+        service.cancelAssignment(new DeliveryId(1L), new DriverId(3L), cancelledAt);
+
+        verify(eventPublisher).publishEvent(new DeliveryAssignmentCancelled(1L, 2L, 3L, acceptedAt, cancelledAt));
         verify(eventPublisher).publishEvent(isA(DeliveryRequestsChanged.class));
     }
 }

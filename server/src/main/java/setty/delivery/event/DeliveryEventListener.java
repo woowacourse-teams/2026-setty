@@ -34,8 +34,10 @@ public class DeliveryEventListener {
                 OrderId.from(event.orderId()),
                 FurnitureInfo.of(event.itemName(), event.category()),
                 DeliveryRoute.of(
-                        DeliveryPoint.pickup(event.pickupAddress(), event.pickupPhoneNumber()),
-                        DeliveryPoint.destination(event.deliveryAddress(), event.deliveryPhoneNumber())
+                        DeliveryPoint.pickup(event.pickupAddress(), event.pickupPhoneNumber(),
+                                event.pickupDongCode(), event.pickupZipCode()),
+                        DeliveryPoint.destination(event.deliveryAddress(), event.deliveryPhoneNumber(),
+                                event.deliveryDongCode(), event.deliveryZipCode())
                 ),
                 EstimatedDeliveryFee.from(event.deliveryFee()),
                 Instant.now()

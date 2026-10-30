@@ -20,6 +20,7 @@ import setty.platform.member.repository.MemberRepository;
 import setty.platform.order.controller.dto.OrderCreateRequest;
 import setty.platform.order.controller.dto.MyOrderResponse;
 import setty.platform.order.domain.Order;
+import setty.platform.order.domain.OrderStatus;
 import setty.platform.order.service.OrderService;
 import setty.platform.order.service.PendingOrderExpirationService;
 import setty.support.MySqlIntegrationTestSupport;
@@ -29,6 +30,7 @@ class OrderPendingTest extends MySqlIntegrationTestSupport {
 
     private static final long SELLER_ID = 101L;
     private static final long BUYER_ID = 202L;
+    private static final long OTHER_BUYER_ID = 303L;
     private static final long LISTING_ID = 11L;
 
     @Autowired
@@ -51,6 +53,7 @@ class OrderPendingTest extends MySqlIntegrationTestSupport {
         cleanUp();
         insertMember(SELLER_ID);
         insertMember(BUYER_ID);
+        insertMember(OTHER_BUYER_ID);
         insertListing(LISTING_ID, SELLER_ID);
     }
 
@@ -84,9 +87,39 @@ class OrderPendingTest extends MySqlIntegrationTestSupport {
     }
 
     @Test
-    void 이미_주문된_매물의_결제_대기_주문은_거부된다() {
+    void 다른_구매자가_결제_대기_중인_매물의_주문은_거부된다() {
         final Member buyer = memberRepository.findById(BUYER_ID).orElseThrow();
+        final Member otherBuyer = memberRepository.findById(OTHER_BUYER_ID).orElseThrow();
         orderService.pending(new OrderCreateRequest(LISTING_ID), buyer);
+
+        assertThatThrownBy(() -> orderService.pending(new OrderCreateRequest(LISTING_ID), otherBuyer))
+                .isInstanceOf(BusinessException.class)
+                .extracting(e -> ((BusinessException) e).getErrorCode())
+                .isEqualTo(ErrorCode.ALREADY_ORDERED);
+    }
+
+    @Test
+    void 같은_구매자가_다시_주문하면_기존_결제_대기_주문을_같은_만료_시각으로_돌려준다() {
+        final Member buyer = memberRepository.findById(BUYER_ID).orElseThrow();
+        final Order first = orderService.pending(new OrderCreateRequest(LISTING_ID), buyer);
+
+        final Order second = orderService.pending(new OrderCreateRequest(LISTING_ID), buyer);
+
+        assertThat(second.getId()).isEqualTo(first.getId());
+        assertThat(second.getPendingExpiresAt()).isEqualTo(first.getPendingExpiresAt());
+        assertThat(second.getOrderStatus()).isEqualTo(OrderStatus.PENDING);
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM orders WHERE listing_id = ?", Integer.class, LISTING_ID)).isEqualTo(1);
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT has_purchase_request FROM listings WHERE id = ?", Boolean.class, LISTING_ID)).isTrue();
+    }
+
+    @Test
+    void 만료_시각이_지난_결제_대기_주문은_다시_돌려주지_않는다() {
+        final Member buyer = memberRepository.findById(BUYER_ID).orElseThrow();
+        final Order first = orderService.pending(new OrderCreateRequest(LISTING_ID), buyer);
+        jdbcTemplate.update("UPDATE orders SET pending_expires_at = DATE_SUB(NOW(6), INTERVAL 1 SECOND) WHERE id = ?",
+                first.getId());
 
         assertThatThrownBy(() -> orderService.pending(new OrderCreateRequest(LISTING_ID), buyer))
                 .isInstanceOf(BusinessException.class)

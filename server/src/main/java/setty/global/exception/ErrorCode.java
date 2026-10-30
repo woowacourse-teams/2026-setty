@@ -12,6 +12,7 @@ public enum ErrorCode {
     DUPLICATE_LOGIN_ID(400, "이미 사용 중인 아이디입니다"),
     DELIVERY_AREA_NOT_SUPPORTED(400, "배송 가능 지역이 아닙니다"),
     MEMBER_DONG_REQUIRED(400, "행정동을 먼저 설정해 주세요"),
+    MEMBER_HAS_ACTIVE_TRADE(409, "진행 중인 거래가 있어 탈퇴할 수 없습니다"),
 
     // ===== 매물 (플랫폼 팀) =====
     LISTING_NOT_FOUND(404, "존재하지 않는 매물입니다"),
@@ -38,6 +39,7 @@ public enum ErrorCode {
     INVALID_KEYWORD(400, "키워드는 공백을 제외하고 1자 이상 20자 이하여야 합니다"),
     TOO_MANY_KEYWORDS(400, "키워드는 10개까지 등록할 수 있습니다"),
     KEYWORD_NOT_FOUND(404, "존재하지 않는 키워드입니다"),
+    INVALID_KEYWORD_CONDITION(400, "키워드 조건이 올바르지 않습니다"),
     NOTIFICATION_NOT_FOUND(404, "존재하지 않는 알림입니다"),
 
     // ===== 결제 (payment) =====

@@ -2,6 +2,8 @@
 
 `server/docs/event/`는 SETTY가 발행하는 애플리케이션 이벤트의 발생 상황과 직접 수신하는 Fanout을 기록한다. 현재 코드에서 확인한 동작을 간결하게 적는다. 도메인 규칙의 원본은 [정책 문서](../../../docs/policy/README.md)다. 이벤트 문서 갱신 작업에는 [이벤트 문서 갱신 프롬프트](event-update-prompt.md)를 사용한다.
 
+배포 중 중단된 발행 기록의 감지, 재발행 설정과 검증 범위는 [이벤트 복구 문서](event-recovery.md)에서 관리한다.
+
 ## 파일 단위
 
 - `ApplicationEventPublisher.publishEvent(...)`로 발행하는 이벤트 클래스마다 Markdown 파일 하나를 둔다. 파일명과 제목은 클래스명과 일치시킨다. 예: `OrderConfirmed.md`.

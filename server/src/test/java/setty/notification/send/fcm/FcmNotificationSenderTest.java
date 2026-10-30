@@ -89,7 +89,7 @@ class FcmNotificationSenderTest {
     }
 
     private static NotificationMessage message(final Long notificationId, final Long memberId) {
-        return new NotificationMessage(notificationId, memberId, 7L, "s3-notify desk", NotificationMessage.Priority.HIGH);
+        return new NotificationMessage(notificationId, memberId, 7L, "s3-notify desk", 150_000, 10_000, NotificationMessage.Priority.HIGH);
     }
 
     private static DeviceToken token(final Long memberId, final String token) {

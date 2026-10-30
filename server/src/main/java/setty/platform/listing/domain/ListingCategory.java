@@ -6,5 +6,6 @@ public enum ListingCategory {
     DESK,
     CHAIR,
     STORAGE,
-    BED
+    BED,
+    ETC
 }

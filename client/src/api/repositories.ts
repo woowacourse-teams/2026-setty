@@ -1,0 +1,427 @@
+import { dongDisplayName, type Dong } from '../model/dong';
+import {
+    furnitureCategoryOf,
+    saleStatusOf,
+    type ConditionGrade,
+    type EditableListing,
+    type FurnitureDetail,
+    type FurniturePage,
+    type FurnitureCategory,
+    type FurnitureSummary,
+    type ListingDraft,
+    type MyFurniture,
+    orderStateOf
+} from '../model/furniture';
+import { keywordCategoryOf, type Keyword, type KeywordConditions } from '../model/keyword';
+import type { Member } from '../model/member';
+import { notificationTypeOf, notifiedListingStatusOf, type Notification } from '../model/notification';
+import { deliveryStatusOf, orderStatusOrNull, type Order, type OrderStatus, type PendingOrder } from '../model/order';
+import { apiCall, tokenStore } from './http';
+import type {
+    AboutMeResponse,
+    DeviceTokenRequest,
+    DongResponse,
+    FurnitureDetailResponse,
+    FurnitureSummaryResponse,
+    KeywordConditionsRequest,
+    KeywordResponse,
+    ListingCreateResponse,
+    ListingListResponse,
+    ListingUpsertRequest,
+    LoginResponse,
+    MyFurnitureResponse,
+    NotificationResponse,
+    OrderCancellationResponse,
+    OrderCreateResponse,
+    OrderResponse,
+    SignUpRequest
+} from './types';
+
+const PAGE_SIZE = 20;
+// 서버는 한 번에 올리는 이미지 전체 용량을 25MB로 제한한다
+const MAX_TOTAL_IMAGE_BYTES = 25 * 1024 * 1024;
+
+export class ListingImageTooLargeError extends Error {
+    constructor() {
+        super('사진 전체 용량은 25MB 이하여야 합니다');
+        this.name = 'ListingImageTooLargeError';
+    }
+}
+
+function toMember(response: AboutMeResponse): Member {
+    return {
+        id: response.id,
+        loginId: response.loginId,
+        phoneNumber: response.phoneNumber,
+        address: response.address,
+        dongCode: response.dongCode ?? null
+    };
+}
+
+export const userRepository = {
+    async login(loginId: string, password: string) {
+        const result = await apiCall<LoginResponse>('/api/auth/login', { method: 'POST', body: { loginId, password } });
+        tokenStore.set(result.token);
+    },
+
+    async signUp(request: SignUpRequest) {
+        await apiCall('/api/auth/signup', { method: 'POST', body: request });
+    },
+
+    async getMe(): Promise<Member> {
+        return toMember(await apiCall<AboutMeResponse>('/api/auth/me'));
+    },
+
+    async updateMe(phoneNumber: string, address: string): Promise<Member> {
+        return toMember(await apiCall<AboutMeResponse>('/api/auth/me', { method: 'PUT', body: { phoneNumber, address } }));
+    },
+
+    async updateDong(dongCode: string): Promise<Member> {
+        return toMember(await apiCall<AboutMeResponse>('/api/auth/me/dong', { method: 'PUT', body: { dongCode } }));
+    },
+
+    /** 서버 응답과 상관없이 저장한 토큰을 지운다. */
+    async logout() {
+        try {
+            await apiCall('/api/auth/logout', { method: 'POST' });
+        } catch {
+            // 서버에 알리지 못했거나 이미 만료된 토큰이어도 브라우저에서는 로그아웃한다
+        } finally {
+            tokenStore.clear();
+        }
+    },
+
+    /** 진행 중인 거래가 있으면 서버가 거절하므로, 성공했을 때만 토큰을 지운다. */
+    async withdraw() {
+        await apiCall('/api/auth/me', { method: 'DELETE' });
+        tokenStore.clear();
+    }
+};
+
+let cachedDongs: Promise<Dong[]> | null = null;
+
+export const dongRepository = {
+    /** 서울 행정동 목록은 거의 바뀌지 않으므로 페이지가 떠 있는 동안 한 번만 불러온다. */
+    getDongs(): Promise<Dong[]> {
+        if (!cachedDongs) {
+            cachedDongs = apiCall<{ items: DongResponse[] }>('/api/dongs')
+                .then((response) => response.items.map(({ code, name, district }) => ({ code, name, district })));
+            cachedDongs.catch(() => {
+                cachedDongs = null;
+            });
+        }
+        return cachedDongs;
+    }
+};
+
+function toFurniture(response: FurnitureSummaryResponse): FurnitureSummary {
+    return {
+        id: response.id,
+        title: response.title,
+        thumbnailUrl: response.thumbnailUrl ?? null,
+        price: response.price,
+        deliveryFee: response.deliveryFee,
+        totalPrice: response.totalPrice,
+        category: furnitureCategoryOf(response.category),
+        conditionGrade: response.conditionGrade,
+        createdAt: response.createdAt,
+        dongName: response.dong ? dongDisplayName(response.dong) : null,
+        hasPurchaseRequest: response.hasPurchaseRequest ?? false,
+        orderState: orderStateOf(response.orderState, response.hasPurchaseRequest ?? false),
+        favoriteCount: response.favoriteCount ?? 0
+    };
+}
+
+function sortedImages(response: FurnitureDetailResponse) {
+    return [...response.images].sort((left, right) => left.displayOrder - right.displayOrder);
+}
+
+function toFurnitureDetail(response: FurnitureDetailResponse): FurnitureDetail {
+    return {
+        id: response.id,
+        title: response.title,
+        description: response.description,
+        price: response.price,
+        deliveryFee: response.deliveryFee,
+        totalPrice: response.totalPrice,
+        category: furnitureCategoryOf(response.category),
+        conditionGrade: response.conditionGrade,
+        widthCm: response.dimensions.widthCm,
+        depthCm: response.dimensions.depthCm,
+        heightCm: response.dimensions.heightCm,
+        saleStatus: saleStatusOf(response.saleStatus),
+        imageUrls: sortedImages(response).map((image) => image.url),
+        dongName: response.dong ? dongDisplayName(response.dong) : null,
+        hasPurchaseRequest: response.hasPurchaseRequest ?? false,
+        purchaseRequestedByMe: response.purchaseRequestedByMe ?? false,
+        orderState: orderStateOf(response.orderState, response.hasPurchaseRequest ?? false),
+        myOrderId: response.myOrderId ?? null,
+        favoriteCount: response.favoriteCount ?? 0
+    };
+}
+
+function toEditableListing(response: FurnitureDetailResponse): EditableListing {
+    return {
+        id: response.id,
+        draft: {
+            title: response.title,
+            description: response.description,
+            price: response.price,
+            category: furnitureCategoryOf(response.category),
+            conditionGrade: response.conditionGrade,
+            widthCm: response.dimensions.widthCm,
+            depthCm: response.dimensions.depthCm,
+            heightCm: response.dimensions.heightCm
+        },
+        images: sortedImages(response).map((image) => ({ id: image.id, url: image.url }))
+    };
+}
+
+function toMyFurniture(response: MyFurnitureResponse): MyFurniture {
+    return {
+        id: response.id,
+        title: response.title,
+        thumbnailUrl: response.thumbnailUrl ?? null,
+        price: response.price,
+        deliveryFee: response.deliveryFee,
+        totalPrice: response.totalPrice,
+        category: furnitureCategoryOf(response.category),
+        conditionGrade: response.conditionGrade,
+        saleStatus: saleStatusOf(response.saleStatus),
+        hasPurchaseRequest: response.hasPurchaseRequest,
+        canUpdate: response.canUpdate,
+        canDelete: response.canDelete,
+        createdAt: response.createdAt
+    };
+}
+
+function listingFormData(request: ListingUpsertRequest, images: File[]): FormData {
+    if (images.reduce((total, image) => total + image.size, 0) > MAX_TOTAL_IMAGE_BYTES) {
+        throw new ListingImageTooLargeError();
+    }
+    const body = new FormData();
+    body.append('request', new Blob([JSON.stringify(request)], { type: 'application/json' }));
+    images.forEach((image) => body.append('images', image));
+    return body;
+}
+
+function toUpsertRequest(draft: ListingDraft): ListingUpsertRequest {
+    return {
+        title: draft.title,
+        description: draft.description,
+        price: draft.price,
+        category: draft.category,
+        conditionGrade: draft.conditionGrade,
+        dimensions: { widthCm: draft.widthCm, depthCm: draft.depthCm, heightCm: draft.heightCm }
+    };
+}
+
+export const furnitureRepository = {
+    /** 검색·필터를 전체 데이터에 적용한 뒤 한 페이지를 받는다. */
+    async getFurniturePage({
+        category = null, conditionGrades = [], minPrice = null, maxPrice = null, maxDeliveryFee = null, query = null, cursor = null
+    }: {
+        category?: FurnitureCategory | null;
+        conditionGrades?: readonly ConditionGrade[];
+        minPrice?: number | null;
+        maxPrice?: number | null;
+        maxDeliveryFee?: number | null;
+        query?: string | null;
+        cursor?: string | null;
+    } = {}): Promise<FurniturePage> {
+        const response = await apiCall<ListingListResponse>('/api/listings', {
+            query: {
+                size: PAGE_SIZE, cursor, category, minPrice, maxPrice, maxDeliveryFee, query,
+                conditionGrade: conditionGrades.length > 0 ? conditionGrades.join(',') : null
+            }
+        });
+        return { items: response.items.map(toFurniture), nextCursor: response.nextCursor ?? null };
+    },
+
+    async getFurnitureDetail(listingId: number): Promise<FurnitureDetail> {
+        return toFurnitureDetail(await apiCall<FurnitureDetailResponse>(`/api/listings/${listingId}`));
+    },
+
+    async getMyFurniture(): Promise<MyFurniture[]> {
+        return (await apiCall<{ items: MyFurnitureResponse[] }>('/api/me/listings')).items.map(toMyFurniture);
+    },
+
+    async getEditableListing(listingId: number): Promise<EditableListing> {
+        return toEditableListing(await apiCall<FurnitureDetailResponse>(`/api/listings/${listingId}`));
+    },
+
+    /** 매물을 등록하고 등록된 매물 id를 돌려준다. */
+    async createListing(draft: ListingDraft, images: File[]): Promise<number> {
+        const body = listingFormData(toUpsertRequest(draft), images);
+        return (await apiCall<ListingCreateResponse>('/api/listings', { method: 'POST', body })).listingId;
+    },
+
+    /** 기존 이미지는 [retainedImageIds] 순서로 유지하고 [newImages]를 뒤에 추가한다. */
+    async updateListing(listingId: number, draft: ListingDraft, retainedImageIds: number[], newImages: File[]) {
+        const body = listingFormData({ ...toUpsertRequest(draft), retainedImageIds }, newImages);
+        await apiCall(`/api/listings/${listingId}`, { method: 'PUT', body });
+    },
+
+    async deleteListing(listingId: number) {
+        await apiCall(`/api/listings/${listingId}`, { method: 'DELETE' });
+    }
+};
+
+export const favoriteRepository = {
+    async getFavorites(): Promise<FurnitureSummary[]> {
+        return (await apiCall<ListingListResponse>('/api/me/favorites')).items.map(toFurniture);
+    },
+
+    async isFavorited(listingId: number): Promise<boolean> {
+        return (await apiCall<{ favorited: boolean }>(`/api/me/favorites/${listingId}`)).favorited;
+    },
+
+    async add(listingId: number) {
+        await apiCall(`/api/me/favorites/${listingId}`, { method: 'PUT' });
+    },
+
+    async remove(listingId: number) {
+        await apiCall(`/api/me/favorites/${listingId}`, { method: 'DELETE' });
+    }
+};
+
+function toOrder(response: OrderResponse): Order {
+    return {
+        id: response.id,
+        listing: response.listing
+            ? {
+                id: response.listing.id,
+                name: response.listing.name,
+                thumbnailUrl: response.listing.thumbnailUrl ?? null,
+                price: response.listing.price,
+                deliveryFee: response.listing.deliveryFee
+            }
+            : null,
+        orderStatus: orderStatusOrNull(response.orderStatus),
+        deliveryStatus: deliveryStatusOf(response.deliveryStatus)
+    };
+}
+
+export const orderRepository = {
+    async getMyOrders(): Promise<Order[]> {
+        return (await apiCall<OrderResponse[]>('/api/me/orders')).map(toOrder);
+    },
+
+    async getOrder(orderId: number): Promise<Order> {
+        return toOrder(await apiCall<OrderResponse>(`/api/orders/${orderId}`));
+    },
+
+    /** 취소 요청을 접수한다. 접수 시점의 주문 상태를 돌려주며 최종 결과는 주문 상세에서 확인한다. */
+    async cancel(orderId: number): Promise<OrderStatus | null> {
+        const response = await apiCall<OrderCancellationResponse>(`/api/orders/${orderId}/cancellations`, { method: 'POST' });
+        return orderStatusOrNull(response.orderStatus);
+    }
+};
+
+export const paymentRepository = {
+    /** 결제 전에 PENDING 주문을 만들고 서버 내부 주문 id와 결제할 총액을 돌려준다. */
+    async createOrder(listingId: number): Promise<PendingOrder> {
+        const response = await apiCall<OrderCreateResponse>('/api/orders', { method: 'POST', body: { listingId } });
+        return { id: response.id, totalPrice: response.totalPrice };
+    },
+
+    /** 토스 결제 성공 결과로 서버 승인을 요청한다. 이미 승인된 주문이면 서버가 기존 결과를 돌려준다(멱등). */
+    async confirm(paymentKey: string, tossOrderId: string, amount: number): Promise<{ orderId: number; amount: number }> {
+        const response = await apiCall<{ orderId: number; status: string; amount: number }>(
+            '/api/payments/confirm',
+            { method: 'POST', body: { paymentKey, orderId: tossOrderId, amount } }
+        );
+        return { orderId: response.orderId, amount: response.amount };
+    },
+
+    /** 결제 실패·취소를 알려 PENDING 주문을 정리(매물 선점 해제)한다. */
+    async fail(tossOrderId: string) {
+        await apiCall('/api/payments/fail', { method: 'POST', body: { orderId: tossOrderId } });
+    }
+};
+
+function toKeyword(response: KeywordResponse): Keyword {
+    return {
+        id: response.id,
+        keyword: response.keyword,
+        conditions: {
+            category: keywordCategoryOf(response.category),
+            minPrice: response.minPrice ?? null,
+            maxPrice: response.maxPrice ?? null,
+            maxDeliveryFee: response.maxDeliveryFee ?? null,
+            maxTotalPrice: response.maxTotalPrice ?? null,
+            excludeKeywords: response.excludeKeywords ?? []
+        },
+        createdAt: response.createdAt
+    };
+}
+
+export const keywordRepository = {
+    async getMine(): Promise<Keyword[]> {
+        return (await apiCall<{ items: KeywordResponse[] }>('/api/me/keywords')).items.map(toKeyword);
+    },
+
+    /** 이미 등록한 키워드를 다시 보내도 서버는 조용히 넘어간다. */
+    async subscribe(keyword: string) {
+        await apiCall('/api/me/keywords', { method: 'PUT', body: { keyword } });
+    },
+
+    async updateConditions(keywordId: number, conditions: KeywordConditions) {
+        const body: KeywordConditionsRequest = conditions;
+        await apiCall(`/api/me/keywords/${keywordId}/conditions`, { method: 'PUT', body });
+    },
+
+    async unsubscribe(keywordId: number) {
+        await apiCall(`/api/me/keywords/${keywordId}`, { method: 'DELETE' });
+    }
+};
+
+function toNotification(response: NotificationResponse): Notification {
+    return {
+        id: response.id,
+        type: notificationTypeOf(response.type),
+        listingId: response.listingId,
+        title: response.title ?? null,
+        price: response.price ?? null,
+        deliveryFee: response.deliveryFee ?? null,
+        listingStatus: notifiedListingStatusOf(response.listingStatus),
+        read: response.read,
+        createdAt: response.createdAt
+    };
+}
+
+export const notificationRepository = {
+    async getMine(): Promise<Notification[]> {
+        const response = await apiCall<{ items: NotificationResponse[] }>('/api/me/notifications', { query: { size: PAGE_SIZE } });
+        return response.items.map(toNotification);
+    },
+
+    /** 알림을 열어 봤다고 서버에 알린다. 이미 확인한 알림이어도 에러가 아니다. */
+    async ack(notificationId: number) {
+        await apiCall(`/api/me/notifications/${notificationId}/ack`, { method: 'POST' });
+    },
+
+    async read(notificationId: number) {
+        await apiCall(`/api/me/notifications/${notificationId}/read`, { method: 'POST' });
+    },
+
+    async countUnread(): Promise<number> {
+        return (await apiCall<{ count: number }>('/api/me/notifications/unread-count')).count;
+    },
+
+    async readAll() {
+        await apiCall('/api/me/notifications/read', { method: 'POST' });
+    }
+};
+
+export const deviceTokenRepository = {
+    /** 브라우저가 받은 FCM 토큰을 내 기기로 등록한다. 같은 토큰을 다시 올리면 서버가 갱신만 한다. */
+    async register(token: string) {
+        const body: DeviceTokenRequest = { token, platform: 'WEB' };
+        await apiCall('/api/me/device-token', { method: 'PUT', body });
+    },
+
+    async unregister(token: string) {
+        await apiCall('/api/me/device-token', { method: 'DELETE', body: { token } });
+    }
+};

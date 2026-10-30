@@ -68,6 +68,8 @@ export const styles = StyleSheet.create({
   },
 
   footer: {
+    flexDirection: 'row',
+    gap: 10,
     paddingHorizontal: spacing.screenX,
     paddingTop: 12,
     paddingBottom: 12,

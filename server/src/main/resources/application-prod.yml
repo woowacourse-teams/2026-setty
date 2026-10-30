@@ -1,6 +1,6 @@
 setty:
   cors:
-    allowed-origins: https://www.setty.cloud
+    allowed-origins: https://www.setty.cloud,https://setty.cloud
 
 logging:
   structured:

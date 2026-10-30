@@ -73,6 +73,6 @@ class MockPushNotificationSenderTest {
     }
 
     private static NotificationMessage message(final Long id) {
-        return new NotificationMessage(id, 100L + id, 7L, "s3-notify desk", NotificationMessage.Priority.HIGH);
+        return new NotificationMessage(id, 100L + id, 7L, "s3-notify desk", 150_000, 10_000, NotificationMessage.Priority.HIGH);
     }
 }

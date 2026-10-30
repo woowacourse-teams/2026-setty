@@ -202,6 +202,18 @@ export const deliveryMock = {
     found.pickedUpAt = new Date().toISOString();
   },
 
+  async cancelShipment(deliveryId: number): Promise<void> {
+    await delay();
+    const found = shipments.find((r) => r.deliveryId === deliveryId);
+    // 가드: ACCEPTED일 때만 취소 가능(아니면 409).
+    if (!found || found.status !== 'ACCEPTED') {
+      throw new HttpError(409, '지금은 배차를 취소할 수 없는 상태예요');
+    }
+    shipments = shipments.filter((r) => r.deliveryId !== deliveryId);
+    // 취소하면 다시 배차 대기(REQUESTED)로 돌아간다.
+    requests = [{ ...found, status: 'REQUESTED', acceptedAt: null }, ...requests];
+  },
+
   async completeShipment(deliveryId: number): Promise<void> {
     await delay();
     const found = shipments.find((r) => r.deliveryId === deliveryId);

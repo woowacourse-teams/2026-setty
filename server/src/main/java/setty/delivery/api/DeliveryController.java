@@ -117,6 +117,19 @@ public class DeliveryController {
         return ResponseEntity.noContent().build();
     }
 
+    @PostMapping("/shipments/{deliveryId}/cancellation")
+    public ResponseEntity<Void> cancelAssignment(
+            @LoginDeliveryMember final DeliveryMember member,
+            @PathVariable final long deliveryId
+    ) {
+        deliveryLifecycleService.cancelAssignment(
+                new DeliveryId(deliveryId),
+                authenticatedDriverId(member),
+                Instant.now()
+        );
+        return ResponseEntity.noContent().build();
+    }
+
     @PostMapping("/shipments/{deliveryId}/completion")
     public ResponseEntity<Void> complete(
             @LoginDeliveryMember final DeliveryMember member,

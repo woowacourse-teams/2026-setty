@@ -147,6 +147,54 @@ class DeliveryTest {
         assertThat(delivery.getStatus()).isEqualTo(DeliveryStatus.CANCELLED);
     }
 
+    @Test
+    void assignedDriverCanCancelAssignmentBeforePickUp() {
+        final Delivery delivery = acceptedDelivery();
+
+        delivery.cancelAssignment(DRIVER_ID);
+
+        assertThat(delivery.getStatus()).isEqualTo(DeliveryStatus.REQUESTED);
+        assertThat(delivery.getDriverId()).isNull();
+        assertThat(delivery.getAcceptedAt()).isNull();
+    }
+
+    @Test
+    void differentDriverCannotCancelAssignment() {
+        final Delivery delivery = acceptedDelivery();
+
+        assertBusinessError(
+                () -> delivery.cancelAssignment(OTHER_DRIVER_ID),
+                ErrorCode.DELIVERY_DRIVER_MISMATCH
+        );
+        assertThat(delivery.getStatus()).isEqualTo(DeliveryStatus.ACCEPTED);
+    }
+
+    @Test
+    void assignmentCanBeCancelledOnlyWhenAccepted() {
+        final Delivery requested = requestDelivery();
+        final Delivery pickedUp = pickedUpDelivery();
+
+        assertBusinessError(
+                () -> requested.cancelAssignment(DRIVER_ID),
+                ErrorCode.INVALID_DELIVERY_TRANSITION
+        );
+        assertBusinessError(
+                () -> pickedUp.cancelAssignment(DRIVER_ID),
+                ErrorCode.INVALID_DELIVERY_TRANSITION
+        );
+    }
+
+    @Test
+    void anotherDriverCanAcceptAfterAssignmentCancelled() {
+        final Delivery delivery = acceptedDelivery();
+        delivery.cancelAssignment(DRIVER_ID);
+
+        delivery.accept(OTHER_DRIVER_ID, PICKED_UP_AT);
+
+        assertThat(delivery.getStatus()).isEqualTo(DeliveryStatus.ACCEPTED);
+        assertThat(delivery.getDriverId()).isEqualTo(OTHER_DRIVER_ID);
+    }
+
     private static Delivery pickedUpDelivery() {
         final Delivery delivery = acceptedDelivery();
         delivery.pickUp(DRIVER_ID, PICKED_UP_AT);
@@ -164,8 +212,8 @@ class DeliveryTest {
                 OrderId.from(1L),
                 FurnitureInfo.of("가상 원목 의자", "CHAIR"),
                 DeliveryRoute.of(
-                        DeliveryPoint.pickup("서울시 가상구 출발로 1", "010-0000-0001"),
-                        DeliveryPoint.destination("서울시 가상구 도착로 2", "010-0000-0002")
+                        DeliveryPoint.pickup("서울시 가상구 출발로 1", "010-0000-0001", null, null),
+                        DeliveryPoint.destination("서울시 가상구 도착로 2", "010-0000-0002", null, null)
                 ),
                 EstimatedDeliveryFee.from(10_000),
                 REQUESTED_AT

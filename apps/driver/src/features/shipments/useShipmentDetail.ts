@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { deliveryApi } from '@/api/deliveryApi';
 import { errorMessage } from '@/lib/errorMessage';
 import { ShipmentDetailResponse } from '@/model/delivery';
+import { rejectedStore } from '@/features/requests/rejectedStore';
 
 export interface AdvanceResult {
   ok: boolean;
@@ -17,6 +18,7 @@ export function useShipmentDetail(deliveryId: number) {
   const [detail, setDetail] = useState<ShipmentDetailResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [working, setWorking] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -57,5 +59,20 @@ export function useShipmentDetail(deliveryId: number) {
     }
   }, [detail, deliveryId, load]);
 
-  return { detail, loading, working, error, advance };
+  const cancel = useCallback(async (): Promise<AdvanceResult> => {
+    // 성공하면 화면을 닫으므로 cancelling을 풀지 않아 닫히기 전까지 버튼을 막는다.
+    setCancelling(true);
+    try {
+      await deliveryApi.cancelShipment(deliveryId);
+      // 거절과 같이 취소한 요청은 이번 세션 동안 홈 목록에서 숨긴다.
+      rejectedStore.add(deliveryId);
+      return { ok: true, message: '배차를 취소했어요' };
+    } catch (e) {
+      await load();
+      setCancelling(false);
+      return { ok: false, message: errorMessage(e, '배차를 취소하지 못했어요') };
+    }
+  }, [deliveryId, load]);
+
+  return { detail, loading, working, cancelling, error, advance, cancel };
 }

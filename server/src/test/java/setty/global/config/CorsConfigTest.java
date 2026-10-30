@@ -1,5 +1,6 @@
 package setty.global.config;
 
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -7,13 +8,16 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.ConfigDataApplicationContextInitializer;
 import org.springframework.boot.test.context.TestComponent;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpHeaders;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
@@ -24,25 +28,27 @@ import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 import org.springframework.web.context.WebApplicationContext;
 
 @SpringJUnitConfig(CorsConfigTest.TestConfig.class)
+@ContextConfiguration(initializers = ConfigDataApplicationContextInitializer.class)
 @WebAppConfiguration
 class CorsConfigTest {
 
     private static final String LOCAL_ORIGIN = "http://localhost:3000";
-    private static final String PRODUCTION_ORIGIN = "https://www.setty.cloud";
     private static final String UNKNOWN_ORIGIN = "https://example.com";
 
     @Nested
     @ActiveProfiles("dev")
-    @TestPropertySource(properties = {
-            "setty.cors.allowed-origins=http://localhost:3000,https://www.setty.cloud"
-    })
     class DevProfile extends CorsMockMvcTest {
 
-        @Test
-        void allowsProductionOrigin() throws Exception {
-            mockMvc.perform(post("/api/auth/login").header(HttpHeaders.ORIGIN, PRODUCTION_ORIGIN))
-                    .andExpect(status().isOk())
-                    .andExpect(header().string(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, PRODUCTION_ORIGIN));
+        @ParameterizedTest
+        @ValueSource(strings = {"https://www.setty.cloud", "https://setty.cloud"})
+        void allowsSettyOrigins(final String origin) throws Exception {
+            assertLoginAllowed(origin);
+        }
+
+        @ParameterizedTest
+        @ValueSource(strings = {"https://www.setty.cloud", "https://setty.cloud"})
+        void allowsSettyPreflight(final String origin) throws Exception {
+            assertLoginPreflightAllowed(origin);
         }
 
         @Test
@@ -61,16 +67,18 @@ class CorsConfigTest {
 
     @Nested
     @ActiveProfiles("prod")
-    @TestPropertySource(properties = {
-            "setty.cors.allowed-origins=https://www.setty.cloud"
-    })
     class ProdProfile extends CorsMockMvcTest {
 
-        @Test
-        void allowsProductionOrigin() throws Exception {
-            mockMvc.perform(post("/api/auth/login").header(HttpHeaders.ORIGIN, PRODUCTION_ORIGIN))
-                    .andExpect(status().isOk())
-                    .andExpect(header().string(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, PRODUCTION_ORIGIN));
+        @ParameterizedTest
+        @ValueSource(strings = {"https://www.setty.cloud", "https://setty.cloud"})
+        void allowsSettyOrigins(final String origin) throws Exception {
+            assertLoginAllowed(origin);
+        }
+
+        @ParameterizedTest
+        @ValueSource(strings = {"https://www.setty.cloud", "https://setty.cloud"})
+        void allowsSettyPreflight(final String origin) throws Exception {
+            assertLoginPreflightAllowed(origin);
         }
 
         @Test
@@ -96,6 +104,22 @@ class CorsConfigTest {
         @BeforeEach
         void setUp() {
             mockMvc = MockMvcBuilders.webAppContextSetup(context).build();
+        }
+
+        protected void assertLoginAllowed(final String origin) throws Exception {
+            mockMvc.perform(post("/api/auth/login").header(HttpHeaders.ORIGIN, origin))
+                    .andExpect(status().isOk())
+                    .andExpect(header().string(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, origin));
+        }
+
+        protected void assertLoginPreflightAllowed(final String origin) throws Exception {
+            mockMvc.perform(options("/api/auth/login")
+                            .header(HttpHeaders.ORIGIN, origin)
+                            .header(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD, "POST")
+                            .header(HttpHeaders.ACCESS_CONTROL_REQUEST_HEADERS, "content-type"))
+                    .andExpect(status().isOk())
+                    .andExpect(header().string(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, origin))
+                    .andExpect(header().string(HttpHeaders.ACCESS_CONTROL_ALLOW_HEADERS, "content-type"));
         }
     }
 

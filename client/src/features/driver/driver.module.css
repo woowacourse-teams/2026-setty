@@ -1,0 +1,167 @@
+/* 배송원 화면 */
+
+.brand {
+    font-family: var(--font-brand);
+    font-size: 24px;
+    line-height: 32px;
+    font-weight: 900;
+}
+
+.profile-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    margin-right: 4px;
+}
+
+.profile-button__shape {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background: var(--primary-container);
+    color: var(--on-primary-container);
+    font-family: var(--font-brand);
+    font-size: 14px;
+    font-weight: 900;
+}
+
+.menu-shape {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background: var(--secondary-container);
+    color: var(--on-secondary-container);
+}
+
+.leading-shape {
+    display: flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    background: var(--primary-container);
+    color: var(--on-primary-container);
+}
+
+.leading-shape--done {
+    background: var(--surface-container-highest);
+    color: var(--on-surface-variant);
+}
+
+.route {
+    margin: 0;
+    color: var(--on-surface-variant);
+}
+
+.fee {
+    color: var(--primary);
+    white-space: nowrap;
+}
+
+.stack {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.point {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.point__label {
+    color: var(--primary);
+}
+
+.point__address {
+    overflow-wrap: anywhere;
+}
+
+.phone-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    width: fit-content;
+    margin-top: 4px;
+    color: var(--primary);
+    text-decoration: none;
+}
+
+.step-row {
+    display: flex;
+    justify-content: space-between;
+}
+
+.step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}
+
+.actions {
+    display: flex;
+    gap: 8px;
+    width: 100%;
+}
+
+.actions > * {
+    flex: 1;
+}
+
+.hero p {
+    margin: 0;
+}
+
+.hero {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.fee-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    padding-top: 16px;
+    border-top: 1px solid color-mix(in srgb, var(--on-primary-container) 16%, transparent);
+}
+
+.fee-row p {
+    margin: 0;
+}
+
+.income-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 0;
+    padding-top: 16px;
+    border-top: 1px solid color-mix(in srgb, var(--on-primary-container) 16%, transparent);
+}
+
+.income-stats__row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.income-stats__row dt,
+.income-stats__row dd {
+    margin: 0;
+}

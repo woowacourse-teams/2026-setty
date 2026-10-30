@@ -23,6 +23,8 @@ import setty.platform.listing.application.ListingCursor;
 import setty.platform.listing.application.ListingService;
 import setty.platform.listing.application.ListingUpdateCommand;
 import setty.platform.listing.application.ListingView;
+import setty.platform.listing.domain.ConditionGrade;
+import setty.platform.listing.domain.ListingCategory;
 import setty.platform.member.domain.Member;
 
 @RestController
@@ -41,7 +43,7 @@ public class ListingController {
             @Valid @RequestPart("request") CreateListingRequest request,
             @RequestPart(value = "images", required = false) List<MultipartFile> images
     ) {
-        ListingView.Created created = listingService.create(member.getId(), member.getDongCode(), new ListingCreateCommand(
+        ListingView.Created created = listingService.create(member.getId(), member.getDongCode(), member.getZipCode(), new ListingCreateCommand(
                 request.title(),
                 request.description(),
                 request.price(),
@@ -60,10 +62,16 @@ public class ListingController {
             @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String authorization,
             @RequestParam(required = false) String cursor,
             @RequestParam(required = false) Integer size,
-            @RequestParam(required = false) Integer maxDeliveryFee
+            @RequestParam(required = false) Integer maxDeliveryFee,
+            @RequestParam(required = false) String query,
+            @RequestParam(required = false) ListingCategory category,
+            @RequestParam(required = false) List<ConditionGrade> conditionGrade,
+            @RequestParam(required = false) Integer minPrice,
+            @RequestParam(required = false) Integer maxPrice
     ) {
-        // 웹·앱은 아직 다음 페이지를 요청하지 않으므로, 커서와 크기 없이 부르면 지금처럼 전체를 준다.
-        if (cursor == null && size == null && maxDeliveryFee == null) {
+        // 페이징을 아직 사용하지 않는 클라이언트의 무조건 전체 조회 계약은 유지한다.
+        if (cursor == null && size == null && maxDeliveryFee == null && query == null && category == null
+                && conditionGrade == null && minPrice == null && maxPrice == null) {
             return ResponseEntity.ok(new ListingPageResponse(
                     listingService.findAvailableListings(bearerToken(authorization)), null));
         }
@@ -71,7 +79,7 @@ public class ListingController {
                 ListingCursor.parse(cursor),
                 size == null ? ListingService.DEFAULT_PAGE_SIZE : size,
                 bearerToken(authorization),
-                maxDeliveryFee
+                maxDeliveryFee, query, category, conditionGrade, minPrice, maxPrice
         );
         return ResponseEntity.ok(new ListingPageResponse(page.items(), page.nextCursor()));
     }

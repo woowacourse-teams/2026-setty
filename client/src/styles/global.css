@@ -1,28 +1,178 @@
+/* 색 역할 이름은 Material 3를 따르고, 값은 파란 강조색과 푸른빛이 도는 회색 단계로 맞춘다. 다크 모드도 같은 단계에서 고른다. */
+@font-face { font-family: 'Paperlogy'; font-weight: 100; font-display: swap; src: url('/fonts/paperlogy_1thin.ttf') format('truetype'); }
+@font-face { font-family: 'Paperlogy'; font-weight: 200; font-display: swap; src: url('/fonts/paperlogy_2extralight.ttf') format('truetype'); }
+@font-face { font-family: 'Paperlogy'; font-weight: 300; font-display: swap; src: url('/fonts/paperlogy_3light.ttf') format('truetype'); }
+@font-face { font-family: 'Paperlogy'; font-weight: 400; font-display: swap; src: url('/fonts/paperlogy_4regular.ttf') format('truetype'); }
+@font-face { font-family: 'Paperlogy'; font-weight: 500; font-display: swap; src: url('/fonts/paperlogy_5medium.ttf') format('truetype'); }
+@font-face { font-family: 'Paperlogy'; font-weight: 600; font-display: swap; src: url('/fonts/paperlogy_6semibold.ttf') format('truetype'); }
+@font-face { font-family: 'Paperlogy'; font-weight: 700; font-display: swap; src: url('/fonts/paperlogy_7bold.ttf') format('truetype'); }
+@font-face { font-family: 'Paperlogy'; font-weight: 800; font-display: swap; src: url('/fonts/paperlogy_8extrabold.ttf') format('truetype'); }
+@font-face { font-family: 'Paperlogy'; font-weight: 900; font-display: swap; src: url('/fonts/paperlogy_9black.ttf') format('truetype'); }
+
 :root {
-    color: #202020;
-    background: #ffffff;
-    font-family: Arial, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
-    font-synthesis: none;
-    text-rendering: geometricPrecision;
+    --primary: #3182f6;
+    --on-primary: #ffffff;
+    --primary-container: #e8f3ff;
+    --on-primary-container: #1b64da;
+    --secondary: #4e5968;
+    --on-secondary: #ffffff;
+    --secondary-container: #f2f4f6;
+    --on-secondary-container: #333d4b;
+    --tertiary: #109595;
+    --on-tertiary: #ffffff;
+    --tertiary-container: #edf8f8;
+    --on-tertiary-container: #097575;
+    --error: #f04452;
+    --on-error: #ffffff;
+    --error-container: #ffeeee;
+    --on-error-container: #d22030;
+    --surface: #ffffff;
+    --on-surface: #191f28;
+    --on-surface-variant: #6b7684;
+    --outline: #b0b8c1;
+    --outline-variant: #e5e8eb;
+    --surface-container-lowest: #ffffff;
+    --surface-container-low: #f9fafb;
+    --surface-container: #f9fafb;
+    --surface-container-high: #f2f4f6;
+    --surface-container-highest: #f2f4f6;
+    --inverse-surface: #333d4b;
+    --inverse-on-surface: #ffffff;
+    --inverse-primary: #64a8ff;
+    --scrim: rgb(0 0 0 / 32%);
+    --backdrop: #f2f4f6;
+
+    --font-brand: 'Paperlogy', system-ui, -apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+    --font-plain: system-ui, -apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', 'Roboto', sans-serif;
+
+    --shape-extra-large: 28px;
+    --shape-large: 16px;
+    --shape-medium: 12px;
+    --shape-small: 8px;
+    --shape-extra-small: 4px;
+
+    --app-max-width: 480px;
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-top: env(safe-area-inset-top, 0px);
+
+    color-scheme: light;
 }
 
-* {
+@media (prefers-color-scheme: dark) {
+    :root {
+        --primary: #4593fc;
+        --on-primary: #ffffff;
+        --primary-container: #194aa6;
+        --on-primary-container: #c9e2ff;
+        --secondary: #b0b8c1;
+        --on-secondary: #191f28;
+        --secondary-container: #333d4b;
+        --on-secondary-container: #e5e8eb;
+        --tertiary: #58c7c7;
+        --on-tertiary: #076565;
+        --tertiary-container: #076565;
+        --on-tertiary-container: #bce9e9;
+        --error: #f66570;
+        --on-error: #ffffff;
+        --error-container: #a51926;
+        --on-error-container: #ffd4d6;
+        --surface: #191f28;
+        --on-surface: #f2f4f6;
+        --on-surface-variant: #b0b8c1;
+        --outline: #6b7684;
+        --outline-variant: #333d4b;
+        --surface-container-lowest: #101418;
+        --surface-container-low: #191f28;
+        --surface-container: #222a35;
+        --surface-container-high: #2a333f;
+        --surface-container-highest: #333d4b;
+        --inverse-surface: #f2f4f6;
+        --inverse-on-surface: #191f28;
+        --inverse-primary: #3182f6;
+        --backdrop: #101418;
+
+        color-scheme: dark;
+    }
+}
+
+*,
+*::before,
+*::after {
     box-sizing: border-box;
 }
 
+html {
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+    /* 목록 길이에 따라 스크롤바가 생기고 사라져도 화면이 옆으로 밀리지 않게 자리를 비워 둔다 */
+    scrollbar-gutter: stable;
+}
+
 body {
-    min-width: 320px;
     margin: 0;
-    overflow-x: hidden;
-    background: #ffffff;
+    background: var(--backdrop);
+    color: var(--on-surface);
+    font-family: var(--font-plain);
+    font-size: 14px;
+    line-height: 20px;
+    overscroll-behavior-y: contain;
 }
 
 button,
 input,
 textarea {
     font: inherit;
+    color: inherit;
 }
 
 button {
+    cursor: pointer;
     border: 0;
+    background: none;
+    padding: 0;
+}
+
+button:disabled {
+    cursor: default;
+}
+
+/* 마우스·터치로 누를 때는 브라우저 기본 포커스 테두리를 숨기고, 키보드로 이동할 때만 보여준다 */
+button:focus:not(:focus-visible) {
+    outline: none;
+}
+
+button:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+img {
+    display: block;
+}
+
+#root {
+    min-height: 100dvh;
+}
+
+/* 아래 클래스는 Material 3 타이포그래피 역할. Android 앱이 Paperlogy로 바꾼 역할만 브랜드 글꼴을 쓴다. */
+.type-display-small-em { font-family: var(--font-plain); font-size: 36px; line-height: 44px; font-weight: 600; }
+.type-headline-large-em { font-family: var(--font-brand); font-size: 32px; line-height: 40px; font-weight: 900; }
+.type-headline-small-em { font-family: var(--font-brand); font-size: 24px; line-height: 32px; font-weight: 900; }
+.type-title-large-em { font-family: var(--font-plain); font-size: 22px; line-height: 28px; font-weight: 600; }
+.type-title-medium { font-family: var(--font-brand); font-size: 16px; line-height: 24px; font-weight: 600; }
+.type-title-medium-em { font-family: var(--font-brand); font-size: 16px; line-height: 24px; font-weight: 700; }
+.type-body-large-em { font-family: var(--font-brand); font-size: 16px; line-height: 24px; font-weight: 500; }
+.type-body-medium-em { font-family: var(--font-brand); font-size: 14px; line-height: 20px; font-weight: 500; }
+.type-body-medium { font-family: var(--font-plain); font-size: 14px; line-height: 20px; font-weight: 400; }
+.type-body-large { font-family: var(--font-plain); font-size: 16px; line-height: 24px; font-weight: 400; }
+.type-label-large { font-family: var(--font-brand); font-size: 14px; line-height: 20px; font-weight: 500; }
+.type-label-medium { font-family: var(--font-brand); font-size: 12px; line-height: 16px; font-weight: 500; }
+
+.visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
 }

@@ -35,8 +35,15 @@ spring:
           enabled: false
       # 처리 완료된 발행 기록은 지워 테이블이 계속 쌓이지 않게 한다. 미완료·실패 건만 남는다.
       completion-mode: delete
-      # 처리 도중 서버가 내려가 남은 발행 기록은 재시작 시 다시 발행한다.
-      republish-outstanding-events-on-restart: true
+      # 블루그린 중 다른 JVM의 실행 중 이벤트를 시작 시 다시 가져오지 않는다.
+      republish-outstanding-events-on-restart: false
+      staleness:
+        # 임시 기준. 정상 큐 대기와 실행시간을 측정한 뒤 조정한다. 명시한 기간은 양수여야 한다.
+        published: ${SETTY_EVENT_STALENESS_PUBLISHED:PT5M}
+        processing: ${SETTY_EVENT_STALENESS_PROCESSING:PT5M}
+        resubmitted: ${SETTY_EVENT_STALENESS_RESUBMITTED:PT5M}
+        # 오래 남은 기록을 FAILED로 바꾸면 기존 실패 재발행 스케줄러가 회수한다.
+        check-interval: ${SETTY_EVENT_STALENESS_CHECK_INTERVAL:PT30S}
 
   task:
     execution:
@@ -62,6 +69,8 @@ management:
         enabled: false
 
 setty:
+  events:
+    resubmission-interval: ${SETTY_EVENT_RESUBMISSION_INTERVAL:PT1M}
   delivery:
     request-sse:
       # 임시 보호 상한. 운영 용량은 연결·목록 조회 부하와 전체 메모리 측정으로 확인한다.
@@ -83,6 +92,12 @@ setty:
       enabled: ${SETTY_ADDRESS_BACKFILL_ENABLED:false}
       batch-size: ${SETTY_ADDRESS_BACKFILL_BATCH_SIZE:500}
       pause: ${SETTY_ADDRESS_BACKFILL_PAUSE:PT0.1S}
+  listing:
+    zip-zone-backfill:
+      # 우편번호 구역이 빈 기존 매물을 시작할 때 한 번 채운다. 회원 주소 채우기가 끝난 뒤 켠다.
+      enabled: ${SETTY_LISTING_ZIP_ZONE_BACKFILL_ENABLED:false}
+      batch-size: ${SETTY_LISTING_ZIP_ZONE_BACKFILL_BATCH_SIZE:500}
+      pause: ${SETTY_LISTING_ZIP_ZONE_BACKFILL_PAUSE:PT0.1S}
   delivery-fee:
     # 배송비 = 기본 요금 + (부피 구간 × 구간당 단계 + 거리 단계) × 단계당 금액.
     # 거리 단계는 무료 거리까지 0, 이후 단계 거리마다 1. 기본값은 거리 0일 때 기존 부피 요금(1만/2만/3만 원)과 같아지도록 잡았다.
@@ -91,6 +106,19 @@ setty:
     volume-tier-steps: ${DELIVERY_FEE_VOLUME_TIER_STEPS:2}
     free-distance-meters: ${DELIVERY_FEE_FREE_DISTANCE_METERS:3000}
     step-distance-meters: ${DELIVERY_FEE_STEP_DISTANCE_METERS:3000}
+    # dong: 행정동 거리표만 쓴다. zip: 판매자·구매자 우편번호 구역을 모두 알면 우편번호 거리표를 쓰고, 아니면 행정동으로 계산한다.
+    # dong이면 아래 zip-table 설정을 읽기만 하고 S3·파일·폴더를 건드리지 않는다.
+    zone-mode: ${DELIVERY_FEE_ZONE_MODE:dong}
+    zip-table:
+      # zip일 때 directory에 seoul-zip-distances-<sha256 앞 12자>.bin이 있고 해시가 맞으면 그대로 메모리 매핑하고,
+      # 없으면 bucket/key에서 받아 해시를 확인한 뒤 같은 이름으로 옮긴다. 실패하면 경고를 남기고 행정동으로 계산한다.
+      region: ${AWS_REGION:ap-northeast-2}
+      bucket: ${DELIVERY_FEE_ZIP_TABLE_BUCKET:${SETTY_S3_BUCKET:techcourse-project-2026}}
+      key: ${DELIVERY_FEE_ZIP_TABLE_KEY:}
+      sha256: ${DELIVERY_FEE_ZIP_TABLE_SHA256:}
+      directory: ${DELIVERY_FEE_ZIP_TABLE_DIR:/opt/setty/data}
+      # 받기 전체(연결·읽기) 제한. 넘기면 행정동으로 계산하고 기동을 계속한다.
+      timeout: ${DELIVERY_FEE_ZIP_TABLE_TIMEOUT:PT30S}
   payment:
     # 결제 성공/실패 복귀(GET /payments/success·/fail) 처리 후 브라우저를 돌려보낼 프론트 주소.
     client-redirect-url: ${PAYMENT_CLIENT_REDIRECT_URL:http://localhost:3000}

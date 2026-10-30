@@ -8,10 +8,15 @@ import java.time.Instant;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.modulith.events.EventPublication.Status;
+import org.springframework.modulith.events.config.StalenessProperties;
+import org.springframework.modulith.events.core.EventPublicationRegistry;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 import setty.common.DeliveryAccepted;
@@ -41,6 +46,12 @@ class FailedEventResubmissionIntegrationTest extends MySqlIntegrationTestSupport
 
     @Autowired
     private FailedEventResubmissionScheduler resubmissionScheduler;
+
+    @Autowired
+    private EventPublicationRegistry eventPublicationRegistry;
+
+    @Autowired
+    private StalenessProperties stalenessProperties;
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
@@ -77,6 +88,35 @@ class FailedEventResubmissionIntegrationTest extends MySqlIntegrationTestSupport
         assertThat(incompletePublicationCount(jdbcTemplate, DeliveryAccepted.class)).isZero();
     }
 
+    @ParameterizedTest
+    @EnumSource(value = Status.class, names = {"PUBLISHED", "PROCESSING", "RESUBMITTED"})
+    void 중단_상태로_남은_발행을_실패로_전환하고_재시작_없이_복구한다(final Status interruptedStatus) {
+        final DeliveryId deliveryId = prepareRequestedDelivery();
+        deliveryLifecycleService.accept(deliveryId, DRIVER_ID, Instant.now());
+        awaitEventsHandled(jdbcTemplate);
+        insertConfirmedOrder();
+
+        // 실제 프로세스를 종료하지 않고, 종료 후 DB에 남는 상태와 경과시간을 만든다.
+        final int changed = jdbcTemplate.update(
+                """
+                UPDATE EVENT_PUBLICATION
+                SET STATUS = ?, PUBLICATION_DATE = DATE_SUB(NOW(6), INTERVAL 10 MINUTE),
+                    LAST_RESUBMISSION_DATE = DATE_SUB(NOW(6), INTERVAL 10 MINUTE)
+                WHERE EVENT_TYPE = ? AND COMPLETION_DATE IS NULL
+                """,
+                interruptedStatus.name(), DeliveryAccepted.class.getName());
+        assertThat(changed).isEqualTo(2);
+
+        eventPublicationRegistry.markStalePublicationsFailed(stalenessProperties);
+        resubmissionScheduler.resubmitFailedPublications();
+        awaitEventsHandled(jdbcTemplate);
+
+        assertThat(deliveryStatus()).isEqualTo("ACCEPTED");
+        assertThat(orderDeliveryStatus()).isEqualTo("ACCEPTED");
+        assertThat(listingSaleStatus()).isEqualTo("RESERVED");
+        assertThat(incompletePublicationCount(jdbcTemplate, DeliveryAccepted.class)).isZero();
+    }
+
     private DeliveryId prepareRequestedDelivery() {
         new TransactionTemplate(transactionManager).executeWithoutResult(status -> eventPublisher.publishEvent(
                 new OrderConfirmed(
@@ -91,7 +131,7 @@ class FailedEventResubmissionIntegrationTest extends MySqlIntegrationTestSupport
                         10L,
                         1L,
                         150_000,
-                        null
+                        null, null, null, null
                 )
         ));
         awaitEventsHandled(jdbcTemplate);

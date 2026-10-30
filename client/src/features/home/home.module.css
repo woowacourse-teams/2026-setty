@@ -1,0 +1,270 @@
+.brand {
+    font-family: var(--font-brand);
+    font-size: 24px;
+    line-height: 32px;
+    font-weight: 900;
+}
+
+.driver-banner {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 12px 16px;
+    border-radius: var(--shape-large);
+    background: var(--primary-container);
+    color: var(--on-primary-container);
+    text-align: left;
+}
+
+.driver-banner__shape {
+    display: flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background: var(--primary);
+    color: var(--on-primary);
+}
+
+.driver-banner__lines {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.notifications-button {
+    position: relative;
+    display: inline-flex;
+}
+
+.unread-dot {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--error);
+    pointer-events: none;
+}
+
+.profile-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    margin-right: 4px;
+}
+
+.profile-button__shape {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background: var(--primary-container);
+    color: var(--on-primary-container);
+    font-family: var(--font-brand);
+    font-size: 14px;
+    font-weight: 900;
+}
+
+.list {
+    /* 필터를 바꾸는 동안의 로딩이나 빈 화면 안내를 필터 줄 아래 남은 공간의 가운데에 둔다 */
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    /* FAB에 마지막 항목이 가리지 않도록 아래 여백을 넉넉히 둔다 */
+    padding: 0 16px 120px;
+}
+
+.list-header {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 8px 0 12px;
+}
+
+.load-more {
+    display: flex;
+    justify-content: center;
+    padding: 12px 0;
+}
+
+.search-layer {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    z-index: 30;
+    width: 100%;
+    max-width: var(--app-max-width);
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    background: var(--surface);
+    animation: search-in 200ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+@keyframes search-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+.search-bar {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    padding: calc(var(--safe-top) + 12px) 16px 12px;
+    background: var(--surface);
+}
+
+.search-field {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    gap: 0;
+    min-width: 0;
+    height: 48px;
+    padding: 0;
+    border-radius: 24px;
+    background: var(--secondary-container);
+    color: var(--on-surface-variant);
+}
+
+.search-field__input {
+    flex: 1;
+    min-width: 0;
+    height: 100%;
+    border: 0;
+    outline: none;
+    background: transparent;
+    color: var(--on-surface);
+    font-family: var(--font-brand);
+    font-size: 16px;
+}
+
+.search-field__input::placeholder {
+    color: var(--on-surface-variant);
+}
+
+/* 브라우저 기본 지우기 버튼 대신 직접 그린 버튼을 쓴다 */
+.search-field__input::-webkit-search-cancel-button {
+    display: none;
+}
+
+.search-results {
+    padding: 16px;
+}
+
+.budget-amount {
+    margin: 32px 0 24px;
+    color: var(--primary);
+    text-align: center;
+}
+
+/* 손잡이(4px) 양옆으로 6px씩 띄워 활성·비활성 트랙을 나눈다 */
+.slider {
+    --slider-handle-x: calc(var(--slider-progress) * (100% - 4px));
+    position: relative;
+    height: 44px;
+}
+
+.slider__input {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    opacity: 0;
+    cursor: pointer;
+    appearance: none;
+}
+
+/* 손잡이 폭을 그린 손잡이와 맞춰야 누른 위치와 값이 어긋나지 않는다 */
+.slider__input::-webkit-slider-thumb {
+    width: 4px;
+    height: 44px;
+    appearance: none;
+}
+
+.slider__input::-moz-range-thumb {
+    width: 4px;
+    height: 44px;
+    border: 0;
+}
+
+.slider__track--active,
+.slider__track--inactive {
+    position: absolute;
+    top: 50%;
+    height: 16px;
+    transform: translateY(-50%);
+}
+
+.slider__track--active {
+    left: 0;
+    width: max(0px, calc(var(--slider-handle-x) - 6px));
+    border-radius: 8px 2px 2px 8px;
+    background: var(--primary);
+}
+
+.slider__track--inactive {
+    left: min(100%, calc(var(--slider-handle-x) + 10px));
+    right: 0;
+    border-radius: 2px 8px 8px 2px;
+    /* 시트 배경과 구분되도록 primary-container보다 진하게 둔다 */
+    background: color-mix(in srgb, var(--primary) 24%, var(--surface));
+}
+
+/* 끝을 알리는 점 */
+.slider__stop {
+    position: absolute;
+    top: 50%;
+    right: 6px;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--primary);
+    transform: translateY(-50%);
+}
+
+.slider__handle {
+    position: absolute;
+    top: 0;
+    left: var(--slider-handle-x);
+    width: 4px;
+    height: 44px;
+    border-radius: 2px;
+    background: var(--primary);
+    pointer-events: none;
+}
+
+.slider__input:focus-visible ~ .slider__handle {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+.slider-range {
+    display: flex;
+    justify-content: space-between;
+    color: var(--on-surface-variant);
+}
+
+.sheet-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 32px;
+}
+
+.sheet-actions > * {
+    flex: 1;
+}

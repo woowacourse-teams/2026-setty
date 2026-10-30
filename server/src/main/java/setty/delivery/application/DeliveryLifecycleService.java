@@ -3,10 +3,13 @@ package setty.delivery.application;
 import java.time.Instant;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import setty.common.DeliveryAccepted;
+import setty.common.DeliveryAssignmentCancelled;
 import setty.common.DeliveryCancellationRejected;
 import setty.common.DeliveryCancelled;
 import setty.common.DeliveryDelivered;
@@ -25,6 +28,8 @@ import setty.global.exception.ErrorCode;
 @Transactional
 public class DeliveryLifecycleService {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(DeliveryLifecycleService.class);
+
     private final DeliveryRepository deliveryRepository;
     private final DeliveryOrderDecisionRepository decisionRepository;
     private final ApplicationEventPublisher eventPublisher;
@@ -42,6 +47,27 @@ public class DeliveryLifecycleService {
         delivery.pickUp(driverId, pickedUpAt);
         deliveryRepository.save(delivery);
         eventPublisher.publishEvent(new DeliveryPickedUp(deliveryId.value(), orderIdOf(delivery), pickedUpAt));
+    }
+
+    public void cancelAssignment(final DeliveryId deliveryId, final DriverId driverId, final Instant cancelledAt) {
+        if (cancelledAt == null) {
+            throw new BusinessException(ErrorCode.INVALID_REQUEST);
+        }
+        final Delivery delivery = findDelivery(deliveryId);
+        final Instant acceptedAt = delivery.getAcceptedAt();
+        delivery.cancelAssignment(driverId);
+        deliveryRepository.save(delivery);
+        LOGGER.atInfo()
+                .addKeyValue("event", "delivery_assignment_cancelled")
+                .addKeyValue("delivery_id", deliveryId.value())
+                .addKeyValue("order_id", orderIdOf(delivery))
+                .addKeyValue("driver_id", driverId.value())
+                .addKeyValue("accepted_at", acceptedAt)
+                .log("배송원이 배차를 취소했습니다. deliveryId={}, driverId={}", deliveryId.value(), driverId.value());
+        eventPublisher.publishEvent(new DeliveryAssignmentCancelled(
+                deliveryId.value(), orderIdOf(delivery), driverId.value(), acceptedAt, cancelledAt
+        ));
+        eventPublisher.publishEvent(new DeliveryRequestsChanged());
     }
 
     public void complete(final DeliveryId deliveryId, final DriverId driverId, final Instant deliveredAt) {

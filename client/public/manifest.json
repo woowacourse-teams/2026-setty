@@ -1,0 +1,15 @@
+{
+    "name": "세티",
+    "short_name": "세티",
+    "description": "무거운 중고 가구를 더 가볍게",
+    "start_url": "/",
+    "scope": "/",
+    "display": "standalone",
+    "background_color": "#fef7ff",
+    "theme_color": "#fef7ff",
+    "lang": "ko",
+    "icons": [
+        { "src": "/setty-favicon.svg?v=2", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+        { "src": "/setty-apple-touch-icon.png?v=2", "sizes": "180x180", "type": "image/png", "purpose": "any" }
+    ]
+}
