@@ -436,6 +436,27 @@
     .fig .diagram .mkf { fill: var(--on-surface-variant); }
     .fig .diagram .axl { stroke: var(--outline-variant); stroke-width: 1.2; }
     @media (max-width: 720px) { .fig.diagram img, .fig.diagram svg { min-width: 600px; } }
+    /* 교환 곡선: 가로축 메모리, 세로축 불일치. 강조점은 250m */
+    .fig.trade svg text { font-family: "Paperlogy", "Apple SD Gothic Neo", sans-serif; font-weight: 600; fill: var(--on-surface); }
+    .fig.trade .tg { stroke: var(--surface-container-highest); stroke-width: 1; }
+    .fig.trade .ta { stroke: var(--outline-variant); stroke-width: 1.2; }
+    .fig.trade .tgoal { stroke: var(--tertiary); stroke-width: 1.6; stroke-dasharray: 6 5; }
+    .fig.trade .tl { fill: none; stroke: var(--primary); stroke-width: 2.4; }
+    .fig.trade .tl2 { stroke: var(--primary); stroke-width: 1.4; stroke-dasharray: 3 4; }
+    .fig.trade .tp { fill: var(--primary-container); stroke: var(--primary); stroke-width: 1.6; }
+    .fig.trade .tpp { fill: var(--primary); stroke: var(--primary); stroke-width: 1.6; }
+    .fig.trade .tph { fill: var(--surface); stroke: var(--primary); stroke-width: 1.8; }
+    .fig.trade .tk, .fig.trade .tt, .fig.trade .tv { font-size: 14px; fill: var(--on-surface-variant); }
+    .fig.trade .tgl { font-size: 14px; fill: var(--tertiary); }
+    .fig.trade .tn { font-size: 17px; }
+    .fig.trade .tnp { font-size: 17px; font-weight: 800; fill: var(--primary); }
+    .fig.trade .tld { stroke: var(--outline-variant); stroke-width: 1; }
+    .fig-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 8px 0 0; font-size: .75rem; font-weight: 700; color: var(--on-surface-variant); }
+    .fig-legend i { display: inline-block; width: 12px; height: 12px; margin-right: 6px; border-radius: 50%; vertical-align: -1px; box-sizing: border-box; }
+    .fig-legend .lg-p { background: var(--primary-container); border: 1.6px solid var(--primary); }
+    .fig-legend .lg-pp { background: var(--primary); }
+    .fig-legend .lg-h { background: var(--surface); border: 1.8px solid var(--primary); }
+    @media (max-width: 720px) { .fig.trade svg { min-width: 600px; } }
     .chart { padding: 18px 20px 16px; border-radius: 20px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--outline-variant); }
     .chart-title { margin: 0 0 14px; font-size: .875rem; font-weight: 800; }
     .chart-rows { display: grid; grid-template-columns: minmax(96px, auto) 1fr auto; gap: 10px 10px; align-items: center; }
@@ -934,7 +955,76 @@
         </div>
       </details>
       <details class="fold">
-        <summary>④ 더 촘촘하게 · 우편번호 구역으로</summary>
+        <summary>④ 왜 250m 격자인가 · 정확도와 메모리의 교환</summary>
+        <div class="figs">
+      <figure class="fig wide trade">
+        <div class="fig-scroll"><svg viewBox="0 0 760 450" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="정확도와 앱 서버 메모리의 교환 곡선. 가로축은 거리표를 앱에 둘 때의 메모리(0~400MB), 세로축은 요금 구간 불일치율. 행정동 0.73MB 18.1%, 1km 격자 1.1MB 17.1%, 500m 격자 11.7MB 10.1%, 250m 격자 96.1MB 6.6%(2바이트면 48MB), 173m 격자 258MB 5.7%(2바이트면 129MB). 250m 격자 뒤로는 불일치가 조금 줄 때 메모리가 크게 늘어난다. 남은 메모리 약 400MB와 합격선 5%를 점선으로 표시">
+<line class="tg" x1="96" y1="380.0" x2="700" y2="380.0"/>
+<text class="tk" x="86" y="385.0" text-anchor="end">0%</text>
+<line class="tg" x1="96" y1="295.0" x2="700" y2="295.0"/>
+<text class="tk" x="86" y="300.0" text-anchor="end">5%</text>
+<line class="tg" x1="96" y1="210.0" x2="700" y2="210.0"/>
+<text class="tk" x="86" y="215.0" text-anchor="end">10%</text>
+<line class="tg" x1="96" y1="125.0" x2="700" y2="125.0"/>
+<text class="tk" x="86" y="130.0" text-anchor="end">15%</text>
+<line class="tg" x1="96" y1="40.0" x2="700" y2="40.0"/>
+<text class="tk" x="86" y="45.0" text-anchor="end">20%</text>
+<text class="tk" x="96.0" y="402" text-anchor="middle">0MB</text>
+<line class="tg" x1="247.0" y1="40" x2="247.0" y2="380"/>
+<text class="tk" x="247.0" y="402" text-anchor="middle">100MB</text>
+<line class="tg" x1="398.0" y1="40" x2="398.0" y2="380"/>
+<text class="tk" x="398.0" y="402" text-anchor="middle">200MB</text>
+<line class="tg" x1="549.0" y1="40" x2="549.0" y2="380"/>
+<text class="tk" x="549.0" y="402" text-anchor="middle">300MB</text>
+<line class="ta" x1="96" y1="380" x2="700" y2="380"/><line class="ta" x1="96" y1="40" x2="96" y2="380"/>
+<line class="tgoal" x1="700.0" y1="26" x2="700.0" y2="380"/>
+<text class="tgl" x="694.0" y="20" text-anchor="end">남은 앱 서버 메모리 약 400MB</text>
+<text class="tk" x="700.0" y="402" text-anchor="middle">400MB</text>
+<line class="tgoal" x1="96" y1="295.0" x2="700" y2="295.0"/>
+<text class="tgl" x="692" y="287.0" text-anchor="end">합격선 5%</text>
+<text class="tt" x="398" y="432" text-anchor="middle">앱 서버 메모리, 거리표를 앱에 둘 때 · 4바이트 기준 (같은 간격 = 같은 MB)</text>
+<text class="tt" x="86" y="20" text-anchor="end">불일치</text>
+<path class="tl" d="M97.1,72.3 L97.7,89.3 L113.7,208.3 L241.1,267.8 L485.7,283.1"/>
+<line class="tl2" x1="290.9" y1="283.1" x2="485.7" y2="283.1"/>
+<circle class="tph" cx="290.9" cy="283.1" r="6"/>
+<circle class="tp" cx="97.1" cy="72.3" r="6"/>
+<circle class="tp" cx="97.7" cy="89.3" r="6"/>
+<circle class="tp" cx="113.7" cy="208.3" r="6"/>
+<circle class="tpp" cx="241.1" cy="267.8" r="8"/>
+<circle class="tp" cx="485.7" cy="283.1" r="6"/>
+<text class="tn" x="117.1" y="60.3" text-anchor="start">행정동 (지금)</text>
+<text class="tv" x="117.1" y="79.3" text-anchor="start">0.73MB · 18.1%</text>
+<text class="tn" x="129.7" y="111.3" text-anchor="start">1km 격자</text>
+<text class="tv" x="129.7" y="130.3" text-anchor="start">1.1MB · 17.1%</text>
+<text class="tn" x="129.7" y="186.3" text-anchor="start">500m 격자</text>
+<text class="tv" x="129.7" y="205.3" text-anchor="start">11.7MB · 10.1%</text>
+<text class="tnp" x="253.1" y="227.8" text-anchor="start">250m 격자</text>
+<text class="tv" x="253.1" y="246.8" text-anchor="start">96.1MB · 6.6% (2바이트면 48MB)</text>
+<text class="tn" x="499.7" y="261.1" text-anchor="start">173m 격자</text>
+<text class="tv" x="499.7" y="280.1" text-anchor="start">258MB · 5.7%</text>
+<circle class="tph" cx="168.6" cy="267.8" r="6"/>
+<line class="tld" x1="290.9" y1="291.1" x2="290.9" y2="313.0"/>
+<text class="tn" x="290.9" y="329.0" text-anchor="middle">173m 격자, 2바이트로 저장</text>
+<text class="tv" x="290.9" y="348.0" text-anchor="middle">129MB · 5.7%</text>
+</svg></div>
+        <p class="fig-legend"><span><i class="lg-p"></i>점 = 구역을 나누는 방식, 선은 촘촘해지는 순서</span><span><i class="lg-pp"></i>250m 격자</span><span><i class="lg-h"></i>2바이트로 저장한 경우</span></p>
+        <figcaption><b>500m → 250m는 메모리 +84MB에 불일치 −3.5%p, 250m → 173m는 +162MB에 −0.9%p예요.</b>250m 뒤로는 선이 거의 옆으로 눕고, 가장 촘촘한 173m도 합격선 5%에는 못 미쳐요. 그래서 "정확도는 250m 수준이면 된다"로 잡았어요.</figcaption>
+      </figure>
+      <div class="chart" role="img" aria-label="앱 서버 메모리, 2바이트 거리표: 행정동 0.4MB, 500m 격자 5.9MB, 250m 격자 48.1MB, 173m 격자 129.1MB">
+        <p class="chart-title">앱 서버 메모리 · 2바이트 거리표</p>
+        <div class="chart-rows">
+        <span class="l">행정동 · 427칸</span><div class="track"><div class="fill " style="width:0.27%"></div></div><span class="v">0.4MB</span>
+        <span class="l">500m 격자 · 1,712칸</span><div class="track"><div class="fill " style="width:3.93%"></div></div><span class="v">5.9MB</span>
+        <span class="l">250m 격자 · 4,902칸</span><div class="track"><div class="fill pick" style="width:32.07%"></div></div><span class="v">48.1MB</span>
+        <span class="l">173m 격자 · 8,033칸</span><div class="track"><div class="fill out" style="width:86.07%"></div></div><span class="v">129.1MB</span>
+        <span></span><div class="axis"><span style="left:0.00%">0</span><span style="left:33.33%">50</span><span style="left:66.67%">100</span><span style="left:100.00%">150MB</span></div><span></span>
+        </div>
+        <p class="chart-note">칸이 2배 늘면 표는 4배예요(칸 수의 제곱). 거리를 10m 단위 2바이트로 줄여도 불일치율은 같았고, 남은 메모리 400MB 대비 250m는 12%, 173m는 32%예요. 우편번호 구역은 이 250m 수준의 정확도(주소 전체 기준 6.9% 대 7.1%)를 좌표 없이 얻는 길이에요.</p>
+      </div>
+        </div>
+      </details>
+      <details class="fold">
+        <summary>⑤ 더 촘촘하게 · 우편번호 구역으로</summary>
         <div class="figs">
       <div class="chart" role="img" aria-label="요금 구간 불일치율, 건물 표본: 행정동 18.1%, 500m 격자 10.1%, 250m 격자 6.6%, 173m 격자 5.7%. 합격선 5%">
         <p class="chart-title">촘촘할수록 얼마나 맞나 · 요금 구간 불일치율</p>
