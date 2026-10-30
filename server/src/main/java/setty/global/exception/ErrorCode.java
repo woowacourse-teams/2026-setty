@@ -12,6 +12,7 @@ public enum ErrorCode {
     DUPLICATE_LOGIN_ID(400, "이미 사용 중인 아이디입니다"),
     DELIVERY_AREA_NOT_SUPPORTED(400, "배송 가능 지역이 아닙니다"),
     MEMBER_DONG_REQUIRED(400, "행정동을 먼저 설정해 주세요"),
+    MEMBER_HAS_ACTIVE_TRADE(409, "진행 중인 거래가 있어 탈퇴할 수 없습니다"),
 
     // ===== 매물 (플랫폼 팀) =====
     LISTING_NOT_FOUND(404, "존재하지 않는 매물입니다"),

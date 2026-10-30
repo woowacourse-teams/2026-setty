@@ -219,6 +219,11 @@ public class ListingNotificationService {
         );
     }
 
+    @Transactional
+    public void deleteAllOf(final Long memberId) {
+        listingNotificationRepository.deleteAllByMemberId(memberId);
+    }
+
     @Transactional(readOnly = true)
     public List<ListingNotification> findMine(final Long memberId, final int page, final int size) {
         return listingNotificationRepository.findAllByMemberIdOrderByCreatedAtDescIdDesc(

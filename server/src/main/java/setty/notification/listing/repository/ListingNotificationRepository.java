@@ -3,6 +3,7 @@ package setty.notification.listing.repository;
 import java.util.List;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import setty.notification.listing.domain.ListingNotification;
@@ -23,5 +24,9 @@ public interface ListingNotificationRepository extends JpaRepository<ListingNoti
     );
 
     List<ListingNotification> findAllByMemberIdOrderByCreatedAtDescIdDesc(Long memberId, Pageable pageable);
+
+    @Modifying
+    @Query("delete from ListingNotification notification where notification.memberId = :memberId")
+    void deleteAllByMemberId(@Param("memberId") Long memberId);
 
 }

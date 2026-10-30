@@ -41,6 +41,11 @@ public class KeywordSubscriptionService {
         keywordSubscriptionRepository.delete(findMine(memberId, subscriptionId));
     }
 
+    @Transactional
+    public void unsubscribeAll(final Long memberId) {
+        keywordSubscriptionRepository.deleteAllByMemberId(memberId);
+    }
+
     @Transactional(readOnly = true)
     public List<KeywordSubscription> findMine(final Long memberId) {
         return keywordSubscriptionRepository.findAllByMemberIdOrderByCreatedAtAscIdAsc(memberId);

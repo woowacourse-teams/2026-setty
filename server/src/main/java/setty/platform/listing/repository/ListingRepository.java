@@ -34,6 +34,10 @@ public interface ListingRepository extends JpaRepository<Listing, Long> {
             nativeQuery = true)
     List<Listing> findAllByIdForUpdate(@Param("ids") List<Long> ids);
 
+    @Query(value = "select * from listings where seller_id = :sellerId and deleted_at is null order by id for update",
+            nativeQuery = true)
+    List<Listing> findAllActiveBySellerIdForUpdate(@Param("sellerId") Long sellerId);
+
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query(value = """
             update listings force index (PRIMARY)

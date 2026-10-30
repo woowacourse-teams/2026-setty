@@ -7,6 +7,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 import java.time.Clock;
@@ -14,6 +15,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -79,6 +81,12 @@ class OrderServiceTest {
 
     @InjectMocks
     private OrderService orderService;
+
+    // 주문 생성은 구매자 행을 잠그며 탈퇴 여부를 다시 본다. 이 테스트들의 구매자는 탈퇴하지 않았다.
+    @BeforeEach
+    void buyerIsActive() {
+        lenient().when(memberRepository.lockActiveIdForShare(BUYER_ID)).thenReturn(Optional.of(BUYER_ID));
+    }
 
     @Test
     void 결제_대기_주문에_설정된_만료_시간을_저장한다() {

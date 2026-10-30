@@ -65,6 +65,11 @@ public class AuthService {
     public LoginResponse login(final LoginRequest request) {
         final Member member = memberRepository.findByLoginId(request.loginId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.LOGIN_FAILED));
+        // 탈퇴 직전에 읽은 행에 토큰을 써 넣어 탈퇴를 되살리지 않게, 기본 키로 잠그며 탈퇴 여부를 다시 본다.
+        // 아이디 색인으로 잠그면 아이디를 바꾸는 탈퇴와 서로 기다리다 멈추므로 기본 키로만 잠근다.
+        if (memberRepository.lockActiveId(member.getId()).isEmpty()) {
+            throw new BusinessException(ErrorCode.LOGIN_FAILED);
+        }
 
         if (!member.matchPassword(passwordEncoder, request.password())) {
             throw new BusinessException(ErrorCode.LOGIN_FAILED);
@@ -83,15 +88,12 @@ public class AuthService {
 
     @Transactional
     public void logout(final Long memberId) {
-        final Member member = memberRepository.findById(memberId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_TOKEN));
-        member.clearToken();
+        lockActive(memberId).clearToken();
     }
 
     @Transactional
     public MemberMeResponse updateProfile(final Long memberId, final UpdateProfileRequest request) {
-        final Member member = memberRepository.findById(memberId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_TOKEN));
+        final Member member = lockActive(memberId);
         member.updateContact(request.phoneNumber(), request.address());
         memberAddressResolver.resolve(member);
         return MemberMeResponse.from(member);
@@ -100,10 +102,21 @@ public class AuthService {
     @Transactional
     public MemberMeResponse updateDong(final Long memberId, final UpdateDongRequest request) {
         validateDong(request.dongCode());
-        final Member member = memberRepository.findById(memberId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_TOKEN));
+        final Member member = lockActive(memberId);
         member.changeDong(request.dongCode());
         return MemberMeResponse.from(member);
+    }
+
+    // 탈퇴와 같은 행을 잠가, 탈퇴 직전에 읽은 값으로 탈퇴한 행을 덮어쓰지 않게 한다
+    private Member lockActive(final Long memberId) {
+        memberRepository.lockActiveId(memberId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_TOKEN));
+        return findMember(memberId);
+    }
+
+    private Member findMember(final Long memberId) {
+        return memberRepository.findById(memberId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_TOKEN));
     }
 
     private void validateDong(final String dongCode) {

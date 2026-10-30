@@ -43,6 +43,11 @@ public class DeviceTokenService {
     }
 
     @Transactional
+    public void unregisterAll(final Long memberId) {
+        deviceTokenRepository.deleteAllByMemberId(memberId);
+    }
+
+    @Transactional
     public void unregister(final Long memberId, final String token) {
         deviceTokenRepository.findByToken(DeviceToken.normalize(token))
                 .filter(existing -> existing.getMemberId().equals(memberId))

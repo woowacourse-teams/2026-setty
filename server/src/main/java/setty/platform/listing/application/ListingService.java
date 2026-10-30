@@ -341,6 +341,31 @@ public class ListingService {
         deleteImagesAfterCommit(objectKeys);
     }
 
+    // 탈퇴 검사 동안 주문 생성이 끼어들지 못하게 판매자의 매물을 모두 잠근다. 주문 생성도 매물을 먼저 잠그므로 둘은 줄을 선다.
+    @Transactional
+    public List<Long> lockActiveListingIdsOf(Long sellerId) {
+        return listingRepository.findAllActiveBySellerIdForUpdate(sellerId).stream()
+                .map(Listing::getId)
+                .toList();
+    }
+
+    // 구매 신청이 없는 판매 중 매물만 내린다. 판매 완료 매물은 거래 기록이라 남긴다.
+    @Transactional
+    public void deleteDeletableListings(List<Long> listingIds) {
+        List<Listing> deletable = listingRepository.findAllById(listingIds).stream()
+                .filter(Listing::canDelete)
+                .toList();
+        if (deletable.isEmpty()) {
+            return;
+        }
+        deletable.forEach(Listing::softDelete);
+        List<Long> deletableIds = deletable.stream().map(Listing::getId).toList();
+        List<String> objectKeys = listingImageRepository.findAllByListingIdIn(deletableIds).stream()
+                .map(ListingImage::getObjectKey)
+                .toList();
+        deleteImagesAfterCommit(objectKeys);
+    }
+
     @Transactional
     public ListingView.PurchaseInfo registerPurchaseRequest(
             Long listingId,

@@ -3,6 +3,7 @@ package setty.platform.member.controller;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -19,15 +20,18 @@ import setty.platform.member.controller.dto.UpdateDongRequest;
 import setty.platform.member.controller.dto.UpdateProfileRequest;
 import setty.platform.member.domain.Member;
 import setty.platform.member.service.AuthService;
+import setty.platform.member.service.MemberWithdrawalService;
 
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
 
     private final AuthService authService;
+    private final MemberWithdrawalService memberWithdrawalService;
 
-    public AuthController(final AuthService authService) {
+    public AuthController(final AuthService authService, final MemberWithdrawalService memberWithdrawalService) {
         this.authService = authService;
+        this.memberWithdrawalService = memberWithdrawalService;
     }
 
     @PostMapping("/signup")
@@ -61,6 +65,12 @@ public class AuthController {
             @Valid @RequestBody final UpdateDongRequest request
     ) {
         return ResponseEntity.ok(authService.updateDong(member.getId(), request));
+    }
+
+    @DeleteMapping("/me")
+    public ResponseEntity<Void> withdraw(@LoginMember final Member member) {
+        memberWithdrawalService.withdraw(member.getId());
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/logout")

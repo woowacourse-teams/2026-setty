@@ -12,6 +12,8 @@ public interface ListingImageRepository extends JpaRepository<ListingImage, Long
 
     List<ListingImage> findAllByListingIdOrderByDisplayOrderAsc(Long listingId);
 
+    List<ListingImage> findAllByListingIdIn(Collection<Long> listingIds);
+
     @Query("""
             select image from ListingImage image
             where image.listingId in :listingIds
