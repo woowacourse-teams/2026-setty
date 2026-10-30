@@ -418,11 +418,12 @@ export function TrailingColumn({ children }: { children: ReactNode }) {
 }
 
 /** 목록 카드 오른쪽 아래의 찜 수. 찜이 없으면 그리지 않는다. */
+/** 매물을 찜한 사람 수. 내가 찜했는지와 헷갈리지 않게 빈 하트로 그린다. */
 export function FavoriteCount({ count }: { count: number }) {
     if (count < 1) return null;
     return (
         <span aria-label={`찜 ${count}개`} className={cx(styles['favorite-count'], 'type-label-medium')}>
-            <Icon name="favoriteFilled" size={14} />
+            <Icon name="favorite" size={14} />
             {count}
         </span>
     );
@@ -571,18 +572,29 @@ type FilterChipProps = {
     selected: boolean;
     onClick: () => void;
     leadingIcon?: IconName;
+    // 시트를 여는 칩은 뒤에 ▾를 단다. 눌림 상태 대신 "고른 값이 있다"는 뜻으로 selected를 쓴다
+    trailingIcon?: IconName;
+    ariaLabel?: string;
 };
 
-export function FilterChip({ label, selected, onClick, leadingIcon }: FilterChipProps) {
+export function FilterChip({ label, selected, onClick, leadingIcon, trailingIcon, ariaLabel }: FilterChipProps) {
     return (
         <button
+            aria-label={ariaLabel}
             aria-pressed={selected}
-            className={cx(styles.chip, selected && styles['chip--selected'], leadingIcon && styles['chip--with-icon'], 'type-label-large')}
+            className={cx(
+                styles.chip,
+                selected && styles['chip--selected'],
+                leadingIcon && styles['chip--with-icon'],
+                trailingIcon && styles['chip--with-trailing-icon'],
+                'type-label-large'
+            )}
             onClick={onClick}
             type="button"
         >
             {leadingIcon && <Icon name={leadingIcon} size={18} />}
             {label}
+            {trailingIcon && <Icon name={trailingIcon} size={18} />}
         </button>
     );
 }

@@ -1,11 +1,14 @@
 export const furnitureCategories = ['SOFA', 'TABLE', 'DESK', 'CHAIR', 'STORAGE', 'BED', 'ETC'] as const;
 export type FurnitureCategory = (typeof furnitureCategories)[number];
 
-// 서버가 받는 카테고리. 기타는 고를 수 없다
-export const selectableCategories = furnitureCategories.filter((category) => category !== 'ETC');
+// 매물 등록·수정과 홈 필터에서 고르는 카테고리
+export const selectableCategories = furnitureCategories;
+// 키워드 알림이 받는 카테고리. 기타 구독은 아직 없다
+export const keywordCategories = furnitureCategories.filter((category) => category !== 'ETC');
 
 /** 서버가 받는 상품 상태 등급. 좋은 등급부터 나열한다. */
 export const conditionGrades = ['S', 'A', 'B', 'C'] as const;
+export type ConditionGrade = (typeof conditionGrades)[number];
 
 export type SaleStatus = 'AVAILABLE' | 'RESERVED' | 'SOLD';
 
@@ -182,6 +185,15 @@ const wonFormat = new Intl.NumberFormat('ko-KR');
 
 export function formatWon(value: number): string {
     return `${wonFormat.format(value)}원`;
+}
+
+/** 15000 → "1.5만 원", 20000 → "2만 원", 100000000 → "1억 원", 만·천 단위로 떨어지지 않으면 "23,500원" */
+export function formatCompactWon(value: number): string {
+    if (value >= 100_000_000) return value % 100_000_000 === 0 ? `${value / 100_000_000}억 원` : formatWon(value);
+    if (value % 1_000 !== 0 || value < 10_000) return formatWon(value);
+    const man = Math.floor(value / 10_000);
+    const thousand = Math.floor((value % 10_000) / 1_000);
+    return thousand === 0 ? `${man}만 원` : `${man}.${thousand}만 원`;
 }
 
 /** ISO-8601 문자열(예: 2026-09-30T05:03:41Z)에서 "9.30" 형태의 등록일을 만든다. */

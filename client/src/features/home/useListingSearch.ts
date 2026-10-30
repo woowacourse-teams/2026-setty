@@ -1,12 +1,23 @@
 import { useEffect, useRef, useState } from 'react';
+import { isUnauthorized } from '../../api/errors';
 import { furnitureRepository } from '../../api/repositories';
-import type { FurnitureCategory, FurniturePage } from '../../model/furniture';
+import type { ConditionGrade, FurnitureCategory, FurniturePage } from '../../model/furniture';
+import type { PriceRange } from './priceRange';
 
 type SearchState = FurniturePage & { key: string; loading: boolean; error: boolean };
 
-export function useListingSearch(query: string, category: FurnitureCategory | null, maxDeliveryFee: number | null) {
+export function useListingSearch(
+    query: string, category: FurnitureCategory | null, conditionGrades: readonly ConditionGrade[],
+    priceRange: PriceRange | null, maxDeliveryFee: number | null,
+    // 배송비 필터를 켠 채 토큰이 끊겨 401이 오면 부른다
+    onUnauthorized: () => void = () => undefined
+) {
+    const onUnauthorizedRef = useRef(onUnauthorized);
+    onUnauthorizedRef.current = onUnauthorized;
     const keyword = query.trim();
-    const key = JSON.stringify([keyword, category, maxDeliveryFee]);
+    const minPrice = priceRange?.min ?? null;
+    const maxPrice = priceRange?.max ?? null;
+    const key = JSON.stringify([keyword, category, conditionGrades, minPrice, maxPrice, maxDeliveryFee]);
     const [state, setState] = useState<SearchState>({ key: '', items: [], nextCursor: null, loading: false, error: false });
     const [retry, setRetry] = useState(0);
     const generation = useRef(0);
@@ -20,14 +31,15 @@ export function useListingSearch(query: string, category: FurnitureCategory | nu
         setState({ key, items: [], nextCursor: null, loading: !!keyword, error: false });
         if (!keyword) return;
         const timer = window.setTimeout(() => {
-            furnitureRepository.getFurniturePage({ query: keyword, category, maxDeliveryFee })
+            furnitureRepository.getFurniturePage({ query: keyword, category, conditionGrades, minPrice, maxPrice, maxDeliveryFee })
                 .then((page) => {
                     if (request !== generation.current || activeKey.current !== key) return;
                     setState({ ...page, key, loading: false, error: false });
                 })
-                .catch(() => {
+                .catch((error: unknown) => {
                     if (request !== generation.current || activeKey.current !== key) return;
                     setState({ key, items: [], nextCursor: null, loading: false, error: true });
+                    if (isUnauthorized(error)) onUnauthorizedRef.current();
                 });
         }, 300);
         return () => { window.clearTimeout(timer); generation.current += 1; };
@@ -38,7 +50,7 @@ export function useListingSearch(query: string, category: FurnitureCategory | nu
         loadingMore.current = true;
         const request = generation.current;
         setState((current) => ({ ...current, loading: true, error: false }));
-        furnitureRepository.getFurniturePage({ query: keyword, category, maxDeliveryFee, cursor: state.nextCursor })
+        furnitureRepository.getFurniturePage({ query: keyword, category, conditionGrades, minPrice, maxPrice, maxDeliveryFee, cursor: state.nextCursor })
             .then((page) => {
                 if (request !== generation.current || activeKey.current !== key) return;
                 loadingMore.current = false;
@@ -48,10 +60,11 @@ export function useListingSearch(query: string, category: FurnitureCategory | nu
                         nextCursor: page.nextCursor, loading: false, error: false };
                 });
             })
-            .catch(() => {
+            .catch((error: unknown) => {
                 if (request !== generation.current || activeKey.current !== key) return;
                 loadingMore.current = false;
                 setState((current) => ({ ...current, loading: false, error: true }));
+                if (isUnauthorized(error)) onUnauthorizedRef.current();
             });
     };
 

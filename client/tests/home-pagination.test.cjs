@@ -16,14 +16,18 @@ function load(file, dependencies) {
     return module.exports;
 }
 const settle = () => new Promise(setImmediate);
+// vm 안에서 만든 배열은 바깥 Array와 프로토타입이 달라 deepEqual이 실패하므로 평범한 값으로 바꿔 비교한다
+const plain = value => JSON.parse(JSON.stringify(value));
 const page = (ids, nextCursor = null) => ({ items: ids.map(id => ({ id })), nextCursor });
 const ids = store => Array.from(store.useHomeState().furnitures, item => item.id);
 function home() {
     const requests = [], messages = [];
     const store = load('features/home/homeStore.ts', {
         react: { useSyncExternalStore: (_, snapshot) => snapshot() },
-        '../../api/errors': { isMemberDongRequired: error => error === 'DONG' },
+        '../../api/errors': { isMemberDongRequired: error => error === 'DONG', isUnauthorized: error => error === 'UNAUTHORIZED' },
         '../../api/http': { tokenStore: { get: () => 'token' } },
+        '../../model/furniture': { conditionGrades: ['S', 'A', 'B', 'C'] },
+        './priceRange': { PriceFilter: { equals: (a, b) => a?.min === b?.min && a?.max === b?.max } },
         '../../api/repositories': {
             furnitureRepository: { getFurniturePage: params => new Promise((resolve, reject) => requests.push({ params, resolve, reject })) },
             userRepository: { getMe: async () => ({ loginId: 'tester' }) }
@@ -45,10 +49,41 @@ test('필터 변경은 교집합 조건을 보내고 첫 페이지부터 받는�
     const { store, requests } = home();
     store.selectCategory('DESK'); requests[0].resolve(page([5], 'old')); await settle();
     store.selectMaxDeliveryFee(20000);
-    assert.deepEqual({ ...requests[1].params }, { category: 'DESK', maxDeliveryFee: 20000 });
+    assert.deepEqual(plain(requests[1].params), { category: 'DESK', conditionGrades: [], minPrice: null, maxPrice: null, maxDeliveryFee: 20000 });
     requests[1].resolve(page([1])); await settle(); assert.deepEqual(ids(store), [1]);
     store.selectCategory(null);
-    assert.deepEqual({ ...requests[2].params }, { category: null, maxDeliveryFee: 20000 });
+    assert.deepEqual(plain(requests[2].params), { category: null, conditionGrades: [], minPrice: null, maxPrice: null, maxDeliveryFee: 20000 });
+});
+test('가격 범위는 최소·최대로 보내고 같은 범위는 다시 요청하지 않으며 실패하면 이전 범위로 돌아간다', async () => {
+    const { store, requests } = home();
+    store.loadListings(); requests[0].resolve(page([3], 'next')); await settle();
+    store.selectPriceRange({ min: null, max: 100000 });
+    assert.equal(requests[1].params.minPrice, null); assert.equal(requests[1].params.maxPrice, 100000);
+    requests[1].resolve(page([1])); await settle();
+    store.selectPriceRange({ min: null, max: 100000 }); assert.equal(requests.length, 2);
+    store.selectPriceRange({ min: 50000, max: 200000 }); requests[2].reject(new Error()); await settle();
+    assert.deepEqual(plain(store.useHomeState().priceRange), { min: null, max: 100000 });
+    store.loadMore(); assert.equal(requests.length, 3);
+});
+test('등급은 좋은 등급부터 보내고 같은 묶음은 다시 받지 않으며 실패하면 이전 등급으로 돌아간다', async () => {
+    const { store, requests } = home();
+    store.loadListings(); requests[0].resolve(page([3], 'next')); await settle();
+    store.selectGrades(['B', 'S']);
+    assert.deepEqual(plain(requests[1].params.conditionGrades), ['S', 'B']);
+    requests[1].resolve(page([1])); await settle();
+    store.selectGrades(['S', 'B']); assert.equal(requests.length, 2);
+    store.selectGrades(['S']); assert.deepEqual(plain(requests[2].params.conditionGrades), ['S']);
+    requests[2].reject(new Error()); await settle();
+    assert.deepEqual(plain(store.useHomeState().selectedGrades), ['S', 'B']);
+});
+test('초기화는 등급·가격·배송비를 한 번에 풀고 카테고리는 남기며 풀 것이 없으면 요청하지 않는다', async () => {
+    const { store, requests } = home();
+    store.selectCategory('DESK'); requests[0].resolve(page([3])); await settle();
+    store.clearFilters(); assert.equal(requests.length, 1);
+    store.selectGrades(['A']); requests[1].resolve(page([2])); await settle();
+    store.selectPriceRange({ min: null, max: 50000 }); requests[2].resolve(page([1])); await settle();
+    store.clearFilters();
+    assert.deepEqual(plain(requests[3].params), { category: 'DESK', conditionGrades: [], minPrice: null, maxPrice: null, maxDeliveryFee: null });
 });
 test('이전 페이지의 늦은 성공과 실패가 새 조건의 결과를 덮지 않는다', async () => {
     for (const fail of [false, true]) {
@@ -85,6 +120,20 @@ test('주소 오류는 목록을 유지하며 안내하고 계정 초기화는 �
     store.loadMore(); assert.equal(requests[3].params.cursor, 'next');
     store.resetHomeStore(); requests[3].resolve(page([2])); await settle(); assert.deepEqual(ids(store), []);
 });
+test('토큰이 끊겨 배송비 필터가 401이면 이전 필터로 되돌리고 로그인으로 보낸다', async () => {
+    const { store, requests, messages } = home(); let dong = 0, login = 0;
+    store.enterHome(() => dong++, () => login++); requests[0].resolve(page([1], 'next')); await settle();
+    store.selectMaxDeliveryFee(10000); requests[1].reject('UNAUTHORIZED'); await settle();
+    assert.equal(login, 1); assert.equal(dong, 0); assert.equal(messages.length, 0);
+    assert.equal(store.useHomeState().maxDeliveryFee, null); assert.deepEqual(ids(store), [1]);
+});
+test('이어 받다가 401이면 스낵바 없이 로그인으로 보낸다', async () => {
+    const { store, requests, messages } = home(); let login = 0;
+    store.enterHome(() => {}, () => login++); requests[0].resolve(page([2], 'next')); await settle();
+    store.loadMore(); requests[1].reject('UNAUTHORIZED'); await settle();
+    assert.equal(login, 1); assert.equal(messages.length, 0); assert.deepEqual(ids(store), [2]);
+    assert.equal(store.useHomeState().isLoadingMore, false);
+});
 test('repository는 size=20과 조건을 보내고 찜 수와 거래 상태를 보존한다', async () => {
     const requests = [];
     const { furnitureRepository } = load('api/repositories.ts', {
@@ -97,8 +146,8 @@ test('repository는 size=20과 조건을 보내고 찜 수와 거래 상태를 �
             items: [{ id: 1, category: 'DESK', favoriteCount: 3, orderState: 'TRADING', totalPrice: 300 }], nextCursor: 'next'
         }; } }
     });
-    const result = await furnitureRepository.getFurniturePage({ category: 'DESK', query: '%_', maxDeliveryFee: 20000, cursor: 'old' });
-    assert.deepEqual({ ...requests[0].options.query }, { category: 'DESK', query: '%_', maxDeliveryFee: 20000, cursor: 'old', size: 20 });
+    const result = await furnitureRepository.getFurniturePage({ category: 'DESK', conditionGrades: ['S', 'A'], minPrice: 1000, query: '%_', maxDeliveryFee: 20000, cursor: 'old' });
+    assert.deepEqual({ ...requests[0].options.query }, { category: 'DESK', conditionGrade: 'S,A', minPrice: 1000, maxPrice: null, query: '%_', maxDeliveryFee: 20000, cursor: 'old', size: 20 });
     assert.equal(result.nextCursor, 'next'); assert.equal(result.items[0].favoriteCount, 3);
     assert.equal(result.items[0].orderState, 'TRADING'); assert.equal(result.items[0].totalPrice, 300);
 });

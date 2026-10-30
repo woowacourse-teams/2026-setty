@@ -693,6 +693,11 @@
     padding-left: 12px;
 }
 
+.chip--with-trailing-icon {
+    gap: 4px;
+    padding-right: 8px;
+}
+
 /* 고른 칩은 카테고리 토글처럼 알약 모양의 강조색이 된다 */
 .chip--selected {
     border-radius: 999px;

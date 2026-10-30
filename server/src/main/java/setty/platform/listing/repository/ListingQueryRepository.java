@@ -19,6 +19,7 @@ import setty.deliveryfee.VolumeTier;
 import setty.deliveryfee.ZoneRange;
 import setty.platform.listing.domain.ConditionGrade;
 import setty.platform.listing.domain.ListingCategory;
+import setty.platform.listing.domain.ListingSearchTerms;
 
 // 목록은 JPA 엔티티 대신 JDBC로 읽는다. OSIV 아래에서 JPA로 조회하면 응답이 끝날 때까지 커넥션을 붙잡지만,
 // 트랜잭션 밖의 JdbcTemplate은 쿼리가 끝나면 바로 반납한다.
@@ -47,18 +48,30 @@ public class ListingQueryRepository {
             Instant cursorCreatedAt, Long cursorId, Integer limit,
             Map<VolumeTier, List<String>> sellerDongCodes,
             Map<VolumeTier, List<ZoneRange>> sellerZipZones,
-            String keyword, ListingCategory category
+            ListingSearchTerms search, ListingCategory category, List<ConditionGrade> conditionGrades,
+            Integer minPrice, Integer maxPrice
     ) {
         StringBuilder where = new StringBuilder(" WHERE deleted_at IS NULL AND sale_status = 'AVAILABLE'");
         List<Object> args = new ArrayList<>();
-        if (keyword != null) {
-            // 기존 화면처럼 대소문자를 무시한 제목 부분 검색. %, _도 와일드카드가 아닌 문자다.
-            where.append(" AND LOCATE(CAST(LOWER(?) AS BINARY), CAST(LOWER(title) AS BINARY)) > 0");
-            args.add(keyword);
+        if (search != null) {
+            where.append(" AND (").append(searchCondition(search, args)).append(")");
         }
         if (category != null) {
             where.append(" AND category = ?");
             args.add(category.name());
+        }
+        if (conditionGrades != null) {
+            where.append(" AND condition_grade IN (")
+                    .append(String.join(",", Collections.nCopies(conditionGrades.size(), "?"))).append(")");
+            conditionGrades.forEach(grade -> args.add(grade.name()));
+        }
+        if (minPrice != null) {
+            where.append(" AND price >= ?");
+            args.add(minPrice);
+        }
+        if (maxPrice != null) {
+            where.append(" AND price <= ?");
+            args.add(maxPrice);
         }
         if (cursorCreatedAt != null) {
             where.append(" AND (created_at < ? OR (created_at = ? AND id < ?))");
@@ -93,7 +106,7 @@ public class ListingQueryRepository {
             return jdbcTemplate.query(SELECT_COLUMNS + " FROM listings" + where + page,
                     ListingQueryRepository::mapRow, args.toArray());
         }
-        // 배송비 조건으로 먼저 id를 고른다. 제목 검색이 있으면 제목 확인을 위한 본문 접근도 필요하다.
+        // 배송비 조건으로 먼저 id를 고른다. 검색어가 있으면 제목·설명 확인을 위한 본문 접근도 필요하다.
         // 본문 컬럼까지 한 번에 읽으면 첫 페이지(ref 접근)에서 조건을 색인 안에서 거르지 못해 안 맞는 행까지 읽는다.
         return jdbcTemplate.query(
                 SELECT_COLUMNS + " FROM listings JOIN (SELECT id FROM listings" + where + page + ") picked USING (id)"
@@ -101,6 +114,23 @@ public class ListingQueryRepository {
                 ListingQueryRepository::mapRow,
                 args.toArray()
         );
+    }
+
+    // 검색 단어마다 대소문자를 무시한 제목·설명 부분 일치를 건다. %, _도 와일드카드가 아닌 문자다.
+    // 동의어 묶음에 속한 검색어면 묶음 카테고리의 매물도 함께 찾는다.
+    private static String searchCondition(ListingSearchTerms search, List<Object> args) {
+        List<String> parts = new ArrayList<>();
+        for (String word : search.words()) {
+            for (String column : List.of("title", "description")) {
+                parts.add("LOCATE(CAST(LOWER(?) AS BINARY), CAST(LOWER(" + column + ") AS BINARY)) > 0");
+                args.add(word);
+            }
+        }
+        if (search.category() != null) {
+            parts.add("category = ?");
+            args.add(search.category().name());
+        }
+        return String.join(" OR ", parts);
     }
 
     // 이어진 번호가 셋 이상이면 BETWEEN 하나로, 짧은 조각은 IN 하나로 모은다. 요청당 조건 수가 줄어 DB가 덜 일한다.

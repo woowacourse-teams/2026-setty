@@ -2,7 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { isUnauthorized, toUserMessage } from '../../api/errors';
 import { keywordRepository } from '../../api/repositories';
-import { categoryLabel, selectableCategories, type FurnitureCategory } from '../../model/furniture';
+import { categoryLabel, keywordCategories, type FurnitureCategory } from '../../model/furniture';
 import {
     CONDITION_AMOUNT_MAX,
     emptyConditions,
@@ -181,7 +181,7 @@ function ConditionsEditor({ keyword, onBack, onSaved, onUnauthorized }: Conditio
                 <FormSection title="카테고리">
                     <ChipRow>
                         <FilterChip label="전체" onClick={() => update({ category: null })} selected={form.category === null} />
-                        {selectableCategories.map((category) => (
+                        {keywordCategories.map((category) => (
                             <FilterChip
                                 key={category}
                                 label={categoryLabel(category)}
