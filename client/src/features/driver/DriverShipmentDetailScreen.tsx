@@ -31,7 +31,7 @@ import {
 import { showSnackbar } from '../../ui/snackbar';
 import { useLoad } from '../useLoad';
 import screenStyles from '../screens.module.css';
-import { RoutePoint, ShipmentStatusBadge, useDriverErrorHandler } from './DeliveryParts';
+import { DeliveryDistance, RoutePoint, ShipmentStatusBadge, useDriverErrorHandler } from './DeliveryParts';
 import styles from './driver.module.css';
 
 /** 내가 수락한 배차. 픽업 → 배송 완료 순서로 진행하고, 픽업 전에는 취소할 수 있다. */
@@ -115,6 +115,7 @@ export function DriverShipmentDetailScreen() {
                         <ShipmentStatusCard shipment={shipment} />
                         <section className={styles.section}>
                             <SectionTitle>배송 경로</SectionTitle>
+                            <DeliveryDistance meters={shipment.estimatedDistanceMeters} />
                             <SegmentedList>
                                 <SegmentedListItem
                                     count={2}

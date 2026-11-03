@@ -22,7 +22,7 @@ import {
 import { showSnackbar } from '../../ui/snackbar';
 import { useLoad } from '../useLoad';
 import screenStyles from '../screens.module.css';
-import { RoutePoint, useDriverErrorHandler } from './DeliveryParts';
+import { DeliveryDistance, RoutePoint, useDriverErrorHandler } from './DeliveryParts';
 import styles from './driver.module.css';
 
 /** 수락하기 전의 배차 요청. 연락처는 수락한 뒤 내 배차에서 볼 수 있다. */
@@ -96,6 +96,7 @@ export function DriverRequestDetailScreen() {
                     </section>
                     <section className={styles.section}>
                         <SectionTitle>배송 경로</SectionTitle>
+                        <DeliveryDistance meters={request.estimatedDistanceMeters} />
                         <SegmentedList>
                             <SegmentedListItem count={2} headline={<RoutePoint address={request.pickupAddress} label="출발지 · 판매자" />} index={0} />
                             <SegmentedListItem count={2} headline={<RoutePoint address={request.destinationAddress} label="도착지 · 구매자" />} index={1} />
