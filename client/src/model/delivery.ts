@@ -9,6 +9,7 @@ export type DeliverySummary = {
     deliveryId: number;
     itemName: string;
     category: string;
+    thumbnailUrl: string | null;
     pickupAddress: string;
     deliveryAddress: string;
     deliveryFee: number;
@@ -19,7 +20,7 @@ export type DeliverySummary = {
 export type DeliveryRequestDetail = {
     deliveryId: number;
     orderId: number;
-    furniture: { itemName: string; category: string };
+    furniture: { itemName: string; category: string; thumbnailUrl: string | null };
     pickupAddress: string;
     destinationAddress: string;
     deliveryFee: number;
@@ -36,7 +37,7 @@ export type DeliveryPoint = {
 export type ShipmentDetail = {
     deliveryId: number;
     orderId: number;
-    furniture: { itemName: string; category: string };
+    furniture: { itemName: string; category: string; thumbnailUrl: string | null };
     pickup: DeliveryPoint;
     destination: DeliveryPoint;
     deliveryFee: number;

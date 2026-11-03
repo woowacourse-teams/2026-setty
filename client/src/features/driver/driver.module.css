@@ -39,22 +39,6 @@
     color: var(--on-secondary-container);
 }
 
-.leading-shape {
-    display: flex;
-    flex: none;
-    align-items: center;
-    justify-content: center;
-    width: 48px;
-    height: 48px;
-    background: var(--primary-container);
-    color: var(--on-primary-container);
-}
-
-.leading-shape--done {
-    background: var(--surface-container-highest);
-    color: var(--on-surface-variant);
-}
-
 .route {
     margin: 0;
     color: var(--on-surface-variant);
