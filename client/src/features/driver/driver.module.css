@@ -61,6 +61,12 @@
     gap: 8px;
 }
 
+.load-more {
+    display: flex;
+    justify-content: center;
+    padding: 16px;
+}
+
 .point {
     display: flex;
     flex-direction: column;

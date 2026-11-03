@@ -21,10 +21,6 @@ export const deliveryRepository = {
         await apiCall('/api/delivery/auth/signup', { method: 'POST', body: form });
     },
 
-    getRequests(): Promise<DeliverySummary[]> {
-        return apiCall('/api/delivery/requests', delivery);
-    },
-
     getRequestPage(cursor: string | null = null): Promise<DeliveryPage> {
         return apiCall('/api/delivery/requests', { ...delivery, query: { size: 20, cursor } });
     },

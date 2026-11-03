@@ -1,6 +1,6 @@
 import { categoryLabel, furnitureCategories, type FurnitureCategory } from './furniture';
 
-// 배송원 배차 계약. 서버 `/api/delivery/**` 응답을 그대로 옮긴다. (apps/driver/src/model/delivery.ts와 같은 계약)
+// 배송원 웹의 배차 계약. 서버 `/api/delivery/**` 응답을 그대로 옮긴다.
 
 export type DeliveryStatus = 'REQUESTED' | 'ACCEPTED' | 'PICKED_UP' | 'DELIVERED';
 
@@ -92,10 +92,6 @@ export const shipmentSteps: readonly DeliveryStatus[] = ['ACCEPTED', 'PICKED_UP'
 
 export function shipmentProgress(status: DeliveryStatus): number {
     return (shipmentSteps.indexOf(status) + 1) / shipmentSteps.length;
-}
-
-export function isShipmentInProgress(status: DeliveryStatus): boolean {
-    return status === 'ACCEPTED' || status === 'PICKED_UP';
 }
 
 /** "서울 성동구 성수동 123" → "성수동 123"처럼 구 다음부터 보여준다. 짧은 주소는 그대로 둔다. */
