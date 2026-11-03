@@ -35,7 +35,7 @@ class FlywayMigrationTest {
     private static final List<String> DELIVERY_ZONE_COLUMNS = List.of("pickup_dong_code", "pickup_zip_code",
             "delivery_dong_code", "delivery_zip_code");
     private static final List<String> KEYWORD_CONDITION_COLUMNS = List.of("max_delivery_fee", "max_total_price");
-    private static final int MIGRATION_COUNT = 14;
+    private static final int MIGRATION_COUNT = 15;
 
     @Container
     static final MySQLContainer MYSQL = new MySQLContainer("mysql:8.4.11");
@@ -163,7 +163,7 @@ class FlywayMigrationTest {
         seedExistingRows();
         var deliveryBefore = jdbc.queryForMap("SELECT * FROM delivery WHERE id=1");
 
-        assertThat(flyway(false).migrate().migrationsExecuted).isEqualTo(5);
+        assertThat(flyway(false).migrate().migrationsExecuted).isEqualTo(6);
 
         assertCurrentSchema();
         assertThat(jdbc.queryForMap("SELECT * FROM delivery WHERE id=1")).isEqualTo(deliveryBefore);
@@ -254,6 +254,8 @@ class FlywayMigrationTest {
         assertThat(columnCount("members", "withdrawn_at")).isOne();
         assertThat(indexColumns("delivery", "idx_delivery_requests"))
                 .isEqualTo("status,driver_id,requested_at,id");
+        assertThat(indexColumns("delivery", "idx_delivery_shipments"))
+                .isEqualTo("driver_id,accepted_at,id");
         assertThat(indexColumns("listings", "idx_listings_delivery_filter"))
                 .isEqualTo("deleted_at,sale_status,created_at,id,dong_code,volume_tier");
         assertThat(columnCount("listings", "zip_zone")).isOne();
