@@ -50,6 +50,12 @@ public class DeliveryFeeService {
         return seoulDongs.findByCode(code);
     }
 
+    /** 수령지 행정동에서 목적지 행정동까지 대표점 기준 도로 거리(m). 서울 밖이거나 코드가 없으면 비어 있다. */
+    public Optional<Integer> distanceMeters(final String pickupDongCode, final String deliveryDongCode) {
+        return findDong(pickupDongCode).flatMap(pickup -> findDong(deliveryDongCode)
+                .map(destination -> distanceTable.meters(pickup.index(), destination.index())));
+    }
+
     public Optional<Dong> locate(final double latitude, final double longitude) {
         return seoulDongs.locate(latitude, longitude);
     }

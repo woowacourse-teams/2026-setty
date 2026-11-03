@@ -21,6 +21,32 @@ class DeliveryFeeServiceTest {
 
     @ParameterizedTest
     @CsvSource({
+            "1111051500, 1111053000, 975",
+            "1111053000, 1111051500, 713",
+            "1111051500, 1111051500, 173"
+    })
+    void 예상_거리는_출발동에서_도착동까지의_도로_거리다(
+            final String pickupDongCode, final String deliveryDongCode, final int expectedMeters
+    ) {
+        assertThat(deliveryFeeService.distanceMeters(pickupDongCode, deliveryDongCode)).contains(expectedMeters);
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+            ", 1111051500",
+            "1111051500,",
+            ",",
+            "9999999999, 1111051500",
+            "1111051500, 9999999999"
+    })
+    void 출발동이나_도착동이_서울_거리표에_없으면_예상_거리가_없다(
+            final String pickupDongCode, final String deliveryDongCode
+    ) {
+        assertThat(deliveryFeeService.distanceMeters(pickupDongCode, deliveryDongCode)).isEmpty();
+    }
+
+    @ParameterizedTest
+    @CsvSource({
             "0, 0",
             "3000, 0",
             "3001, 1",
