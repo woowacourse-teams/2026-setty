@@ -62,7 +62,8 @@ public class DeliveryController {
         final Map<Long, String> thumbnails = deliveryQueryService.findThumbnailUrls(
                 requests.stream().map(DeliveryRequest.Summary::orderId).toList());
         return requests.stream()
-                .map(request -> DeliveryRequestSummaryResponse.from(request, thumbnails.get(request.orderId())))
+                .map(request -> DeliveryRequestSummaryResponse.from(request, thumbnails.get(request.orderId()),
+                        deliveryQueryService.estimateDistanceMeters(request.pickupDongCode(), request.deliveryDongCode())))
                 .toList();
     }
 
@@ -85,7 +86,8 @@ public class DeliveryController {
         authenticatedDriverId(member);
         final DeliveryRequest.Detail request = deliveryQueryService.findAvailableRequest(new DeliveryId(deliveryId));
         final String thumbnail = deliveryQueryService.findThumbnailUrls(List.of(request.orderId())).get(request.orderId());
-        return ResponseEntity.ok(DeliveryRequestDetailResponse.from(request, thumbnail));
+        return ResponseEntity.ok(DeliveryRequestDetailResponse.from(request, thumbnail,
+                deliveryQueryService.estimateDistanceMeters(request.pickupDongCode(), request.deliveryDongCode())));
     }
 
     @PostMapping("/requests/{deliveryId}")
@@ -110,9 +112,9 @@ public class DeliveryController {
     ) {
         final DriverId driverId = authenticatedDriverId(member);
         if (cursor == null && size == null && group == null) {
-            // 내 정보의 전체 합산에는 사진이 필요하지 않아 사진 조회를 생략한다.
+            // 내 정보의 전체 합산에는 사진과 거리가 필요하지 않아 조회를 생략한다.
             return ResponseEntity.ok(deliveryQueryService.findShipments(driverId).stream()
-                    .map(shipment -> ShipmentSummaryResponse.from(shipment, null))
+                    .map(shipment -> ShipmentSummaryResponse.from(shipment, null, null))
                     .toList());
         }
         final DeliveryPage<Shipment.Summary> page = deliveryQueryService.findShipmentPage(driverId, group,
@@ -124,7 +126,8 @@ public class DeliveryController {
         final Map<Long, String> thumbnails = deliveryQueryService.findThumbnailUrls(
                 shipments.stream().map(Shipment.Summary::orderId).toList());
         return shipments.stream()
-                .map(shipment -> ShipmentSummaryResponse.from(shipment, thumbnails.get(shipment.orderId())))
+                .map(shipment -> ShipmentSummaryResponse.from(shipment, thumbnails.get(shipment.orderId()),
+                        deliveryQueryService.estimateDistanceMeters(shipment.pickupDongCode(), shipment.deliveryDongCode())))
                 .toList();
     }
 
@@ -136,7 +139,8 @@ public class DeliveryController {
         final Shipment.Detail shipment = deliveryQueryService.findShipment(
                 new DeliveryId(deliveryId), authenticatedDriverId(member));
         final String thumbnail = deliveryQueryService.findThumbnailUrls(List.of(shipment.orderId())).get(shipment.orderId());
-        return ResponseEntity.ok(ShipmentDetailResponse.from(shipment, thumbnail));
+        return ResponseEntity.ok(ShipmentDetailResponse.from(shipment, thumbnail,
+                deliveryQueryService.estimateDistanceMeters(shipment.pickupDongCode(), shipment.deliveryDongCode())));
     }
 
     @PostMapping("/shipments/{deliveryId}/pickup")

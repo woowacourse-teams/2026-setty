@@ -17,7 +17,9 @@ public final class DeliveryRequest {
             String deliveryAddress,
             long deliveryFee,
             DeliveryStatus status,
-            Instant requestedAt
+            Instant requestedAt,
+            String pickupDongCode,
+            String deliveryDongCode
     ) {
     }
 
@@ -30,7 +32,9 @@ public final class DeliveryRequest {
             String deliveryAddress,
             long deliveryFee,
             DeliveryStatus status,
-            Instant requestedAt
+            Instant requestedAt,
+            String pickupDongCode,
+            String deliveryDongCode
     ) {
     }
 }

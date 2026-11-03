@@ -10,6 +10,7 @@ import setty.delivery.application.readmodel.DeliveryPage;
 import setty.delivery.application.readmodel.Shipment;
 import setty.delivery.domain.DeliveryId;
 import setty.delivery.domain.DriverId;
+import setty.deliveryfee.DeliveryFeeService;
 import setty.global.exception.BusinessException;
 import setty.global.exception.ErrorCode;
 import setty.platform.DeliveryItemImageReader;
@@ -24,6 +25,11 @@ public class DeliveryQueryService {
 
     private final DeliveryQueryRepository deliveryQueryRepository;
     private final DeliveryItemImageReader deliveryItemImageReader;
+    private final DeliveryFeeService deliveryFeeService;
+
+    public Integer estimateDistanceMeters(final String pickupDongCode, final String deliveryDongCode) {
+        return deliveryFeeService.distanceMeters(pickupDongCode, deliveryDongCode).orElse(null);
+    }
 
     public Map<Long, String> findThumbnailUrls(final List<Long> orderIds) {
         return deliveryItemImageReader.findThumbnailUrls(orderIds);

@@ -11,6 +11,7 @@ public record ShipmentDetailResponse(
         DeliveryPointResponse pickup,
         DeliveryPointResponse destination,
         long deliveryFee,
+        Integer estimatedDistanceMeters,
         DeliveryStatus status,
         Instant requestedAt,
         Instant acceptedAt,
@@ -18,7 +19,8 @@ public record ShipmentDetailResponse(
         Instant deliveredAt
 ) {
 
-    public static ShipmentDetailResponse from(final Shipment.Detail detail, final String thumbnailUrl) {
+    public static ShipmentDetailResponse from(final Shipment.Detail detail, final String thumbnailUrl,
+                                               final Integer estimatedDistanceMeters) {
         return new ShipmentDetailResponse(
                 detail.deliveryId(),
                 detail.orderId(),
@@ -26,6 +28,7 @@ public record ShipmentDetailResponse(
                 new DeliveryPointResponse(detail.pickupAddress(), detail.pickupPhoneNumber()),
                 new DeliveryPointResponse(detail.deliveryAddress(), detail.deliveryPhoneNumber()),
                 detail.deliveryFee(),
+                estimatedDistanceMeters,
                 detail.status(),
                 detail.requestedAt(),
                 detail.acceptedAt(),
