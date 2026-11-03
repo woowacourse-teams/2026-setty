@@ -75,6 +75,12 @@ setty:
     request-sse:
       # 임시 보호 상한. 운영 용량은 연결·목록 조회 부하와 전체 메모리 측정으로 확인한다.
       max-connections: ${SETTY_DELIVERY_REQUEST_SSE_MAX_CONNECTIONS:1000}
+    # 배송 대기 목록(전체 배열·첫 페이지) 로컬 캐시. 목록 변경 이벤트로 비우고, ttl은 무효화 누락 대비 상한이다.
+    # 근거와 무효화 규칙: server/docs/cache/delivery-requests.md
+    request-cache:
+      enabled: ${SETTY_DELIVERY_REQUEST_CACHE_ENABLED:true}
+      ttl: ${SETTY_DELIVERY_REQUEST_CACHE_TTL:PT30S}
+      maximum-size: 16
   order:
     pending-expiration:
       timeout: ${PENDING_ORDER_EXPIRATION_TIMEOUT:PT6M}

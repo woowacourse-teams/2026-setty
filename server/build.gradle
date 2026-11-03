@@ -32,6 +32,8 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     // 비밀번호 해시(BCrypt)만 쓴다. 필터 체인·자동 설정이 붙는 spring-boot-starter-security는 넣지 않는다.
     implementation 'org.springframework.security:spring-security-crypto'
+    // 배송 대기 목록처럼 단일 서버에서 짧게 공유하는 조회 결과를 메모리에 둔다. 분산 캐시는 쓰지 않는다.
+    implementation 'com.github.ben-manes.caffeine:caffeine'
     runtimeOnly 'com.mysql:mysql-connector-j'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'

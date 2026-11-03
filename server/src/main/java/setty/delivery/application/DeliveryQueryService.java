@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import setty.delivery.application.readmodel.AvailableRequests;
 import setty.delivery.application.readmodel.DeliveryRequest;
 import setty.delivery.application.readmodel.DeliveryPage;
 import setty.delivery.application.readmodel.Shipment;
@@ -27,6 +28,7 @@ public class DeliveryQueryService {
     private final DeliveryQueryRepository deliveryQueryRepository;
     private final DeliveryItemImageReader deliveryItemImageReader;
     private final DeliveryFeeService deliveryFeeService;
+    private final AvailableRequestCache availableRequestCache;
 
     // 목록의 행마다 부르는 메모리 거리표 조회다. 행마다 읽기 트랜잭션(커넥션 획득·읽기 전용 설정·커밋)을 열지 않는다.
     @Transactional(propagation = Propagation.SUPPORTS)
@@ -38,18 +40,33 @@ public class DeliveryQueryService {
         return deliveryItemImageReader.findThumbnailUrls(orderIds);
     }
 
-    public List<DeliveryRequest.Summary> findAvailableRequests() {
-        return deliveryQueryRepository.findAvailableRequests();
+    // 캐시 적중 시 DB 커넥션을 잡지 않도록 트랜잭션을 시작하지 않는다.
+    @Transactional(propagation = Propagation.SUPPORTS)
+    public AvailableRequests findAvailableRequests() {
+        return availableRequestCache.getAll(() -> withThumbnails(deliveryQueryRepository.findAvailableRequests(), null));
     }
 
-    public DeliveryPage<DeliveryRequest.Summary> findAvailableRequestPage(final DeliveryCursor cursor, final int size) {
+    @Transactional(propagation = Propagation.SUPPORTS)
+    public AvailableRequests findAvailableRequestPage(final DeliveryCursor cursor, final int size) {
         validateSize(size);
+        if (cursor == null) {
+            return availableRequestCache.getFirstPage(size, () -> loadAvailableRequestPage(null, size));
+        }
+        return loadAvailableRequestPage(cursor, size);
+    }
+
+    private AvailableRequests loadAvailableRequestPage(final DeliveryCursor cursor, final int size) {
         final List<DeliveryRequest.Summary> rows = deliveryQueryRepository.findAvailableRequests(cursor, size + 1);
         final boolean hasNext = rows.size() > size;
         final List<DeliveryRequest.Summary> items = hasNext ? rows.subList(0, size) : rows;
         final DeliveryRequest.Summary last = hasNext ? items.getLast() : null;
-        return new DeliveryPage<>(items,
+        return withThumbnails(items,
                 last == null ? null : new DeliveryCursor(last.requestedAt(), last.deliveryId()).encode());
+    }
+
+    private AvailableRequests withThumbnails(final List<DeliveryRequest.Summary> items, final String nextCursor) {
+        return new AvailableRequests(items,
+                findThumbnailUrls(items.stream().map(DeliveryRequest.Summary::orderId).toList()), nextCursor);
     }
 
     public DeliveryRequest.Detail findAvailableRequest(final DeliveryId deliveryId) {

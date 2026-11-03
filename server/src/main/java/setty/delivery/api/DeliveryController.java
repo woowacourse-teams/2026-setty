@@ -23,6 +23,7 @@ import setty.delivery.application.DeliveryLifecycleService;
 import setty.delivery.application.DeliveryCursor;
 import setty.delivery.application.DeliveryQueryService;
 import setty.delivery.application.ShipmentGroup;
+import setty.delivery.application.readmodel.AvailableRequests;
 import setty.delivery.application.readmodel.DeliveryPage;
 import setty.delivery.application.readmodel.DeliveryRequest;
 import setty.delivery.application.readmodel.Shipment;
@@ -53,16 +54,14 @@ public class DeliveryController {
         if (cursor == null && size == null) {
             return ResponseEntity.ok(requestResponses(deliveryQueryService.findAvailableRequests()));
         }
-        final DeliveryPage<DeliveryRequest.Summary> page = deliveryQueryService.findAvailableRequestPage(
+        final AvailableRequests page = deliveryQueryService.findAvailableRequestPage(
                 DeliveryCursor.parse(cursor), size == null ? DeliveryQueryService.DEFAULT_PAGE_SIZE : size);
-        return ResponseEntity.ok(new DeliveryPageResponse<>(requestResponses(page.items()), page.nextCursor()));
+        return ResponseEntity.ok(new DeliveryPageResponse<>(requestResponses(page), page.nextCursor()));
     }
 
-    private List<DeliveryRequestSummaryResponse> requestResponses(final List<DeliveryRequest.Summary> requests) {
-        final Map<Long, String> thumbnails = deliveryQueryService.findThumbnailUrls(
-                requests.stream().map(DeliveryRequest.Summary::orderId).toList());
-        return requests.stream()
-                .map(request -> DeliveryRequestSummaryResponse.from(request, thumbnails.get(request.orderId()),
+    private List<DeliveryRequestSummaryResponse> requestResponses(final AvailableRequests requests) {
+        return requests.items().stream()
+                .map(request -> DeliveryRequestSummaryResponse.from(request, requests.thumbnailUrl(request.orderId()),
                         deliveryQueryService.estimateDistanceMeters(request.pickupDongCode(), request.deliveryDongCode())))
                 .toList();
     }
