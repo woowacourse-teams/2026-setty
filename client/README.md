@@ -38,6 +38,28 @@ SETTY_API_URL=https://dev.example.com npm run dev
 
 키워드 알림·알림함·푸시 알림은 아직 옮기지 않았다.
 
+## 배송원 웹
+
+배송원 계정으로 로그인해 다음 경로를 사용한다.
+
+| 경로 | 화면 |
+| :-- | :-- |
+| `/driver` | 배차 요청 목록 |
+| `/driver/requests/:deliveryId` | 배차 요청 상세 |
+| `/driver/shipments` | 진행 중과 배송 완료 목록 |
+| `/driver/shipments/:deliveryId` | 내 배차 상세 |
+| `/driver/me` | 내 정보와 전체 배송 완료 수입 |
+
+목록과 상세는 매물의 첫 번째 사진을 표시한다. 사진이 없거나 로딩에 실패하면 가구 종류를 표시한다.
+
+목록은 `size=20`을 보내 `{ items, nextCursor }`를 받고 하단에서 다음 페이지를 불러온다. 배차 요청은 요청 시각순이며 내 배차는 수락 시각순이다. 두 목록 모두 같은 시각이면 ID 내림차순으로 정렬한다. 내 배차는 `group=IN_PROGRESS`와 `group=DELIVERED`를 각각 조회한다. API의 최대 페이지 크기는 100건이다.
+
+배차 요청의 SSE 수신과 연결 복구 및 대체 폴링은 이미 읽은 분량을 다시 조회한다. 갱신이 끝날 때 목록과 커서를 함께 바꾸며 상세에서 돌아와도 기존 목록을 유지한다. 추가 로딩 실패 시 기존 항목을 유지하고 다시 불러오기 버튼을 제공한다.
+
+`/driver/me`의 합계는 페이지 일부로 계산하지 않는다. `cursor`, `size`, `group`을 생략한 기존 내 배차 전체 조회를 사용한다. 조회 계약은 [배송 컨트롤러](../server/src/main/java/setty/delivery/api/DeliveryController.java), 페이지 상태는 [deliveryPageStore.ts](src/features/driver/deliveryPageStore.ts)를 참고한다.
+
+검증은 `npm test`, `npm run type-check`, `npm run build`로 실행한다.
+
 ## 결제 흐름
 
 Android 앱과 같이 앱이 직접 서버 승인 API를 부른다.
