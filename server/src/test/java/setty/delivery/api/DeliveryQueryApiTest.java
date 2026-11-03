@@ -3,6 +3,7 @@ package setty.delivery.api;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static setty.global.event.EventPublicationTestSupport.awaitEventsHandled;
@@ -20,9 +21,11 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.HttpHeaders;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import setty.platform.listing.storage.ListingImageStorage;
+import setty.platform.DeliveryItemImageReader;
 import setty.support.MySqlIntegrationTestSupport;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
@@ -44,6 +47,9 @@ class DeliveryQueryApiTest extends MySqlIntegrationTestSupport {
 
     @MockitoBean
     private ListingImageStorage listingImageStorage;
+
+    @MockitoSpyBean
+    private DeliveryItemImageReader deliveryItemImageReader;
 
     @BeforeEach
     void setUp() {
@@ -85,15 +91,28 @@ class DeliveryQueryApiTest extends MySqlIntegrationTestSupport {
     }
 
     @Test
-    void 내_배차_목록과_상세에도_대표_사진을_제공한다() throws Exception {
+    void 내_배차_페이지_목록과_상세에도_대표_사진을_제공한다() throws Exception {
         insertDelivery(1L, "ACCEPTED", 2L, BASE, BASE.plusSeconds(1));
         insertImage(1L, "shipment.jpg", 1);
 
-        JsonNode list = read(get("/api/delivery/shipments"));
+        JsonNode list = read(get("/api/delivery/shipments").param("size", "20").param("group", "IN_PROGRESS"));
         JsonNode detail = read(get("/api/delivery/shipments/1"));
 
-        assertThat(list.get(0).get("thumbnailUrl").asString()).isEqualTo(imageUrl("shipment.jpg"));
+        assertThat(list.get("items").get(0).get("thumbnailUrl").asString()).isEqualTo(imageUrl("shipment.jpg"));
         assertThat(detail.get("furniture").get("thumbnailUrl").asString()).isEqualTo(imageUrl("shipment.jpg"));
+    }
+
+    @Test
+    void 정산용_전체_조회는_배열_응답을_유지하고_사진_조회는_하지_않는다() throws Exception {
+        insertDelivery(1L, "DELIVERED", 2L, BASE, BASE.plusSeconds(1));
+        insertImage(1L, "unused-settlement.jpg", 1);
+
+        final JsonNode list = read(get("/api/delivery/shipments"));
+
+        assertThat(list).hasSize(1);
+        assertThat(list.get(0).get("deliveryFee").asLong()).isEqualTo(10_000);
+        assertThat(list.get(0).hasNonNull("thumbnailUrl")).isFalse();
+        verifyNoInteractions(deliveryItemImageReader);
     }
 
     @Test

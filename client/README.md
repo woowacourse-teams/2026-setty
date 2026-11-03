@@ -56,7 +56,7 @@ SETTY_API_URL=https://dev.example.com npm run dev
 
 배차 요청의 SSE 수신과 연결 복구 및 대체 폴링은 이전 커서 경계를 포함하는 페이지까지 다시 조회한다. 경계 항목이 수락되어 사라져도 시각과 ID 경계를 지나면 멈추며 끝까지 읽었던 목록은 마지막 페이지까지 갱신한다. 갱신이 끝날 때 목록과 커서를 함께 바꾸며 상세에서 돌아와도 기존 목록을 유지한다. 추가 로딩 실패 시 기존 항목을 유지하고 다시 불러오기 버튼을 제공한다.
 
-`/driver/me`의 합계는 페이지 일부로 계산하지 않는다. `cursor`, `size`, `group`을 생략한 기존 내 배차 전체 조회를 사용한다. 조회 계약은 [배송 컨트롤러](../server/src/main/java/setty/delivery/api/DeliveryController.java), 페이지 상태는 [deliveryPageStore.ts](src/features/driver/deliveryPageStore.ts)를 참고한다.
+`/driver/me`의 합계는 페이지 일부로 계산하지 않는다. `cursor`, `size`, `group`을 생략한 기존 내 배차 전체 조회를 사용한다. 이 응답은 사진을 조회하지 않고 `thumbnailUrl`을 `null`로 제공한다. 페이지 조회와 상세 조회는 대표 사진을 제공한다. 조회 계약은 [배송 컨트롤러](../server/src/main/java/setty/delivery/api/DeliveryController.java), 페이지 상태는 [deliveryPageStore.ts](src/features/driver/deliveryPageStore.ts)를 참고한다.
 
 검증은 `npm test`, `npm run type-check`, `npm run build`로 실행한다.
 

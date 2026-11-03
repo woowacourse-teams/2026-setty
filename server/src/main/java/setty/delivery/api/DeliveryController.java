@@ -110,7 +110,10 @@ public class DeliveryController {
     ) {
         final DriverId driverId = authenticatedDriverId(member);
         if (cursor == null && size == null && group == null) {
-            return ResponseEntity.ok(shipmentResponses(deliveryQueryService.findShipments(driverId)));
+            // 내 정보의 전체 합산에는 사진이 필요하지 않아 사진 조회를 생략한다.
+            return ResponseEntity.ok(deliveryQueryService.findShipments(driverId).stream()
+                    .map(shipment -> ShipmentSummaryResponse.from(shipment, null))
+                    .toList());
         }
         final DeliveryPage<Shipment.Summary> page = deliveryQueryService.findShipmentPage(driverId, group,
                 DeliveryCursor.parse(cursor), size == null ? DeliveryQueryService.DEFAULT_PAGE_SIZE : size);
