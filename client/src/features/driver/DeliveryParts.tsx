@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { isUnauthorized, toUserMessage } from '../../api/errors';
 import { formatWon } from '../../model/furniture';
-import { categoryText, shipmentStatusLabel, shortAddress, type DeliveryStatus, type DeliverySummary } from '../../model/delivery';
+import { categoryText, formatEstimatedDistance, shipmentStatusLabel, shortAddress, type DeliveryStatus, type DeliverySummary } from '../../model/delivery';
 import { useNavigateToDriverLogin } from '../../navigation';
 import { FurnitureThumbnail, SegmentedListItem, StatusBadge } from '../../ui/components';
 import { Icon } from '../../ui/Icon';
@@ -29,6 +29,10 @@ export function ShipmentStatusBadge({ status }: { status: DeliveryStatus }) {
     };
     const [containerColor, contentColor] = colors[status];
     return <StatusBadge containerColor={containerColor} contentColor={contentColor} text={shipmentStatusLabel(status)} />;
+}
+
+export function DeliveryDistance({ meters }: { meters: number | null | undefined }) {
+    return <span className={`${styles.route} type-label-medium`}>{formatEstimatedDistance(meters)}</span>;
 }
 
 type DeliveryListItemProps = {
@@ -61,6 +65,7 @@ export function DeliveryListItem({ delivery, index, count, showStatus = false, o
                     <span className={`${styles.route} type-body-medium`}>
                         {shortAddress(delivery.pickupAddress)} → {shortAddress(delivery.deliveryAddress)}
                     </span>
+                    <DeliveryDistance meters={delivery.estimatedDistanceMeters} />
                     <span className={`${styles.fee} type-body-large-em`}>{formatWon(delivery.deliveryFee)}</span>
                 </span>
             )}

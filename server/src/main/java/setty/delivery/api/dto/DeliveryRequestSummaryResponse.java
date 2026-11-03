@@ -12,11 +12,13 @@ public record DeliveryRequestSummaryResponse(
         String pickupAddress,
         String deliveryAddress,
         long deliveryFee,
+        Integer estimatedDistanceMeters,
         DeliveryStatus status,
         Instant requestedAt
 ) {
 
-    public static DeliveryRequestSummaryResponse from(final DeliveryRequest.Summary summary, final String thumbnailUrl) {
+    public static DeliveryRequestSummaryResponse from(final DeliveryRequest.Summary summary, final String thumbnailUrl,
+                                                      final Integer estimatedDistanceMeters) {
         return new DeliveryRequestSummaryResponse(
                 summary.deliveryId(),
                 summary.itemName(),
@@ -25,6 +27,7 @@ public record DeliveryRequestSummaryResponse(
                 summary.pickupAddress(),
                 summary.deliveryAddress(),
                 summary.deliveryFee(),
+                estimatedDistanceMeters,
                 summary.status(),
                 summary.requestedAt()
         );

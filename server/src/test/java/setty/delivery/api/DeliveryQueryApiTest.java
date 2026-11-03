@@ -124,6 +124,55 @@ class DeliveryQueryApiTest extends MySqlIntegrationTestSupport {
     }
 
     @Test
+    void 예상_배송거리는_배송에_저장된_출발동에서_도착동까지_요청_목록과_상세에_제공한다() throws Exception {
+        insertDelivery(1L, "REQUESTED", null, BASE, null);
+        setRouteDongs(1L, "1111051500", "1111053000");
+
+        assertEstimatedDistance(read(get("/api/delivery/requests")).get(0), 975);
+        assertEstimatedDistance(read(get("/api/delivery/requests").param("size", "20")).get("items").get(0), 975);
+        assertEstimatedDistance(read(get("/api/delivery/requests/1")), 975);
+    }
+
+    @Test
+    void 예상_배송거리는_내_배차_페이지와_상세에도_방향을_지켜_제공한다() throws Exception {
+        insertDelivery(1L, "ACCEPTED", 2L, BASE, BASE.plusSeconds(1));
+        setRouteDongs(1L, "1111053000", "1111051500");
+
+        assertEstimatedDistance(read(get("/api/delivery/shipments").param("size", "20")
+                .param("group", "IN_PROGRESS")).get("items").get(0), 713);
+        assertEstimatedDistance(read(get("/api/delivery/shipments/1")), 713);
+        assertEstimatedDistance(read(get("/api/delivery/shipments")).get(0), null);
+    }
+
+    @Test
+    void 예상_배송거리는_행정동이_없거나_서울_거리표_범위_밖이면_null이다() throws Exception {
+        insertDelivery(1L, "REQUESTED", null, BASE, null);
+        insertDelivery(2L, "ACCEPTED", 2L, BASE, BASE.plusSeconds(1));
+        setRouteDongs(2L, "1111051500", "9999999999");
+
+        assertEstimatedDistance(read(get("/api/delivery/requests").param("size", "20")).get("items").get(0), null);
+        assertEstimatedDistance(read(get("/api/delivery/requests/1")), null);
+        assertEstimatedDistance(read(get("/api/delivery/shipments").param("size", "20")
+                .param("group", "IN_PROGRESS")).get("items").get(0), null);
+        assertEstimatedDistance(read(get("/api/delivery/shipments/2")), null);
+    }
+
+    private void assertEstimatedDistance(final JsonNode response, final Integer expected) {
+        final JsonNode distance = response.get("estimatedDistanceMeters");
+        assertThat(distance).isNotNull();
+        if (expected == null) {
+            assertThat(distance.isNull()).isTrue();
+        } else {
+            assertThat(distance.asInt()).isEqualTo(expected);
+        }
+    }
+
+    private void setRouteDongs(final long deliveryId, final String pickup, final String destination) {
+        jdbcTemplate.update("UPDATE delivery SET pickup_dong_code = ?, delivery_dong_code = ? WHERE id = ?",
+                pickup, destination, deliveryId);
+    }
+
+    @Test
     void 인증되지_않았거나_다른_기사의_배차이면_사진도_조회할_수_없다() throws Exception {
         insertDelivery(1L, "ACCEPTED", 3L, BASE, BASE.plusSeconds(1));
         insertImage(1L, "private-shipment.jpg", 1);

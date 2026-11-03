@@ -34,6 +34,7 @@ public class JdbcDeliveryQueryRepository implements DeliveryQueryRepository {
     public List<DeliveryRequest.Summary> findAvailableRequests(final DeliveryCursor cursor, final Integer limit) {
         final StringBuilder sql = new StringBuilder("""
                 SELECT id, order_id, item_name, category, pickup_address, delivery_address,
+                       pickup_dong_code, delivery_dong_code,
                        estimated_fee, status, requested_at
                 FROM delivery
                 WHERE status = 'REQUESTED' AND driver_id IS NULL
@@ -49,6 +50,7 @@ public class JdbcDeliveryQueryRepository implements DeliveryQueryRepository {
                         """
                                 SELECT id, order_id, item_name, category,
                                        pickup_address, delivery_address,
+                                       pickup_dong_code, delivery_dong_code,
                                        estimated_fee, status, requested_at
                                 FROM delivery
                                 WHERE id = ? AND status = 'REQUESTED' AND driver_id IS NULL
@@ -70,6 +72,7 @@ public class JdbcDeliveryQueryRepository implements DeliveryQueryRepository {
                                                         final DeliveryCursor cursor, final Integer limit) {
         final StringBuilder sql = new StringBuilder("""
                 SELECT id, order_id, item_name, category, pickup_address, delivery_address,
+                       pickup_dong_code, delivery_dong_code,
                        estimated_fee, status, accepted_at
                 FROM delivery
                 WHERE driver_id = ? AND status
@@ -110,6 +113,7 @@ public class JdbcDeliveryQueryRepository implements DeliveryQueryRepository {
                                 SELECT id, order_id, item_name, category,
                                        pickup_address, pickup_phone_number,
                                        delivery_address, delivery_phone_number,
+                                       pickup_dong_code, delivery_dong_code,
                                        estimated_fee, status, requested_at,
                                        accepted_at, picked_up_at, delivered_at
                                 FROM delivery
@@ -135,7 +139,9 @@ public class JdbcDeliveryQueryRepository implements DeliveryQueryRepository {
                 resultSet.getString("delivery_address"),
                 resultSet.getLong("estimated_fee"),
                 status(resultSet),
-                requiredInstant(resultSet, "requested_at")
+                requiredInstant(resultSet, "requested_at"),
+                resultSet.getString("pickup_dong_code"),
+                resultSet.getString("delivery_dong_code")
         );
     }
 
@@ -150,7 +156,9 @@ public class JdbcDeliveryQueryRepository implements DeliveryQueryRepository {
                 resultSet.getString("delivery_address"),
                 resultSet.getLong("estimated_fee"),
                 status(resultSet),
-                requiredInstant(resultSet, "requested_at")
+                requiredInstant(resultSet, "requested_at"),
+                resultSet.getString("pickup_dong_code"),
+                resultSet.getString("delivery_dong_code")
         );
     }
 
@@ -165,7 +173,9 @@ public class JdbcDeliveryQueryRepository implements DeliveryQueryRepository {
                 resultSet.getString("delivery_address"),
                 resultSet.getLong("estimated_fee"),
                 status(resultSet),
-                nullableInstant(resultSet, "accepted_at")
+                nullableInstant(resultSet, "accepted_at"),
+                resultSet.getString("pickup_dong_code"),
+                resultSet.getString("delivery_dong_code")
         );
     }
 
@@ -185,7 +195,9 @@ public class JdbcDeliveryQueryRepository implements DeliveryQueryRepository {
                 requiredInstant(resultSet, "requested_at"),
                 nullableInstant(resultSet, "accepted_at"),
                 nullableInstant(resultSet, "picked_up_at"),
-                nullableInstant(resultSet, "delivered_at")
+                nullableInstant(resultSet, "delivered_at"),
+                resultSet.getString("pickup_dong_code"),
+                resultSet.getString("delivery_dong_code")
         );
     }
 

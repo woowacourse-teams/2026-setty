@@ -17,7 +17,9 @@ public final class Shipment {
             String deliveryAddress,
             long deliveryFee,
             DeliveryStatus status,
-            Instant acceptedAt
+            Instant acceptedAt,
+            String pickupDongCode,
+            String deliveryDongCode
     ) {
     }
 
@@ -35,7 +37,9 @@ public final class Shipment {
             Instant requestedAt,
             Instant acceptedAt,
             Instant pickedUpAt,
-            Instant deliveredAt
+            Instant deliveredAt,
+            String pickupDongCode,
+            String deliveryDongCode
     ) {
     }
 }

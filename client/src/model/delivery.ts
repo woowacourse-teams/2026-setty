@@ -20,6 +20,7 @@ export type DeliverySummary = {
     pickupAddress: string;
     deliveryAddress: string;
     deliveryFee: number;
+    estimatedDistanceMeters: number | null;
     status: DeliveryStatus;
 };
 
@@ -31,6 +32,7 @@ export type DeliveryRequestDetail = {
     pickupAddress: string;
     destinationAddress: string;
     deliveryFee: number;
+    estimatedDistanceMeters: number | null;
     status: DeliveryStatus;
     requestedAt: string;
 };
@@ -48,6 +50,7 @@ export type ShipmentDetail = {
     pickup: DeliveryPoint;
     destination: DeliveryPoint;
     deliveryFee: number;
+    estimatedDistanceMeters: number | null;
     status: DeliveryStatus;
     requestedAt: string;
     acceptedAt: string | null;
@@ -106,6 +109,13 @@ export function formatTime(iso: string | null): string {
     const date = new Date(iso);
     if (Number.isNaN(date.getTime())) return '';
     return new Intl.DateTimeFormat('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Seoul' }).format(date);
+}
+
+/** 판매자 수령지에서 구매자 목적지까지의 행정동 대표점 기준 추정 거리. */
+export function formatEstimatedDistance(meters: number | null | undefined): string {
+    if (meters == null) return '거리 정보 없음';
+    const kilometers = (meters / 1000).toLocaleString('ko-KR', { maximumFractionDigits: 1 });
+    return `예상 거리 ${kilometers}km (지역 기준)`;
 }
 
 /** 서버가 카테고리 코드(SOFA 등)를 내려주면 한글로 바꾸고, 이미 표시용 문자열이면 그대로 보여준다. */
