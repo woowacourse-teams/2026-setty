@@ -49,7 +49,8 @@ export function createDeliveryPageStore(fetchPage: (cursor: string | null) => Pr
         }
         const request = ++version;
         refreshing = request;
-        const retainCount = snapshot.state.status === 'success' ? snapshot.state.data.length : 0;
+        const hasLoadedItems = snapshot.state.status === 'success' && snapshot.state.data.length > 0;
+        const boundary = snapshot.nextCursor;
         update({
             isRefreshing: true, isLoadingMore: false, hasLoadMoreError: false,
             ...(snapshot.state.status !== 'success' ? { state: { status: 'loading' } as const } : {})
@@ -59,7 +60,9 @@ export function createDeliveryPageStore(fetchPage: (cursor: string | null) => Pr
             if (!isCurrent(request)) return;
             let items = unique([], page.items);
             let cursor = page.nextCursor;
-            while (cursor !== null && items.length < retainCount) {
+            // 기존 마지막 항목이 사라져도 시각과 ID 경계를 지나면 멈춘다.
+            // 끝까지 읽었던 목록(boundary === null)은 갱신도 마지막 페이지까지 읽는다.
+            while (cursor !== null && hasLoadedItems && (boundary === null || isNewerCursor(cursor, boundary))) {
                 const next = await fetchPage(cursor);
                 if (!isCurrent(request)) return;
                 items = unique(items, next.items);
@@ -129,6 +132,13 @@ function unique(current: DeliverySummary[], incoming: DeliverySummary[]) {
         seen.add(item.deliveryId);
         return true;
     })];
+}
+
+// 서버 DeliveryCursor의 epoch 마이크로초_ID 순서를 정밀도 손실 없이 비교한다.
+function isNewerCursor(cursor: string, boundary: string) {
+    const [time, id] = cursor.split('_').map(BigInt);
+    const [boundaryTime, boundaryId] = boundary.split('_').map(BigInt);
+    return time > boundaryTime || (time === boundaryTime && id > boundaryId);
 }
 
 export const requestPageStore = createDeliveryPageStore((cursor) => deliveryRepository.getRequestPage(cursor));
