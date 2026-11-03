@@ -10,7 +10,8 @@
 
 | 수신자 | 처리 |
 | --- | --- |
-| [`DeliveryRequestEventStream#on`](../../src/main/java/setty/delivery/api/DeliveryRequestEventStream.java) | 발행 트랜잭션 커밋 후 연결된 기사 SSE 구독자에게 `delivery-requests-changed` 이벤트를 보낸다. 데이터는 `{}`이며 구독자가 목록을 다시 조회한다. 연결 전송 오류는 해당 구독자를 제거하고, 그 밖의 처리 오류는 로그에 기록한다. |
+| [`AvailableRequestCache#on`](../../src/main/java/setty/delivery/application/AvailableRequestCache.java) | 발행 트랜잭션 커밋 후 배송 대기 목록 캐시(전체 배열·첫 페이지)를 비우고 무효화 세대를 올린다. `@Order(HIGHEST_PRECEDENCE)`로 SSE 알림보다 먼저 실행해, 알림을 받은 기사가 다시 조회할 때 이전 목록을 받지 않게 한다. 규칙은 [배송 대기 목록 캐시](../cache/delivery-requests.md)를 참고한다. |
+| [`DeliveryRequestEventStream#on`](../../src/main/java/setty/delivery/api/DeliveryRequestEventStream.java) | 발행 트랜잭션 커밋 후 캐시 무효화 다음에 연결된 기사 SSE 구독자에게 `delivery-requests-changed` 이벤트를 보낸다. 데이터는 `{}`이며 구독자가 목록을 다시 조회한다. 연결 전송 오류는 해당 구독자를 제거하고, 그 밖의 처리 오류는 로그에 기록한다. |
 
 ## 다음 확인할 이벤트 문서
 
