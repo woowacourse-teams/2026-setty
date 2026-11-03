@@ -154,21 +154,21 @@ function ShipmentStatusCard({ shipment }: { shipment: ShipmentDetail }) {
     return (
         <section className={screenStyles.card} style={{ background: 'var(--primary-container)', color: 'var(--on-primary-container)' }}>
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
-                <div className={screenStyles.card__header}>
-                    <FurnitureThumbnail
-                        alt={shipment.furniture.itemName}
-                        imageUrl={shipment.furniture.thumbnailUrl}
-                        key={shipment.furniture.thumbnailUrl}
-                        placeholder={categoryText(shipment.furniture.category)}
-                        size={96}
-                    />
-                    <div className={`${styles.hero} ${screenStyles.card__lines}`}>
-                        <p className="type-label-large">{categoryText(shipment.furniture.category)}</p>
-                        <p className="type-headline-small-em">{shipment.furniture.itemName}</p>
-                        <p className="type-title-medium-em">{formatWon(shipment.deliveryFee)}</p>
-                    </div>
-                </div>
+                <span className="type-label-large">{categoryText(shipment.furniture.category)}</span>
                 <ShipmentStatusBadge status={shipment.status} />
+            </div>
+            <div className={screenStyles.card__header}>
+                <FurnitureThumbnail
+                    alt={shipment.furniture.itemName}
+                    imageUrl={shipment.furniture.thumbnailUrl}
+                    key={shipment.furniture.thumbnailUrl}
+                    placeholder={categoryText(shipment.furniture.category)}
+                    size={96}
+                />
+                <div className={`${styles.hero} ${screenStyles.card__lines}`}>
+                    <p className="type-headline-small-em">{shipment.furniture.itemName}</p>
+                    <p className="type-title-medium-em">{formatWon(shipment.deliveryFee)}</p>
+                </div>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 <WavyProgress progress={shipmentProgress(shipment.status)} />
