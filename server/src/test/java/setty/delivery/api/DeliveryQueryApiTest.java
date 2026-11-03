@@ -9,6 +9,8 @@ import static setty.global.event.EventPublicationTestSupport.awaitEventsHandled;
 
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -112,6 +114,142 @@ class DeliveryQueryApiTest extends MySqlIntegrationTestSupport {
                         .header(HttpHeaders.AUTHORIZATION, "Bearer driver-token"))
                 .andExpect(status().isNotFound());
         assertThat(read(get("/api/delivery/shipments")).isEmpty()).isTrue();
+    }
+
+    @Test
+    void 같은_시각과_마이크로초_경계도_중복과_누락_없이_끝까지_읽는다() throws Exception {
+        for (long id = 1; id <= 7; id++) {
+            insertDelivery(id, "REQUESTED", null, BASE.plusNanos(id % 3 * 1_000), null);
+        }
+        final List<Long> received = new ArrayList<>();
+        String cursor = null;
+        do {
+            final MockHttpServletRequestBuilder request = get("/api/delivery/requests").param("size", "3");
+            if (cursor != null) {
+                request.param("cursor", cursor);
+            }
+            final JsonNode page = read(request);
+            received.addAll(ids(page.get("items")));
+            cursor = nextCursor(page);
+        } while (cursor != null);
+
+        assertThat(received).containsExactly(5L, 2L, 7L, 4L, 1L, 6L, 3L);
+    }
+
+    @Test
+    void 페이지에_해당하는_요청의_대표_사진만_제공한다() throws Exception {
+        insertDelivery(1L, "REQUESTED", null, BASE, null);
+        insertDelivery(2L, "REQUESTED", null, BASE.plusSeconds(1), null);
+        insertImage(1L, "old.jpg", 1);
+        insertImage(2L, "latest.jpg", 1);
+
+        final JsonNode page = read(get("/api/delivery/requests").param("size", "1"));
+
+        assertThat(ids(page.get("items"))).containsExactly(2L);
+        assertThat(page.get("items").get(0).get("thumbnailUrl").asString()).isEqualTo(imageUrl("latest.jpg"));
+        assertThat(nextCursor(page)).isNotNull();
+    }
+
+    @Test
+    void 커서만_주면_기본_20건이고_옵션_없는_전체_조회는_집계를_위해_유지한다() throws Exception {
+        for (long id = 1; id <= 25; id++) {
+            insertDelivery(id, "REQUESTED", null, BASE.plusSeconds(id), null);
+            insertDelivery(id + 100, "DELIVERED", 2L, BASE, BASE.plusSeconds(id));
+        }
+        final JsonNode first = read(get("/api/delivery/requests").param("size", "1"));
+        final JsonNode next = read(get("/api/delivery/requests").param("cursor", nextCursor(first)));
+        final JsonNode shipments = read(get("/api/delivery/shipments"));
+
+        assertThat(next.get("items")).hasSize(20);
+        assertThat(read(get("/api/delivery/requests"))).hasSize(25);
+        assertThat(shipments).hasSize(25);
+        long total = 0;
+        for (JsonNode shipment : shipments) {
+            total += shipment.get("deliveryFee").asLong();
+        }
+        assertThat(total).isEqualTo(250_000);
+        assertThat(read(get("/api/delivery/shipments").param("group", "DELIVERED")).get("items")).hasSize(20);
+    }
+
+    @Test
+    void 진행_중과_완료는_기사별로_필터링한_뒤_수락_시각으로_각각_페이징한다() throws Exception {
+        insertDelivery(1L, "ACCEPTED", 2L, BASE.plusSeconds(10), BASE);
+        insertDelivery(2L, "PICKED_UP", 2L, BASE, BASE.plusSeconds(1));
+        insertDelivery(3L, "DELIVERED", 2L, BASE, BASE.plusSeconds(3));
+        insertDelivery(4L, "DELIVERED", 2L, BASE, BASE.plusSeconds(2));
+        insertDelivery(5L, "ACCEPTED", 3L, BASE, BASE.plusSeconds(9));
+        insertDelivery(6L, "REQUESTED", null, BASE, null);
+        insertImage(2L, "in-progress.jpg", 1);
+
+        final JsonNode progress = read(get("/api/delivery/shipments").param("group", "IN_PROGRESS").param("size", "1"));
+        final JsonNode progressNext = read(get("/api/delivery/shipments").param("group", "IN_PROGRESS")
+                .param("size", "1").param("cursor", nextCursor(progress)));
+        final JsonNode delivered = read(get("/api/delivery/shipments").param("group", "DELIVERED").param("size", "1"));
+        final JsonNode deliveredNext = read(get("/api/delivery/shipments").param("group", "DELIVERED")
+                .param("size", "1").param("cursor", nextCursor(delivered)));
+
+        assertThat(ids(progress.get("items"))).containsExactly(2L);
+        assertThat(progress.get("items").get(0).get("thumbnailUrl").asString()).isEqualTo(imageUrl("in-progress.jpg"));
+        assertThat(ids(progressNext.get("items"))).containsExactly(1L);
+        assertThat(nextCursor(progressNext)).isNull();
+        assertThat(ids(delivered.get("items"))).containsExactly(3L);
+        assertThat(ids(deliveredNext.get("items"))).containsExactly(4L);
+        assertThat(nextCursor(deliveredNext)).isNull();
+    }
+
+    @Test
+    void 페이지_사이의_수락은_제외하고_새_요청은_첫_페이지_갱신으로_받는다() throws Exception {
+        for (long id = 1; id <= 5; id++) {
+            insertDelivery(id, "REQUESTED", null, BASE.plusSeconds(id), null);
+        }
+        final JsonNode first = read(get("/api/delivery/requests").param("size", "2"));
+        jdbcTemplate.update("UPDATE delivery SET status = 'ACCEPTED', driver_id = 3, accepted_at = ? WHERE id = 3",
+                Timestamp.from(BASE.plusSeconds(6)));
+        insertDelivery(6L, "REQUESTED", null, BASE.plusSeconds(6), null);
+
+        assertThat(ids(read(get("/api/delivery/requests").param("size", "2")
+                .param("cursor", nextCursor(first))).get("items"))).containsExactly(2L, 1L);
+        assertThat(ids(read(get("/api/delivery/requests").param("size", "2")).get("items"))).containsExactly(6L, 5L);
+    }
+
+    @Test
+    void 비어_있는_페이지는_다음_커서가_없다() throws Exception {
+        for (String path : List.of("/api/delivery/requests", "/api/delivery/shipments")) {
+            final JsonNode page = read(get(path).param("size", "20"));
+            assertThat(page.get("items")).isEmpty();
+            assertThat(nextCursor(page)).isNull();
+        }
+    }
+
+    @Test
+    void 잘못된_커서와_크기와_상태_그룹은_400이다() throws Exception {
+        for (String path : List.of("/api/delivery/requests", "/api/delivery/shipments")) {
+            for (String cursor : List.of("", "abc", "1", "-1_1", "1_0", "1_2_3")) {
+                mockMvc.perform(get(path).param("cursor", cursor)
+                                .header(HttpHeaders.AUTHORIZATION, "Bearer driver-token"))
+                        .andExpect(status().isBadRequest());
+            }
+            for (String size : List.of("0", "101", "-1", "abc")) {
+                mockMvc.perform(get(path).param("size", size)
+                                .header(HttpHeaders.AUTHORIZATION, "Bearer driver-token"))
+                        .andExpect(status().isBadRequest());
+            }
+            assertThat(read(get(path).param("size", "100")).get("items")).isEmpty();
+            mockMvc.perform(get(path).param("size", "20")).andExpect(status().isUnauthorized());
+        }
+        mockMvc.perform(get("/api/delivery/shipments").param("group", "REQUESTED")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer driver-token"))
+                .andExpect(status().isBadRequest());
+    }
+
+    private List<Long> ids(final JsonNode items) {
+        final List<Long> ids = new ArrayList<>();
+        items.forEach(item -> ids.add(item.get("deliveryId").asLong()));
+        return ids;
+    }
+
+    private String nextCursor(final JsonNode page) {
+        return page.hasNonNull("nextCursor") ? page.get("nextCursor").asString() : null;
     }
 
     private JsonNode read(final MockHttpServletRequestBuilder request) throws Exception {

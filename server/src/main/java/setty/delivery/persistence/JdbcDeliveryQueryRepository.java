@@ -4,12 +4,15 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 import setty.delivery.application.DeliveryQueryRepository;
+import setty.delivery.application.DeliveryCursor;
+import setty.delivery.application.ShipmentGroup;
 import setty.delivery.application.readmodel.DeliveryRequest;
 import setty.delivery.application.readmodel.Shipment;
 import setty.delivery.domain.DeliveryId;
@@ -24,16 +27,20 @@ public class JdbcDeliveryQueryRepository implements DeliveryQueryRepository {
 
     @Override
     public List<DeliveryRequest.Summary> findAvailableRequests() {
-        return jdbcTemplate.query(
-                """
-                        SELECT id, order_id, item_name, category, pickup_address, delivery_address,
-                               estimated_fee, status, requested_at
-                        FROM delivery
-                        WHERE status = 'REQUESTED' AND driver_id IS NULL
-                        ORDER BY requested_at DESC, id DESC
-                        """,
-                JdbcDeliveryQueryRepository::mapRequestSummary
-        );
+        return findAvailableRequests(null, null);
+    }
+
+    @Override
+    public List<DeliveryRequest.Summary> findAvailableRequests(final DeliveryCursor cursor, final Integer limit) {
+        final StringBuilder sql = new StringBuilder("""
+                SELECT id, order_id, item_name, category, pickup_address, delivery_address,
+                       estimated_fee, status, requested_at
+                FROM delivery
+                WHERE status = 'REQUESTED' AND driver_id IS NULL
+                """);
+        final List<Object> args = new ArrayList<>();
+        appendPage(sql, args, "requested_at", cursor, limit);
+        return jdbcTemplate.query(sql.toString(), JdbcDeliveryQueryRepository::mapRequestSummary, args.toArray());
     }
 
     @Override
@@ -55,17 +62,42 @@ public class JdbcDeliveryQueryRepository implements DeliveryQueryRepository {
 
     @Override
     public List<Shipment.Summary> findShipmentsByDriverId(final DriverId driverId) {
-        return jdbcTemplate.query(
-                """
-                        SELECT id, order_id, item_name, category, pickup_address, delivery_address,
-                               estimated_fee, status, accepted_at
-                        FROM delivery
-                        WHERE driver_id = ? AND status IN ('ACCEPTED', 'PICKED_UP', 'DELIVERED')
-                        ORDER BY accepted_at DESC, id DESC
-                        """,
-                JdbcDeliveryQueryRepository::mapShipmentSummary,
-                driverId.value()
-        );
+        return findShipmentsByDriverId(driverId, null, null, null);
+    }
+
+    @Override
+    public List<Shipment.Summary> findShipmentsByDriverId(final DriverId driverId, final ShipmentGroup group,
+                                                        final DeliveryCursor cursor, final Integer limit) {
+        final StringBuilder sql = new StringBuilder("""
+                SELECT id, order_id, item_name, category, pickup_address, delivery_address,
+                       estimated_fee, status, accepted_at
+                FROM delivery
+                WHERE driver_id = ? AND status
+                """);
+        sql.append(group == null ? "IN ('ACCEPTED', 'PICKED_UP', 'DELIVERED')" : switch (group) {
+            case IN_PROGRESS -> "IN ('ACCEPTED', 'PICKED_UP')";
+            case DELIVERED -> "= 'DELIVERED'";
+        });
+        final List<Object> args = new ArrayList<>();
+        args.add(driverId.value());
+        appendPage(sql, args, "accepted_at", cursor, limit);
+        return jdbcTemplate.query(sql.toString(), JdbcDeliveryQueryRepository::mapShipmentSummary, args.toArray());
+    }
+
+    private static void appendPage(final StringBuilder sql, final List<Object> args, final String timeColumn,
+                                   final DeliveryCursor cursor, final Integer limit) {
+        if (cursor != null) {
+            sql.append(" AND (").append(timeColumn).append(" < ? OR (")
+                    .append(timeColumn).append(" = ? AND id < ?))");
+            args.add(Timestamp.from(cursor.time()));
+            args.add(Timestamp.from(cursor.time()));
+            args.add(cursor.id());
+        }
+        sql.append(" ORDER BY ").append(timeColumn).append(" DESC, id DESC");
+        if (limit != null) {
+            sql.append(" LIMIT ?");
+            args.add(limit);
+        }
     }
 
     @Override

@@ -11,9 +11,14 @@ public interface DeliveryQueryRepository {
 
     List<DeliveryRequest.Summary> findAvailableRequests();
 
+    List<DeliveryRequest.Summary> findAvailableRequests(DeliveryCursor cursor, Integer limit);
+
     Optional<DeliveryRequest.Detail> findAvailableRequestById(DeliveryId deliveryId);
 
     List<Shipment.Summary> findShipmentsByDriverId(DriverId driverId);
+
+    List<Shipment.Summary> findShipmentsByDriverId(DriverId driverId, ShipmentGroup group,
+                                                 DeliveryCursor cursor, Integer limit);
 
     Optional<Shipment.Detail> findShipmentByIdAndDriverId(DeliveryId deliveryId, DriverId driverId);
 }

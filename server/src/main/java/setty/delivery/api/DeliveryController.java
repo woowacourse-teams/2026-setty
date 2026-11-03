@@ -11,14 +11,19 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import setty.delivery.api.dto.DeliveryRequestDetailResponse;
+import setty.delivery.api.dto.DeliveryPageResponse;
 import setty.delivery.api.dto.DeliveryRequestSummaryResponse;
 import setty.delivery.api.dto.ShipmentDetailResponse;
 import setty.delivery.api.dto.ShipmentSummaryResponse;
 import setty.delivery.application.DeliveryLifecycleService;
+import setty.delivery.application.DeliveryCursor;
 import setty.delivery.application.DeliveryQueryService;
+import setty.delivery.application.ShipmentGroup;
+import setty.delivery.application.readmodel.DeliveryPage;
 import setty.delivery.application.readmodel.DeliveryRequest;
 import setty.delivery.application.readmodel.Shipment;
 import setty.delivery.auth.domain.DeliveryMember;
@@ -38,17 +43,27 @@ public class DeliveryController {
     private final DeliveryRequestEventStream deliveryRequestEventStream;
 
     @GetMapping("/requests")
-    public ResponseEntity<List<DeliveryRequestSummaryResponse>> findRequests(
-            @LoginDeliveryMember final DeliveryMember member
+    public ResponseEntity<?> findRequests(
+            @LoginDeliveryMember final DeliveryMember member,
+            @RequestParam(required = false) final String cursor,
+            @RequestParam(required = false) final Integer size
     ) {
         authenticatedDriverId(member);
-        final List<DeliveryRequest.Summary> requests = deliveryQueryService.findAvailableRequests();
+        // 웹은 size를 지정해 페이지로 읽는다. 내 정보의 전체 집계 등 기존 배열 조회는 유지한다.
+        if (cursor == null && size == null) {
+            return ResponseEntity.ok(requestResponses(deliveryQueryService.findAvailableRequests()));
+        }
+        final DeliveryPage<DeliveryRequest.Summary> page = deliveryQueryService.findAvailableRequestPage(
+                DeliveryCursor.parse(cursor), size == null ? DeliveryQueryService.DEFAULT_PAGE_SIZE : size);
+        return ResponseEntity.ok(new DeliveryPageResponse<>(requestResponses(page.items()), page.nextCursor()));
+    }
+
+    private List<DeliveryRequestSummaryResponse> requestResponses(final List<DeliveryRequest.Summary> requests) {
         final Map<Long, String> thumbnails = deliveryQueryService.findThumbnailUrls(
                 requests.stream().map(DeliveryRequest.Summary::orderId).toList());
-        final List<DeliveryRequestSummaryResponse> response = requests.stream()
+        return requests.stream()
                 .map(request -> DeliveryRequestSummaryResponse.from(request, thumbnails.get(request.orderId())))
                 .toList();
-        return ResponseEntity.ok(response);
     }
 
     @GetMapping(value = "/requests/events", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
@@ -87,16 +102,27 @@ public class DeliveryController {
     }
 
     @GetMapping("/shipments")
-    public ResponseEntity<List<ShipmentSummaryResponse>> findShipments(
-            @LoginDeliveryMember final DeliveryMember member
+    public ResponseEntity<?> findShipments(
+            @LoginDeliveryMember final DeliveryMember member,
+            @RequestParam(required = false) final String cursor,
+            @RequestParam(required = false) final Integer size,
+            @RequestParam(required = false) final ShipmentGroup group
     ) {
-        final List<Shipment.Summary> shipments = deliveryQueryService.findShipments(authenticatedDriverId(member));
+        final DriverId driverId = authenticatedDriverId(member);
+        if (cursor == null && size == null && group == null) {
+            return ResponseEntity.ok(shipmentResponses(deliveryQueryService.findShipments(driverId)));
+        }
+        final DeliveryPage<Shipment.Summary> page = deliveryQueryService.findShipmentPage(driverId, group,
+                DeliveryCursor.parse(cursor), size == null ? DeliveryQueryService.DEFAULT_PAGE_SIZE : size);
+        return ResponseEntity.ok(new DeliveryPageResponse<>(shipmentResponses(page.items()), page.nextCursor()));
+    }
+
+    private List<ShipmentSummaryResponse> shipmentResponses(final List<Shipment.Summary> shipments) {
         final Map<Long, String> thumbnails = deliveryQueryService.findThumbnailUrls(
                 shipments.stream().map(Shipment.Summary::orderId).toList());
-        final List<ShipmentSummaryResponse> response = shipments.stream()
+        return shipments.stream()
                 .map(shipment -> ShipmentSummaryResponse.from(shipment, thumbnails.get(shipment.orderId())))
                 .toList();
-        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/shipments/{deliveryId}")
