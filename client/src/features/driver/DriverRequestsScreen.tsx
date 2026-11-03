@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
-import { deliveryRepository, subscribeRequestEvents } from '../../api/deliveryRepository';
+import { subscribeRequestEvents } from '../../api/deliveryRepository';
 import { deliveryLoginIdStore } from '../../api/http';
 import { routes, useNavigateToDriverLogin } from '../../navigation';
 import {
@@ -16,26 +16,28 @@ import {
 } from '../../ui/components';
 import { Icon } from '../../ui/Icon';
 import { shapeStyle } from '../../ui/shapes';
-import { useLoad } from '../useLoad';
 import { usePolling } from '../usePolling';
 import screenStyles from '../screens.module.css';
 import { DeliveryListItem } from './DeliveryParts';
+import { DeliveryLoadMore } from './DeliveryLoadMore';
+import { requestPageStore } from './deliveryPageStore';
+import { useDeliveryPage } from './useDeliveryPage';
 import styles from './driver.module.css';
 
 /** 배송원이 수락할 수 있는 배차 요청. 구매자가 결제하면 새로고침하지 않아도 바로 나타난다. */
 export function DriverRequestsScreen() {
     const navigate = useNavigate();
     const navigateToDriverLogin = useNavigateToDriverLogin();
-    const { state, isRefreshing, load, refresh, fetch } = useLoad(deliveryRepository.getRequests, 'driver');
+    const { state, nextCursor, isRefreshing, isLoadingMore, hasLoadMoreError, load, refresh, loadMore } = useDeliveryPage(requestPageStore);
 
     const profileInitial = deliveryLoginIdStore.get().slice(0, 1).toUpperCase();
 
     const [isLive, setIsLive] = useState(false);
     const [isFabExpanded, setIsFabExpanded] = useState(true);
 
-    useEffect(() => subscribeRequestEvents(() => void fetch(), navigateToDriverLogin, setIsLive), [fetch, navigateToDriverLogin]);
+    useEffect(() => subscribeRequestEvents(() => void refresh(), navigateToDriverLogin, setIsLive), [refresh, navigateToDriverLogin]);
     // 실시간 연결이 끊겼거나 서버가 연결 수 제한으로 거절하면 대신 주기적으로 불러온다
-    usePolling(() => void fetch(), state.status === 'success' && !isLive);
+    usePolling(() => void refresh(), state.status === 'success' && !isLive);
 
     useEffect(() => {
         const onScroll = () => setIsFabExpanded(window.scrollY < 120);
@@ -87,6 +89,12 @@ export function DriverRequestsScreen() {
                                 />
                             ))}
                         </SegmentedList>
+                        <DeliveryLoadMore
+                            hasError={hasLoadMoreError}
+                            hasMore={nextCursor !== null}
+                            isLoading={isLoadingMore || isRefreshing}
+                            onLoad={loadMore}
+                        />
                     </div>
                 </PullToRefresh>
             )}

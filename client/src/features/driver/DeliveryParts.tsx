@@ -3,9 +3,8 @@ import { isUnauthorized, toUserMessage } from '../../api/errors';
 import { formatWon } from '../../model/furniture';
 import { categoryText, shipmentStatusLabel, shortAddress, type DeliveryStatus, type DeliverySummary } from '../../model/delivery';
 import { useNavigateToDriverLogin } from '../../navigation';
-import { SegmentedListItem, StatusBadge } from '../../ui/components';
+import { FurnitureThumbnail, SegmentedListItem, StatusBadge } from '../../ui/components';
 import { Icon } from '../../ui/Icon';
-import { shapeStyle } from '../../ui/shapes';
 import { showSnackbar } from '../../ui/snackbar';
 import styles from './driver.module.css';
 
@@ -42,16 +41,18 @@ type DeliveryListItemProps = {
 
 /** 배차 요청·내 배차 목록의 항목. 출발 동네 → 도착 동네와 배송비를 보여준다. */
 export function DeliveryListItem({ delivery, index, count, showStatus = false, onClick }: DeliveryListItemProps) {
-    const isDone = delivery.status === 'DELIVERED';
     return (
         <SegmentedListItem
             count={count}
             headline={<span className="type-title-medium">{delivery.itemName}</span>}
             index={index}
             leading={(
-                <div className={`${styles['leading-shape']} ${isDone ? styles['leading-shape--done'] : ''}`} style={shapeStyle('cookie9')}>
-                    <Icon name={isDone ? 'check' : 'localShipping'} />
-                </div>
+                <FurnitureThumbnail
+                    alt={delivery.itemName}
+                    imageUrl={delivery.thumbnailUrl}
+                    key={delivery.thumbnailUrl}
+                    placeholder={categoryText(delivery.category)}
+                />
             )}
             onClick={onClick}
             overline={categoryText(delivery.category)}

@@ -10,6 +10,7 @@ public final class Shipment {
 
     public record Summary(
             long deliveryId,
+            long orderId,
             String itemName,
             String category,
             String pickupAddress,

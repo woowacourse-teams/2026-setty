@@ -15,11 +15,11 @@ public record DeliveryRequestDetailResponse(
         Instant requestedAt
 ) {
 
-    public static DeliveryRequestDetailResponse from(final DeliveryRequest.Detail detail) {
+    public static DeliveryRequestDetailResponse from(final DeliveryRequest.Detail detail, final String thumbnailUrl) {
         return new DeliveryRequestDetailResponse(
                 detail.deliveryId(),
                 detail.orderId(),
-                new FurnitureResponse(detail.itemName(), detail.category()),
+                new FurnitureResponse(detail.itemName(), detail.category(), thumbnailUrl),
                 detail.pickupAddress(),
                 detail.deliveryAddress(),
                 detail.deliveryFee(),

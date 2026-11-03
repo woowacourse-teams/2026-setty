@@ -11,6 +11,7 @@ import {
     Button,
     ErrorContent,
     FlexibleTopAppBar,
+    FurnitureThumbnail,
     LoadingContent,
     LoadingIndicator,
     Scaffold,
@@ -18,8 +19,6 @@ import {
     SegmentedList,
     SegmentedListItem
 } from '../../ui/components';
-import { Icon } from '../../ui/Icon';
-import { shapeStyle } from '../../ui/shapes';
 import { showSnackbar } from '../../ui/snackbar';
 import { useLoad } from '../useLoad';
 import screenStyles from '../screens.module.css';
@@ -78,9 +77,13 @@ export function DriverRequestDetailScreen() {
                 <div className={`${screenStyles['list-padding']} ${styles.stack}`}>
                     <section className={screenStyles.card} style={{ background: 'var(--primary-container)', color: 'var(--on-primary-container)' }}>
                         <div className={screenStyles.card__header}>
-                            <div className={screenStyles.card__shape} style={{ ...shapeStyle('cookie9'), background: 'var(--primary)', color: 'var(--on-primary)' }}>
-                                <Icon name="localShipping" size={28} />
-                            </div>
+                            <FurnitureThumbnail
+                                alt={request.furniture.itemName}
+                                imageUrl={request.furniture.thumbnailUrl}
+                                key={request.furniture.thumbnailUrl}
+                                placeholder={categoryText(request.furniture.category)}
+                                size={96}
+                            />
                             <div className={screenStyles.card__lines}>
                                 <p className="type-label-large">{categoryText(request.furniture.category)}</p>
                                 <p className="type-headline-small-em">{request.furniture.itemName}</p>

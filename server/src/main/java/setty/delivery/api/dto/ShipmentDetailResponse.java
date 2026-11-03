@@ -18,11 +18,11 @@ public record ShipmentDetailResponse(
         Instant deliveredAt
 ) {
 
-    public static ShipmentDetailResponse from(final Shipment.Detail detail) {
+    public static ShipmentDetailResponse from(final Shipment.Detail detail, final String thumbnailUrl) {
         return new ShipmentDetailResponse(
                 detail.deliveryId(),
                 detail.orderId(),
-                new FurnitureResponse(detail.itemName(), detail.category()),
+                new FurnitureResponse(detail.itemName(), detail.category(), thumbnailUrl),
                 new DeliveryPointResponse(detail.pickupAddress(), detail.pickupPhoneNumber()),
                 new DeliveryPointResponse(detail.deliveryAddress(), detail.deliveryPhoneNumber()),
                 detail.deliveryFee(),
