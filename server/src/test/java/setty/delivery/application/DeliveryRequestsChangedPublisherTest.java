@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.isA;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -104,5 +105,56 @@ class DeliveryRequestsChangedPublisherTest {
 
         verify(eventPublisher).publishEvent(new DeliveryAssignmentCancelled(1L, 2L, 3L, acceptedAt, cancelledAt));
         verify(eventPublisher).publishEvent(isA(DeliveryRequestsChanged.class));
+    }
+
+    @Test
+    void requestedOrderCancellationPublishesRequestListChangedEvent() {
+        final DeliveryRepository deliveryRepository = mock(DeliveryRepository.class);
+        final DeliveryOrderDecisionRepository decisionRepository = mock(DeliveryOrderDecisionRepository.class);
+        final ApplicationEventPublisher eventPublisher = mock(ApplicationEventPublisher.class);
+        final Delivery delivery = requestedDelivery();
+        when(deliveryRepository.findByOrderIdForUpdate(any(OrderId.class))).thenReturn(Optional.of(delivery));
+        final DeliveryLifecycleService service = new DeliveryLifecycleService(
+                deliveryRepository,
+                decisionRepository,
+                eventPublisher
+        );
+
+        service.cancel(OrderId.from(2L), "cancellation-1", REQUESTED_AT.plusSeconds(60));
+
+        verify(eventPublisher).publishEvent(isA(DeliveryRequestsChanged.class));
+    }
+
+    // 픽업·완료는 이미 배정된 건이라 대기 목록이 바뀌지 않는다. 목록 캐시도 이 이벤트로만 비운다.
+    @Test
+    void pickUpAndCompletionDoNotPublishRequestListChangedEvent() {
+        final DeliveryRepository deliveryRepository = mock(DeliveryRepository.class);
+        final ApplicationEventPublisher eventPublisher = mock(ApplicationEventPublisher.class);
+        final Delivery delivery = requestedDelivery();
+        delivery.accept(new DriverId(3L), REQUESTED_AT.plusSeconds(60));
+        when(deliveryRepository.findByIdForUpdate(anyLong())).thenReturn(Optional.of(delivery));
+        final DeliveryLifecycleService service = new DeliveryLifecycleService(
+                deliveryRepository,
+                mock(DeliveryOrderDecisionRepository.class),
+                eventPublisher
+        );
+
+        service.pickUp(new DeliveryId(1L), new DriverId(3L), REQUESTED_AT.plusSeconds(120));
+        service.complete(new DeliveryId(1L), new DriverId(3L), REQUESTED_AT.plusSeconds(180));
+
+        verify(eventPublisher, never()).publishEvent(isA(DeliveryRequestsChanged.class));
+    }
+
+    private static Delivery requestedDelivery() {
+        return Delivery.request(
+                OrderId.from(2L),
+                FurnitureInfo.of("가상 원목 의자", "CHAIR"),
+                DeliveryRoute.of(
+                        DeliveryPoint.pickup("서울시 가상구 출발로 1", "010-0000-0001", null, null),
+                        DeliveryPoint.destination("서울시 가상구 도착로 2", "010-0000-0002", null, null)
+                ),
+                EstimatedDeliveryFee.from(10_000),
+                REQUESTED_AT
+        );
     }
 }
