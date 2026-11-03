@@ -26,7 +26,7 @@ public class JdbcDeliveryQueryRepository implements DeliveryQueryRepository {
     public List<DeliveryRequest.Summary> findAvailableRequests() {
         return jdbcTemplate.query(
                 """
-                        SELECT id, item_name, category, pickup_address, delivery_address,
+                        SELECT id, order_id, item_name, category, pickup_address, delivery_address,
                                estimated_fee, status, requested_at
                         FROM delivery
                         WHERE status = 'REQUESTED' AND driver_id IS NULL
@@ -57,7 +57,7 @@ public class JdbcDeliveryQueryRepository implements DeliveryQueryRepository {
     public List<Shipment.Summary> findShipmentsByDriverId(final DriverId driverId) {
         return jdbcTemplate.query(
                 """
-                        SELECT id, item_name, category, pickup_address, delivery_address,
+                        SELECT id, order_id, item_name, category, pickup_address, delivery_address,
                                estimated_fee, status, accepted_at
                         FROM delivery
                         WHERE driver_id = ? AND status IN ('ACCEPTED', 'PICKED_UP', 'DELIVERED')
@@ -96,6 +96,7 @@ public class JdbcDeliveryQueryRepository implements DeliveryQueryRepository {
             throws SQLException {
         return new DeliveryRequest.Summary(
                 resultSet.getLong("id"),
+                resultSet.getLong("order_id"),
                 resultSet.getString("item_name"),
                 resultSet.getString("category"),
                 resultSet.getString("pickup_address"),
@@ -125,6 +126,7 @@ public class JdbcDeliveryQueryRepository implements DeliveryQueryRepository {
             throws SQLException {
         return new Shipment.Summary(
                 resultSet.getLong("id"),
+                resultSet.getLong("order_id"),
                 resultSet.getString("item_name"),
                 resultSet.getString("category"),
                 resultSet.getString("pickup_address"),

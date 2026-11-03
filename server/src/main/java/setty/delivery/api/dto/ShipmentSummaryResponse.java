@@ -8,6 +8,7 @@ public record ShipmentSummaryResponse(
         long deliveryId,
         String itemName,
         String category,
+        String thumbnailUrl,
         String pickupAddress,
         String deliveryAddress,
         long deliveryFee,
@@ -15,11 +16,12 @@ public record ShipmentSummaryResponse(
         Instant acceptedAt
 ) {
 
-    public static ShipmentSummaryResponse from(final Shipment.Summary summary) {
+    public static ShipmentSummaryResponse from(final Shipment.Summary summary, final String thumbnailUrl) {
         return new ShipmentSummaryResponse(
                 summary.deliveryId(),
                 summary.itemName(),
                 summary.category(),
+                thumbnailUrl,
                 summary.pickupAddress(),
                 summary.deliveryAddress(),
                 summary.deliveryFee(),

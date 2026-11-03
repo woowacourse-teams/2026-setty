@@ -2,6 +2,7 @@ package setty.delivery.api;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.CacheControl;
 import org.springframework.http.MediaType;
@@ -18,6 +19,8 @@ import setty.delivery.api.dto.ShipmentDetailResponse;
 import setty.delivery.api.dto.ShipmentSummaryResponse;
 import setty.delivery.application.DeliveryLifecycleService;
 import setty.delivery.application.DeliveryQueryService;
+import setty.delivery.application.readmodel.DeliveryRequest;
+import setty.delivery.application.readmodel.Shipment;
 import setty.delivery.auth.domain.DeliveryMember;
 import setty.delivery.domain.DeliveryId;
 import setty.delivery.domain.DriverId;
@@ -39,8 +42,11 @@ public class DeliveryController {
             @LoginDeliveryMember final DeliveryMember member
     ) {
         authenticatedDriverId(member);
-        final List<DeliveryRequestSummaryResponse> response = deliveryQueryService.findAvailableRequests().stream()
-                .map(DeliveryRequestSummaryResponse::from)
+        final List<DeliveryRequest.Summary> requests = deliveryQueryService.findAvailableRequests();
+        final Map<Long, String> thumbnails = deliveryQueryService.findThumbnailUrls(
+                requests.stream().map(DeliveryRequest.Summary::orderId).toList());
+        final List<DeliveryRequestSummaryResponse> response = requests.stream()
+                .map(request -> DeliveryRequestSummaryResponse.from(request, thumbnails.get(request.orderId())))
                 .toList();
         return ResponseEntity.ok(response);
     }
@@ -62,9 +68,9 @@ public class DeliveryController {
             @PathVariable final long deliveryId
     ) {
         authenticatedDriverId(member);
-        return ResponseEntity.ok(DeliveryRequestDetailResponse.from(
-                deliveryQueryService.findAvailableRequest(new DeliveryId(deliveryId))
-        ));
+        final DeliveryRequest.Detail request = deliveryQueryService.findAvailableRequest(new DeliveryId(deliveryId));
+        final String thumbnail = deliveryQueryService.findThumbnailUrls(List.of(request.orderId())).get(request.orderId());
+        return ResponseEntity.ok(DeliveryRequestDetailResponse.from(request, thumbnail));
     }
 
     @PostMapping("/requests/{deliveryId}")
@@ -84,9 +90,11 @@ public class DeliveryController {
     public ResponseEntity<List<ShipmentSummaryResponse>> findShipments(
             @LoginDeliveryMember final DeliveryMember member
     ) {
-        final List<ShipmentSummaryResponse> response = deliveryQueryService
-                .findShipments(authenticatedDriverId(member)).stream()
-                .map(ShipmentSummaryResponse::from)
+        final List<Shipment.Summary> shipments = deliveryQueryService.findShipments(authenticatedDriverId(member));
+        final Map<Long, String> thumbnails = deliveryQueryService.findThumbnailUrls(
+                shipments.stream().map(Shipment.Summary::orderId).toList());
+        final List<ShipmentSummaryResponse> response = shipments.stream()
+                .map(shipment -> ShipmentSummaryResponse.from(shipment, thumbnails.get(shipment.orderId())))
                 .toList();
         return ResponseEntity.ok(response);
     }
@@ -96,12 +104,10 @@ public class DeliveryController {
             @LoginDeliveryMember final DeliveryMember member,
             @PathVariable final long deliveryId
     ) {
-        return ResponseEntity.ok(ShipmentDetailResponse.from(
-                deliveryQueryService.findShipment(
-                        new DeliveryId(deliveryId),
-                        authenticatedDriverId(member)
-                )
-        ));
+        final Shipment.Detail shipment = deliveryQueryService.findShipment(
+                new DeliveryId(deliveryId), authenticatedDriverId(member));
+        final String thumbnail = deliveryQueryService.findThumbnailUrls(List.of(shipment.orderId())).get(shipment.orderId());
+        return ResponseEntity.ok(ShipmentDetailResponse.from(shipment, thumbnail));
     }
 
     @PostMapping("/shipments/{deliveryId}/pickup")
