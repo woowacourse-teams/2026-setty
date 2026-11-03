@@ -1,8 +1,10 @@
 import type {
     DeliveryRequestDetail,
+    DeliveryPage,
     DeliverySignUpForm,
     DeliverySummary,
-    ShipmentDetail
+    ShipmentDetail,
+    ShipmentGroup
 } from '../model/delivery';
 import { apiCall, deliveryLoginIdStore, deliveryTokenStore } from './http';
 
@@ -23,6 +25,10 @@ export const deliveryRepository = {
         return apiCall('/api/delivery/requests', delivery);
     },
 
+    getRequestPage(cursor: string | null = null): Promise<DeliveryPage> {
+        return apiCall('/api/delivery/requests', { ...delivery, query: { size: 20, cursor } });
+    },
+
     getRequest(deliveryId: number): Promise<DeliveryRequestDetail> {
         return apiCall(`/api/delivery/requests/${deliveryId}`, delivery);
     },
@@ -33,6 +39,10 @@ export const deliveryRepository = {
 
     getShipments(): Promise<DeliverySummary[]> {
         return apiCall('/api/delivery/shipments', delivery);
+    },
+
+    getShipmentPage(group: ShipmentGroup, cursor: string | null = null): Promise<DeliveryPage> {
+        return apiCall('/api/delivery/shipments', { ...delivery, query: { size: 20, cursor, group } });
     },
 
     getShipment(deliveryId: number): Promise<ShipmentDetail> {

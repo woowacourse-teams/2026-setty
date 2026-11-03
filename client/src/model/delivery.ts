@@ -4,6 +4,13 @@ import { categoryLabel, furnitureCategories, type FurnitureCategory } from './fu
 
 export type DeliveryStatus = 'REQUESTED' | 'ACCEPTED' | 'PICKED_UP' | 'DELIVERED';
 
+export type ShipmentGroup = 'IN_PROGRESS' | 'DELIVERED';
+
+export type DeliveryPage = {
+    items: DeliverySummary[];
+    nextCursor: string | null;
+};
+
 /** 배차 요청 목록과 내 배차 목록의 카드 하나. */
 export type DeliverySummary = {
     deliveryId: number;
