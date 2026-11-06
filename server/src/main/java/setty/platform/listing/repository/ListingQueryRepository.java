@@ -156,6 +156,37 @@ public class ListingQueryRepository {
         return String.join(" OR ", parts);
     }
 
+    public Optional<TextRow> findActiveText(Long listingId) {
+        return jdbcTemplate.query(
+                "SELECT category, title, description, price FROM listings WHERE id = ? AND deleted_at IS NULL",
+                (resultSet, rowNum) -> new TextRow(
+                        ListingCategory.valueOf(resultSet.getString("category")),
+                        resultSet.getString("title"),
+                        resultSet.getString("description"),
+                        resultSet.getInt("price")),
+                listingId)
+                .stream().findFirst();
+    }
+
+    // 지금 살 수 있는 같은 카테고리 매물을 최신순으로 읽는다. 비교할 매물과 조회자 본인 매물은 뺀다.
+    public List<SimilarCandidate> findSimilarCandidates(
+            ListingCategory category, Long excludedListingId, Long excludedSellerId, int limit
+    ) {
+        StringBuilder where = new StringBuilder(
+                " WHERE deleted_at IS NULL AND sale_status = 'AVAILABLE' AND has_purchase_request = FALSE"
+                        + " AND category = ? AND id <> ?");
+        List<Object> args = new ArrayList<>(List.of(category.name(), excludedListingId));
+        if (excludedSellerId != null) {
+            where.append(" AND seller_id <> ?");
+            args.add(excludedSellerId);
+        }
+        args.add(limit);
+        return jdbcTemplate.query(
+                SELECT_COLUMNS + ", description FROM listings" + where + ORDER_BY_LATEST + " LIMIT ?",
+                (resultSet, rowNum) -> new SimilarCandidate(mapRow(resultSet, rowNum), resultSet.getString("description")),
+                args.toArray());
+    }
+
     public Optional<MemberArea> findMemberAreaByToken(String token) {
         return jdbcTemplate.query("SELECT id, dong_code, zip_code FROM members WHERE token = ?",
                 (resultSet, rowNum) -> new MemberArea(resultSet.getLong("id"), resultSet.getString("dong_code"),
@@ -246,5 +277,11 @@ public class ListingQueryRepository {
     }
 
     public record MemberArea(Long id, String dongCode, String zipCode) {
+    }
+
+    public record TextRow(ListingCategory category, String title, String description, Integer price) {
+    }
+
+    public record SimilarCandidate(Row row, String description) {
     }
 }

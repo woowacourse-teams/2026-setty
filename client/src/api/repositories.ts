@@ -239,6 +239,11 @@ export const furnitureRepository = {
         return { items: response.items.map(toFurniture), nextCursor: response.nextCursor ?? null };
     },
 
+    /** 같은 카테고리에서 제목·설명이 비슷한 판매 중 매물. 최대 6개다. */
+    async getSimilarFurniture(listingId: number): Promise<FurnitureSummary[]> {
+        return (await apiCall<ListingListResponse>(`/api/listings/${listingId}/similar`)).items.map(toFurniture);
+    },
+
     async getFurnitureDetail(listingId: number): Promise<FurnitureDetail> {
         return toFurnitureDetail(await apiCall<FurnitureDetailResponse>(`/api/listings/${listingId}`));
     },

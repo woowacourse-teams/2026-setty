@@ -92,6 +92,14 @@ public class ListingController {
         return ResponseEntity.ok(listingService.findDetail(listingId, bearerToken(authorization)));
     }
 
+    @GetMapping("/{listingId}/similar")
+    public ResponseEntity<ListingListResponse<ListingView.Summary>> findSimilar(
+            @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String authorization,
+            @PathVariable Long listingId
+    ) {
+        return ResponseEntity.ok(new ListingListResponse<>(listingService.findSimilar(listingId, bearerToken(authorization))));
+    }
+
     private static String bearerToken(String authorization) {
         if (authorization == null || !authorization.startsWith("Bearer ")) {
             return null;

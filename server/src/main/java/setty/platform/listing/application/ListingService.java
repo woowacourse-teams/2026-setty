@@ -9,6 +9,7 @@ import static setty.global.exception.ErrorCode.MEMBER_DONG_REQUIRED;
 
 import java.time.Instant;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -37,6 +38,7 @@ import setty.platform.listing.domain.Listing;
 import setty.platform.listing.domain.ListingCategory;
 import setty.platform.listing.domain.ListingImage;
 import setty.platform.listing.domain.ListingSearchTerms;
+import setty.platform.listing.domain.ListingText;
 import setty.platform.listing.domain.SaleStatus;
 import setty.platform.listing.repository.ListingImageRepository;
 import setty.platform.listing.repository.ListingQueryRepository;
@@ -52,6 +54,8 @@ public class ListingService {
     private static final Logger log = LoggerFactory.getLogger(ListingService.class);
     public static final int DEFAULT_PAGE_SIZE = 20;
     private static final int MAXIMUM_PAGE_SIZE = 100;
+    private static final int SIMILAR_LISTING_LIMIT = 6;
+    private static final int SIMILAR_CANDIDATE_LIMIT = 100;
     private static final int MAXIMUM_PRICE = 100_000_000;
 
     private static final List<OrderStatus> CLOSED_ORDER_STATUSES = List.of(OrderStatus.EXPIRED, OrderStatus.CANCELLED);
@@ -240,7 +244,16 @@ public class ListingService {
         boolean hasNext = size != null && rows.size() > size;
         List<ListingQueryRepository.Row> page = hasNext ? rows.subList(0, size) : rows;
         ListingRequestTiming.count("listing_count", page.size());
+        List<ListingView.Summary> summaries = toSummaries(reader, page, buyer);
 
+        ListingQueryRepository.Row last = hasNext ? page.get(page.size() - 1) : null;
+        String nextCursor = last == null ? null : new ListingCursor(last.createdAt(), last.id()).encode();
+        return new ListingView.SummaryPage(summaries, nextCursor);
+    }
+
+    private List<ListingView.Summary> toSummaries(
+            ListingQueryRepository reader, List<ListingQueryRepository.Row> page, Buyer buyer
+    ) {
         List<Long> listingIds = page.stream().map(ListingQueryRepository.Row::id).toList();
         Map<Long, String> thumbnails = ListingRequestTiming.measure("images", () -> listingIds.isEmpty()
                 ? Map.<Long, String>of()
@@ -260,10 +273,36 @@ public class ListingService {
                         favoriteCounts.getOrDefault(row.id(), 0)))
                 .toList());
         ListingRequestTiming.count("summary_count", summaries.size());
+        return summaries;
+    }
 
-        ListingQueryRepository.Row last = hasNext ? page.get(page.size() - 1) : null;
-        String nextCursor = last == null ? null : new ListingCursor(last.createdAt(), last.id()).encode();
-        return new ListingView.SummaryPage(summaries, nextCursor);
+    // 트랜잭션 없이 JDBC로 읽는다. 후보가 많아야 100개라 요청마다 점수를 계산한다.
+    public List<ListingView.Summary> findSimilar(Long listingId, String buyerToken) {
+        return listingQueryRepository.inOneConnection(reader -> {
+            ListingQueryRepository.TextRow target = reader.findActiveText(listingId)
+                    .orElseThrow(() -> new BusinessException(LISTING_NOT_FOUND));
+            // 기타는 조명·소품·거울처럼 묶음이 넓어 같은 카테고리라는 것만으로 비슷하다고 보기 어렵다
+            if (target.category() == ListingCategory.ETC) {
+                return List.of();
+            }
+            Buyer buyer = buyerOf(reader, buyerToken);
+            ListingText targetText = ListingText.of(target.title(), target.description());
+            List<ListingQueryRepository.Row> ranked = reader
+                    .findSimilarCandidates(target.category(), listingId, buyer.memberId(), SIMILAR_CANDIDATE_LIMIT)
+                    .stream()
+                    .map(candidate -> new ScoredCandidate(candidate.row(),
+                            targetText.similarityTo(ListingText.of(candidate.row().title(), candidate.description())),
+                            Math.abs(candidate.row().price() - target.price())))
+                    .sorted(Comparator.comparingDouble(ScoredCandidate::score).reversed()
+                            .thenComparingInt(ScoredCandidate::priceGap))
+                    .limit(SIMILAR_LISTING_LIMIT)
+                    .map(ScoredCandidate::row)
+                    .toList();
+            return toSummaries(reader, ranked, buyer);
+        });
+    }
+
+    private record ScoredCandidate(ListingQueryRepository.Row row, double score, int priceGap) {
     }
 
     @Transactional(readOnly = true)

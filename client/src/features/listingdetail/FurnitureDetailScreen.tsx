@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
 import { trackEvent } from '../../analytics/posthog';
 import { getPriceVariant } from '../../analytics/priceScenario';
 import { isUnauthorized, toUserMessage } from '../../api/errors';
@@ -14,7 +14,8 @@ import {
     isPaymentInProgress,
     isPurchasable,
     isTrading,
-    type FurnitureDetail
+    type FurnitureDetail,
+    type FurnitureSummary
 } from '../../model/furniture';
 import { routes, useNavigateBack, useNavigateToLogin, useNavigateToLoginFromHere } from '../../navigation';
 import { readNotification } from '../../push/unreadNotifications';
@@ -272,7 +273,54 @@ function ListingDetailBody({ listing }: { listing: FurnitureDetail }) {
                 <SectionTitle>상세 설명</SectionTitle>
                 <p className={`${styles.description} type-body-large-em`}>{listing.description}</p>
             </section>
+            <SimilarListings listingId={listing.id} showDeliveryCosts={showDeliveryCosts} />
         </div>
+    );
+}
+
+// 추천은 부가 정보라 실패하거나 비어 있으면 영역을 감춘다
+function SimilarListings({ listingId, showDeliveryCosts }: { listingId: number; showDeliveryCosts: boolean }) {
+    const [items, setItems] = useState<FurnitureSummary[]>([]);
+
+    useEffect(() => {
+        let active = true;
+        setItems([]);
+        furnitureRepository.getSimilarFurniture(listingId)
+            .then((similar) => {
+                if (!active) return;
+                setItems(similar);
+                if (similar.length > 0) trackEvent('similar_listings_shown', { listing_id: listingId, count: similar.length });
+            })
+            .catch(() => undefined);
+        return () => {
+            active = false;
+        };
+    }, [listingId]);
+
+    if (items.length === 0) return null;
+    return (
+        <section className={styles.section}>
+            <SectionTitle>비슷한 매물</SectionTitle>
+            <ul className={styles['similar-listings']}>
+                {items.map((item, index) => (
+                    <li key={item.id}>
+                        <Link
+                            className={styles['similar-listing']}
+                            onClick={() => trackEvent('similar_listing_clicked', { listing_id: listingId, clicked_listing_id: item.id, position: index })}
+                            to={routes.furnitureDetail(item.id)}
+                        >
+                            <div className={styles['similar-listing__image']}>
+                                {item.thumbnailUrl
+                                    ? <img alt="" loading="lazy" src={item.thumbnailUrl} />
+                                    : <span className="type-body-medium-em">사진 없음</span>}
+                            </div>
+                            <span className={`${styles['similar-listing__title']} type-body-medium-em`}>{item.title}</span>
+                            <span className="type-title-small-em">{formatWon(showDeliveryCosts ? item.totalPrice : item.price)}</span>
+                        </Link>
+                    </li>
+                ))}
+            </ul>
+        </section>
     );
 }
 
