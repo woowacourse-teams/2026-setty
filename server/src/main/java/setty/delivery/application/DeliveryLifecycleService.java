@@ -39,7 +39,7 @@ public class DeliveryLifecycleService {
         delivery.accept(driverId, acceptedAt);
         deliveryRepository.save(delivery);
         eventPublisher.publishEvent(new DeliveryAccepted(deliveryId.value(), orderIdOf(delivery), acceptedAt));
-        eventPublisher.publishEvent(new DeliveryRequestsChanged());
+        eventPublisher.publishEvent(DeliveryRequestsChanged.of(delivery));
     }
 
     public void pickUp(final DeliveryId deliveryId, final DriverId driverId, final Instant pickedUpAt) {
@@ -67,7 +67,7 @@ public class DeliveryLifecycleService {
         eventPublisher.publishEvent(new DeliveryAssignmentCancelled(
                 deliveryId.value(), orderIdOf(delivery), driverId.value(), acceptedAt, cancelledAt
         ));
-        eventPublisher.publishEvent(new DeliveryRequestsChanged());
+        eventPublisher.publishEvent(DeliveryRequestsChanged.of(delivery));
     }
 
     public void complete(final DeliveryId deliveryId, final DriverId driverId, final Instant deliveredAt) {
@@ -120,7 +120,7 @@ public class DeliveryLifecycleService {
         delivery.cancel();
         deliveryRepository.save(delivery);
         publishCancelled(delivery.getId(), orderId, cancellationRequestId, decidedAt);
-        eventPublisher.publishEvent(new DeliveryRequestsChanged());
+        eventPublisher.publishEvent(DeliveryRequestsChanged.of(delivery));
     }
 
     private Delivery findDelivery(final DeliveryId deliveryId) {

@@ -19,27 +19,39 @@ public class DeliveryPoint {
 
     private String zipCode;
 
+    // 묶음 배송 후보를 고르는 250m 격자 칸(GridCell). 주문 때 저장한 건물 관리번호의 주소 기준표 좌표로 계산하며,
+    // 관리번호나 좌표가 없으면 NULL이다.
+    private Integer cell;
+
     protected DeliveryPoint() {
     }
 
-    private DeliveryPoint(final String address, final String phoneNumber, final String dongCode, final String zipCode) {
+    private DeliveryPoint(final String address, final String phoneNumber, final String dongCode, final String zipCode,
+                          final Integer cell) {
         this.address = new Address(address);
         this.phoneNumber = new PhoneNumber(phoneNumber);
         this.dongCode = dongCode;
         this.zipCode = zipCode;
+        this.cell = cell;
     }
 
     // 출발지·도착지 역할은 DeliveryRoute에서의 위치로 정해진다. 이름은 생성하는 쪽의 의도를 드러내기 위한 것이다.
     public static DeliveryPoint pickup(
-            final String address, final String phoneNumber, final String dongCode, final String zipCode
+            final String address, final String phoneNumber, final String dongCode, final String zipCode,
+            final Integer cell
     ) {
-        return new DeliveryPoint(address, phoneNumber, dongCode, zipCode);
+        return new DeliveryPoint(address, phoneNumber, dongCode, zipCode, cell);
     }
 
     public static DeliveryPoint destination(
-            final String address, final String phoneNumber, final String dongCode, final String zipCode
+            final String address, final String phoneNumber, final String dongCode, final String zipCode,
+            final Integer cell
     ) {
-        return new DeliveryPoint(address, phoneNumber, dongCode, zipCode);
+        return new DeliveryPoint(address, phoneNumber, dongCode, zipCode, cell);
+    }
+
+    public Integer getCell() {
+        return cell;
     }
 
     @Override
@@ -51,11 +63,12 @@ public class DeliveryPoint {
             return false;
         }
         return Objects.equals(address, that.address) && Objects.equals(phoneNumber, that.phoneNumber)
-                && Objects.equals(dongCode, that.dongCode) && Objects.equals(zipCode, that.zipCode);
+                && Objects.equals(dongCode, that.dongCode) && Objects.equals(zipCode, that.zipCode)
+                && Objects.equals(cell, that.cell);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(address, phoneNumber, dongCode, zipCode);
+        return Objects.hash(address, phoneNumber, dongCode, zipCode, cell);
     }
 }

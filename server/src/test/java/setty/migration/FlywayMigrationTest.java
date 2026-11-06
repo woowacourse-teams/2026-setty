@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.DriverManager;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -34,8 +35,9 @@ class FlywayMigrationTest {
             "delivery_address_mgmt_no");
     private static final List<String> DELIVERY_ZONE_COLUMNS = List.of("pickup_dong_code", "pickup_zip_code",
             "delivery_dong_code", "delivery_zip_code");
+    private static final List<String> DELIVERY_CELL_COLUMNS = List.of("pickup_cell", "delivery_cell");
     private static final List<String> KEYWORD_CONDITION_COLUMNS = List.of("max_delivery_fee", "max_total_price");
-    private static final int MIGRATION_COUNT = 15;
+    private static final int MIGRATION_COUNT = 16;
 
     @Container
     static final MySQLContainer MYSQL = new MySQLContainer("mysql:8.4.11");
@@ -163,10 +165,14 @@ class FlywayMigrationTest {
         seedExistingRows();
         var deliveryBefore = jdbc.queryForMap("SELECT * FROM delivery WHERE id=1");
 
-        assertThat(flyway(false).migrate().migrationsExecuted).isEqualTo(6);
+        assertThat(flyway(false).migrate().migrationsExecuted).isEqualTo(7);
 
         assertCurrentSchema();
-        assertThat(jdbc.queryForMap("SELECT * FROM delivery WHERE id=1")).isEqualTo(deliveryBefore);
+        // 기존 배송 행은 그대로이고, 나중에 더한 칸 번호만 NULL로 생긴다.
+        var deliveryAfter = new HashMap<>(jdbc.queryForMap("SELECT * FROM delivery WHERE id=1"));
+        assertThat(deliveryAfter.remove("pickup_cell")).isNull();
+        assertThat(deliveryAfter.remove("delivery_cell")).isNull();
+        assertThat(deliveryAfter).isEqualTo(new HashMap<>(deliveryBefore));
         assertThat(flyway(false).migrate().migrationsExecuted).isZero();
     }
 
@@ -256,6 +262,11 @@ class FlywayMigrationTest {
                 .isEqualTo("status,driver_id,requested_at,id");
         assertThat(indexColumns("delivery", "idx_delivery_shipments"))
                 .isEqualTo("driver_id,accepted_at,id");
+        for (var column : DELIVERY_CELL_COLUMNS) {
+            assertThat(columnCount("delivery", column)).as("delivery.%s", column).isOne();
+        }
+        assertThat(indexColumns("delivery", "idx_delivery_cells"))
+                .isEqualTo("pickup_cell,delivery_cell,status");
         assertThat(indexColumns("listings", "idx_listings_delivery_filter"))
                 .isEqualTo("deleted_at,sale_status,created_at,id,dong_code,volume_tier");
         assertThat(columnCount("listings", "zip_zone")).isOne();
@@ -291,6 +302,7 @@ class FlywayMigrationTest {
                 || table.equals("listings") && name.equals("zip_zone")
                 || table.equals("orders") && ORDER_PICKUP_SNAPSHOT_COLUMNS.contains(name)
                 || table.equals("delivery") && DELIVERY_ZONE_COLUMNS.contains(name)
+                || table.equals("delivery") && DELIVERY_CELL_COLUMNS.contains(name)
                 || table.equals("keyword_subscriptions") && KEYWORD_CONDITION_COLUMNS.contains(name)
                 || table.equals("keyword_exclusions")
                 || table.equals("listing_notifications") && name.equals("read_at")

@@ -45,8 +45,8 @@ class DeliveryRequestsChangedPublisherTest {
                 OrderId.from(1L),
                 FurnitureInfo.of("가상 원목 의자", "CHAIR"),
                 DeliveryRoute.of(
-                        DeliveryPoint.pickup("서울시 가상구 출발로 1", "010-0000-0001", null, null),
-                        DeliveryPoint.destination("서울시 가상구 도착로 2", "010-0000-0002", null, null)
+                        DeliveryPoint.pickup("서울시 가상구 출발로 1", "010-0000-0001", null, null, null),
+                        DeliveryPoint.destination("서울시 가상구 도착로 2", "010-0000-0002", null, null, null)
                 ),
                 EstimatedDeliveryFee.from(10_000),
                 REQUESTED_AT
@@ -64,6 +64,10 @@ class DeliveryRequestsChangedPublisherTest {
         final Delivery delivery = mock(Delivery.class);
         when(delivery.getId()).thenReturn(new DeliveryId(1L));
         when(delivery.getOrderId()).thenReturn(OrderId.from(2L));
+        when(delivery.getRoute()).thenReturn(DeliveryRoute.of(
+                DeliveryPoint.pickup("서울시 가상구 출발로 1", "010-0000-0001", null, null, 1_468_580_097),
+                DeliveryPoint.destination("서울시 가상구 도착로 2", "010-0000-0002", null, null, 1_468_875_040)
+        ));
         when(deliveryRepository.findByIdForUpdate(anyLong())).thenReturn(Optional.of(delivery));
         final DeliveryLifecycleService service = new DeliveryLifecycleService(
                 deliveryRepository,
@@ -73,7 +77,7 @@ class DeliveryRequestsChangedPublisherTest {
 
         service.accept(new DeliveryId(1L), new DriverId(3L), REQUESTED_AT);
 
-        verify(eventPublisher).publishEvent(isA(DeliveryRequestsChanged.class));
+        verify(eventPublisher).publishEvent(new DeliveryRequestsChanged(1_468_580_097, 1_468_875_040));
     }
 
     @Test
@@ -86,8 +90,8 @@ class DeliveryRequestsChangedPublisherTest {
                 OrderId.from(2L),
                 FurnitureInfo.of("가상 원목 의자", "CHAIR"),
                 DeliveryRoute.of(
-                        DeliveryPoint.pickup("서울시 가상구 출발로 1", "010-0000-0001", null, null),
-                        DeliveryPoint.destination("서울시 가상구 도착로 2", "010-0000-0002", null, null)
+                        DeliveryPoint.pickup("서울시 가상구 출발로 1", "010-0000-0001", null, null, null),
+                        DeliveryPoint.destination("서울시 가상구 도착로 2", "010-0000-0002", null, null, null)
                 ),
                 EstimatedDeliveryFee.from(10_000),
                 REQUESTED_AT
