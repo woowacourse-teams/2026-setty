@@ -104,8 +104,8 @@ class PaymentServiceIntegrationTest extends MySqlIntegrationTestSupport {
     }
 
     @Test
-    void 결제_뒤_주문_처리가_실패해도_결제는_유지된다() {
-        // 토스 승인을 기다리는 사이 주문이 먼저 취소되어 주문 확정이 실패하는 상황
+    void 결제_중_판매자가_주문을_취소해도_결제는_유지되고_주문은_되살리지_않는다() {
+        // 토스 승인을 기다리는 사이 판매자가 매물을 내려 주문이 먼저 취소된 상황. 환불은 수동 확인 대상으로 로그만 남긴다.
         stubTossSuccessAfter(() ->
                 jdbcTemplate.update("UPDATE orders SET order_status = 'CANCELLED' WHERE id = ?", ORDER_ID));
 
@@ -114,8 +114,9 @@ class PaymentServiceIntegrationTest extends MySqlIntegrationTestSupport {
 
         assertThat(payment.getStatus().name()).isEqualTo("DONE");
         assertThat(paymentCount()).isEqualTo(1);
-        // 주문 처리 실패는 발행 기록에 미완료로 남아 재발행 대상이 된다.
-        assertThat(incompletePublicationCount(jdbcTemplate, PaymentCompleted.class)).isEqualTo(1);
+        assertThat(jdbcTemplate.queryForObject("SELECT order_status FROM orders WHERE id = ?", String.class, ORDER_ID))
+                .isEqualTo("CANCELLED");
+        assertThat(incompletePublicationCount(jdbcTemplate, PaymentCompleted.class)).isZero();
     }
 
     @Test

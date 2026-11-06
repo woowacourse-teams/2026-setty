@@ -43,6 +43,10 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     );
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select o from Order o where o.listingId = :listingId and o.orderStatus = setty.platform.order.domain.OrderStatus.PENDING")
+    List<Order> findPendingByListingIdForUpdate(@Param("listingId") Long listingId);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select o from Order o where o.id = :orderId and o.buyerId = :buyerId")
     Optional<Order> findByIdAndBuyerIdForUpdate(
             @Param("orderId") Long orderId,
