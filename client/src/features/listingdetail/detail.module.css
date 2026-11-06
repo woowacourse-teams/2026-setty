@@ -19,6 +19,10 @@
     gap: 2px;
 }
 
+.favorite-action__icon {
+    color: var(--on-surface-variant);
+}
+
 .favorite-action__count {
     min-width: 16px;
     color: var(--on-surface-variant);

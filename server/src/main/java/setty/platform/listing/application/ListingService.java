@@ -545,6 +545,7 @@ public class ListingService {
                 listing.getSaleStatus(),
                 listing.hasPurchaseRequest(),
                 purchaseRequestedBy(listing, myOrder),
+                buyer.memberId() != null && listing.isOwnedBy(buyer.memberId()),
                 orderStateOf(listing.getSaleStatus(), listing.hasPurchaseRequest(),
                         findOpenOrderStatuses(List.of(listing.getId())).getOrDefault(listing.getId(), List.of())),
                 myOrder == null ? null : myOrder.getId(),

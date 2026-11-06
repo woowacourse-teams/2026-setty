@@ -154,6 +154,7 @@ function toFurnitureDetail(response: FurnitureDetailResponse): FurnitureDetail {
         dongName: response.dong ? dongDisplayName(response.dong) : null,
         hasPurchaseRequest: response.hasPurchaseRequest ?? false,
         purchaseRequestedByMe: response.purchaseRequestedByMe ?? false,
+        ownedByMe: response.ownedByMe ?? false,
         orderState: orderStateOf(response.orderState, response.hasPurchaseRequest ?? false),
         myOrderId: response.myOrderId ?? null,
         favoriteCount: response.favoriteCount ?? 0

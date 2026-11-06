@@ -6,6 +6,7 @@ import { isUnauthorized, toUserMessage } from '../../api/errors';
 import { ApiError, NetworkError } from '../../api/http';
 import { favoriteRepository, furnitureRepository, notificationRepository } from '../../api/repositories';
 import {
+    canEditOwnListing,
     canResumePayment,
     categoryLabel,
     formatWon,
@@ -30,6 +31,7 @@ import {
     SectionTitle,
     SettyMessage
 } from '../../ui/components';
+import { Icon } from '../../ui/Icon';
 import { shapeStyle } from '../../ui/shapes';
 import { showSnackbar } from '../../ui/snackbar';
 import screenStyles from '../screens.module.css';
@@ -62,6 +64,7 @@ const detailErrorMessages: Record<DetailError, string> = {
 };
 
 function purchaseButtonLabel(listing: FurnitureDetail): string {
+    if (listing.ownedByMe) return canEditOwnListing(listing) ? '내 매물 수정하기' : '거래가 진행 중인 내 매물이에요';
     if (isPurchasable(listing)) return '결제하고 주문하기';
     if (canResumePayment(listing)) return '결제 이어서 하기';
     if (hasMyOrder(listing)) return '내 주문 보기';
@@ -169,9 +172,13 @@ export function FurnitureDetailScreen() {
             bottomBar={listing && (
                 <BottomBar>
                     <Button
-                        disabled={!isPurchasable(listing) && !canResumePayment(listing) && !hasMyOrder(listing)}
+                        disabled={listing.ownedByMe
+                            ? !canEditOwnListing(listing)
+                            : !isPurchasable(listing) && !canResumePayment(listing) && !hasMyOrder(listing)}
                         fullWidth
-                        onClick={() => (hasMyOrder(listing) && listing.myOrderId !== null
+                        onClick={() => (listing.ownedByMe
+                            ? navigate(routes.listingEdit(listing.id))
+                            : hasMyOrder(listing) && listing.myOrderId !== null
                             ? navigate(routes.orderDetail(listing.myOrderId))
                             : navigate(routes.payment(listing.id), { state: { orderName: listing.title, amount: listing.totalPrice, resuming: canResumePayment(listing) } }))}
                         size="medium"
@@ -184,7 +191,8 @@ export function FurnitureDetailScreen() {
                 <FlexibleTopAppBar
                     actions={listing && (
                         <span className={styles['favorite-action']}>
-                            <IconButton
+                            {listing.ownedByMe && <Icon className={styles['favorite-action__icon']} name="favorite" size={20} />}
+                            {!listing.ownedByMe && <IconButton
                                 aria-busy={favorite.isUpdating}
                                 aria-pressed={favorite.isFavorited === true}
                                 // 요청 중 연속 클릭은 toggleFavorite가 막는다. 비활성으로 바꾸면 아이콘이 잠깐 흐려져 깜빡인다
@@ -193,7 +201,7 @@ export function FurnitureDetailScreen() {
                                 label={favorite.isFavorited ? '찜 해제' : '찜하기'}
                                 onClick={() => void toggleFavorite()}
                                 variant={favorite.isFavorited ? 'tonal' : 'tonal-off'}
-                            />
+                            />}
                             <span aria-label={`찜 ${favoriteCount}개`} className={`${styles['favorite-action__count']} type-label-large`}>
                                 {favoriteCount}
                             </span>

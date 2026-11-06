@@ -61,6 +61,7 @@ public final class ListingView {
             SaleStatus saleStatus,
             boolean hasPurchaseRequest,
             boolean purchaseRequestedByMe,
+            boolean ownedByMe,
             OrderState orderState,
             Long myOrderId,
             int favoriteCount,
