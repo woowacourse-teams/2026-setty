@@ -3,6 +3,7 @@ import { deleteToken, getMessaging, getToken, isSupported, onMessage, type Messa
 import { tokenStore } from '../api/http';
 import { deviceTokenRepository, notificationRepository } from '../api/repositories';
 import { formatWon } from '../model/furniture';
+import { notificationPath, orderNoticeOf } from '../model/notification';
 import { routes } from '../navigation';
 import { showSnackbar } from '../ui/snackbar';
 import { refreshUnreadNotifications } from './unreadNotifications';
@@ -114,14 +115,40 @@ export async function listenForegroundMessages(navigate: (path: string) => void)
         const data = payload.data ?? {};
         const listingId = Number(data.listingId);
         const notificationId = Number(data.notificationId);
-        if (!Number.isSafeInteger(listingId) || !data.title) return;
-        if (Number.isSafeInteger(notificationId)) void notificationRepository.ack(notificationId).catch(() => undefined);
+        if (!Number.isSafeInteger(listingId)) return;
+        if (data.type === 'ORDER') {
+            showOrderSnackbar(data, listingId, notificationId, navigate);
+            return;
+        }
+        if (!data.title) return;
+        if (Number.isSafeInteger(notificationId)) {
+            void notificationRepository.ack({ type: 'KEYWORD', id: notificationId }).catch(() => undefined);
+        }
         void refreshUnreadNotifications();
         showSnackbar(`관심 키워드의 새 매물: ${data.title}${priceSuffix(data.price, data.deliveryFee)}`, {
             actionLabel: '보기',
             long: true,
             onAction: () => navigate(routes.furnitureDetail(listingId))
         });
+    });
+}
+
+function showOrderSnackbar(
+    data: Record<string, string>,
+    listingId: number,
+    notificationId: number,
+    navigate: (path: string) => void
+) {
+    const order = orderNoticeOf(Number(data.orderId), data.recipient, data.headline);
+    if (!order) return;
+    if (Number.isSafeInteger(notificationId)) {
+        void notificationRepository.ack({ type: 'ORDER', id: notificationId }).catch(() => undefined);
+    }
+    void refreshUnreadNotifications();
+    showSnackbar(data.body ? `${order.headline} · ${data.body}` : order.headline, {
+        actionLabel: '보기',
+        long: true,
+        onAction: () => navigate(notificationPath(listingId, order))
     });
 }
 

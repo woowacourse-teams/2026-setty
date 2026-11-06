@@ -18,6 +18,7 @@ import {
     type OrderedFurniture
 } from '../../model/order';
 import { routes, useNavigateBack, useNavigateToLogin } from '../../navigation';
+import { useNotificationOpenedFromUrl } from '../../push/openedNotification';
 import {
     AlertDialog,
     BackIconButton,
@@ -47,6 +48,7 @@ const CANCEL_POLL_DELAY_MILLIS = 1_500;
 
 export function OrderDetailScreen() {
     const { orderId: orderIdParam } = useParams();
+    useNotificationOpenedFromUrl();
     const orderId = Number(orderIdParam);
     const navigate = useNavigate();
     const navigateBack = useNavigateBack();
