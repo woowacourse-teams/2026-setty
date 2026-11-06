@@ -15,7 +15,7 @@ const apiTarget = process.env.SIM_API_URL ?? 'http://localhost:8080';
 const osrmTarget = process.env.SIM_OSRM_URL ?? 'http://localhost:5008';
 const clientUrl = process.env.SIM_CLIENT_URL ?? `http://${lanIp()}:3000`;
 // 남쪽 위도, 서쪽 경도, 가로 칸 수, 세로 칸 수. 기본은 동작구 상도3·4동 일대.
-const area = (process.env.SIM_AREA ?? '37.4926,126.9265,8,5').split(',').map(Number);
+const area = (process.env.SIM_AREA ?? '37.4945,126.9265,8,5').split(',').map(Number);
 
 export default defineConfig({
     define: {

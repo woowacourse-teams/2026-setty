@@ -31,7 +31,7 @@ http://localhost:5180 을 엽니다.
 | `SIM_API_URL` | `http://localhost:8080` | `/api`를 넘길 서버. 시연 때는 prod |
 | `SIM_CLIENT_URL` | `http://<노트북 LAN IP>:3000` | QR에 담을 배송원 웹 주소. 폰에서 열 수 있어야 함. 노트북의 client 개발 서버를 쓸 때는 `npx webpack serve --mode development --no-compress`로 띄워야 SSE가 바로 옵니다 |
 | `SIM_OSRM_URL` | `http://localhost:5008` | `/osrm`을 넘길 OSRM |
-| `SIM_AREA` | `37.4926,126.9265,8,5` | 격자 영역: 남쪽 위도, 서쪽 경도, 가로 칸 수, 세로 칸 수(상도3·4동 일대) |
+| `SIM_AREA` | `37.4945,126.9265,8,5` | 격자 영역: 남쪽 위도, 서쪽 경도, 가로 칸 수, 세로 칸 수(상도3·4동 일대) |
 
 프록시가 요청의 Origin 헤더를 떼므로 서버 CORS 설정은 바꾸지 않아도 됩니다.
 

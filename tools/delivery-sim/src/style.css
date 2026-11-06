@@ -37,3 +37,8 @@ footer { padding-top: 12px; border-top: 1px solid #dfe5da; font-size: 12px; colo
 .cell-label { background: none; border: 0; box-shadow: none; color: #798777; font-size: 10px; }
 .leaflet-interactive:focus { outline: none; }
 #arrivals { padding-left: 16px; }
+.base-tiles { filter: grayscale(1) brightness(1.06) contrast(.88); }
+.cand-label { display: flex; align-items: flex-start; justify-content: center; text-align: center; font-size: 11px; line-height: 1.3; color: #2f3a2e; }
+.cand-label span { padding: 2px 6px; border-radius: 4px; background: rgba(255, 255, 255, .9); white-space: nowrap; }
+.cand-label b { color: #A65E44; }
+.cand-label.past span { color: #A65E44; background: rgba(255, 255, 255, .75); }
