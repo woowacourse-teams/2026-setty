@@ -185,7 +185,7 @@ class OrderServiceTest {
         assertThat(eventCaptor.getValue()).isEqualTo(new OrderConfirmed(
                 ORDER_ID, "가상 책상", ListingCategory.DESK.name(), "주문 때 판매자 주소", "주문 때 주소",
                 25_000, "010-3333-4444", "010-1111-2222", LISTING_ID, SELLER_ID, 150_000,
-                "1111053000", "1111060000", "04524", "06236"));
+                "1111053000", "1111060000", "04524", "06236", "SELLER-MGMT", "BUYER-MGMT"));
         // 결제 뒤 판매자·구매자가 주소를 바꿨어도 회원 정보를 읽지 않는다
         verifyNoInteractions(memberRepository);
     }
@@ -222,6 +222,8 @@ class OrderServiceTest {
                 150_000,
                 null,
                 "1111060000",
+                null,
+                null,
                 null,
                 null
         ));

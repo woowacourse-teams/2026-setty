@@ -120,8 +120,8 @@ class DeliveryAssignmentCancellationApiTest extends MySqlIntegrationTestSupport 
                 OrderId.from(ORDER_ID),
                 FurnitureInfo.of("가상 원목 의자", "CHAIR"),
                 DeliveryRoute.of(
-                        DeliveryPoint.pickup("서울시 가상구 출발로 1", "010-0000-0001", null, null),
-                        DeliveryPoint.destination("서울시 가상구 도착로 2", "010-0000-0002", null, null)
+                        DeliveryPoint.pickup("서울시 가상구 출발로 1", "010-0000-0001", null, null, null),
+                        DeliveryPoint.destination("서울시 가상구 도착로 2", "010-0000-0002", null, null, null)
                 ),
                 EstimatedDeliveryFee.from(10_000),
                 Instant.now()

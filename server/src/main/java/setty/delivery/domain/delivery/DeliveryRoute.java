@@ -22,6 +22,7 @@ public class DeliveryRoute {
     )
     @AttributeOverride(name = "dongCode", column = @Column(name = "pickup_dong_code", length = 10))
     @AttributeOverride(name = "zipCode", column = @Column(name = "pickup_zip_code", length = 5))
+    @AttributeOverride(name = "cell", column = @Column(name = "pickup_cell"))
     private DeliveryPoint pickup;
 
     @Embedded
@@ -35,6 +36,7 @@ public class DeliveryRoute {
     )
     @AttributeOverride(name = "dongCode", column = @Column(name = "delivery_dong_code", length = 10))
     @AttributeOverride(name = "zipCode", column = @Column(name = "delivery_zip_code", length = 5))
+    @AttributeOverride(name = "cell", column = @Column(name = "delivery_cell"))
     private DeliveryPoint destination;
 
     protected DeliveryRoute() {
@@ -50,6 +52,14 @@ public class DeliveryRoute {
 
     public static DeliveryRoute of(final DeliveryPoint pickup, final DeliveryPoint destination) {
         return new DeliveryRoute(pickup, destination);
+    }
+
+    public Integer pickupCell() {
+        return pickup.getCell();
+    }
+
+    public Integer deliveryCell() {
+        return destination.getCell();
     }
 
     @Override

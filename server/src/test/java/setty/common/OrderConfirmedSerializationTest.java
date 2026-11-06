@@ -30,6 +30,8 @@ class OrderConfirmedSerializationTest extends MySqlIntegrationTestSupport {
         assertThat(event.pickupDongCode()).isNull();
         assertThat(event.pickupZipCode()).isNull();
         assertThat(event.deliveryZipCode()).isNull();
+        assertThat(event.pickupAddressManagementNumber()).isNull();
+        assertThat(event.deliveryAddressManagementNumber()).isNull();
         assertThat(event.deliveryFee()).isEqualTo(10_000);
         assertThat(event.deliveryAddress()).isEqualTo("구매자 주소");
     }
@@ -55,7 +57,7 @@ class OrderConfirmedSerializationTest extends MySqlIntegrationTestSupport {
     void 출발지와_배송지_구역을_담아_저장하고_다시_읽는다() {
         OrderConfirmed event = new OrderConfirmed(1L, "가상 책상", "DESK", "판매자 주소", "구매자 주소", 25_000,
                 "010-0000-0001", "010-0000-0002", 100L, 10L, 150_000, "1111053000",
-                "1111060000", "04524", "06236");
+                "1111060000", "04524", "06236", "SELLER-MGMT", "BUYER-MGMT");
 
         Object serialized = eventSerializer.serialize(event);
 

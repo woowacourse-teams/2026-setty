@@ -169,7 +169,7 @@ class DeliveryAssignmentCancellationFlowIntegrationTest extends MySqlIntegration
                         "서울시 가상구 출발로 1", "서울시 가상구 도착로 2", 10_000,
                         "010-0000-0001", "010-0000-0002",
                         LISTING_ID, SELLER_ID, 150_000,
-                        null, null, null, null
+                        null, null, null, null, null, null
                 )
         ));
         awaitEventsHandled(jdbcTemplate);
