@@ -30,6 +30,7 @@ import setty.common.DeliveryStatus;
 import setty.common.OrderCancellationRequested;
 import setty.common.OrderCancelled;
 import setty.common.OrderConfirmed;
+import setty.common.OrderStatusNotified;
 import setty.global.exception.BusinessException;
 import setty.global.exception.ErrorCode;
 import setty.platform.listing.application.ListingService;
@@ -78,6 +79,9 @@ class OrderServiceTest {
 
     @Mock
     private PendingOrderExpirationProperties pendingOrderExpirationProperties;
+
+    @Mock
+    private OrderStatusNotifier orderStatusNotifier;
 
     @InjectMocks
     private OrderService orderService;
@@ -236,7 +240,7 @@ class OrderServiceTest {
 
         orderService.publishOrderConfirmed(ORDER_ID);
 
-        verifyNoInteractions(listingRepository, memberRepository, eventPublisher);
+        verifyNoInteractions(listingRepository, memberRepository, eventPublisher, orderStatusNotifier);
     }
 
     @Test
@@ -251,6 +255,37 @@ class OrderServiceTest {
         assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.EXPIRED);
         assertThat(order.getDeliveryStatus()).isEqualTo(DeliveryStatus.PENDING);
         verifyNoInteractions(listingRepository, memberRepository, eventPublisher);
+    }
+
+    @Test
+    void 결제_확정은_구매자와_판매자에게_알릴_이벤트를_낸다() {
+        final Instant confirmedAt = Instant.parse("2026-11-06T01:00:00Z");
+        final Order order = order();
+        final Listing listing = listing();
+        final Member seller = member("판매자 주소", "010-0000-0001");
+        final Member buyer = member("구매자 주소", "010-0000-0002");
+        when(orderRepository.findByIdForUpdate(ORDER_ID)).thenReturn(Optional.of(order));
+        when(listingRepository.findById(LISTING_ID)).thenReturn(Optional.of(listing));
+        when(memberRepository.findById(SELLER_ID)).thenReturn(Optional.of(seller));
+        when(memberRepository.findById(BUYER_ID)).thenReturn(Optional.of(buyer));
+        when(clock.instant()).thenReturn(confirmedAt);
+
+        orderService.publishOrderConfirmed(ORDER_ID);
+
+        verify(orderStatusNotifier).notify(order, OrderStatusNotified.Change.CONFIRMED, confirmedAt);
+    }
+
+    @Test
+    void 판매자가_취소한_주문에_늦게_온_결제_완료는_예외_없이_멈춘다() {
+        final Order order = Order.pending(LISTING_ID, BUYER_ID, Instant.parse("2026-11-06T01:06:00Z"));
+        ReflectionTestUtils.setField(order, "id", ORDER_ID);
+        order.cancelBySeller(Instant.parse("2026-11-06T01:00:00Z"));
+        when(orderRepository.findByIdForUpdate(ORDER_ID)).thenReturn(Optional.of(order));
+
+        orderService.publishOrderConfirmed(ORDER_ID);
+
+        assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.CANCELLED);
+        verifyNoInteractions(listingRepository, memberRepository, eventPublisher, orderStatusNotifier);
     }
 
     @Test
@@ -315,6 +350,7 @@ class OrderServiceTest {
         orderService.confirmCancellation(ORDER_ID, "cancel-request-1", decidedAt);
 
         verify(eventPublisher).publishEvent(any(OrderCancelled.class));
+        verify(orderStatusNotifier).notify(order, OrderStatusNotified.Change.CANCELLED_BY_BUYER, decidedAt);
     }
 
     @Test
@@ -325,9 +361,11 @@ class OrderServiceTest {
         when(orderRepository.findByIdForUpdate(ORDER_ID)).thenReturn(Optional.of(order));
 
         orderService.rejectCancellation(ORDER_ID, "cancel-request-1", decidedAt);
+        orderService.rejectCancellation(ORDER_ID, "cancel-request-1", decidedAt);
 
         assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.CONFIRMED);
         verifyNoInteractions(eventPublisher);
+        verify(orderStatusNotifier).notify(order, OrderStatusNotified.Change.CANCELLATION_REJECTED, decidedAt);
     }
 
     @Test
@@ -343,7 +381,7 @@ class OrderServiceTest {
 
         assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.CANCEL_PENDING);
         assertThat(order.getCancellationRequestId()).isEqualTo("cancel-request-2");
-        verifyNoInteractions(eventPublisher);
+        verifyNoInteractions(eventPublisher, orderStatusNotifier);
     }
 
     @Test

@@ -14,7 +14,7 @@ import {
 } from '../model/furniture';
 import { keywordCategoryOf, type Keyword, type KeywordConditions } from '../model/keyword';
 import type { Member } from '../model/member';
-import { notificationTypeOf, notifiedListingStatusOf, type Notification } from '../model/notification';
+import { notificationTypeOf, notifiedListingStatusOf, orderNoticeOf, type Notification, type NotificationRef } from '../model/notification';
 import { deliveryStatusOf, orderStatusOrNull, type Order, type OrderStatus, type PendingOrder } from '../model/order';
 import { apiCall, tokenStore } from './http';
 import type {
@@ -312,6 +312,11 @@ export const orderRepository = {
     },
 
     /** 취소 요청을 접수한다. 접수 시점의 주문 상태를 돌려주며 최종 결과는 주문 상세에서 확인한다. */
+    /** 배송이 끝난 주문의 구매를 확정한다. 이미 확정한 주문이어도 성공한다. */
+    async confirmPurchase(orderId: number) {
+        await apiCall(`/api/orders/${orderId}/completion`, { method: 'POST' });
+    },
+
     async cancel(orderId: number): Promise<OrderStatus | null> {
         const response = await apiCall<OrderCancellationResponse>(`/api/orders/${orderId}/cancellations`, { method: 'POST' });
         return orderStatusOrNull(response.orderStatus);
@@ -386,31 +391,42 @@ function toNotification(response: NotificationResponse): Notification {
         deliveryFee: response.deliveryFee ?? null,
         listingStatus: notifiedListingStatusOf(response.listingStatus),
         read: response.read,
-        createdAt: response.createdAt
+        createdAt: response.createdAt,
+        order: orderNoticeOf(response.orderId, response.recipient, response.headline)
     };
+}
+
+// 웹은 주문 알림을 안다. 붙이지 않으면 서버는 옛 앱처럼 키워드 알림만 준다.
+const INCLUDE_ORDER = { include: 'ORDER' };
+
+/** 주문 알림은 키워드 알림과 id가 따로라 길을 나눈다. */
+function notificationPathOf(ref: NotificationRef): string {
+    return ref.type === 'ORDER' ? `/api/me/notifications/orders/${ref.id}` : `/api/me/notifications/${ref.id}`;
 }
 
 export const notificationRepository = {
     async getMine(): Promise<Notification[]> {
-        const response = await apiCall<{ items: NotificationResponse[] }>('/api/me/notifications', { query: { size: PAGE_SIZE } });
+        const response = await apiCall<{ items: NotificationResponse[] }>('/api/me/notifications', {
+            query: { size: PAGE_SIZE, ...INCLUDE_ORDER }
+        });
         return response.items.map(toNotification);
     },
 
     /** 알림을 열어 봤다고 서버에 알린다. 이미 확인한 알림이어도 에러가 아니다. */
-    async ack(notificationId: number) {
-        await apiCall(`/api/me/notifications/${notificationId}/ack`, { method: 'POST' });
+    async ack(ref: NotificationRef) {
+        await apiCall(`${notificationPathOf(ref)}/ack`, { method: 'POST' });
     },
 
-    async read(notificationId: number) {
-        await apiCall(`/api/me/notifications/${notificationId}/read`, { method: 'POST' });
+    async read(ref: NotificationRef) {
+        await apiCall(`${notificationPathOf(ref)}/read`, { method: 'POST' });
     },
 
     async countUnread(): Promise<number> {
-        return (await apiCall<{ count: number }>('/api/me/notifications/unread-count')).count;
+        return (await apiCall<{ count: number }>('/api/me/notifications/unread-count', { query: INCLUDE_ORDER })).count;
     },
 
     async readAll() {
-        await apiCall('/api/me/notifications/read', { method: 'POST' });
+        await apiCall('/api/me/notifications/read', { method: 'POST', query: INCLUDE_ORDER });
     }
 };
 

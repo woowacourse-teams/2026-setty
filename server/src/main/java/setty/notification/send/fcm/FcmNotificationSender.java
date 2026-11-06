@@ -20,6 +20,8 @@ import setty.notification.send.SendResult;
 @ConditionalOnProperty(name = "setty.notification.sender", havingValue = "fcm")
 public class FcmNotificationSender implements NotificationSender {
 
+    private static final String KEYWORD_TYPE = "KEYWORD";
+    private static final String ORDER_TYPE = "ORDER";
 
     private final DeviceTokenService deviceTokenService;
     private final FcmClient fcmClient;
@@ -99,8 +101,11 @@ public class FcmNotificationSender implements NotificationSender {
                 .setToken(token)
                 .putData("notificationId", String.valueOf(message.notificationId()))
                 .putData("listingId", String.valueOf(message.listingId()))
-                .putData("title", message.title())
                 .setAndroidConfig(AndroidConfig.builder().setPriority(toAndroidPriority(message)).build());
+        if (message.order() != null) {
+            return withOrder(builder, message.order()).build();
+        }
+        builder.putData("type", KEYWORD_TYPE).putData("title", message.title());
         if (message.price() != null) {
             builder.putData("price", String.valueOf(message.price()));
         }
@@ -108,6 +113,16 @@ public class FcmNotificationSender implements NotificationSender {
             builder.putData("deliveryFee", String.valueOf(message.deliveryFee()));
         }
         return builder.build();
+    }
+
+    private static Message.Builder withOrder(final Message.Builder builder, final NotificationMessage.Order order) {
+        return builder
+                .putData("type", ORDER_TYPE)
+                .putData("orderId", String.valueOf(order.orderId()))
+                .putData("kind", order.kind())
+                .putData("recipient", order.recipient())
+                .putData("headline", order.headline())
+                .putData("body", order.body());
     }
 
     private AndroidConfig.Priority toAndroidPriority(final NotificationMessage message) {
