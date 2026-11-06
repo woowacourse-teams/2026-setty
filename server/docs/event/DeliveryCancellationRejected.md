@@ -10,8 +10,8 @@
 
 | 수신자 | 처리 |
 | --- | --- |
-| [`OrderEventListener#onDeliveryCancellationRejected`](../../src/main/java/setty/platform/order/controller/OrderEventListener.java) | 취소 요청 ID가 일치하는 `CANCEL_PENDING` 주문을 `CONFIRMED`로 되돌린다. 일치하지 않거나 이미 다른 상태면 건너뛴다. |
+| [`OrderEventListener#onDeliveryCancellationRejected`](../../src/main/java/setty/platform/order/controller/OrderEventListener.java) | 취소 요청 ID가 일치하는 `CANCEL_PENDING` 주문을 `CONFIRMED`로 되돌리고 [`OrderStatusNotified`](OrderStatusNotified.md)(`CANCELLATION_REJECTED`)를 발행한다. 일치하지 않거나 이미 다른 상태면 건너뛴다. |
 
 ## 다음 확인할 이벤트 문서
 
-- 현재 코드에서 확인한 후속 이벤트 문서 없음.
+- [OrderStatusNotified.md](OrderStatusNotified.md): 주문을 `CONFIRMED`로 되돌렸을 때 발행한다.
