@@ -7,8 +7,9 @@
   - [`OrderService#confirmCancellation`](../../src/main/java/setty/platform/order/service/OrderService.java): 구매자 취소가 확정될 때 `CANCELLED_BY_BUYER`.
   - [`OrderService#rejectCancellation`](../../src/main/java/setty/platform/order/service/OrderService.java): 취소가 거절돼 `CONFIRMED`로 돌아올 때 `CANCELLATION_REJECTED`.
   - [`SyncOrderDeliveryStatusService#sync`](../../src/main/java/setty/platform/order/service/SyncOrderDeliveryStatusService.java): 배송 상태가 `ACCEPTED`·`PICKED_UP`·`DELIVERED`로 바뀔 때. 같은 `ACCEPTED`라도 수락 시각이 다르면(재배차) 다시 발행한다.
+  - [`OrderCompletionService`](../../src/main/java/setty/platform/order/service/OrderCompletionService.java): 구매자 확인이나 자동 확정으로 `COMPLETED`가 될 때 `COMPLETED`.
   - [`SellerOrderCancellation#cancelPendingOrdersOf`](../../src/main/java/setty/platform/order/service/SellerOrderCancellation.java): 판매자가 결제 대기 주문이 걸린 매물을 지워 주문이 취소될 때 `CANCELLED_BY_SELLER`.
-- 전달 값: [이벤트 클래스](../../src/main/java/setty/common/OrderStatusNotified.java)의 주문 ID, 매물 ID, 구매자 ID, 판매자 ID, 매물 제목, 바뀐 내용, 바뀐 시각. 바뀐 시각은 배송·취소 결과는 원래 이벤트 시각, 결제 확정·판매자 취소는 처리 시각이다.
+- 전달 값: [이벤트 클래스](../../src/main/java/setty/common/OrderStatusNotified.java)의 주문 ID, 매물 ID, 구매자 ID, 판매자 ID, 매물 제목, 바뀐 내용, 바뀐 시각. 바뀐 시각은 배송·취소 결과는 원래 이벤트 시각, 판매 완료는 완료 시각, 결제 확정·판매자 취소는 처리 시각이다.
 
 ## Fanout
 

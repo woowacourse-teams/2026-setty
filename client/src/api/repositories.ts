@@ -312,6 +312,11 @@ export const orderRepository = {
     },
 
     /** 취소 요청을 접수한다. 접수 시점의 주문 상태를 돌려주며 최종 결과는 주문 상세에서 확인한다. */
+    /** 배송이 끝난 주문의 구매를 확정한다. 이미 확정한 주문이어도 성공한다. */
+    async confirmPurchase(orderId: number) {
+        await apiCall(`/api/orders/${orderId}/completion`, { method: 'POST' });
+    },
+
     async cancel(orderId: number): Promise<OrderStatus | null> {
         const response = await apiCall<OrderCancellationResponse>(`/api/orders/${orderId}/cancellations`, { method: 'POST' });
         return orderStatusOrNull(response.orderStatus);

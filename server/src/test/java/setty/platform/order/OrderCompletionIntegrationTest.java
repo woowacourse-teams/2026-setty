@@ -69,6 +69,7 @@ class OrderCompletionIntegrationTest extends MySqlIntegrationTestSupport {
     void cleanUp() {
         awaitEventsHandled(jdbcTemplate);
         jdbcTemplate.update("DELETE FROM EVENT_PUBLICATION");
+        jdbcTemplate.update("DELETE FROM order_notifications");
         jdbcTemplate.update("DELETE FROM settlements");
         jdbcTemplate.update("DELETE FROM settlement_order");
         jdbcTemplate.update("DELETE FROM orders");
@@ -110,6 +111,22 @@ class OrderCompletionIntegrationTest extends MySqlIntegrationTestSupport {
         orderCompletionService.confirmByBuyer(ORDER_ID, BUYER_ID);
 
         assertThat(column(ORDER_ID, "order_status")).isEqualTo("COMPLETED");
+    }
+
+    @Test
+    void 구매_확정은_구매자와_판매자에게_한_번씩_알린다() {
+        deliver(ORDER_ID, Instant.now());
+
+        orderCompletionService.confirmByBuyer(ORDER_ID, BUYER_ID);
+        orderCompletionService.confirmByBuyer(ORDER_ID, BUYER_ID);
+        awaitEventsHandled(jdbcTemplate);
+
+        assertThat(jdbcTemplate.queryForList(
+                """
+                SELECT CONCAT(kind, ':', member_id) FROM order_notifications
+                WHERE order_id = ? AND kind IN ('PURCHASE_COMPLETED', 'SALE_COMPLETED')
+                """, String.class, ORDER_ID))
+                .containsExactlyInAnyOrder("PURCHASE_COMPLETED:" + BUYER_ID, "SALE_COMPLETED:" + SELLER_ID);
     }
 
     @Test

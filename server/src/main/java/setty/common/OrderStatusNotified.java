@@ -17,6 +17,7 @@ public record OrderStatusNotified(
         DELIVERY_ACCEPTED,
         DELIVERY_PICKED_UP,
         DELIVERY_DELIVERED,
+        COMPLETED,
         CANCELLED_BY_BUYER,
         CANCELLATION_REJECTED,
         CANCELLED_BY_SELLER
