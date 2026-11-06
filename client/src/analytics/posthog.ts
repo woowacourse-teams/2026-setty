@@ -26,7 +26,9 @@ export type AnalyticsEventName =
     | 'payment_succeeded'
     | 'payment_failed'
     | 'my_listings_viewed'
-    | 'listing_status_observed';
+    | 'listing_status_observed'
+    | 'similar_listings_shown'
+    | 'similar_listing_clicked';
 
 type EventProperties = Record<string, string | number | boolean>;
 
