@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="ko">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>배송 시뮬레이터</title>
+    <link rel="stylesheet" href="/src/style.css">
+</head>
+<body>
+<div id="map"></div>
+<aside id="panel">
+    <h1>배송 시뮬레이터 <small>시연 도구</small></h1>
+
+    <section id="auth">
+        <h2>배송원 로그인</h2>
+        <form id="login-form">
+            <input name="loginId" placeholder="배송원 아이디" autocomplete="off" required>
+            <input name="password" type="password" placeholder="비밀번호" required>
+            <button>로그인</button>
+        </form>
+        <div id="logged-in" hidden>
+            <p><b id="login-id"></b> 로그인됨 <button id="logout" type="button" class="link">지우기</button></p>
+            <canvas id="qr"></canvas>
+            <p class="hint">폰 기본 카메라로 찍으면 같은 토큰으로 배송원 웹이 열립니다. 폰에서 따로 로그인하지 마세요.</p>
+            <a id="qr-link" target="_blank" rel="noopener">링크 열기</a>
+        </div>
+        <p id="auth-error" class="error"></p>
+    </section>
+
+    <section>
+        <h2>이동</h2>
+        <div class="row">
+            <label><input type="radio" name="mode" value="start" checked> 출발지 찍기</label>
+            <label><input type="radio" name="mode" value="dest"> 목적지 찍기</label>
+        </div>
+        <div class="row">
+            <label>속도
+                <select id="speed">
+                    <option value="1">1배 (30km/h)</option>
+                    <option value="2">2배</option>
+                    <option value="4" selected>4배</option>
+                    <option value="8">8배</option>
+                </select>
+            </label>
+            <button id="toggle" type="button" disabled>출발</button>
+        </div>
+        <button id="to-arrival" type="button" disabled>진행 중 배차 도착 주소 보기</button>
+        <ul id="arrivals" class="hint"></ul>
+        <p id="move-msg" class="hint"></p>
+    </section>
+
+    <section>
+        <h2>현재 위치</h2>
+        <dl>
+            <dt>위도</dt><dd id="lat">-</dd>
+            <dt>경도</dt><dd id="lng">-</dd>
+            <dt>칸</dt><dd id="cell">-</dd>
+            <dt>서버 칸</dt><dd id="server-cell">-</dd>
+            <dt>묶음 후보</dt><dd id="bundle">-</dd>
+            <dt>남은 거리</dt><dd id="remain">-</dd>
+            <dt>위치 전송</dt><dd id="send">로그인 전</dd>
+        </dl>
+    </section>
+
+    <footer id="target"></footer>
+</aside>
+<script type="module" src="/src/main.js"></script>
+</body>
+</html>
