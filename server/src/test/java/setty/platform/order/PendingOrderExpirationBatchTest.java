@@ -80,6 +80,7 @@ class PendingOrderExpirationBatchTest extends MySqlIntegrationTestSupport {
                 """, Integer.class) > 0) {
             jdbc.execute("ALTER TABLE listings DROP CHECK test_expiration_release_failure");
         }
+        jdbc.update("DELETE FROM payment_refunds");
         jdbc.update("DELETE FROM payments");
         jdbc.update("DELETE FROM delivery");
         jdbc.update("DELETE FROM orders");

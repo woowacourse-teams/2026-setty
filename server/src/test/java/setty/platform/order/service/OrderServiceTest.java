@@ -7,6 +7,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
@@ -31,6 +32,7 @@ import setty.common.OrderCancellationRequested;
 import setty.common.OrderCancelled;
 import setty.common.OrderConfirmed;
 import setty.common.OrderStatusNotified;
+import setty.common.PaymentRefundRequested;
 import setty.global.exception.BusinessException;
 import setty.global.exception.ErrorCode;
 import setty.platform.listing.application.ListingService;
@@ -244,7 +246,7 @@ class OrderServiceTest {
     }
 
     @Test
-    void 만료된_주문에_늦게_온_결제_완료는_배송을_요청하지_않는다() {
+    void 만료된_주문에_늦게_온_결제_완료는_배송_대신_환불을_요청한다() {
         final Order order = Order.pending(LISTING_ID, BUYER_ID, Instant.parse("2026-09-02T05:00:00Z"));
         ReflectionTestUtils.setField(order, "id", ORDER_ID);
         order.expire(Instant.parse("2026-09-02T05:00:00Z"));
@@ -254,7 +256,9 @@ class OrderServiceTest {
 
         assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.EXPIRED);
         assertThat(order.getDeliveryStatus()).isEqualTo(DeliveryStatus.PENDING);
-        verifyNoInteractions(listingRepository, memberRepository, eventPublisher);
+        verify(eventPublisher).publishEvent(new PaymentRefundRequested(ORDER_ID, "EXPIRED"));
+        verifyNoMoreInteractions(eventPublisher);
+        verifyNoInteractions(listingRepository, memberRepository, orderStatusNotifier);
     }
 
     @Test
@@ -276,7 +280,7 @@ class OrderServiceTest {
     }
 
     @Test
-    void 판매자가_취소한_주문에_늦게_온_결제_완료는_예외_없이_멈춘다() {
+    void 판매자가_취소한_주문에_늦게_온_결제_완료는_예외_없이_환불을_요청한다() {
         final Order order = Order.pending(LISTING_ID, BUYER_ID, Instant.parse("2026-11-06T01:06:00Z"));
         ReflectionTestUtils.setField(order, "id", ORDER_ID);
         order.cancelBySeller(Instant.parse("2026-11-06T01:00:00Z"));
@@ -285,7 +289,9 @@ class OrderServiceTest {
         orderService.publishOrderConfirmed(ORDER_ID);
 
         assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.CANCELLED);
-        verifyNoInteractions(listingRepository, memberRepository, eventPublisher, orderStatusNotifier);
+        verify(eventPublisher).publishEvent(new PaymentRefundRequested(ORDER_ID, "CANCELLED"));
+        verifyNoMoreInteractions(eventPublisher);
+        verifyNoInteractions(listingRepository, memberRepository, orderStatusNotifier);
     }
 
     @Test
