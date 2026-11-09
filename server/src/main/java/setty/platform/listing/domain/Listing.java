@@ -225,6 +225,11 @@ public class Listing {
         return canUpdate();
     }
 
+    // 구매 신청이 걸려 있어도 결제 전이면 판매자가 그 주문을 취소하며 내릴 수 있다. 결제가 끝난 주문은 주문 쪽에서 막는다.
+    public boolean canDeleteCancellingPendingOrder() {
+        return !isDeleted() && saleStatus == SaleStatus.AVAILABLE;
+    }
+
     public boolean isDeleted() {
         return deletedAt != null;
     }

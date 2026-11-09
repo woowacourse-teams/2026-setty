@@ -225,6 +225,14 @@ public class ListingNotificationService {
     }
 
     @Transactional(readOnly = true)
+    public List<ListingNotification> findAll(final List<Long> notificationIds) {
+        if (notificationIds.isEmpty()) {
+            return List.of();
+        }
+        return listingNotificationRepository.findAllById(notificationIds);
+    }
+
+    @Transactional(readOnly = true)
     public List<ListingNotification> findMine(final Long memberId, final int page, final int size) {
         return listingNotificationRepository.findAllByMemberIdOrderByCreatedAtDescIdDesc(
                 memberId, PageRequest.of(page, size));

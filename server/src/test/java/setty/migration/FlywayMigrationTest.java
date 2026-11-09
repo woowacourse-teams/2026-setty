@@ -37,7 +37,7 @@ class FlywayMigrationTest {
             "delivery_dong_code", "delivery_zip_code");
     private static final List<String> DELIVERY_CELL_COLUMNS = List.of("pickup_cell", "delivery_cell");
     private static final List<String> KEYWORD_CONDITION_COLUMNS = List.of("max_delivery_fee", "max_total_price");
-    private static final int MIGRATION_COUNT = 16;
+    private static final int MIGRATION_COUNT = 18;
 
     @Container
     static final MySQLContainer MYSQL = new MySQLContainer("mysql:8.4.11");
@@ -165,7 +165,7 @@ class FlywayMigrationTest {
         seedExistingRows();
         var deliveryBefore = jdbc.queryForMap("SELECT * FROM delivery WHERE id=1");
 
-        assertThat(flyway(false).migrate().migrationsExecuted).isEqualTo(7);
+        assertThat(flyway(false).migrate().migrationsExecuted).isEqualTo(9);
 
         assertCurrentSchema();
         // 기존 배송 행은 그대로이고, 나중에 더한 칸 번호만 NULL로 생긴다.
@@ -258,6 +258,11 @@ class FlywayMigrationTest {
         }
         assertThat(columnCount("listing_notifications", "read_at")).isOne();
         assertThat(columnCount("members", "withdrawn_at")).isOne();
+        assertThat(columnCount("payments", "attempted_at")).isOne();
+        assertThat(indexColumns("payments", "idx_payments_unknown")).isEqualTo("status,attempted_at");
+        assertThat(indexColumns("payment_refunds", "uk_payment_refunds_payment")).isEqualTo("payment_id");
+        assertThat(indexColumns("order_notifications", "uk_order_notifications_event"))
+                .isEqualTo("order_id,member_id,kind,occurred_at");
         assertThat(indexColumns("delivery", "idx_delivery_requests"))
                 .isEqualTo("status,driver_id,requested_at,id");
         assertThat(indexColumns("delivery", "idx_delivery_shipments"))
@@ -305,6 +310,9 @@ class FlywayMigrationTest {
                 || table.equals("delivery") && DELIVERY_CELL_COLUMNS.contains(name)
                 || table.equals("keyword_subscriptions") && KEYWORD_CONDITION_COLUMNS.contains(name)
                 || table.equals("keyword_exclusions")
+                || table.equals("order_notifications")
+                || table.equals("payment_refunds")
+                || table.equals("payments") && name.equals("attempted_at")
                 || table.equals("listing_notifications") && name.equals("read_at")
                 || table.equals("members") && name.equals("withdrawn_at");
     }

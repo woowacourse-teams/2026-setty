@@ -128,3 +128,10 @@ setty:
       # 클라이언트 키의 gck를 gsk로 바꾸어 시크릿 키를 만들 수 없다. 공식 키 쌍을 사용한다.
       secret-key: ${TOSS_SECRET_KEY:test_gsk_docs_OaPz8L5KdmQXkzRz3y47BMw6}
       base-url: ${TOSS_BASE_URL:https://api.tosspayments.com}
+    # 결과를 모르는 승인 정리와 환불 배치. 결제 전용 스레드 하나에서 돈다.
+    recovery:
+      interval: ${PAYMENT_RECOVERY_INTERVAL:PT5M}
+      # 주문 만료(6분)와 토스 읽기 제한(60초)이 지난 시도만 토스에 다시 묻는다.
+      stale-after: ${PAYMENT_RECOVERY_STALE_AFTER:PT10M}
+      batch-size: ${PAYMENT_RECOVERY_BATCH_SIZE:20}
+      max-refund-attempts: ${PAYMENT_REFUND_MAX_ATTEMPTS:5}

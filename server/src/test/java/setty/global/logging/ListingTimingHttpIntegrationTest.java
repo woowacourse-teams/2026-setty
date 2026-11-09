@@ -53,6 +53,7 @@ import setty.platform.listing.repository.ListingImageRepository;
 import setty.platform.listing.repository.ListingRepository;
 import setty.platform.listing.storage.ListingImageStorage;
 import setty.platform.order.repository.OrderRepository;
+import setty.platform.order.service.SellerOrderCancellation;
 
 class ListingTimingHttpIntegrationTest {
 
@@ -184,5 +185,6 @@ class ListingTimingHttpIntegrationTest {
         @Bean DeliveryFeeService deliveryFeeService() { return mock(DeliveryFeeService.class); }
         @Bean ListingImageStorage imageStorage() { return mock(ListingImageStorage.class); }
         @Bean ListingQueryRepository listingQueryRepository() { return mock(ListingQueryRepository.class); }
+        @Bean SellerOrderCancellation sellerOrderCancellation() { return mock(SellerOrderCancellation.class); }
     }
 }

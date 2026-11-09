@@ -186,6 +186,15 @@ public class Order {
         return orderStatus == OrderStatus.PENDING && !canExpire(referenceTime);
     }
 
+    // 판매자는 결제가 끝나기 전(만료 전 결제 대기) 주문만 취소할 수 있다.
+    public boolean cancelBySeller(final Instant referenceTime) {
+        if (!isPayable(referenceTime)) {
+            return false;
+        }
+        orderStatus = OrderStatus.CANCELLED;
+        return true;
+    }
+
     public boolean expire(final Instant referenceTime) {
         if (!canExpire(referenceTime)) {
             return false;
@@ -196,13 +205,15 @@ public class Order {
 
     // 직전 상태에서 한 단계 전진만 허용,
     // 같은 상태 중복 이벤트는 무시(멱등), 그 외 불일치는 예외 — 버그를 조용히 삼키지 않는다.
-    public void syncDeliveryStatus(final DeliveryStatus newStatus, final Instant changedAt) {
+    // 새로 반영했으면 true. 같은 상태라도 수락 시각이 다르면 새 배차라 true다.
+    public boolean syncDeliveryStatus(final DeliveryStatus newStatus, final Instant changedAt) {
         if (this.deliveryStatus == newStatus) {
             // 배차 취소 뒤 새 기사의 수락이 취소보다 먼저 도착한 경우다. 수락 시각을 새 배차로 바꿔 늦게 온 취소가 되돌리지 못하게 한다.
-            if (newStatus == DeliveryStatus.ACCEPTED && changedAt != null) {
+            if (newStatus == DeliveryStatus.ACCEPTED && changedAt != null && !changedAt.equals(deliveryStatusChangedAt)) {
                 this.deliveryStatusChangedAt = changedAt;
+                return true;
             }
-            return;
+            return false;
         }
         if (this.deliveryStatus != expectedPreviousStatusOf(newStatus)) {
             throw new BusinessException(ErrorCode.ORDER_DELIVERY_STATUS_MISMATCH);
@@ -212,6 +223,7 @@ public class Order {
         }
         this.deliveryStatus = newStatus;
         this.deliveryStatusChangedAt = changedAt;
+        return true;
     }
 
     // 이벤트는 순서가 바뀌어 도착할 수 있어 시각 크기가 아니라 같은 배차인지로 판단한다. 다르면 이미 새 배차가 반영된 것이다.

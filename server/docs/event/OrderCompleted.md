@@ -15,4 +15,4 @@
 
 ## 다음 확인할 이벤트 문서
 
-- 현재 코드에서 확인한 후속 이벤트 문서 없음.
+- [OrderStatusNotified.md](OrderStatusNotified.md): 판매 완료로 전이할 때 함께 발행한다(`COMPLETED`).

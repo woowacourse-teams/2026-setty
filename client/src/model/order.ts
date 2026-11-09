@@ -1,7 +1,7 @@
-export type OrderStatus = 'PENDING' | 'CONFIRMED' | 'CANCEL_PENDING' | 'CANCELLED' | 'EXPIRED';
+export type OrderStatus = 'PENDING' | 'CONFIRMED' | 'COMPLETED' | 'CANCEL_PENDING' | 'CANCELLED' | 'EXPIRED';
 export type DeliveryStatus = 'PENDING' | 'REQUESTED' | 'ACCEPTED' | 'PICKED_UP' | 'DELIVERED';
 
-const orderStatuses: readonly OrderStatus[] = ['PENDING', 'CONFIRMED', 'CANCEL_PENDING', 'CANCELLED', 'EXPIRED'];
+const orderStatuses: readonly OrderStatus[] = ['PENDING', 'CONFIRMED', 'COMPLETED', 'CANCEL_PENDING', 'CANCELLED', 'EXPIRED'];
 const deliveryStatuses: readonly DeliveryStatus[] = ['PENDING', 'REQUESTED', 'ACCEPTED', 'PICKED_UP', 'DELIVERED'];
 
 export type OrderedFurniture = {
@@ -31,10 +31,15 @@ export function orderedTotalPrice(listing: OrderedFurniture): number {
     return listing.price + listing.deliveryFee;
 }
 
-/** 결제가 끝난 주문만 취소를 요청할 수 있다. 주문 상태를 모르면 배송 요청 단계에서만 허용한다. */
+/** 결제가 끝나고 배송이 끝나기 전 주문만 취소를 요청할 수 있다. 배송이 끝난 주문은 취소 대신 구매를 확정한다. */
 export function canCancel(order: Order): boolean {
     if (order.orderStatus === null) return order.deliveryStatus === 'REQUESTED';
-    return order.orderStatus === 'CONFIRMED';
+    return order.orderStatus === 'CONFIRMED' && order.deliveryStatus !== 'DELIVERED';
+}
+
+/** 배송이 끝났고 아직 확정하지 않은 주문만 구매를 확정할 수 있다. */
+export function canConfirmPurchase(order: Order): boolean {
+    return order.orderStatus === 'CONFIRMED' && order.deliveryStatus === 'DELIVERED';
 }
 
 /** 주문 상태 문자열을 변환한다. 알 수 없는 값이면 null. */
@@ -50,6 +55,7 @@ export function deliveryStatusOf(value: string): DeliveryStatus {
 const orderStatusLabels: Record<OrderStatus, string> = {
     PENDING: '결제 대기',
     CONFIRMED: '주문 완료',
+    COMPLETED: '구매 확정',
     CANCEL_PENDING: '취소 대기',
     CANCELLED: '주문 취소',
     EXPIRED: '결제 만료'
@@ -70,6 +76,7 @@ export function deliveryStatusLabel(status: DeliveryStatus): string {
 /** 주문 목록·상세에서 대표로 보여줄 상태. 취소·만료 흐름이면 주문 상태를, 아니면 배송 상태를 보여준다. */
 export function orderStatusLabel(order: Order): string {
     switch (order.orderStatus) {
+        case 'COMPLETED':
         case 'CANCEL_PENDING':
         case 'CANCELLED':
         case 'EXPIRED':
@@ -97,6 +104,8 @@ export function orderStatusDescription(order: Order): string {
     switch (order.orderStatus) {
         case 'PENDING':
             return '결제가 완료되지 않은 주문이에요';
+        case 'COMPLETED':
+            return '구매를 확정했어요';
         case 'CANCEL_PENDING':
             return '취소 요청을 처리하고 있어요';
         case 'CANCELLED':

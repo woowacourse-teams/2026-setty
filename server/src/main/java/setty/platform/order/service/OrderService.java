@@ -18,6 +18,8 @@ import org.springframework.transaction.annotation.Transactional;
 import setty.common.OrderCancellationRequested;
 import setty.common.OrderCancelled;
 import setty.common.OrderConfirmed;
+import setty.common.OrderStatusNotified;
+import setty.common.PaymentRefundRequested;
 import setty.global.exception.BusinessException;
 import setty.global.exception.ErrorCode;
 import setty.platform.listing.application.ListingService;
@@ -47,6 +49,7 @@ public class OrderService {
     private final ApplicationEventPublisher eventPublisher;
     private final Clock clock;
     private final PendingOrderExpirationProperties pendingOrderExpirationProperties;
+    private final OrderStatusNotifier orderStatusNotifier;
 
     public OrderService(
             final OrderRepository orderRepository,
@@ -55,7 +58,8 @@ public class OrderService {
             final MemberRepository memberRepository,
             final ApplicationEventPublisher eventPublisher,
             final Clock clock,
-            final PendingOrderExpirationProperties pendingOrderExpirationProperties
+            final PendingOrderExpirationProperties pendingOrderExpirationProperties,
+            final OrderStatusNotifier orderStatusNotifier
     ) {
         this.orderRepository = orderRepository;
         this.listingService = listingService;
@@ -64,6 +68,7 @@ public class OrderService {
         this.eventPublisher = eventPublisher;
         this.clock = clock;
         this.pendingOrderExpirationProperties = pendingOrderExpirationProperties;
+        this.orderStatusNotifier = orderStatusNotifier;
     }
 
     // 결제 대기 주문 생성 — 결제 전이므로 OrderConfirmed(배차 요청)를 발행하지 않는다.
@@ -129,8 +134,11 @@ public class OrderService {
 
         final Order order = orderRepository.findByIdForUpdate(orderId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
-        if (order.getOrderStatus() == OrderStatus.EXPIRED) {
-            log.error("만료된 주문에 결제 완료가 도착했습니다. 수동 환불 확인이 필요합니다. orderId={}", orderId);
+        if (order.getOrderStatus() == OrderStatus.EXPIRED || order.getOrderStatus() == OrderStatus.CANCELLED) {
+            // 주문은 되살리지 않고 결제 쪽에 환불을 맡긴다. 주문 잠금 안에서 발행해 주문 상태와 함께 커밋된다.
+            log.warn("만료되거나 판매자가 취소한 주문에 결제 완료가 도착해 환불을 요청합니다. orderId={}, orderStatus={}",
+                    orderId, order.getOrderStatus());
+            eventPublisher.publishEvent(new PaymentRefundRequested(orderId, order.getOrderStatus().name()));
             return;
         }
         if (!order.requestDelivery()) {
@@ -162,6 +170,7 @@ public class OrderService {
                 pickup.managementNumber(),
                 destination.managementNumber()
         ));
+        orderStatusNotifier.notify(order, OrderStatusNotified.Change.CONFIRMED, clock.instant());
     }
 
     private OrderPlace currentPickup(final Listing listing) {
@@ -217,6 +226,7 @@ public class OrderService {
                 cancellationRequestId,
                 clock.instant()
         ));
+        orderStatusNotifier.notify(order, OrderStatusNotified.Change.CANCELLED_BY_BUYER, decidedAt);
     }
 
     @Transactional
@@ -229,7 +239,9 @@ public class OrderService {
 
         final Order order = orderRepository.findByIdForUpdate(orderId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
-        order.rejectCancellation(cancellationRequestId);
+        if (order.rejectCancellation(cancellationRequestId)) {
+            orderStatusNotifier.notify(order, OrderStatusNotified.Change.CANCELLATION_REJECTED, decidedAt);
+        }
     }
 
     private void validateCancellationResult(
