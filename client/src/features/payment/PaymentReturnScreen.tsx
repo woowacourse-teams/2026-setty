@@ -80,7 +80,10 @@ export function PaymentReturnScreen({ result }: { result: 'success' | 'fail' }) 
         confirmWithRetry(paymentKey, tossOrderId, amount)
             .then((confirmed) => {
                 clearPendingPayment();
-                trackEvent('payment_succeeded', { order_id: tossOrderId.split('_')[0] });
+                trackEvent('payment_succeeded', {
+                    order_id: tossOrderId.split('_')[0],
+                    ...(Number.isSafeInteger(listingId) && listingId > 0 ? { listing_id: listingId } : {})
+                });
                 // 주문 확정과 배송 요청은 승인 뒤 서버가 이벤트로 처리하므로, 상세를 바로 읽지 않고 승인 결과만으로 완료 화면을 그린다
                 const state: PaymentCompleteState = { orderId: confirmed.orderId, amount: confirmed.amount, listingId };
                 navigate(routes.paymentComplete, { replace: true, state });
