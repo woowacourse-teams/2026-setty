@@ -158,7 +158,9 @@ public class OrderService {
                 destination.dongCode(),
                 pickup.dongCode(),
                 pickup.zipCode(),
-                destination.zipCode()
+                destination.zipCode(),
+                pickup.managementNumber(),
+                destination.managementNumber()
         ));
     }
 

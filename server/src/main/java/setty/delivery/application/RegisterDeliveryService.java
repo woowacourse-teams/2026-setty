@@ -42,6 +42,6 @@ public class RegisterDeliveryService {
 
         final Delivery delivery = Delivery.request(orderId, furniture, route, fee, requestedAt);
         deliveryRepository.save(delivery);
-        eventPublisher.publishEvent(new DeliveryRequestsChanged());
+        eventPublisher.publishEvent(DeliveryRequestsChanged.of(delivery));
     }
 }

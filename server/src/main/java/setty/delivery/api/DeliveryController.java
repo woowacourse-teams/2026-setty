@@ -10,15 +10,21 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+import setty.delivery.api.dto.BundleCandidatesResponse;
 import setty.delivery.api.dto.DeliveryRequestDetailResponse;
+import setty.delivery.api.dto.DriverLocationRequest;
+import setty.delivery.api.dto.DriverLocationResponse;
 import setty.delivery.api.dto.DeliveryPageResponse;
 import setty.delivery.api.dto.DeliveryRequestSummaryResponse;
 import setty.delivery.api.dto.ShipmentDetailResponse;
 import setty.delivery.api.dto.ShipmentSummaryResponse;
+import setty.delivery.application.BundleCandidateService;
 import setty.delivery.application.DeliveryLifecycleService;
 import setty.delivery.application.DeliveryCursor;
 import setty.delivery.application.DeliveryQueryService;
@@ -41,6 +47,7 @@ public class DeliveryController {
     private final DeliveryQueryService deliveryQueryService;
     private final DeliveryLifecycleService deliveryLifecycleService;
     private final DeliveryRequestEventStream deliveryRequestEventStream;
+    private final BundleCandidateService bundleCandidateService;
 
     @GetMapping("/requests")
     public ResponseEntity<?> findRequests(
@@ -76,6 +83,29 @@ public class DeliveryController {
                 .cacheControl(CacheControl.noCache())
                 .header("X-Accel-Buffering", "no")
                 .body(deliveryRequestEventStream.subscribe(driverId));
+    }
+
+    @GetMapping("/requests/bundle")
+    public ResponseEntity<BundleCandidatesResponse> findBundleCandidates(
+            @LoginDeliveryMember final DeliveryMember member
+    ) {
+        final BundleCandidateService.Candidates candidates =
+                bundleCandidateService.findCandidates(authenticatedDriverId(member));
+        return ResponseEntity.ok(new BundleCandidatesResponse(candidates.cell(), requestResponses(candidates.requests())));
+    }
+
+    // 위치는 칸 번호로만 바꿔 메모리에 두고, 좌표는 저장하거나 로그에 남기지 않는다.
+    @PutMapping("/location")
+    public ResponseEntity<DriverLocationResponse> updateLocation(
+            @LoginDeliveryMember final DeliveryMember member,
+            @RequestBody final DriverLocationRequest request
+    ) {
+        final DriverId driverId = authenticatedDriverId(member);
+        if (request == null || request.lat() == null || request.lng() == null) {
+            throw new BusinessException(ErrorCode.INVALID_REQUEST);
+        }
+        return ResponseEntity.ok(new DriverLocationResponse(
+                bundleCandidateService.updateLocation(driverId, request.lat(), request.lng())));
     }
 
     @GetMapping("/requests/{deliveryId}")

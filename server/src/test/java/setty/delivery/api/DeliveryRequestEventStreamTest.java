@@ -37,6 +37,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+import setty.delivery.application.BundleCandidatesChanged;
 import setty.delivery.application.DeliveryRequestsChanged;
 import setty.delivery.domain.DriverId;
 import setty.global.logging.SseCompletionLogging;
@@ -48,6 +49,7 @@ class DeliveryRequestEventStreamTest {
     private static final int MAX_TOTAL_CONNECTIONS = 3;
     private static final String CONNECTED_EVENT = "event:connected\ndata:{}\n\n";
     private static final String REQUESTS_CHANGED_EVENT = "event:delivery-requests-changed\ndata:{}\n\n";
+    private static final String BUNDLE_CANDIDATES_CHANGED_EVENT = "event:bundle-candidates-changed\ndata:{}\n\n";
 
     private final MockClock clock = new MockClock();
     private final SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry(SimpleConfig.DEFAULT, clock);
@@ -67,7 +69,7 @@ class DeliveryRequestEventStreamTest {
         stream = new DeliveryRequestEventStream(MAX_TOTAL_CONNECTIONS, () -> emitter, meterRegistry);
 
         stream.subscribe(FIRST_DRIVER);
-        stream.on(new DeliveryRequestsChanged());
+        stream.on(new DeliveryRequestsChanged(null, null));
 
         assertThat(stream.subscriberCount()).isOne();
         assertThat(stream.subscriberCount(new DriverId(1L))).isOne();
@@ -81,7 +83,7 @@ class DeliveryRequestEventStreamTest {
         stream.subscribe(FIRST_DRIVER);
         stream.subscribe(FIRST_DRIVER);
         stream.subscribe(SECOND_DRIVER);
-        stream.on(new DeliveryRequestsChanged());
+        stream.on(new DeliveryRequestsChanged(null, null));
 
         assertThat(stream.subscriberCount()).isEqualTo(3);
         assertThat(stream.subscriberCount(FIRST_DRIVER)).isEqualTo(2);
@@ -89,6 +91,20 @@ class DeliveryRequestEventStreamTest {
         assertThat(stream.subscriberCount(new DriverId(3L))).isZero();
         assertThat(emitters).allSatisfy(emitter ->
                 assertThat(emitter.events).containsExactly(CONNECTED_EVENT, REQUESTS_CHANGED_EVENT));
+    }
+
+    @Test
+    void bundleCandidateChangeIsSentOnlyToThatDriversConnections() {
+        final List<CapturingSseEmitter> emitters = createStream();
+        stream.subscribe(FIRST_DRIVER);
+        stream.subscribe(FIRST_DRIVER);
+        stream.subscribe(SECOND_DRIVER);
+
+        stream.on(new BundleCandidatesChanged(FIRST_DRIVER.value()));
+
+        assertThat(emitters.get(0).events).containsExactly(CONNECTED_EVENT, BUNDLE_CANDIDATES_CHANGED_EVENT);
+        assertThat(emitters.get(1).events).containsExactly(CONNECTED_EVENT, BUNDLE_CANDIDATES_CHANGED_EVENT);
+        assertThat(emitters.get(2).events).containsExactly(CONNECTED_EVENT);
     }
 
     @Test
@@ -103,7 +119,7 @@ class DeliveryRequestEventStreamTest {
         assertThat(stream.subscriberCount(FIRST_DRIVER)).isEqualTo(2);
         assertThat(emitters.get(2).events).isEmpty();
         emitters.get(2).fireCompletion();
-        stream.on(new DeliveryRequestsChanged());
+        stream.on(new DeliveryRequestsChanged(null, null));
         assertThat(stream.subscriberCount()).isEqualTo(2);
         assertThat(emitters.subList(0, 2)).allSatisfy(emitter ->
                 assertThat(emitter.events).containsExactly(CONNECTED_EVENT, REQUESTS_CHANGED_EVENT));
@@ -138,7 +154,7 @@ class DeliveryRequestEventStreamTest {
             case ERROR -> removed.fireError();
             case SEND_FAILURE -> {
                 removed.failWith(new IllegalStateException("전송 실패"));
-                stream.on(new DeliveryRequestsChanged());
+                stream.on(new DeliveryRequestsChanged(null, null));
             }
         }
         removed.fireCompletion();
@@ -309,7 +325,7 @@ class DeliveryRequestEventStreamTest {
         emitters.get(0).fireCompletion();
         emitters.get(0).fireTimeout();
         emitters.get(0).fireError();
-        stream.on(new DeliveryRequestsChanged());
+        stream.on(new DeliveryRequestsChanged(null, null));
 
         assertThat(stream.subscriberCount()).isOne();
         assertThat(stream.subscriberCount(FIRST_DRIVER)).isOne();
@@ -325,7 +341,7 @@ class DeliveryRequestEventStreamTest {
         stream.subscribe(SECOND_DRIVER);
         emitters.get(0).failWith(new IllegalStateException("전송 실패"));
 
-        stream.on(new DeliveryRequestsChanged());
+        stream.on(new DeliveryRequestsChanged(null, null));
         emitters.get(0).fireCompletion();
 
         assertThat(stream.subscriberCount()).isEqualTo(2);
@@ -380,7 +396,7 @@ class DeliveryRequestEventStreamTest {
         stream.subscribe(FIRST_DRIVER);
         emitter.failWith(new UnsupportedOperationException("전송 실패"));
 
-        assertThatCode(() -> stream.on(new DeliveryRequestsChanged()))
+        assertThatCode(() -> stream.on(new DeliveryRequestsChanged(null, null)))
                 .doesNotThrowAnyException();
     }
 
