@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
+import { listingViewProperties } from '../../analytics/listingViewProperties';
 import { trackEvent } from '../../analytics/posthog';
 import { getPriceVariant } from '../../analytics/priceScenario';
 import { isUnauthorized, toUserMessage } from '../../api/errors';
@@ -120,7 +121,7 @@ export function FurnitureDetailScreen() {
     }, [furnitureId, load]);
 
     useEffect(() => {
-        if (state.status === 'success') trackEvent('product_viewed', { listing_id: state.listing.id });
+        if (state.status === 'success') trackEvent('product_viewed', listingViewProperties(state.listing));
     }, [state]);
 
     const toggleFavorite = async () => {
