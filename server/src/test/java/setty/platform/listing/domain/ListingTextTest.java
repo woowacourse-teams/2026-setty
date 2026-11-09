@@ -41,11 +41,30 @@ class ListingTextTest {
     }
 
     @Test
-    void 검색_동의어는_같은_낱말로_본다() {
+    void 같은_물건의_다른_표기는_같은_낱말로_본다() {
         ListingText target = ListingText.of("원목식탁", "");
 
         assertThat(target.similarityTo(ListingText.of("원목 테이블", ""))).isEqualTo(2.0);
         assertThat(target.similarityTo(ListingText.of("Table", ""))).isPositive();
+        assertThat(ListingText.of("옷장", "").similarityTo(ListingText.of("장롱", ""))).isEqualTo(2.0);
+    }
+
+    @Test
+    void 같은_카테고리의_다른_물건은_같은_낱말로_보지_않는다() {
+        ListingText target = ListingText.of("퀸 침대 프레임", "");
+
+        assertThat(ListingText.of("침대 프레임", "").similarityTo(ListingText.of("매트리스", ""))).isZero();
+        assertThat(target.similarityTo(ListingText.of("퀸 사이즈 프레임", "")))
+                .isGreaterThan(target.similarityTo(ListingText.of("싱글 매트리스", "")));
+        assertThat(ListingText.of("책장", "").similarityTo(ListingText.of("옷장", ""))).isZero();
+    }
+
+    @Test
+    void 영어_낱말은_통째로만_같은_낱말로_본다() {
+        ListingText table = ListingText.of("테이블", "");
+
+        assertThat(table.similarityTo(ListingText.of("table", ""))).isEqualTo(2.0);
+        assertThat(table.similarityTo(ListingText.of("portable", ""))).isZero();
     }
 
     @Test
