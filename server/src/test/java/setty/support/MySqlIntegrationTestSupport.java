@@ -15,11 +15,14 @@ import org.testcontainers.mysql.MySQLContainer;
 public abstract class MySqlIntegrationTestSupport {
 
     // 개발 DB(docker-compose.yml)와 같은 버전을 쓴다.
+    // 캐시된 컨텍스트마다 커넥션 풀(기본 10개)이 JVM 종료까지 남는다. 컨텍스트가 15개를 넘으면 MySQL 기본 최대 접속 수(151)를 넘겨
+    // 뒤에 뜬 컨텍스트가 두 번째 커넥션을 못 받고 30초 뒤 "Connection is not available"로 실패하므로 한도를 넉넉히 올린다.
     @ServiceConnection
     static final MySQLContainer MYSQL = new MySQLContainer("mysql:8.4.11")
             .withDatabaseName("setty_test")
             .withUsername("setty_test")
-            .withPassword("setty_test");
+            .withPassword("setty_test")
+            .withCommand("--max-connections=500");
 
     static {
         MYSQL.start();
