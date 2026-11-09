@@ -19,7 +19,6 @@ public record ListingSearchTerms(List<String> words, ListingCategory category) {
             ListingCategory.STORAGE, List.of("수납장", "서랍장", "서랍", "옷장", "장롱", "책장", "선반", "수납", "storage"),
             ListingCategory.BED, List.of("침대", "매트리스", "프레임", "bed", "mattress")
     );
-
     public static ListingSearchTerms of(String keyword) {
         String word = keyword.strip().toLowerCase(Locale.ROOT);
         return SYNONYMS.entrySet().stream()

@@ -154,6 +154,7 @@ function toFurnitureDetail(response: FurnitureDetailResponse): FurnitureDetail {
         dongName: response.dong ? dongDisplayName(response.dong) : null,
         hasPurchaseRequest: response.hasPurchaseRequest ?? false,
         purchaseRequestedByMe: response.purchaseRequestedByMe ?? false,
+        ownedByMe: response.ownedByMe ?? false,
         orderState: orderStateOf(response.orderState, response.hasPurchaseRequest ?? false),
         myOrderId: response.myOrderId ?? null,
         favoriteCount: response.favoriteCount ?? 0
@@ -236,6 +237,11 @@ export const furnitureRepository = {
             }
         });
         return { items: response.items.map(toFurniture), nextCursor: response.nextCursor ?? null };
+    },
+
+    /** 같은 카테고리에서 제목·설명이 비슷한 판매 중 매물. 최대 6개다. */
+    async getSimilarFurniture(listingId: number): Promise<FurnitureSummary[]> {
+        return (await apiCall<ListingListResponse>(`/api/listings/${listingId}/similar`)).items.map(toFurniture);
     },
 
     async getFurnitureDetail(listingId: number): Promise<FurnitureDetail> {

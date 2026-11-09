@@ -524,6 +524,15 @@ class ListingApiTest extends MySqlIntegrationTestSupport {
     }
 
     @Test
+    void 판매자_본인에게만_상세에_내_매물_표시를_준다() throws Exception {
+        long listingId = createListing(SELLER_ID, "내 매물 표시 확인용 가상 의자");
+
+        assertOwnedByMe(listingId, bearerToken(SELLER_ID), true);
+        assertOwnedByMe(listingId, bearerToken(FIRST_BUYER_ID), false);
+        assertOwnedByMe(listingId, null, false);
+    }
+
+    @Test
     void 결제가_끝난_매물은_거래중으로_표시하고_주문한_구매자에게만_내_주문_id를_준다() throws Exception {
         long listingId = createListing(SELLER_ID, "거래중 표시 확인용 가상 의자");
         assertOrderState(listingId, "NONE");
@@ -781,6 +790,16 @@ class ListingApiTest extends MySqlIntegrationTestSupport {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.hasPurchaseRequest").value(true))
                 .andExpect(jsonPath("$.purchaseRequestedByMe").value(expected));
+    }
+
+    private void assertOwnedByMe(long listingId, String bearerToken, boolean expected) throws Exception {
+        var request = get("/api/listings/{listingId}", listingId);
+        if (bearerToken != null) {
+            request = request.header(HttpHeaders.AUTHORIZATION, bearerToken);
+        }
+        mockMvc.perform(request)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.ownedByMe").value(expected));
     }
 
     private void assertOrderState(long listingId, String expected) throws Exception {
