@@ -85,14 +85,15 @@ public class PaymentService {
     /**
      * 결제 실패·취소 복귀 처리. 실패는 기록하지 않고 {@code PaymentFailed}만 발행한다.
      * PENDING 주문과 매물 선점은 원래 만료 시각까지 유지한다.
-     * 이미 승인 완료(DONE)된 주문이면 뒤늦게 도착한 실패 복귀이므로 무시한다(주문 보호).
+     * 이미 승인된 주문이면 뒤늦게 도착한 실패 복귀이므로 무시한다(주문 보호).
+     * 결과를 모르는(UNKNOWN) 결제도 실패가 아니므로 내지 않는다. 클라이언트는 승인 오류를 받으면 늘 실패 정리를 부른다.
      * 모듈 간 이벤트는 커밋 이후에 전달되므로 트랜잭션 안에서 발행한다.
      */
     @Transactional
     public void fail(final String tossOrderId) {
         final Long orderId = extractOrderId(tossOrderId);
         final Payment existing = paymentRepository.findByOrderId(orderId).orElse(null);
-        if (existing != null && existing.isDone()) {
+        if (existing != null && (existing.isApproved() || existing.isUnknown())) {
             return;
         }
         eventPublisher.publishEvent(new PaymentFailed(orderId));

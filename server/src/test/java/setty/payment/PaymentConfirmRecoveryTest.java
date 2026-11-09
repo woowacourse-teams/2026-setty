@@ -155,7 +155,7 @@ class PaymentConfirmRecoveryTest extends MySqlIntegrationTestSupport {
     @Test
     void 제한_시간에_걸린_뒤_다시_승인하면_이미_처리된_결제를_조회로_확인해_기록한다() throws Exception {
         toss(Confirm.LATE_DONE, Lookup.FAIL);
-        confirm().andExpect(status().isBadRequest());
+        confirm().andExpect(status().isConflict());
 
         toss(Confirm.ALREADY_PROCESSED, Lookup.DONE);
         confirm().andExpect(status().isOk());
@@ -174,36 +174,40 @@ class PaymentConfirmRecoveryTest extends MySqlIntegrationTestSupport {
     }
 
     @Test
-    void 조회한_결제_금액이_다르면_승인_실패를_유지하고_시도는_결과를_모르는_채로_남긴다() throws Exception {
+    void 조회한_결제_금액이_다르면_결과_확인_중으로_답하고_시도는_결과를_모르는_채로_남긴다() throws Exception {
         toss(Confirm.ALREADY_PROCESSED, Lookup.WRONG_AMOUNT);
 
-        confirm().andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("PAYMENT_CONFIRM_FAILED"));
+        confirm().andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("PAYMENT_IN_PROGRESS"));
 
         assertLeftUnknown();
     }
 
     @Test
-    void 승인_응답이_제한_시간을_넘기고_조회도_실패하면_400이고_시도는_결과를_모르는_채로_남는다() throws Exception {
+    void 승인_응답이_제한_시간을_넘기고_조회도_실패하면_409_결과_확인_중이고_시도는_결과를_모르는_채로_남는다() throws Exception {
         toss(Confirm.LATE_DONE, Lookup.FAIL);
         final long startedAt = System.nanoTime();
 
-        confirm().andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("PAYMENT_CONFIRM_FAILED"));
+        confirm().andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("PAYMENT_IN_PROGRESS"));
 
         assertThat((System.nanoTime() - startedAt) / 1_000_000).isLessThan(2_500);
         assertThat(lookupRequests).hasValue(1);
         assertLeftUnknown();
         assertThat(listingPurchaseRequested()).isTrue();
+
+        // 클라이언트는 승인 오류를 받으면 실패 정리를 부른다. 결과를 모르는 결제는 실패가 아니므로 이벤트를 내지 않는다.
+        fail().andExpect(status().isNoContent());
         assertThat(events.stream(PaymentFailed.class)).isEmpty();
+        assertLeftUnknown();
     }
 
     @Test
     void 승인_응답이_제한_시간을_넘기고_조회가_경로_오류_404면_시도를_지우지_않는다() throws Exception {
         toss(Confirm.LATE_DONE, Lookup.PATH_NOT_FOUND);
 
-        confirm().andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("PAYMENT_CONFIRM_FAILED"));
+        confirm().andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("PAYMENT_IN_PROGRESS"));
 
         assertThat(lookupRequests).hasValue(1);
         assertLeftUnknown();
@@ -234,7 +238,7 @@ class PaymentConfirmRecoveryTest extends MySqlIntegrationTestSupport {
     @Test
     void 결과를_모르는_시도가_남아_있으면_다른_결제_키의_재결제는_토스를_부르지_않고_막는다() throws Exception {
         toss(Confirm.LATE_DONE, Lookup.FAIL);
-        confirm().andExpect(status().isBadRequest());
+        confirm().andExpect(status().isConflict());
 
         confirm(OTHER_PAYMENT_KEY).andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("PAYMENT_IN_PROGRESS"));
@@ -315,7 +319,7 @@ class PaymentConfirmRecoveryTest extends MySqlIntegrationTestSupport {
     @Test
     void 정리_배치는_만든_지_얼마_안_된_시도를_조회하지_않는다() throws Exception {
         toss(Confirm.LATE_DONE, Lookup.FAIL);
-        confirm().andExpect(status().isBadRequest());
+        confirm().andExpect(status().isConflict());
         lookupRequests.set(0);
 
         unknownPaymentResolver.resolveStale();
@@ -379,7 +383,7 @@ class PaymentConfirmRecoveryTest extends MySqlIntegrationTestSupport {
     // 승인 응답이 늦고 조회도 실패해 결과를 모르는 시도가 남은 뒤, 정리 대상이 될 만큼 시간이 흐른 상황.
     private void leaveUnknownAttempt() throws Exception {
         toss(Confirm.LATE_DONE, Lookup.FAIL);
-        confirm().andExpect(status().isBadRequest());
+        confirm().andExpect(status().isConflict());
         jdbcTemplate.update("UPDATE payments SET attempted_at = DATE_SUB(NOW(6), INTERVAL 11 MINUTE)");
     }
 
@@ -415,6 +419,13 @@ class PaymentConfirmRecoveryTest extends MySqlIntegrationTestSupport {
 
     private ResultActions confirm() throws Exception {
         return confirm(PAYMENT_KEY);
+    }
+
+    private ResultActions fail() throws Exception {
+        return mockMvc.perform(post("/api/payments/fail")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer token-" + BUYER_ID)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"orderId\":\"%s\"}".formatted(TOSS_ORDER_ID)));
     }
 
     private ResultActions confirm(final String paymentKey) throws Exception {

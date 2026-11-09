@@ -50,7 +50,7 @@ class TossPaymentClientTimeoutTest {
     }
 
     @Test
-    void 응답이_제한_시간보다_늦으면_승인_실패다() {
+    void 응답이_제한_시간보다_늦으면_결과_확인_중으로_끝난다() {
         respondAfter(Duration.ofSeconds(3));
 
         assertConfirmFailsWithinTimeout();
@@ -58,7 +58,7 @@ class TossPaymentClientTimeoutTest {
     }
 
     @Test
-    void 응답이_오지_않아도_제한_시간에_승인_실패로_끝난다() {
+    void 응답이_오지_않아도_제한_시간에_결과_확인_중으로_끝난다() {
         server.createContext("/v1/payments/confirm", exchange -> {
             confirmRequests.incrementAndGet();
             exchange.getRequestBody().readAllBytes();
@@ -94,7 +94,7 @@ class TossPaymentClientTimeoutTest {
 
         assertThatThrownBy(() -> client().confirm("pk", "1_a", 1000))
                 .isInstanceOfSatisfying(BusinessException.class,
-                        e -> assertThat(e.getErrorCode()).isEqualTo(ErrorCode.PAYMENT_CONFIRM_FAILED));
+                        e -> assertThat(e.getErrorCode()).isEqualTo(ErrorCode.PAYMENT_IN_PROGRESS));
         assertThat(Duration.ofNanos(System.nanoTime() - startedAt)).isLessThan(Duration.ofSeconds(2));
     }
 

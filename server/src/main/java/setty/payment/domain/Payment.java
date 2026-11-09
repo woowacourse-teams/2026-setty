@@ -138,6 +138,10 @@ public class Payment {
         return this.status == PaymentStatus.DONE || this.status == PaymentStatus.CANCELED;
     }
 
+    public boolean isUnknown() {
+        return this.status == PaymentStatus.UNKNOWN;
+    }
+
     public boolean isUnknownAttemptOf(final String paymentKey) {
         return this.status == PaymentStatus.UNKNOWN && paymentKey.equals(this.paymentKey);
     }
