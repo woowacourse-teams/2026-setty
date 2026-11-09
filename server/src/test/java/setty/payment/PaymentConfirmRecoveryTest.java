@@ -199,6 +199,17 @@ class PaymentConfirmRecoveryTest extends MySqlIntegrationTestSupport {
     }
 
     @Test
+    void 승인_응답이_제한_시간을_넘기고_조회가_경로_오류_404면_시도를_지우지_않는다() throws Exception {
+        toss(Confirm.LATE_DONE, Lookup.PATH_NOT_FOUND);
+
+        confirm().andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("PAYMENT_CONFIRM_FAILED"));
+
+        assertThat(lookupRequests).hasValue(1);
+        assertLeftUnknown();
+    }
+
+    @Test
     void 카드_거절_같은_다른_실패는_조회하지_않는다() throws Exception {
         toss(Confirm.REJECTED, Lookup.DONE);
 
@@ -279,6 +290,16 @@ class PaymentConfirmRecoveryTest extends MySqlIntegrationTestSupport {
 
         assertThat(paymentCount()).isZero();
         assertThat(events.stream(PaymentCompleted.class)).isEmpty();
+    }
+
+    @Test
+    void 정리_배치는_경로_오류_404를_받으면_시도를_남겨_다음에_다시_묻는다() throws Exception {
+        leaveUnknownAttempt();
+        toss(Confirm.DONE, Lookup.PATH_NOT_FOUND);
+
+        unknownPaymentResolver.resolveStale();
+
+        assertLeftUnknown();
     }
 
     @Test
@@ -431,7 +452,7 @@ class PaymentConfirmRecoveryTest extends MySqlIntegrationTestSupport {
     // 가짜 토스: 승인은 confirmMode, 조회(GET /v1/payments/{paymentKey})는 lookupMode대로 응답한다.
     private enum Confirm { DONE, SLOW_DONE, LATE_DONE, ALREADY_PROCESSED, SERVER_ERROR, REJECTED }
 
-    private enum Lookup { DONE, WRONG_AMOUNT, IN_PROGRESS, NOT_FOUND, FAIL }
+    private enum Lookup { DONE, WRONG_AMOUNT, IN_PROGRESS, NOT_FOUND, PATH_NOT_FOUND, FAIL }
 
     private static HttpServer startToss() {
         try {
@@ -463,6 +484,7 @@ class PaymentConfirmRecoveryTest extends MySqlIntegrationTestSupport {
                     case WRONG_AMOUNT -> respond(exchange, 200, payment(AMOUNT - 1));
                     case IN_PROGRESS -> respond(exchange, 200, payment("IN_PROGRESS", AMOUNT));
                     case NOT_FOUND -> respond(exchange, 404, error("NOT_FOUND_PAYMENT"));
+                    case PATH_NOT_FOUND -> respond(exchange, 404, error("NOT_FOUND"));
                     case FAIL -> respond(exchange, 500, error("FAILED_PAYMENT_INTERNAL_SYSTEM_PROCESSING"));
                 }
             });

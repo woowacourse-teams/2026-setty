@@ -31,6 +31,7 @@ public class TossPaymentClient {
     private static final String PAYMENT_PATH = "/v1/payments/{paymentKey}";
     private static final String CANCEL_PATH = "/v1/payments/{paymentKey}/cancel";
     private static final String IDEMPOTENCY_KEY = "Idempotency-Key";
+    private static final String NOT_FOUND_PAYMENT = "NOT_FOUND_PAYMENT";
     private static final Pattern ERROR_CODE = Pattern.compile("\"code\"\\s*:\\s*\"([^\"]+)\"");
 
     private final RestClient tossRestClient;
@@ -71,11 +72,13 @@ public class TossPaymentClient {
                     .retrieve()
                     .body(TossConfirmResult.class);
             return payment == null ? new TossPaymentLookup.Unavailable() : new TossPaymentLookup.Found(payment);
-        } catch (final HttpClientErrorException.NotFound exception) {
-            return new TossPaymentLookup.NotFound();
         } catch (final RestClientException exception) {
-            log.warn("토스 결제 조회에 실패했습니다. error={}, code={}",
-                    exception.getClass().getSimpleName(), errorCode(exception));
+            final String code = errorCode(exception);
+            // 404 중 NOT_FOUND_PAYMENT만 "토스에 없는 결제"다. 경로 오류(NOT_FOUND)나 본문 없는 404는 설정 문제일 수 있어 다시 묻는다.
+            if (exception instanceof HttpClientErrorException.NotFound && NOT_FOUND_PAYMENT.equals(code)) {
+                return new TossPaymentLookup.NotFound();
+            }
+            log.warn("토스 결제 조회에 실패했습니다. error={}, code={}", exception.getClass().getSimpleName(), code);
             return new TossPaymentLookup.Unavailable();
         }
     }
