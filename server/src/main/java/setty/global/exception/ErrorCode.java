@@ -46,6 +46,7 @@ public enum ErrorCode {
     PAYMENT_AMOUNT_MISMATCH(400, "결제 금액이 주문 금액과 일치하지 않습니다"),
     PAYMENT_CONFIRM_FAILED(400, "결제 승인에 실패했습니다"),
     ALREADY_PAID(400, "이미 결제된 주문입니다"),
+    PAYMENT_IN_PROGRESS(409, "결제 결과를 확인하고 있는 주문입니다. 잠시 뒤 주문 내역을 확인해 주세요"),
 
     // ===== 배송 (배송 팀) =====
     DELIVERY_NOT_FOUND(404, "존재하지 않는 배송 요청입니다"),

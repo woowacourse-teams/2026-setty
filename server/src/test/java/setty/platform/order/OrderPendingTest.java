@@ -59,6 +59,7 @@ class OrderPendingTest extends MySqlIntegrationTestSupport {
 
     @AfterEach
     void cleanUp() {
+        jdbcTemplate.update("DELETE FROM payment_refunds");
         jdbcTemplate.update("DELETE FROM payments");
         jdbcTemplate.update("DELETE FROM delivery");
         jdbcTemplate.update("DELETE FROM orders");

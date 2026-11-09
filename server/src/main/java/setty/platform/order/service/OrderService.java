@@ -19,6 +19,7 @@ import setty.common.OrderCancellationRequested;
 import setty.common.OrderCancelled;
 import setty.common.OrderConfirmed;
 import setty.common.OrderStatusNotified;
+import setty.common.PaymentRefundRequested;
 import setty.global.exception.BusinessException;
 import setty.global.exception.ErrorCode;
 import setty.platform.listing.application.ListingService;
@@ -134,8 +135,10 @@ public class OrderService {
         final Order order = orderRepository.findByIdForUpdate(orderId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
         if (order.getOrderStatus() == OrderStatus.EXPIRED || order.getOrderStatus() == OrderStatus.CANCELLED) {
-            log.error("만료되거나 판매자가 취소한 주문에 결제 완료가 도착했습니다. 수동 환불 확인이 필요합니다. orderId={}, orderStatus={}",
+            // 주문은 되살리지 않고 결제 쪽에 환불을 맡긴다. 주문 잠금 안에서 발행해 주문 상태와 함께 커밋된다.
+            log.warn("만료되거나 판매자가 취소한 주문에 결제 완료가 도착해 환불을 요청합니다. orderId={}, orderStatus={}",
                     orderId, order.getOrderStatus());
+            eventPublisher.publishEvent(new PaymentRefundRequested(orderId, order.getOrderStatus().name()));
             return;
         }
         if (!order.requestDelivery()) {
