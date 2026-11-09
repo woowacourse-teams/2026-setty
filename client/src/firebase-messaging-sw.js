@@ -1,5 +1,6 @@
 // FCM 백그라운드 서비스 워커. webpack이 루트의 firebase-messaging-sw.js로 내보낸다.
-// 서버는 data 메시지(notificationId·listingId·title·price·deliveryFee)만 보내므로 알림 표시는 여기서 한다.
+// 서버는 data 메시지만 보내므로 알림 표시는 여기서 한다.
+// 키워드 알림은 notificationId·listingId·title·price·deliveryFee, 주문 알림은 type=ORDER와 orderId·recipient·headline·body를 싣는다.
 import { initializeApp } from 'firebase/app';
 import { getMessaging, onBackgroundMessage } from 'firebase/messaging/sw';
 
@@ -23,10 +24,28 @@ function detailUrl(data) {
     return `/listings/${encodeURIComponent(data.listingId)}${query}`;
 }
 
+// 구매자는 주문 상세로, 판매자는 매물 상세로 간다. 상세 화면이 notificationType으로 주문 알림 길을 골라 확인 처리한다.
+function orderUrl(data) {
+    const query = `?notificationId=${encodeURIComponent(data.notificationId)}&notificationType=ORDER`;
+    if (data.recipient === 'BUYER') return `/me/orders/${encodeURIComponent(data.orderId)}${query}`;
+    return `/listings/${encodeURIComponent(data.listingId)}${query}`;
+}
+
+function showOrderNotification(data) {
+    if (!data.orderId || !data.headline || !data.notificationId) return undefined;
+    return self.registration.showNotification(data.headline, {
+        body: data.body ?? '',
+        icon: ICON_URL,
+        tag: `order-${data.notificationId}`,
+        data: { url: orderUrl(data) }
+    });
+}
+
 if (__FIREBASE_CONFIG__) {
     const messaging = getMessaging(initializeApp(__FIREBASE_CONFIG__));
     onBackgroundMessage(messaging, (payload) => {
         const data = payload.data ?? {};
+        if (data.type === 'ORDER') return showOrderNotification(data);
         if (!data.listingId || !data.title) return undefined;
         return self.registration.showNotification(NOTIFICATION_TITLE, {
             body: bodyOf(data),

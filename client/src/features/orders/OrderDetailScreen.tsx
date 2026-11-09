@@ -5,6 +5,7 @@ import { orderRepository } from '../../api/repositories';
 import { formatWon } from '../../model/furniture';
 import {
     canCancel,
+    canConfirmPurchase,
     deliveryProgress,
     deliveryStatusLabel,
     deliverySteps,
@@ -18,6 +19,7 @@ import {
     type OrderedFurniture
 } from '../../model/order';
 import { routes, useNavigateBack, useNavigateToLogin } from '../../navigation';
+import { useNotificationOpenedFromUrl } from '../../push/openedNotification';
 import {
     AlertDialog,
     BackIconButton,
@@ -47,6 +49,7 @@ const CANCEL_POLL_DELAY_MILLIS = 1_500;
 
 export function OrderDetailScreen() {
     const { orderId: orderIdParam } = useParams();
+    useNotificationOpenedFromUrl();
     const orderId = Number(orderIdParam);
     const navigate = useNavigate();
     const navigateBack = useNavigateBack();
@@ -55,6 +58,8 @@ export function OrderDetailScreen() {
     const { state, isRefreshing, load, refresh, fetch } = useLoad(fetchOrder);
     const [isCancelDialogVisible, setIsCancelDialogVisible] = useState(false);
     const [isCancelling, setIsCancelling] = useState(false);
+    const [isConfirmDialogVisible, setIsConfirmDialogVisible] = useState(false);
+    const [isConfirming, setIsConfirming] = useState(false);
     const order = state.status === 'success' ? state.data : null;
     // 배송원이 배차를 진행하면 새로고침하지 않아도 진행 단계가 바뀌도록 조용히 다시 불러온다
     usePolling(() => void fetch(), order !== null && isDeliveryInProgress(order) && !isCancelling);
@@ -84,15 +89,50 @@ export function OrderDetailScreen() {
         setIsCancelling(false);
     };
 
-    return (
-        <Scaffold
-            bottomBar={order && (canCancel(order) || isCancelling) && (
+    const confirmPurchase = async () => {
+        if (isConfirming) return;
+        setIsConfirming(true);
+        try {
+            await orderRepository.confirmPurchase(orderId);
+            await fetch();
+            showSnackbar('구매를 확정했어요');
+        } catch (error) {
+            if (isUnauthorized(error)) {
+                navigateToLogin();
+            } else {
+                showSnackbar(toUserMessage(error));
+            }
+        }
+        setIsConfirming(false);
+    };
+
+    // 배송 전에는 취소, 배송이 끝나면 구매 확정을 아래에 둔다
+    const bottomBar = () => {
+        if (!order) return null;
+        if (canCancel(order) || isCancelling) {
+            return (
                 <BottomBar>
                     {isCancelling ? <LoadingIndicator /> : (
                         <Button fullWidth onClick={() => setIsCancelDialogVisible(true)} size="medium" variant="danger-tonal">주문 취소하기</Button>
                     )}
                 </BottomBar>
-            )}
+            );
+        }
+        if (canConfirmPurchase(order) || isConfirming) {
+            return (
+                <BottomBar>
+                    {isConfirming ? <LoadingIndicator /> : (
+                        <Button fullWidth onClick={() => setIsConfirmDialogVisible(true)} size="medium">구매 확정하기</Button>
+                    )}
+                </BottomBar>
+            );
+        }
+        return null;
+    };
+
+    return (
+        <Scaffold
+            bottomBar={bottomBar()}
             topBar={(
                 <FlexibleTopAppBar
                     navigation={<BackIconButton onBack={navigateBack} />}
@@ -129,6 +169,19 @@ export function OrderDetailScreen() {
                     onDismiss={() => setIsCancelDialogVisible(false)}
                     text="배송 기사가 이미 배정됐다면 취소가 거절될 수 있어요."
                     title="주문을 취소할까요?"
+                />
+            )}
+            {isConfirmDialogVisible && (
+                <AlertDialog
+                    confirmLabel="구매 확정"
+                    dismissLabel="닫기"
+                    onConfirm={() => {
+                        setIsConfirmDialogVisible(false);
+                        void confirmPurchase();
+                    }}
+                    onDismiss={() => setIsConfirmDialogVisible(false)}
+                    text="확정한 뒤에는 취소할 수 없어요."
+                    title="구매를 확정할까요?"
                 />
             )}
         </Scaffold>

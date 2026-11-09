@@ -6,6 +6,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import setty.common.OrderCompleted;
+import setty.common.OrderStatusNotified;
 import setty.global.exception.BusinessException;
 import setty.global.exception.ErrorCode;
 import setty.platform.order.domain.Order;
@@ -17,15 +18,18 @@ public class OrderCompletionService {
     private final OrderRepository orderRepository;
     private final ApplicationEventPublisher eventPublisher;
     private final Clock clock;
+    private final OrderStatusNotifier orderStatusNotifier;
 
     public OrderCompletionService(
             final OrderRepository orderRepository,
             final ApplicationEventPublisher eventPublisher,
-            final Clock clock
+            final Clock clock,
+            final OrderStatusNotifier orderStatusNotifier
     ) {
         this.orderRepository = orderRepository;
         this.eventPublisher = eventPublisher;
         this.clock = clock;
+        this.orderStatusNotifier = orderStatusNotifier;
     }
 
     // 구매자가 배송 완료를 확인한다. 이미 판매 완료된 주문에 다시 확인해도 성공으로 응답한다.
@@ -54,6 +58,7 @@ public class OrderCompletionService {
             return false;
         }
         eventPublisher.publishEvent(new OrderCompleted(order.getId(), completedAt));
+        orderStatusNotifier.notify(order, OrderStatusNotified.Change.COMPLETED, completedAt);
         return true;
     }
 }

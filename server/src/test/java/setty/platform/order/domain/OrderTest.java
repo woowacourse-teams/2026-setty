@@ -114,11 +114,35 @@ class OrderTest {
     @Test
     void 같은_상태_중복_이벤트는_무시된다() {
         final Order order = new Order(1L, 2L);
-        order.syncDeliveryStatus(DeliveryStatus.ACCEPTED, CHANGED_AT);
+        assertThat(order.syncDeliveryStatus(DeliveryStatus.ACCEPTED, CHANGED_AT)).isTrue();
 
-        order.syncDeliveryStatus(DeliveryStatus.ACCEPTED, CHANGED_AT);
+        assertThat(order.syncDeliveryStatus(DeliveryStatus.ACCEPTED, CHANGED_AT)).isFalse();
 
         assertThat(order.getDeliveryStatus()).isEqualTo(DeliveryStatus.ACCEPTED);
+    }
+
+    @Test
+    void 수락_시각이_다른_수락은_새_배차로_반영한다() {
+        final Order order = new Order(1L, 2L);
+        order.syncDeliveryStatus(DeliveryStatus.ACCEPTED, CHANGED_AT);
+
+        assertThat(order.syncDeliveryStatus(DeliveryStatus.ACCEPTED, CHANGED_AT.plusSeconds(60))).isTrue();
+    }
+
+    @Test
+    void 판매자는_만료_전_결제_대기_주문만_취소한다() {
+        final Instant expiresAt = CHANGED_AT.plusSeconds(360);
+        final Order payable = Order.pending(1L, 2L, expiresAt);
+        final Order expired = Order.pending(1L, 2L, expiresAt);
+        final Order confirmed = new Order(1L, 2L);
+
+        assertThat(payable.cancelBySeller(CHANGED_AT)).isTrue();
+        assertThat(expired.cancelBySeller(expiresAt)).isFalse();
+        assertThat(confirmed.cancelBySeller(CHANGED_AT)).isFalse();
+
+        assertThat(payable.getOrderStatus()).isEqualTo(OrderStatus.CANCELLED);
+        assertThat(expired.getOrderStatus()).isEqualTo(OrderStatus.PENDING);
+        assertThat(confirmed.getOrderStatus()).isEqualTo(OrderStatus.CONFIRMED);
     }
 
     @Test

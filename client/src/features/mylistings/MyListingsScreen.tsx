@@ -32,7 +32,7 @@ export function MyListingsScreen() {
     const navigateBack = useNavigateBack();
     const navigateToLogin = useNavigateToLogin();
     const { state, isRefreshing, load, refresh, setData } = useLoad(furnitureRepository.getMyFurniture);
-    const [deleteTarget, setDeleteTarget] = useState<number | null>(null);
+    const [deleteTarget, setDeleteTarget] = useState<MyFurniture | null>(null);
     const [deletingId, setDeletingId] = useState<number | null>(null);
     const listRef = useRef<HTMLDivElement>(null);
     const observedSoldListingIds = useRef(new Set<number>());
@@ -110,7 +110,7 @@ export function MyListingsScreen() {
                                     isDeleting={deletingId === furniture.id}
                                     key={furniture.id}
                                     onClick={() => navigate(routes.furnitureDetail(furniture.id))}
-                                    onDeleteClick={() => setDeleteTarget(furniture.id)}
+                                    onDeleteClick={() => setDeleteTarget(furniture)}
                                     onEditClick={() => navigate(routes.listingEdit(furniture.id))}
                                 />
                             ))}
@@ -124,10 +124,13 @@ export function MyListingsScreen() {
                     dismissLabel="취소"
                     onConfirm={() => {
                         setDeleteTarget(null);
-                        void remove(deleteTarget);
+                        void remove(deleteTarget.id);
                     }}
                     onDismiss={() => setDeleteTarget(null)}
-                    text="삭제한 가구는 목록에서 사라지고 되돌릴 수 없습니다."
+                    // 삭제할 수 있는데 구매 신청이 있으면 결제 대기 주문뿐이다. 지우면 그 주문이 취소된다.
+                    text={deleteTarget.hasPurchaseRequest
+                        ? '결제 중인 구매자가 있어요. 주문을 취소하고 가구를 내릴까요? 구매자에게 취소 알림이 가요.'
+                        : '삭제한 가구는 목록에서 사라지고 되돌릴 수 없습니다.'}
                     title="가구를 삭제할까요?"
                 />
             )}

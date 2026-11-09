@@ -24,6 +24,12 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     @Query("select o from Order o where o.id = :orderId")
     Optional<Order> findByIdForUpdate(@Param("orderId") Long orderId);
 
+    @Query("select o.listingId from Order o where o.id = :orderId")
+    Optional<Long> findListingIdById(@Param("orderId") Long orderId);
+
+    @Query("select distinct o.listingId from Order o where o.id in :orderIds")
+    List<Long> findListingIdsByIdIn(@Param("orderIds") List<Long> orderIds);
+
     // 큰 IN 조건에서 인덱스 전체 스캔으로 무관한 주문 INSERT까지 막지 않도록 PK 범위 조회를 유도한다.
     @Query(value = "select * from orders force index (PRIMARY) where id in (:orderIds) order by id for update",
             nativeQuery = true)
@@ -41,6 +47,10 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             @Param("orderIds") List<Long> orderIds,
             @Param("referenceTime") Instant referenceTime
     );
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select o from Order o where o.listingId = :listingId and o.orderStatus = setty.platform.order.domain.OrderStatus.PENDING")
+    List<Order> findPendingByListingIdForUpdate(@Param("listingId") Long listingId);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select o from Order o where o.id = :orderId and o.buyerId = :buyerId")

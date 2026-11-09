@@ -47,6 +47,7 @@ import setty.platform.listing.storage.ListingImageStorage;
 import setty.platform.order.domain.Order;
 import setty.platform.order.domain.OrderStatus;
 import setty.platform.order.repository.OrderRepository;
+import setty.platform.order.service.SellerOrderCancellation;
 
 @Service
 public class ListingService {
@@ -72,6 +73,7 @@ public class ListingService {
     private final OrderRepository orderRepository;
     private final FavoriteRepository favoriteRepository;
     private final DeliveryFeeService deliveryFeeService;
+    private final SellerOrderCancellation sellerOrderCancellation;
 
     public ListingService(
             ListingRepository listingRepository,
@@ -81,7 +83,8 @@ public class ListingService {
             ListingRecorder listingRecorder,
             OrderRepository orderRepository,
             FavoriteRepository favoriteRepository,
-            DeliveryFeeService deliveryFeeService
+            DeliveryFeeService deliveryFeeService,
+            SellerOrderCancellation sellerOrderCancellation
     ) {
         this.listingRepository = listingRepository;
         this.listingImageRepository = listingImageRepository;
@@ -91,6 +94,7 @@ public class ListingService {
         this.orderRepository = orderRepository;
         this.favoriteRepository = favoriteRepository;
         this.deliveryFeeService = deliveryFeeService;
+        this.sellerOrderCancellation = sellerOrderCancellation;
     }
 
     // 판매자 우편번호 구역은 표준 주소가 맞춰진 서울 주소일 때만 있다. 없어도 등록은 막지 않고 행정동으로 계산한다.
@@ -323,9 +327,11 @@ public class ListingService {
         List<Listing> listings = listingRepository
                 .findAllBySellerIdAndDeletedAtIsNullOrderByCreatedAtDescIdDesc(sellerId);
         Map<Long, ListingImage> thumbnails = findThumbnails(listings);
+        Map<Long, List<OrderStatus>> openOrderStatuses = findOpenOrderStatuses(listings.stream().map(Listing::getId).toList());
 
         return listings.stream()
-                .map(listing -> toMine(listing, thumbnails.get(listing.getId())))
+                .map(listing -> toMine(listing, thumbnails.get(listing.getId()),
+                        openOrderStatuses.getOrDefault(listing.getId(), List.of())))
                 .toList();
     }
 
@@ -376,8 +382,20 @@ public class ListingService {
                 .map(ListingImage::getObjectKey)
                 .toList();
 
+        cancelPendingOrdersForDeletion(listing);
         listing.softDelete();
         deleteImagesAfterCommit(objectKeys);
+    }
+
+    // 결제 대기 주문만 걸려 있으면 그 주문을 취소하고 선점을 푼다. 결제가 끝난 주문이 남으면 선점이 남아 삭제가 거절된다.
+    private void cancelPendingOrdersForDeletion(Listing listing) {
+        if (!listing.hasPurchaseRequest() || !listing.canDeleteCancellingPendingOrder()) {
+            return;
+        }
+        sellerOrderCancellation.cancelPendingOrdersOf(listing.getId(), Instant.now());
+        if (!hasActiveOrder(listing.getId())) {
+            listing.releasePurchaseRequest();
+        }
     }
 
     // 탈퇴 검사 동안 주문 생성이 끼어들지 못하게 판매자의 매물을 모두 잠근다. 주문 생성도 매물을 먼저 잠그므로 둘은 줄을 선다.
@@ -668,7 +686,7 @@ public class ListingService {
                 .orElse(null);
     }
 
-    private ListingView.Mine toMine(Listing listing, ListingImage thumbnail) {
+    private ListingView.Mine toMine(Listing listing, ListingImage thumbnail, List<OrderStatus> openOrderStatuses) {
         return new ListingView.Mine(
                 listing.getId(),
                 listing.getTitle(),
@@ -682,10 +700,15 @@ public class ListingService {
                 listing.getSaleStatus(),
                 listing.hasPurchaseRequest(),
                 listing.canUpdate(),
-                listing.canDelete(),
+                canDeleteBySeller(listing, openOrderStatuses),
                 listing.getCreatedAt(),
                 dongOf(listing.getDongCode())
         );
+    }
+
+    private boolean canDeleteBySeller(Listing listing, List<OrderStatus> openOrderStatuses) {
+        return listing.canDelete() || (listing.canDeleteCancellingPendingOrder()
+                && openOrderStatuses.stream().noneMatch(TRADING_ORDER_STATUSES::contains));
     }
 
     private ListingView.Dimensions dimensionsOf(Listing listing) {

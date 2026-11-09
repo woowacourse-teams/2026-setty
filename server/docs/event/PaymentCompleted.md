@@ -10,12 +10,13 @@
 
 | 수신자 | 처리 |
 | --- | --- |
-| [`OrderEventListener#onPaymentCompleted`](../../src/main/java/setty/platform/order/controller/OrderEventListener.java) | `PENDING` 주문을 `CONFIRMED`로 전이하고 `OrderConfirmed`를 발행한다. `EXPIRED` 주문은 유지하고 수동 환불 확인 로그를 남긴다. 이미 확정된 주문은 다시 발행하지 않는다. |
+| [`OrderEventListener#onPaymentCompleted`](../../src/main/java/setty/platform/order/controller/OrderEventListener.java) | `PENDING` 주문을 `CONFIRMED`로 전이하고 `OrderConfirmed`와 [`OrderStatusNotified`](OrderStatusNotified.md)(`CONFIRMED`)를 발행한다. `EXPIRED`·`CANCELLED`(판매자 취소) 주문은 유지하고 수동 환불 확인 로그를 남긴다. 이미 확정된 주문은 다시 발행하지 않는다. |
 
 ## 다음 확인할 이벤트 문서
 
 - [OrderConfirmed.md](OrderConfirmed.md): 주문이 처음 `PENDING`에서 `CONFIRMED`로 전이할 때 발행한다.
+- [OrderStatusNotified.md](OrderStatusNotified.md): `OrderConfirmed`와 함께 발행한다.
 
 ## 확인 필요
 
-- [결제 정책](../../../docs/policy/payment.md#승인재시도)의 자동 환불 대상 기록·환불 실행은 아직 구현되지 않았다. `EXPIRED` 주문의 `DONE` 결제는 [수동 확인 절차](../payment/expired-order-manual-refund.md)에 따라 판단한다. `CANCELLED` 주문의 뒤늦은 승인은 이번 변경 범위 밖이다.
+- [결제 정책](../../../docs/policy/payment.md#승인재시도)의 자동 환불 대상 기록·환불 실행은 아직 구현되지 않았다. `EXPIRED` 주문의 `DONE` 결제는 [수동 확인 절차](../payment/expired-order-manual-refund.md)에 따라 판단한다. 판매자 취소로 `CANCELLED`가 된 주문의 뒤늦은 승인도 같은 로그만 남기며 환불은 #510에서 다룬다.
