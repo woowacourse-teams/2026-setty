@@ -25,6 +25,8 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -232,6 +234,27 @@ class PaymentRefundIntegrationTest extends MySqlIntegrationTestSupport {
         assertThat(lastErrorCode()).isEqualTo("IDEMPOTENT_REQUEST_PROCESSING");
     }
 
+    // 토스 취소 에러표에서 "잠시 후 다시 시도해주세요"인 4xx. 거절이 아니라 다음 배치에서 다시 보낸다.
+    @ParameterizedTest
+    @CsvSource({"PROVIDER_ERROR,PROVIDER_ERROR", "CONSECUTIVE_REQUEST,FORBIDDEN_CONSECUTIVE_REQUEST"})
+    void 잠시_후_다시_시도하라는_4xx는_다음_배치에서_다시_보내고_정상이_되면_완료한다(final Cancel mode, final String errorCode) {
+        approveAfterOrderExpired();
+        cancelMode = mode;
+
+        paymentRefundProcessor.processRequested();
+
+        assertThat(refundStatus()).isEqualTo("REQUESTED");
+        assertThat(lastErrorCode()).isEqualTo(errorCode);
+        assertThat(paymentStatus()).isEqualTo("DONE");
+
+        cancelMode = Cancel.DONE;
+        paymentRefundProcessor.processRequested();
+
+        assertThat(refundStatus()).isEqualTo("DONE");
+        assertThat(paymentStatus()).isEqualTo("CANCELED");
+        assertThat(cancelRequests).hasValue(2);
+    }
+
     @Test
     void 이미_취소된_결제라는_응답은_환불_완료로_본다() {
         approveAfterOrderExpired();
@@ -360,7 +383,9 @@ class PaymentRefundIntegrationTest extends MySqlIntegrationTestSupport {
 
     // 가짜 토스: 승인은 늘 성공하고, 취소는 cancelMode대로 응답한다.
     // 실제 토스처럼 같은 멱등키의 취소는 한 번만 실행하고(executedCancels), 처리 중인 키로 다시 오면 409를 준다.
-    private enum Cancel { DONE, SLOW_DONE, LATE_DONE, SERVER_ERROR, CONFLICT, ALREADY_CANCELED, NOT_CANCELABLE, PARTIAL }
+    private enum Cancel {
+        DONE, SLOW_DONE, LATE_DONE, SERVER_ERROR, CONFLICT, PROVIDER_ERROR, CONSECUTIVE_REQUEST, ALREADY_CANCELED, NOT_CANCELABLE, PARTIAL
+    }
 
     private static HttpServer startToss() {
         try {
@@ -404,6 +429,8 @@ class PaymentRefundIntegrationTest extends MySqlIntegrationTestSupport {
             }
             case SERVER_ERROR -> respond(exchange, 500, error("FAILED_INTERNAL_SYSTEM_PROCESSING"));
             case CONFLICT -> respond(exchange, 409, error("IDEMPOTENT_REQUEST_PROCESSING"));
+            case PROVIDER_ERROR -> respond(exchange, 400, error("PROVIDER_ERROR"));
+            case CONSECUTIVE_REQUEST -> respond(exchange, 403, error("FORBIDDEN_CONSECUTIVE_REQUEST"));
             case ALREADY_CANCELED -> respond(exchange, 400, error("ALREADY_CANCELED_PAYMENT"));
             case NOT_CANCELABLE -> respond(exchange, 403, error("NOT_CANCELABLE_PAYMENT"));
             case PARTIAL -> respond(exchange, 200, canceled(key, AMOUNT - 1_000));

@@ -1,6 +1,7 @@
 package setty.payment.infrastructure;
 
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import lombok.RequiredArgsConstructor;
@@ -32,6 +33,8 @@ public class TossPaymentClient {
     private static final String CANCEL_PATH = "/v1/payments/{paymentKey}/cancel";
     private static final String IDEMPOTENCY_KEY = "Idempotency-Key";
     private static final String NOT_FOUND_PAYMENT = "NOT_FOUND_PAYMENT";
+    // 토스 결제 취소 에러표에서 "잠시 후 다시 시도해주세요"로 안내하는 4xx. 5xx와 409는 상태 코드로 가린다.
+    private static final Set<String> RETRY_LATER_CANCEL_CODES = Set.of("PROVIDER_ERROR", "FORBIDDEN_CONSECUTIVE_REQUEST");
     private static final Pattern ERROR_CODE = Pattern.compile("\"code\"\\s*:\\s*\"([^\"]+)\"");
 
     private final RestClient tossRestClient;
@@ -106,7 +109,9 @@ public class TossPaymentClient {
 
     private TossCancelResult classifyCancelFailure(final HttpStatusCodeException exception) {
         final String code = errorCode(exception);
-        if (exception.getStatusCode().is5xxServerError() || exception.getStatusCode().isSameCodeAs(HttpStatus.CONFLICT)) {
+        if (exception.getStatusCode().is5xxServerError()
+                || exception.getStatusCode().isSameCodeAs(HttpStatus.CONFLICT)
+                || RETRY_LATER_CANCEL_CODES.contains(code)) {
             return new TossCancelResult.Retryable(code);
         }
         if ("ALREADY_CANCELED_PAYMENT".equals(code)) {

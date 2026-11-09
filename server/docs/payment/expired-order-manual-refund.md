@@ -10,7 +10,7 @@
 4. 같은 배치가 `REQUESTED` 환불을 `POST /v1/payments/{paymentKey}/cancel`로 전액 취소한다. 환불 행마다 정해 둔 `Idempotency-Key`로만 보내므로 다시 보내도 한 번만 취소된다.
    - 성공하고 취소 금액이 결제 금액과 같으면 환불 `DONE`, 결제 `CANCELED`.
    - `ALREADY_CANCELED_PAYMENT`도 완료로 본다.
-   - 응답 없음·5xx·409는 다음 주기에 다시 보내고, 시도가 5번에 닿으면 `FAILED`.
+   - 응답 없음·5xx·409, 그리고 토스가 잠시 후 다시 시도하라는 4xx(`PROVIDER_ERROR`·`FORBIDDEN_CONSECUTIVE_REQUEST`)는 다음 주기에 다시 보내고, 시도가 5번에 닿으면 `FAILED`.
    - 그 밖의 거절(`NOT_CANCELABLE_PAYMENT` 등)과 취소 금액 불일치는 바로 `FAILED`.
 
 설정은 `setty.payment.recovery.*`(`PAYMENT_RECOVERY_INTERVAL`, `PAYMENT_RECOVERY_STALE_AFTER`, `PAYMENT_RECOVERY_BATCH_SIZE`, `PAYMENT_REFUND_MAX_ATTEMPTS`)이다.
