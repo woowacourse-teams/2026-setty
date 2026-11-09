@@ -28,16 +28,19 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+import setty.delivery.application.BundleCandidatesChanged;
 import setty.delivery.application.DeliveryRequestsChanged;
 import setty.delivery.domain.DriverId;
 import setty.global.logging.SseCompletionLogging;
 
 /**
  * 단일 서버에서 활성 SSE 연결을 관리한다. 이벤트에는 목록 변경 여부만 담는다.
+ * 묶음 후보 변경은 해당 배송원 연결에만 보낸다.
  */
 @Component
 public class DeliveryRequestEventStream {
@@ -50,6 +53,7 @@ public class DeliveryRequestEventStream {
     private static final long HEARTBEAT_INTERVAL_SECONDS = 15L;
     static final String CONNECTED_EVENT = "connected";
     static final String REQUESTS_CHANGED_EVENT = "delivery-requests-changed";
+    static final String BUNDLE_CANDIDATES_CHANGED_EVENT = "bundle-candidates-changed";
     private static final int MAX_CONNECTIONS_PER_DRIVER = 2;
 
     private final Map<UUID, Subscription> subscriptions = new ConcurrentHashMap<>();
@@ -131,6 +135,22 @@ public class DeliveryRequestEventStream {
             notifyRequestsChanged();
         } catch (final RuntimeException exception) {
             LOGGER.warn("배송 요청 SSE 알림 전송에 실패했습니다.", exception);
+        }
+    }
+
+    // 후보 계산은 커밋 후나 트랜잭션 밖에서 하므로 받는 즉시 그 배송원 연결에만 보낸다.
+    @EventListener
+    public void on(final BundleCandidatesChanged event) {
+        try {
+            final DriverId driverId = new DriverId(event.driverId());
+            subscriptions.forEach((subscriptionId, subscription) -> {
+                if (subscription.driverId().equals(driverId)) {
+                    send(subscriptionId, subscription,
+                            SseEmitter.event().name(BUNDLE_CANDIDATES_CHANGED_EVENT).data("{}"));
+                }
+            });
+        } catch (final RuntimeException exception) {
+            LOGGER.warn("묶음 후보 SSE 알림 전송에 실패했습니다.", exception);
         }
     }
 

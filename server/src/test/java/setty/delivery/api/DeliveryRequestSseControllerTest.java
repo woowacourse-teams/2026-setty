@@ -25,6 +25,7 @@ import org.springframework.web.context.request.NativeWebRequest;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.method.support.ModelAndViewContainer;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+import setty.delivery.application.BundleCandidateService;
 import setty.delivery.application.DeliveryLifecycleService;
 import setty.delivery.application.DeliveryQueryService;
 import setty.delivery.auth.domain.DeliveryMember;
@@ -44,7 +45,8 @@ class DeliveryRequestSseControllerTest {
         stream = new DeliveryRequestEventStream(3,
                 () -> new SseEmitter(DeliveryRequestEventStream.CONNECTION_TIMEOUT_MILLIS), meterRegistry);
         final DeliveryController controller = new DeliveryController(
-                mock(DeliveryQueryService.class), mock(DeliveryLifecycleService.class), stream);
+                mock(DeliveryQueryService.class), mock(DeliveryLifecycleService.class), stream,
+                mock(BundleCandidateService.class));
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
                 .setControllerAdvice(new DeliveryExceptionHandler())
                 .setCustomArgumentResolvers(new HandlerMethodArgumentResolver() {

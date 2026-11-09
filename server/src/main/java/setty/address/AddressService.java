@@ -1,6 +1,7 @@
 package setty.address;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Predicate;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -33,6 +34,14 @@ public class AddressService {
             }
         }
         return AddressResolution.unmatched();
+    }
+
+    // 위도·경도는 이용 조건 확인 전에는 로컬에서만 채우므로 운영에서는 비어 있을 수 있다.
+    public Optional<StandardAddress> findByManagementNumber(final String managementNumber) {
+        if (managementNumber == null || managementNumber.isBlank()) {
+            return Optional.empty();
+        }
+        return repository.findByManagementNumber(managementNumber).map(row -> row.toStandard(null));
     }
 
     // 구 이름을 썼으면 그 구만 남긴다. 지하·산 표기는 맞는 쪽이 있을 때만 좁힌다(대부분 생략하므로).

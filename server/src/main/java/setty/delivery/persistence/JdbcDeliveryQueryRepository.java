@@ -5,10 +5,16 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowCallbackHandler;
 import org.springframework.stereotype.Repository;
 import setty.delivery.application.DeliveryQueryRepository;
 import setty.delivery.application.DeliveryCursor;
@@ -126,6 +132,53 @@ public class JdbcDeliveryQueryRepository implements DeliveryQueryRepository {
                 )
                 .stream()
                 .findFirst();
+    }
+
+    @Override
+    public List<DeliveryRequest.CellCall> findCellCalls() {
+        return jdbcTemplate.query("""
+                SELECT id, order_id, item_name, category, pickup_address, delivery_address,
+                       pickup_dong_code, delivery_dong_code,
+                       estimated_fee, status, requested_at, pickup_cell, delivery_cell
+                FROM delivery
+                WHERE status = 'REQUESTED' AND driver_id IS NULL
+                  AND pickup_cell IS NOT NULL AND delivery_cell IS NOT NULL
+                ORDER BY pickup_cell, delivery_cell, estimated_fee DESC, id
+                """, (resultSet, rowNumber) -> new DeliveryRequest.CellCall(
+                resultSet.getInt("pickup_cell"),
+                resultSet.getInt("delivery_cell"),
+                mapRequestSummary(resultSet, rowNumber)
+        ));
+    }
+
+    @Override
+    public List<DeliveryRequest.Summary> findCellCalls(final int pickupCell, final int deliveryCell, final int limit) {
+        return jdbcTemplate.query("""
+                SELECT id, order_id, item_name, category, pickup_address, delivery_address,
+                       pickup_dong_code, delivery_dong_code,
+                       estimated_fee, status, requested_at
+                FROM delivery
+                WHERE pickup_cell = ? AND delivery_cell = ? AND status = 'REQUESTED' AND driver_id IS NULL
+                ORDER BY estimated_fee DESC, id
+                LIMIT ?
+                """, JdbcDeliveryQueryRepository::mapRequestSummary, pickupCell, deliveryCell, limit);
+    }
+
+    @Override
+    public Map<Long, Set<Integer>> findInProgressDeliveryCells(final Collection<Long> driverIds) {
+        final Map<Long, Set<Integer>> cells = new HashMap<>();
+        if (driverIds.isEmpty()) {
+            return cells;
+        }
+        final String placeholders = String.join(",", driverIds.stream().map(id -> "?").toList());
+        jdbcTemplate.query("""
+                SELECT driver_id, delivery_cell
+                FROM delivery
+                WHERE status IN ('ACCEPTED', 'PICKED_UP') AND delivery_cell IS NOT NULL AND driver_id IN (%s)
+                """.formatted(placeholders), (RowCallbackHandler) resultSet ->
+                cells.computeIfAbsent(resultSet.getLong("driver_id"), id -> new HashSet<>())
+                        .add(resultSet.getInt("delivery_cell")), driverIds.toArray());
+        return cells;
     }
 
     private static DeliveryRequest.Summary mapRequestSummary(final ResultSet resultSet, final int rowNumber)

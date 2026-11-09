@@ -37,4 +37,8 @@ public final class DeliveryRequest {
             String deliveryDongCode
     ) {
     }
+
+    /** 칸 캐시에 담는 대기 요청. 출발·도착 칸이 모두 있는 요청만 만든다. */
+    public record CellCall(int pickupCell, int deliveryCell, Summary summary) {
+    }
 }
