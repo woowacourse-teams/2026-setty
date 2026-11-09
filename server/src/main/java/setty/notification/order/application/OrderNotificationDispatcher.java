@@ -10,10 +10,12 @@ import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 import setty.common.OrderStatusNotified;
 import setty.notification.send.NotificationMessage;
+import setty.notification.send.NotificationSendConfiguration;
 import setty.notification.send.NotificationSender;
 import setty.notification.send.SendResult;
 
-// 받는 사람이 한두 명이라 배치 없이 바로 보낸다. 키워드 알림 대량 발송 뒤에 밀리지 않게 주문·배송 리스너와 같은 공용 실행기를 쓴다.
+// 받는 사람이 한두 명이라 배치 없이 바로 보낸다. 전용 실행기에서 돌아 키워드 대량 발송 뒤에 밀리지도,
+// FCM 응답(최대 10초)을 기다리는 동안 결제 확정·배차 같은 주문·배송 리스너의 공용 실행기를 막지도 않는다.
 // 행 저장과 발송을 한 트랜잭션에 묶지 않아 발송 실패가 저장을 되돌리지 않는다.
 // 재시도할 알림이 남으면 예외로 발행 기록을 남겨 재발행 스케줄러가 다시 부르게 한다.
 @Component
@@ -32,7 +34,7 @@ public class OrderNotificationDispatcher {
         this.notificationSender = notificationSender;
     }
 
-    @Async
+    @Async(NotificationSendConfiguration.ORDER_DISPATCH_EXECUTOR)
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onOrderStatusNotified(final OrderStatusNotified event) {
         dispatch(event);

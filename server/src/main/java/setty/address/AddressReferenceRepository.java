@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
@@ -28,6 +29,12 @@ class AddressReferenceRepository {
     List<Row> findByJibun(final String legalDong, final int main, final int sub) {
         return jdbcTemplate.query(SELECT + "WHERE legal_dong = ? AND jibun_main = ? AND jibun_sub = ?",
                 AddressReferenceRepository::row, legalDong, main, sub);
+    }
+
+    Optional<Row> findByManagementNumber(final String managementNumber) {
+        return jdbcTemplate.query(SELECT + "WHERE mgmt_no = ?", AddressReferenceRepository::row, managementNumber)
+                .stream()
+                .findFirst();
     }
 
     private static Row row(final ResultSet rs, final int rowNum) throws SQLException {

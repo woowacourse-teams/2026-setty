@@ -166,7 +166,9 @@ public class OrderService {
                 destination.dongCode(),
                 pickup.dongCode(),
                 pickup.zipCode(),
-                destination.zipCode()
+                destination.zipCode(),
+                pickup.managementNumber(),
+                destination.managementNumber()
         ));
         orderStatusNotifier.notify(order, OrderStatusNotified.Change.CONFIRMED, clock.instant());
     }

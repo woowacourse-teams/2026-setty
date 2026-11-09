@@ -31,5 +31,6 @@ public abstract class MySqlIntegrationTestSupport {
         registry.add("setty.order.pending-expiration.scan-interval", () -> "PT24H");
         registry.add("setty.order.completion.scan-interval", () -> "PT24H");
         registry.add("setty.payment.recovery.interval", () -> "PT24H");
+        registry.add("setty.delivery.bundle.reconcile-interval-seconds", () -> "86400");
     }
 }

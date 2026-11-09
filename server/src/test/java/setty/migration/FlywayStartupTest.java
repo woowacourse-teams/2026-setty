@@ -32,6 +32,6 @@ class FlywayStartupTest extends MySqlIntegrationTestSupport {
         assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("18");
         assertThat(jdbc.queryForObject(
                 "SELECT COUNT(*) FROM flyway_schema_history WHERE type='SQL' AND success=1", Integer.class))
-                .isEqualTo(17);
+                .isEqualTo(18);
     }
 }
