@@ -72,6 +72,7 @@ export type FurnitureDetailResponse = {
     dong?: ListingDongResponse | null;
     hasPurchaseRequest?: boolean;
     purchaseRequestedByMe?: boolean;
+    ownedByMe?: boolean;
     orderState?: string;
     // 조회한 회원이 이 매물에 가진 진행 중 주문 id. 없으면 null
     myOrderId?: number | null;

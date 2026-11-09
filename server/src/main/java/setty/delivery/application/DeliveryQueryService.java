@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import setty.delivery.application.readmodel.DeliveryRequest;
 import setty.delivery.application.readmodel.DeliveryPage;
@@ -27,6 +28,8 @@ public class DeliveryQueryService {
     private final DeliveryItemImageReader deliveryItemImageReader;
     private final DeliveryFeeService deliveryFeeService;
 
+    // 목록의 행마다 부르는 메모리 거리표 조회다. 행마다 읽기 트랜잭션(커넥션 획득·읽기 전용 설정·커밋)을 열지 않는다.
+    @Transactional(propagation = Propagation.SUPPORTS)
     public Integer estimateDistanceMeters(final String pickupDongCode, final String deliveryDongCode) {
         return deliveryFeeService.distanceMeters(pickupDongCode, deliveryDongCode).orElse(null);
     }
