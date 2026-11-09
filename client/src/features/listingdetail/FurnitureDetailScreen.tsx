@@ -114,13 +114,21 @@ export function FurnitureDetailScreen() {
     }, [furnitureId]);
 
     useEffect(() => {
+        let active = true;
         load();
+        // 비슷한 매물로 다른 상세에 오면 같은 화면이 유지되므로 이전 매물의 찜 상태를 비우고, 늦게 온 이전 매물의 응답은 버린다
+        setFavorite({ isFavorited: null, isUpdating: false, requiresLogin: false });
         // 찜 여부는 부가 정보라 실패해도 알리지 않는다. 비로그인(401)은 빈 하트로 두고, 그 밖의 실패는 토글만 막는다
         favoriteRepository.isFavorited(furnitureId)
-            .then((isFavorited) => setFavorite((current) => ({ ...current, isFavorited })))
+            .then((isFavorited) => {
+                if (active) setFavorite((current) => ({ ...current, isFavorited }));
+            })
             .catch((error: unknown) => {
-                if (isUnauthorized(error)) setFavorite((current) => ({ ...current, isFavorited: false, requiresLogin: true }));
+                if (active && isUnauthorized(error)) setFavorite((current) => ({ ...current, isFavorited: false, requiresLogin: true }));
             });
+        return () => {
+            active = false;
+        };
     }, [furnitureId, load]);
 
     useEffect(() => {
