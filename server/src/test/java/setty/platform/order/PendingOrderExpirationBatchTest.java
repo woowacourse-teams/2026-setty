@@ -27,6 +27,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import setty.platform.listing.application.ListingService;
 import setty.platform.listing.storage.ListingImageStorage;
 import setty.platform.member.repository.MemberRepository;
 import setty.platform.order.controller.dto.OrderCreateRequest;
@@ -39,7 +40,7 @@ import setty.support.MySqlIntegrationTestSupport;
 @SpringBootTest(properties = {
         "setty.events.resubmission-interval=PT24H",
         "spring.jpa.properties.hibernate.session_factory.statement_inspector="
-                + "setty.platform.order.PendingOrderExpirationBatchTest$OrderLockObserver"
+                + "setty.platform.order.PendingOrderExpirationBatchTest$LockObserver"
 })
 class PendingOrderExpirationBatchTest extends MySqlIntegrationTestSupport {
 
@@ -54,6 +55,7 @@ class PendingOrderExpirationBatchTest extends MySqlIntegrationTestSupport {
     @Autowired private PendingOrderExpirationService expirationService;
     @Autowired private PendingOrderExpirationScheduler scheduler;
     @Autowired private OrderService orderService;
+    @Autowired private ListingService listingService;
     @Autowired private MemberRepository members;
     @MockitoBean private ListingImageStorage listingImageStorage;
     @MockitoBean private Clock clock;
@@ -72,7 +74,10 @@ class PendingOrderExpirationBatchTest extends MySqlIntegrationTestSupport {
 
     @AfterEach
     void cleanUp() {
-        OrderLockObserver.attempted = null;
+        LockObserver.attempted = null;
+        LockObserver.deletionHoldsListing = null;
+        LockObserver.deletionMayLockOrders = null;
+        LockObserver.expirationLocksListing = null;
         if (jdbc.queryForObject("""
                 SELECT COUNT(*) FROM information_schema.table_constraints
                 WHERE constraint_schema=DATABASE() AND table_name='listings'
@@ -187,7 +192,7 @@ class PendingOrderExpirationBatchTest extends MySqlIntegrationTestSupport {
                     statement.executeQuery("SELECT id FROM orders WHERE id=1 FOR UPDATE").close();
                 }
                 final var lockAttempted = new CountDownLatch(1);
-                OrderLockObserver.attempted = lockAttempted;
+                LockObserver.attempted = lockAttempted;
                 final var expiration = executor.submit(() -> expirationService.expireBatch(List.of(1L, 2L), REFERENCE));
                 // 잠금 SQL 제출과 미완료를 확인하고 결제를 확정한다. 실제 MySQL 잠금을 사용한다.
                 assertThat(lockAttempted.await(5, TimeUnit.SECONDS)).isTrue();
@@ -268,6 +273,31 @@ class PendingOrderExpirationBatchTest extends MySqlIntegrationTestSupport {
                 .isEqualTo(1);
     }
 
+    @Test
+    void 판매자_삭제와_만료가_같은_매물을_겹쳐_잠가도_서로_기다리다_멈추지_않는다() throws Exception {
+        seed(1, "PENDING", REFERENCE, true);
+        final var deletionHoldsListing = new CountDownLatch(1);
+        final var deletionMayLockOrders = new CountDownLatch(1);
+        final var expirationLocksListing = new CountDownLatch(1);
+        LockObserver.deletionHoldsListing = deletionHoldsListing;
+        LockObserver.deletionMayLockOrders = deletionMayLockOrders;
+        LockObserver.expirationLocksListing = expirationLocksListing;
+        try (var executor = Executors.newFixedThreadPool(2)) {
+            final var deletion = executor.submit(() -> listingService.delete(SELLER, 1L));
+            assertThat(deletionHoldsListing.await(5, TimeUnit.SECONDS)).isTrue();
+            // 삭제가 매물을 잠근 채 멈춘 사이 만료를 시작한다. 만료도 매물부터 잠그므로 여기서 기다려야 한다.
+            final var expiration = executor.submit(() -> expirationService.expire(1L, REFERENCE));
+            assertThat(expirationLocksListing.await(5, TimeUnit.SECONDS)).isTrue();
+            Thread.sleep(300);
+            deletionMayLockOrders.countDown();
+
+            deletion.get(5, TimeUnit.SECONDS);
+            assertThat(expiration.get(5, TimeUnit.SECONDS)).isFalse();
+        }
+        assertState(1, "EXPIRED", false);
+        assertThat(jdbc.queryForObject("SELECT deleted_at IS NOT NULL FROM listings WHERE id=1", Boolean.class)).isTrue();
+    }
+
     private void seed(long id, String status, Instant expiresAt, boolean reserved) {
         jdbc.update("""
                 INSERT INTO listings (id,seller_id,title,description,price,delivery_fee,category,condition_grade,
@@ -290,16 +320,51 @@ class PendingOrderExpirationBatchTest extends MySqlIntegrationTestSupport {
                 .isEqualTo(reserved);
     }
 
-    public static class OrderLockObserver implements StatementInspector {
+    public static class LockObserver implements StatementInspector {
         static volatile CountDownLatch attempted;
+        // 판매자 삭제가 매물을 잠근 뒤 주문을 잠그기 직전(listing_id로 주문을 잠그는 문장)에 멈춰 세운다.
+        static volatile CountDownLatch deletionHoldsListing;
+        static volatile CountDownLatch deletionMayLockOrders;
+        // 만료 경로의 매물 잠금. 삭제 경로의 매물 잠금은 WHERE에 deleted_at is null 조건이 있어 구분된다.
+        static volatile CountDownLatch expirationLocksListing;
 
         @Override
         public String inspect(String sql) {
-            final var latch = attempted;
-            if (latch != null && sql.contains("from orders") && sql.contains("for update")) {
-                latch.countDown();
+            if (!sql.contains("for update")) {
+                return sql;
+            }
+            if (sql.contains("from orders")) {
+                countDown(attempted);
+                if (sql.contains("listing_id=?")) {
+                    holdDeletion();
+                }
+            } else if (sql.contains("from listings") && !sql.contains("deleted_at is null")) {
+                countDown(expirationLocksListing);
             }
             return sql;
+        }
+
+        private static void holdDeletion() {
+            final var holds = deletionHoldsListing;
+            final var mayLock = deletionMayLockOrders;
+            if (holds == null || mayLock == null) {
+                return;
+            }
+            holds.countDown();
+            try {
+                if (!mayLock.await(10, TimeUnit.SECONDS)) {
+                    throw new AssertionError("삭제의 주문 잠금 허용을 기다리지 못했습니다");
+                }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new IllegalStateException(e);
+            }
+        }
+
+        private static void countDown(CountDownLatch latch) {
+            if (latch != null) {
+                latch.countDown();
+            }
         }
     }
 }
