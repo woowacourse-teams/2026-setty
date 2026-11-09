@@ -12,6 +12,7 @@ import setty.payment.domain.PaymentRefundReason;
 /**
  * 다른 모듈에서 결제로 들어오는 이벤트의 진입 경계.
  * 발행한 쪽이 커밋된 뒤 결제의 새 트랜잭션에서 처리하고, 실패하면 발행 기록이 남아 재발행되므로 처리는 멱등하다.
+ * 구매자 취소({@code OrderCancelled})의 환불 요청은 아직 받지 않는다(#602). 붙일 때는 이 클래스에서 환불 요청을 부른다.
  */
 @Component
 @RequiredArgsConstructor
