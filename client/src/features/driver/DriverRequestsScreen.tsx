@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
-import { subscribeRequestEvents } from '../../api/deliveryRepository';
+import { deliveryRepository, subscribeRequestEvents } from '../../api/deliveryRepository';
 import { deliveryLoginIdStore } from '../../api/http';
 import { routes, useNavigateToDriverLogin } from '../../navigation';
 import {
@@ -10,10 +10,12 @@ import {
     LoadingContent,
     PullToRefresh,
     Scaffold,
+    SectionTitle,
     SegmentedList,
     SettyMessage,
     TopAppBar
 } from '../../ui/components';
+import type { DeliverySummary } from '../../model/delivery';
 import { Icon } from '../../ui/Icon';
 import { shapeStyle } from '../../ui/shapes';
 import { usePolling } from '../usePolling';
@@ -22,9 +24,13 @@ import { DeliveryListItem } from './DeliveryParts';
 import { DeliveryLoadMore } from './DeliveryLoadMore';
 import { requestPageStore } from './deliveryPageStore';
 import { useDeliveryPage } from './useDeliveryPage';
+import { useDriverLocation } from './useDriverLocation';
 import styles from './driver.module.css';
 
-/** 배송원이 수락할 수 있는 배차 요청. 구매자가 결제하면 새로고침하지 않아도 바로 나타난다. */
+/**
+ * 배송원이 수락할 수 있는 배차 요청. 구매자가 결제하면 새로고침하지 않아도 바로 나타난다.
+ * 진행 중 배차가 있으면 지금 칸에서 출발해 내 도착지 근처로 가는 요청을 "가는 길에 실을 콜"로 위에 따로 보여 준다.
+ */
 export function DriverRequestsScreen() {
     const navigate = useNavigate();
     const navigateToDriverLogin = useNavigateToDriverLogin();
@@ -34,10 +40,25 @@ export function DriverRequestsScreen() {
 
     const [isLive, setIsLive] = useState(false);
     const [isFabExpanded, setIsFabExpanded] = useState(true);
+    const [bundle, setBundle] = useState<DeliverySummary[]>([]);
 
-    useEffect(() => subscribeRequestEvents(() => void refresh(), navigateToDriverLogin, setIsLive), [refresh, navigateToDriverLogin]);
+    // 묶음 후보는 보조 정보라 실패해도 목록 화면을 막지 않는다
+    const loadBundle = useCallback(() => {
+        deliveryRepository.getBundleCandidates().then((result) => setBundle(result.items)).catch(() => {});
+    }, []);
+    const refreshAll = useCallback(() => {
+        loadBundle();
+        return refresh();
+    }, [refresh, loadBundle]);
+
+    useDriverLocation();
+    // 목록이 바뀌면(내가 수락·완료해 도착지가 바뀐 경우 포함) 후보도 다시 불러온다
+    useEffect(
+        () => subscribeRequestEvents(refreshAll, navigateToDriverLogin, setIsLive, loadBundle),
+        [refreshAll, navigateToDriverLogin, loadBundle]
+    );
     // 실시간 연결이 끊겼거나 서버가 연결 수 제한으로 거절하면 대신 주기적으로 불러온다
-    usePolling(() => void refresh(), state.status === 'success' && !isLive);
+    usePolling(refreshAll, state.status === 'success' && !isLive);
 
     useEffect(() => {
         const onScroll = () => setIsFabExpanded(window.scrollY < 120);
@@ -68,8 +89,25 @@ export function DriverRequestsScreen() {
                 <ErrorContent isUnauthorized={state.isUnauthorized} message={state.message} onRequireLogin={navigateToDriverLogin} onRetry={load} />
             )}
             {state.status === 'success' && (
-                <PullToRefresh isRefreshing={isRefreshing} onRefresh={refresh}>
+                <PullToRefresh isRefreshing={isRefreshing} onRefresh={refreshAll}>
                     <div className={screenStyles['list-padding']}>
+                        {bundle.length > 0 && (
+                            <section aria-label="가는 길에 실을 콜">
+                                <SectionTitle>가는 길에 실을 콜</SectionTitle>
+                                <SegmentedList>
+                                    {bundle.map((delivery, index) => (
+                                        <DeliveryListItem
+                                            count={bundle.length}
+                                            delivery={delivery}
+                                            index={index}
+                                            key={delivery.deliveryId}
+                                            onClick={() => navigate(routes.driverRequestDetail(delivery.deliveryId))}
+                                        />
+                                    ))}
+                                </SegmentedList>
+                                <SectionTitle>모든 배차 요청</SectionTitle>
+                            </section>
+                        )}
                         {state.data.length === 0 && (
                             <CenterFill>
                                 <SettyMessage

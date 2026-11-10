@@ -30,6 +30,27 @@ export const tokenStore = createTokenStore('setty:credential-token');
 /** 배송원 로그인 토큰. 회원 토큰과 따로 두어 한 브라우저에서 구매자와 배송원으로 함께 로그인할 수 있다. */
 export const deliveryTokenStore = createTokenStore('setty:delivery-token');
 
+/**
+ * 시연 시뮬레이터가 위치를 대신 보내는 탭인지. 그 탭에서는 폰 GPS를 보내지 않는다.
+ * 탭을 닫으면 잊도록 sessionStorage에 둔다(같은 폰으로 실제 운행할 때 GPS가 꺼져 있지 않게).
+ */
+export const deliverySimulatorStore = {
+    get(): boolean {
+        try {
+            return window.sessionStorage.getItem('setty:delivery-simulator') === '1';
+        } catch {
+            return false;
+        }
+    },
+    set() {
+        try {
+            window.sessionStorage.setItem('setty:delivery-simulator', '1');
+        } catch {
+            // 저장소를 쓸 수 없으면 이 탭에서 GPS를 보내게 된다
+        }
+    }
+};
+
 /** 배송원 로그인 아이디. 배송원 내 정보 API가 없어 프로필 앞글자를 보여 주려고 로그인할 때 함께 남긴다. */
 export const deliveryLoginIdStore = createTokenStore('setty:delivery-login-id');
 
