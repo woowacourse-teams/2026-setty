@@ -1,7 +1,7 @@
-export type OrderStatus = 'PENDING' | 'CONFIRMED' | 'COMPLETED' | 'CANCEL_PENDING' | 'CANCELLED' | 'EXPIRED';
+export type OrderStatus = 'PENDING' | 'PAID' | 'CONFIRMED' | 'COMPLETED' | 'CANCEL_PENDING' | 'CANCELLED' | 'EXPIRED';
 export type DeliveryStatus = 'PENDING' | 'REQUESTED' | 'ACCEPTED' | 'PICKED_UP' | 'DELIVERED';
 
-const orderStatuses: readonly OrderStatus[] = ['PENDING', 'CONFIRMED', 'COMPLETED', 'CANCEL_PENDING', 'CANCELLED', 'EXPIRED'];
+const orderStatuses: readonly OrderStatus[] = ['PENDING', 'PAID', 'CONFIRMED', 'COMPLETED', 'CANCEL_PENDING', 'CANCELLED', 'EXPIRED'];
 const deliveryStatuses: readonly DeliveryStatus[] = ['PENDING', 'REQUESTED', 'ACCEPTED', 'PICKED_UP', 'DELIVERED'];
 
 export type OrderedFurniture = {
@@ -54,6 +54,7 @@ export function deliveryStatusOf(value: string): DeliveryStatus {
 
 const orderStatusLabels: Record<OrderStatus, string> = {
     PENDING: '결제 대기',
+    PAID: '결제 완료',
     CONFIRMED: '주문 완료',
     COMPLETED: '구매 확정',
     CANCEL_PENDING: '취소 대기',
@@ -81,14 +82,16 @@ export function orderStatusLabel(order: Order): string {
         case 'CANCELLED':
         case 'EXPIRED':
         case 'PENDING':
+        case 'PAID':
             return orderStatusLabels[order.orderStatus];
         default:
             return deliveryStatusLabels[order.deliveryStatus];
     }
 }
 
-/** 결제가 끝나 배송원이 배차를 진행 중인 주문인지 여부. 이 동안은 화면을 주기적으로 다시 불러온다. */
+/** 결제가 끝나 주문 확정이나 배차를 진행 중인 주문인지 여부. 이 동안은 화면을 주기적으로 다시 불러온다. */
 export function isDeliveryInProgress(order: Order): boolean {
+    if (order.orderStatus === 'PAID') return true;
     if (order.orderStatus !== null && order.orderStatus !== 'CONFIRMED') return false;
     return order.deliveryStatus === 'REQUESTED' || order.deliveryStatus === 'ACCEPTED' || order.deliveryStatus === 'PICKED_UP';
 }
@@ -104,6 +107,8 @@ export function orderStatusDescription(order: Order): string {
     switch (order.orderStatus) {
         case 'PENDING':
             return '결제가 완료되지 않은 주문이에요';
+        case 'PAID':
+            return '결제가 완료됐고 주문을 확정하고 있어요. 확정된 뒤 취소할 수 있어요';
         case 'COMPLETED':
             return '구매를 확정했어요';
         case 'CANCEL_PENDING':

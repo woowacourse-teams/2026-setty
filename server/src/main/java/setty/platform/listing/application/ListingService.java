@@ -61,9 +61,9 @@ public class ListingService {
 
     private static final List<OrderStatus> CLOSED_ORDER_STATUSES = List.of(OrderStatus.EXPIRED, OrderStatus.CANCELLED);
     private static final List<OrderStatus> OPEN_ORDER_STATUSES =
-            List.of(OrderStatus.PENDING, OrderStatus.CONFIRMED, OrderStatus.CANCEL_PENDING);
+            List.of(OrderStatus.PENDING, OrderStatus.PAID, OrderStatus.CONFIRMED, OrderStatus.CANCEL_PENDING);
     private static final List<OrderStatus> TRADING_ORDER_STATUSES =
-            List.of(OrderStatus.CONFIRMED, OrderStatus.CANCEL_PENDING);
+            List.of(OrderStatus.PAID, OrderStatus.CONFIRMED, OrderStatus.CANCEL_PENDING);
 
     private final ListingRepository listingRepository;
     private final ListingImageRepository listingImageRepository;

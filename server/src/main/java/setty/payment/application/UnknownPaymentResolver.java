@@ -17,7 +17,7 @@ import setty.payment.repository.PaymentRepository;
 
 /**
  * 승인 결과를 끝내 확인하지 못해 UNKNOWN으로 남은 결제를 토스에 다시 묻는다.
- * 승인됐으면 기록해 {@code PaymentCompleted}를 낸다. 주문이 아직 결제 대기면 확정되고, 이미 끝났으면 주문 쪽이 환불을 요청한다.
+ * 승인됐으면 주문의 결과를 먼저 정하고 기록한다. 주문이 받아들였으면 그대로, 이미 끝났으면 환불 대상도 함께 기록한다.
  * 승인되지 않은 결제면 시도를 지운다. 토스 호출은 트랜잭션 밖에서 한다.
  */
 @Component
@@ -28,6 +28,7 @@ public class UnknownPaymentResolver {
 
     private final PaymentRepository paymentRepository;
     private final PaymentRecorder paymentRecorder;
+    private final PaymentApprovalRecorder paymentApprovalRecorder;
     private final TossPaymentClient tossPaymentClient;
     private final PaymentRecoveryProperties properties;
     private final Clock clock;
@@ -49,7 +50,7 @@ public class UnknownPaymentResolver {
         switch (tossPaymentClient.find(payment.getPaymentKey())) {
             case TossPaymentLookup.Found(final TossConfirmResult found)
                     when found.isDoneFor(payment.getTossOrderId(), payment.getAmount()) -> {
-                paymentRecorder.recordCompleted(payment.getOrderId(), payment.getTossOrderId(),
+                paymentApprovalRecorder.record(payment.getOrderId(), payment.getTossOrderId(),
                         payment.getPaymentKey(), payment.getAmount(), found.approvedAtAsLocalDateTime());
                 log.info("결과를 모르던 결제가 토스에서 승인되어 기록했습니다. orderId={}", payment.getOrderId());
             }

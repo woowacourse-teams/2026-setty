@@ -110,7 +110,7 @@ class PendingOrderExpirationServiceTest {
     }
 
     @Test
-    void 잠금_대기_중_CONFIRMED로_전이된_주문은_만료하지_않는다() throws Exception {
+    void 잠금_대기_중_승인을_받아들여_PAID가_된_주문은_만료하지_않는다() throws Exception {
         final Order order = pendingOrder();
         final CountDownLatch expirationLookupStarted = new CountDownLatch(1);
         final CountDownLatch paymentCompleted = new CountDownLatch(1);
@@ -129,13 +129,13 @@ class PendingOrderExpirationServiceTest {
             );
             assertThat(expirationLookupStarted.await(5, TimeUnit.SECONDS)).isTrue();
 
-            order.requestDelivery();
+            order.acceptPayment(EXPIRES_AT.minusSeconds(1));
             paymentCompleted.countDown();
 
             assertThat(expiration.get(5, TimeUnit.SECONDS)).isFalse();
         }
 
-        assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.CONFIRMED);
+        assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.PAID);
         verify(orderRepository, never()).delete(order);
         verifyNoInteractions(listingService);
     }

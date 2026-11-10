@@ -39,9 +39,9 @@ import org.springframework.test.context.event.ApplicationEvents;
 import org.springframework.test.context.event.RecordApplicationEvents;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
-import setty.common.PaymentCompleted;
+import setty.platform.order.service.OrderPaid;
 import setty.common.PaymentFailed;
-import setty.payment.application.PaymentRecorder;
+import setty.payment.application.PaymentApprovalRecorder;
 import setty.payment.application.UnknownPaymentResolver;
 import setty.platform.listing.storage.ListingImageStorage;
 import setty.platform.order.service.PendingOrderExpirationService;
@@ -86,7 +86,7 @@ class PaymentConfirmRecoveryTest extends MySqlIntegrationTestSupport {
     private UnknownPaymentResolver unknownPaymentResolver;
 
     @Autowired
-    private PaymentRecorder paymentRecorder;
+    private PaymentApprovalRecorder paymentApprovalRecorder;
 
     @Autowired
     private PendingOrderExpirationService expirationService;
@@ -293,7 +293,7 @@ class PaymentConfirmRecoveryTest extends MySqlIntegrationTestSupport {
         unknownPaymentResolver.resolveStale();
 
         assertThat(paymentCount()).isZero();
-        assertThat(events.stream(PaymentCompleted.class)).isEmpty();
+        assertThat(events.stream(OrderPaid.class)).isEmpty();
     }
 
     @Test
@@ -355,7 +355,7 @@ class PaymentConfirmRecoveryTest extends MySqlIntegrationTestSupport {
     }
 
     @Test
-    void 늦은_승인_응답과_정리_배치가_같은_결제를_동시에_기록해도_결제_완료_이벤트는_한_번이다() throws Exception {
+    void 늦은_승인_응답과_정리_배치가_같은_결제를_동시에_기록해도_주문_확정은_한_번이다() throws Exception {
         leaveUnknownAttempt();
         final CountDownLatch start = new CountDownLatch(1);
         final ExecutorService executor = Executors.newFixedThreadPool(2);
@@ -376,7 +376,7 @@ class PaymentConfirmRecoveryTest extends MySqlIntegrationTestSupport {
 
     private Void recordCompletedAfter(final CountDownLatch start) throws InterruptedException {
         start.await();
-        paymentRecorder.recordCompleted(ORDER_ID, TOSS_ORDER_ID, PAYMENT_KEY, AMOUNT, LocalDateTime.now());
+        paymentApprovalRecorder.record(ORDER_ID, TOSS_ORDER_ID, PAYMENT_KEY, AMOUNT, LocalDateTime.now());
         return null;
     }
 
@@ -397,7 +397,7 @@ class PaymentConfirmRecoveryTest extends MySqlIntegrationTestSupport {
         assertThat(paymentCount()).isOne();
         assertThat(paymentStatus()).isEqualTo("UNKNOWN");
         assertThat(orderStatus()).isEqualTo("PENDING");
-        assertThat(events.stream(PaymentCompleted.class)).isEmpty();
+        assertThat(events.stream(OrderPaid.class)).isEmpty();
     }
 
     private String paymentStatus() {
@@ -407,14 +407,16 @@ class PaymentConfirmRecoveryTest extends MySqlIntegrationTestSupport {
     private void assertRecordedOnce() {
         awaitEventsHandled(jdbcTemplate);
         assertThat(paymentCount()).isOne();
-        assertThat(events.stream(PaymentCompleted.class)).hasSize(1);
+        // 동시 기록은 다른 스레드에서 일어나 이벤트 기록으로 셀 수 없다. 확정마다 배송 요청이 하나 생기므로 그 수로 센다.
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM delivery WHERE order_id = ?", Integer.class, ORDER_ID)).isOne();
         assertThat(orderStatus()).isEqualTo("CONFIRMED");
     }
 
     private void assertNotRecorded() {
         assertThat(paymentCount()).isZero();
         assertThat(orderStatus()).isEqualTo("PENDING");
-        assertThat(events.stream(PaymentCompleted.class)).isEmpty();
+        assertThat(events.stream(OrderPaid.class)).isEmpty();
     }
 
     private ResultActions confirm() throws Exception {

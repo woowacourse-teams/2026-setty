@@ -9,8 +9,6 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
@@ -19,7 +17,6 @@ import setty.common.OrderCancellationRequested;
 import setty.common.OrderCancelled;
 import setty.common.OrderConfirmed;
 import setty.common.OrderStatusNotified;
-import setty.common.PaymentRefundRequested;
 import setty.global.exception.BusinessException;
 import setty.global.exception.ErrorCode;
 import setty.platform.listing.application.ListingService;
@@ -39,8 +36,6 @@ import setty.platform.order.repository.OrderRepository;
 
 @Service
 public class OrderService {
-
-    private static final Logger log = LoggerFactory.getLogger(OrderService.class);
 
     private final OrderRepository orderRepository;
     private final ListingService listingService;
@@ -126,21 +121,15 @@ public class OrderService {
         return member.getResolvedAddress() == null ? null : member.getResolvedAddress().getManagementNumber();
     }
 
+    // 승인을 받아들인(PAID) 주문을 확정하고 배송 요청 이벤트를 발행한다. 이미 확정 이후면 아무것도 하지 않는다(멱등).
     @Transactional
-    public void publishOrderConfirmed(final Long orderId) {
+    public void confirmPaid(final Long orderId) {
         if (orderId == null || orderId <= 0) {
             throw new BusinessException(ErrorCode.INVALID_REQUEST);
         }
 
         final Order order = orderRepository.findByIdForUpdate(orderId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
-        if (order.getOrderStatus() == OrderStatus.EXPIRED || order.getOrderStatus() == OrderStatus.CANCELLED) {
-            // 주문은 되살리지 않고 결제 쪽에 환불을 맡긴다. 주문 잠금 안에서 발행해 주문 상태와 함께 커밋된다.
-            log.warn("만료되거나 판매자가 취소한 주문에 결제 완료가 도착해 환불을 요청합니다. orderId={}, orderStatus={}",
-                    orderId, order.getOrderStatus());
-            eventPublisher.publishEvent(new PaymentRefundRequested(orderId, order.getOrderStatus().name()));
-            return;
-        }
         if (!order.requestDelivery()) {
             return;
         }

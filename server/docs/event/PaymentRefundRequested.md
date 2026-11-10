@@ -2,8 +2,8 @@
 
 ## 발생
 
-- 발행자: [`OrderService#publishOrderConfirmed`](../../src/main/java/setty/platform/order/service/OrderService.java)
-- 상황: `PaymentCompleted`를 받은 주문이 이미 `EXPIRED`이거나 판매자 취소로 `CANCELLED`일 때 발행한다. 주문 행을 잠근 트랜잭션에서 발행하므로 주문 상태와 함께 커밋되고, 주문은 되살리지 않는다. `PaymentCompleted`가 재발행되면 다시 발행될 수 있다.
+- 발행자: 없음. 끝난 주문의 승인은 이제 결제 모듈이 결제를 기록하는 트랜잭션에서 환불 대상으로 함께 기록한다([`PaymentApprovalRecorder`](../../src/main/java/setty/payment/application/PaymentApprovalRecorder.java)). 주문이 먼저 커밋하는 순서에서는 이 이벤트가 결제 `DONE`보다 먼저 처리돼 환불 요청이 사라질 수 있어 발행을 멈췄다.
+- 상황: 이전 버전이 발행해 배포 시점에 처리되지 않고 남은 기록만 처리한다. 남은 기록이 없음을 확인한 뒤 이벤트 클래스와 수신자를 지운다.
 - 전달 값: [이벤트 클래스](../../src/main/java/setty/common/PaymentRefundRequested.java)의 주문 ID와 주문 상태(`EXPIRED`·`CANCELLED`).
 
 ## Fanout

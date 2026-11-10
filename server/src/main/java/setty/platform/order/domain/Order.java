@@ -94,12 +94,35 @@ public class Order {
         this.orderStatus = OrderStatus.CONFIRMED;
     }
 
-    public boolean requestDelivery() {
-        if (this.orderStatus == OrderStatus.CONFIRMED) {
+    /**
+     * 승인을 받아들일 수 있는 결제 대기 주문이면 PAID로 바꾼다. 바꿨으면 true.
+     * 만료 시각이 지났거나 이미 결제 대기가 아니면 바꾸지 않는다. 그 판단은 호출하는 쪽이 상태를 보고 한다.
+     */
+    public boolean acceptPayment(final Instant referenceTime) {
+        if (!isPayable(referenceTime)) {
             return false;
         }
-        if (this.orderStatus != OrderStatus.PENDING) {
-            throw new BusinessException(ErrorCode.INVALID_ORDER_STATUS_TRANSITION);
+        this.orderStatus = OrderStatus.PAID;
+        return true;
+    }
+
+    // 결제를 받아들인 뒤의 상태인가. 같은 승인이 다시 와도 처음과 같은 결과를 돌려주는 데 쓴다.
+    // 구매자 취소는 확정 뒤에만 시작되므로, 구매자 취소로 끝난 주문도 결제를 받아들였던 주문이다. 판매자 취소는 결제 전이다.
+    public boolean hasAcceptedPayment() {
+        return orderStatus == OrderStatus.PAID
+                || orderStatus == OrderStatus.CONFIRMED
+                || orderStatus == OrderStatus.CANCEL_PENDING
+                || orderStatus == OrderStatus.COMPLETED
+                || (orderStatus == OrderStatus.CANCELLED && cancellationRequestId != null);
+    }
+
+    // PAID 주문만 확정한다. 이미 확정 이후로 넘어간 주문에 같은 확정이 다시 오면 false로 넘긴다.
+    public boolean requestDelivery() {
+        if (this.orderStatus != OrderStatus.PAID) {
+            if (this.orderStatus == OrderStatus.PENDING) {
+                throw new BusinessException(ErrorCode.INVALID_ORDER_STATUS_TRANSITION);
+            }
+            return false;
         }
         if (this.deliveryStatus != DeliveryStatus.PENDING) {
             throw new BusinessException(ErrorCode.ORDER_DELIVERY_STATUS_MISMATCH);
