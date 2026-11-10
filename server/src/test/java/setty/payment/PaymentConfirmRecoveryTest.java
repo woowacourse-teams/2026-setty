@@ -184,6 +184,47 @@ class PaymentConfirmRecoveryTest extends MySqlIntegrationTestSupport {
     }
 
     @Test
+    void 승인_응답의_금액이_다르면_승인으로_기록하지_않고_결과_확인_중으로_남긴다() throws Exception {
+        toss(Confirm.WRONG_AMOUNT, Lookup.WRONG_AMOUNT);
+
+        confirm().andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("PAYMENT_IN_PROGRESS"));
+
+        assertThat(lookupRequests).hasValue(1);
+        assertLeftUnknown();
+    }
+
+    @Test
+    void 승인_응답이_승인_완료가_아니면_조회로_확인해_기록한다() throws Exception {
+        toss(Confirm.IN_PROGRESS, Lookup.DONE);
+
+        confirm().andExpect(status().isOk());
+
+        assertThat(lookupRequests).hasValue(1);
+        assertRecordedOnce();
+    }
+
+    @Test
+    void 승인_응답_본문이_없으면_조회로_확인해_기록한다() throws Exception {
+        toss(Confirm.EMPTY, Lookup.DONE);
+
+        confirm().andExpect(status().isOk());
+
+        assertThat(lookupRequests).hasValue(1);
+        assertRecordedOnce();
+    }
+
+    @Test
+    void 승인_응답이_승인_완료가_아니고_조회로도_확인하지_못하면_결과_확인_중으로_남긴다() throws Exception {
+        toss(Confirm.IN_PROGRESS, Lookup.IN_PROGRESS);
+
+        confirm().andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("PAYMENT_IN_PROGRESS"));
+
+        assertLeftUnknown();
+    }
+
+    @Test
     void 승인_응답이_제한_시간을_넘기고_조회도_실패하면_409_결과_확인_중이고_시도는_결과를_모르는_채로_남는다() throws Exception {
         toss(Confirm.LATE_DONE, Lookup.FAIL);
         final long startedAt = System.nanoTime();
@@ -463,7 +504,7 @@ class PaymentConfirmRecoveryTest extends MySqlIntegrationTestSupport {
     }
 
     // 가짜 토스: 승인은 confirmMode, 조회(GET /v1/payments/{paymentKey})는 lookupMode대로 응답한다.
-    private enum Confirm { DONE, SLOW_DONE, LATE_DONE, ALREADY_PROCESSED, SERVER_ERROR, REJECTED }
+    private enum Confirm { DONE, SLOW_DONE, LATE_DONE, WRONG_AMOUNT, IN_PROGRESS, EMPTY, ALREADY_PROCESSED, SERVER_ERROR, REJECTED }
 
     private enum Lookup { DONE, WRONG_AMOUNT, IN_PROGRESS, NOT_FOUND, PATH_NOT_FOUND, FAIL }
 
@@ -485,6 +526,9 @@ class PaymentConfirmRecoveryTest extends MySqlIntegrationTestSupport {
                         sleep(3_000);
                         respond(exchange, 200, payment(AMOUNT));
                     }
+                    case WRONG_AMOUNT -> respond(exchange, 200, payment(AMOUNT - 1));
+                    case IN_PROGRESS -> respond(exchange, 200, payment("IN_PROGRESS", AMOUNT));
+                    case EMPTY -> respond(exchange, 200, "");
                     case ALREADY_PROCESSED -> respond(exchange, 400, error("ALREADY_PROCESSED_PAYMENT"));
                     case SERVER_ERROR -> respond(exchange, 500, error("FAILED_INTERNAL_SYSTEM_PROCESSING"));
                     case REJECTED -> respond(exchange, 400, error("REJECT_CARD_PAYMENT"));

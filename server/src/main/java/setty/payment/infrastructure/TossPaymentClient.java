@@ -50,8 +50,9 @@ public class TossPaymentClient {
                 "amount", amount
         );
 
+        final TossConfirmResult result;
         try {
-            return tossRestClient.post()
+            result = tossRestClient.post()
                     .uri(CONFIRM_PATH)
                     // 같은 키로 다시 승인하면 토스가 처음 응답을 그대로 돌려준다(키 300자 이하·15일 유효, paymentKey는 200자 이하).
                     .header(IDEMPOTENCY_KEY, paymentKey)
@@ -66,6 +67,13 @@ public class TossPaymentClient {
             }
             throw new BusinessException(ErrorCode.PAYMENT_CONFIRM_FAILED);
         }
+        if (result != null && result.isDoneFor(tossOrderId, amount)) {
+            return result;
+        }
+        // 2xx인데 본문이 없거나 이 주문·금액의 승인 완료가 아니다. 응답만으로 승인으로 기록하지 않고 조회로 다시 확인한다.
+        log.warn("토스 승인 응답이 기대한 승인 상태가 아닙니다. tossOrderId={}, status={}, totalAmount={}",
+                tossOrderId, result == null ? null : result.status(), result == null ? null : result.totalAmount());
+        return findApproved(paymentKey, tossOrderId, amount);
     }
 
     public TossPaymentLookup find(final String paymentKey) {
