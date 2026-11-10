@@ -38,6 +38,9 @@ public class OrderNotification {
     @Column(nullable = false, length = 40)
     private OrderNotificationKind kind;
 
+    @Column
+    private Integer amount;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 10)
     private NotificationStatus status;
@@ -79,6 +82,10 @@ public class OrderNotification {
 
     public OrderNotificationKind getKind() {
         return kind;
+    }
+
+    public Integer getAmount() {
+        return amount;
     }
 
     public NotificationStatus getStatus() {

@@ -12,11 +12,12 @@
 | 수신자 | 처리 |
 | --- | --- |
 | [`DeliveryEventListener#handle(OrderConfirmed)`](../../src/main/java/setty/delivery/event/DeliveryEventListener.java) | 발행 트랜잭션 커밋 후 별도 트랜잭션에서 `REQUESTED` 배송 요청을 생성한다. 같은 주문의 요청이 이미 있으면 건너뛴다. 새 요청을 만들면 `DeliveryRequestsChanged`를 발행한다. 처리 실패는 로그에 기록한다. |
-| [`SettlementEventListener#handle`](../../src/main/java/setty/settlement/event/SettlementEventListener.java) | 발행 트랜잭션 커밋 후 별도 트랜잭션에서 판매자 정산(물품 가격)을 `PENDING`으로 기록한다. 같은 주문의 판매자 정산이 있으면 건너뛰고, 주문의 정산 결론(판매 완료·취소)이 먼저 와 있으면 바로 적용한다. |
+| [`SettlementEventListener#handle`](../../src/main/java/setty/settlement/event/SettlementEventListener.java) | 발행 트랜잭션 커밋 후 별도 트랜잭션에서 판매자 정산(물품 가격)을 `PENDING`으로 기록한다. 같은 주문의 판매자 정산이 있으면 건너뛰고, 주문의 정산 결론(판매 완료·취소)이 먼저 와 있으면 바로 적용한다. 그 결과 `CONFIRMED`가 되면 `SettlementConfirmed`를 발행한다. |
 
 ## 다음 확인할 이벤트 문서
 
 - [DeliveryRequestsChanged.md](DeliveryRequestsChanged.md): 새 배송 요청을 생성했을 때 발행한다. 기존 요청을 건너뛰면 발행하지 않는다.
+- [SettlementConfirmed.md](SettlementConfirmed.md): 판매 완료 결론이 먼저 와 있어 기록하는 판매자 정산이 바로 `CONFIRMED`가 될 때 발행한다.
 
 ## 확인 필요
 

@@ -31,6 +31,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.support.TransactionTemplate;
 import setty.common.OrderStatusNotified;
 import setty.common.OrderStatusNotified.Change;
+import setty.common.SettlementConfirmed;
 import setty.notification.order.application.OrderNotificationDispatcher;
 import setty.notification.send.NotificationMessage;
 import setty.notification.send.NotificationSender;
@@ -162,6 +163,47 @@ class OrderNotificationIntegrationTest extends MySqlIntegrationTestSupport {
     }
 
     @Test
+    void 정산_확정은_판매자에게_금액과_함께_알린다() throws Exception {
+        publish(settlementConfirmed(OCCURRED_AT));
+
+        assertThat(rows()).containsExactly("SETTLEMENT_CONFIRMED:" + SELLER_ID + ":SELLER:SENT");
+        assertThat(jdbcTemplate.queryForObject("SELECT amount FROM order_notifications", Integer.class)).isEqualTo(150_000);
+        final ArgumentCaptor<List<NotificationMessage>> captor = messagesCaptor();
+        verify(notificationSender).send(captor.capture());
+        final NotificationMessage message = captor.getValue().get(0);
+        assertThat(message.title()).isNull();
+        assertThat(message.order().orderId()).isEqualTo(ORDER_ID);
+        assertThat(message.order().kind()).isEqualTo("SETTLEMENT_CONFIRMED");
+        assertThat(message.order().recipient()).isEqualTo("SELLER");
+        assertThat(message.order().headline()).isEqualTo("정산이 확정됐어요");
+        assertThat(message.order().body()).isEqualTo("원목 4인 식탁 · 150,000원");
+        mockMvc.perform(get("/api/me/notifications").param("include", "ORDER")
+                        .header(HttpHeaders.AUTHORIZATION, bearer(SELLER_ID)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items.length()").value(1))
+                .andExpect(jsonPath("$.items[0].kind").value("SETTLEMENT_CONFIRMED"))
+                .andExpect(jsonPath("$.items[0].headline").value("정산이 확정됐어요"))
+                .andExpect(jsonPath("$.items[0].title").value("원목 4인 식탁"))
+                .andExpect(jsonPath("$.items[0].amount").value(150_000));
+    }
+
+    @Test
+    void 같은_정산_확정이_다시_와도_알림은_한_번만_만들고_보낸다() {
+        dispatcher.dispatch(settlementConfirmed(OCCURRED_AT));
+        dispatcher.dispatch(settlementConfirmed(OCCURRED_AT));
+
+        assertThat(rows()).hasSize(1);
+        verify(notificationSender).send(anyList());
+    }
+
+    @Test
+    void 구매_확정은_판매자에게_따로_알리지_않는다() {
+        dispatcher.dispatch(event(Change.COMPLETED, OCCURRED_AT));
+
+        assertThat(rows()).containsExactly("PURCHASE_COMPLETED:" + BUYER_ID + ":BUYER:SENT");
+    }
+
+    @Test
     void 알림함은_include_ORDER일_때만_주문_알림을_시각순으로_섞는다() throws Exception {
         insertKeywordNotification(8_001L, BUYER_ID, "2026-11-06 10:00:01");
         dispatcher.dispatch(event(Change.CONFIRMED, OCCURRED_AT));
@@ -182,6 +224,7 @@ class OrderNotificationIntegrationTest extends MySqlIntegrationTestSupport {
                 .andExpect(jsonPath("$.items[0].recipient").value("BUYER"))
                 .andExpect(jsonPath("$.items[0].headline").value("기사가 배정됐어요"))
                 .andExpect(jsonPath("$.items[0].title").value("원목 4인 식탁"))
+                .andExpect(jsonPath("$.items[0].amount").value((Object) null))
                 .andExpect(jsonPath("$.items[1].type").value("KEYWORD"))
                 .andExpect(jsonPath("$.items[2].kind").value("ORDER_CONFIRMED"));
         mockMvc.perform(get("/api/me/notifications").param("include", "ORDER").param("size", "2").param("page", "1")
@@ -230,13 +273,17 @@ class OrderNotificationIntegrationTest extends MySqlIntegrationTestSupport {
         dispatcher.dispatch(event);
     }
 
-    private void publish(final OrderStatusNotified event) {
+    private void publish(final Object event) {
         transactionTemplate.executeWithoutResult(status -> eventPublisher.publishEvent(event));
         awaitEventsHandled(jdbcTemplate);
     }
 
     private static OrderStatusNotified event(final Change change, final Instant occurredAt) {
         return new OrderStatusNotified(ORDER_ID, LISTING_ID, BUYER_ID, SELLER_ID, "원목 4인 식탁", change, occurredAt);
+    }
+
+    private static SettlementConfirmed settlementConfirmed(final Instant confirmedAt) {
+        return new SettlementConfirmed(ORDER_ID, LISTING_ID, SELLER_ID, 150_000, confirmedAt);
     }
 
     private long unreadCount(final String include) throws Exception {

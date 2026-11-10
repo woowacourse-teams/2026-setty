@@ -186,6 +186,8 @@ export type NotificationResponse = {
     recipient?: string | null;
     // 상태 문구. 예: 기사가 배정됐어요
     headline?: string | null;
+    // 정산 확정 알림의 정산 금액. 그 밖에는 null
+    amount?: number | null;
 };
 
 export type DeviceTokenRequest = {

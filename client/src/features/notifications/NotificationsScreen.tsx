@@ -92,7 +92,7 @@ export function NotificationsScreen() {
                                         : <span className={closedClass(notification)}>{`관심 키워드의 새 매물 · ${formatNotifiedAt(notification.createdAt)}`}</span>}
                                     style={isRead(notification) ? undefined : { background: 'color-mix(in srgb, var(--primary) 10%, var(--surface-container))' }}
                                     supporting={notification.order
-                                        ? <span className="type-label-medium">{notification.title ?? '삭제된 가구'}</span>
+                                        ? <span className="type-label-medium">{orderSupportingOf(notification)}</span>
                                         : <NotifiedListingSummary notification={notification} />}
                                 />
                             ))}
@@ -106,6 +106,13 @@ export function NotificationsScreen() {
 
 function keyOf(notification: Notification): string {
     return `${notification.type}-${notification.id}`;
+}
+
+/** 정산 확정 알림은 매물 제목 뒤에 정산 금액을 붙인다. */
+function orderSupportingOf(notification: Notification): string {
+    const title = notification.title ?? '삭제된 가구';
+    const amount = notification.order?.amount;
+    return amount == null ? title : `${title} · ${formatWon(amount)}`;
 }
 
 function closedClass(notification: Notification): string | undefined {
