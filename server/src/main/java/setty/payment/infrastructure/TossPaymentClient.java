@@ -109,8 +109,10 @@ public class TossPaymentClient {
 
     private TossCancelResult classifyCancelFailure(final HttpStatusCodeException exception) {
         final String code = errorCode(exception);
+        // 429는 한 번 다시 보낸 뒤에도 한도를 넘은 경우다(TossRetryAfterInterceptor). 토스가 처리하지 않았으므로 다음 배치에서 보낸다.
         if (exception.getStatusCode().is5xxServerError()
                 || exception.getStatusCode().isSameCodeAs(HttpStatus.CONFLICT)
+                || exception.getStatusCode().isSameCodeAs(HttpStatus.TOO_MANY_REQUESTS)
                 || RETRY_LATER_CANCEL_CODES.contains(code)) {
             return new TossCancelResult.Retryable(code);
         }
@@ -122,6 +124,7 @@ public class TossPaymentClient {
 
     // 토스가 4xx로 거절한 것만 명확한 실패다. 응답을 못 받았거나(통신 실패·5xx·읽을 수 없는 응답),
     // 같은 멱등키 요청이 처리 중이거나(409), 이미 처리됐다는 응답이면 토스에서는 승인됐을 수 있다.
+    // 한 번 다시 보낸 뒤에도 남은 429는 토스가 처리하지 않은 요청이므로 명확한 실패로 본다.
     private boolean mayHaveBeenApproved(final RestClientException exception) {
         if (!(exception instanceof HttpClientErrorException clientError)) {
             return true;
