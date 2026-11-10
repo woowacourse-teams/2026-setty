@@ -1,0 +1,17 @@
+{
+  "name": "delivery-sim",
+  "private": true,
+  "description": "시연용 배송 시뮬레이터. 시연 노트북에서 로컬로만 띄운다.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "osrm": "./osrm.sh"
+  },
+  "dependencies": {
+    "leaflet": "1.9.4",
+    "qrcode": "1.5.4"
+  },
+  "devDependencies": {
+    "vite": "8.3.5"
+  }
+}
