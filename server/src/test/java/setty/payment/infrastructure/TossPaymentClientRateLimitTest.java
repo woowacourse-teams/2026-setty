@@ -59,23 +59,23 @@ class TossPaymentClientRateLimitTest {
     }
 
     @Test
-    void 다시_보내도_한도_초과면_승인_실패로_끝난다() {
+    void 다시_보내도_한도_초과면_잠시_뒤_다시_결제하라는_승인_실패로_끝난다() {
         respondAlwaysTooMany("/v1/payments/confirm", "0");
 
         assertThatThrownBy(() -> client().confirm("pk", "1_a", 1000))
                 .isInstanceOfSatisfying(BusinessException.class,
-                        e -> assertThat(e.getErrorCode()).isEqualTo(ErrorCode.PAYMENT_CONFIRM_FAILED));
+                        e -> assertThat(e.getErrorCode()).isEqualTo(ErrorCode.PAYMENT_TEMPORARILY_UNAVAILABLE));
         assertThat(requests).hasValue(2);
     }
 
     @Test
-    void RetryAfter가_대기_한도보다_길면_기다리지_않고_승인_실패로_끝난다() {
+    void RetryAfter가_대기_한도보다_길면_기다리지_않고_잠시_뒤_다시_결제하라는_승인_실패로_끝난다() {
         respondAlwaysTooMany("/v1/payments/confirm", "30");
         final long startedAt = System.nanoTime();
 
         assertThatThrownBy(() -> client().confirm("pk", "1_a", 1000))
                 .isInstanceOfSatisfying(BusinessException.class,
-                        e -> assertThat(e.getErrorCode()).isEqualTo(ErrorCode.PAYMENT_CONFIRM_FAILED));
+                        e -> assertThat(e.getErrorCode()).isEqualTo(ErrorCode.PAYMENT_TEMPORARILY_UNAVAILABLE));
         assertThat(Duration.ofNanos(System.nanoTime() - startedAt)).isLessThan(TossRetryAfterInterceptor.MAX_WAIT);
         assertThat(requests).hasValue(1);
     }
