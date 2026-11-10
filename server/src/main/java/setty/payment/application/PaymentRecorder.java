@@ -6,23 +6,21 @@ import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
-import setty.common.PaymentCompleted;
 import setty.global.exception.BusinessException;
 import setty.global.exception.ErrorCode;
 import setty.payment.domain.Payment;
+import setty.payment.domain.PaymentRefundReason;
 import setty.payment.repository.PaymentRepository;
 
 /**
  * 결제 행의 상태 변경을 짧은 트랜잭션으로 묶는다. 외부 결제 호출(토스)은 이 트랜잭션 밖에서 일어난다.
- * 승인 전 시도 저장, 명확한 실패 뒤 시도 삭제, 승인 확정 저장과 이벤트 발행을 맡는다.
+ * 승인 전 시도 저장, 명확한 실패 뒤 시도 삭제, 승인 확정 저장(필요하면 환불 대상 기록)을 맡는다.
  * 실패 복귀는 기록 없이 이벤트만 발행하므로 여기를 거치지 않는다({@code PaymentService.fail}).
  *
- * <p>주문은 결제 이전에 PENDING으로 존재하므로 여기서는 주문을 만들지 않고, 결과만 이벤트로 알린다.
- * 승인 성공 이벤트를 수신한 플랫폼(주문) 팀이 주문 상태 전이와 배차 발행을 담당한다.
+ * <p>주문의 결과는 승인을 기록하기 전에 주문 쪽이 먼저 정한다({@link PaymentApprovalRecorder}). 여기서는 그 결과에 따라 결제만 기록한다.
  *
  * <p>요청 동안 영속성 컨텍스트가 열려 있어(OSIV) 앞서 읽은 결제가 남아 있을 수 있으므로, 잠글 때 DB 값으로 다시 읽는다.
  */
@@ -31,7 +29,7 @@ import setty.payment.repository.PaymentRepository;
 public class PaymentRecorder {
 
     private final PaymentRepository paymentRepository;
-    private final ApplicationEventPublisher eventPublisher;
+    private final PaymentRefundService paymentRefundService;
     private final EntityManager entityManager;
     private final Clock clock;
 
@@ -67,7 +65,8 @@ public class PaymentRecorder {
 
     /**
      * 승인 확정 저장. 시도 행이 있으면 DONE으로 전이하고, 없으면 새로 저장한다.
-     * 늦은 승인 응답과 정리 배치가 같은 결제를 함께 기록해도 {@code PaymentCompleted}는 한 번만 발행한다.
+     * 주문이 승인을 받아들이지 않았으면({@code refundReason}이 있으면) 같은 트랜잭션에서 환불 대상도 기록한다.
+     * 늦은 승인 응답과 정리 배치가 같은 결제를 함께 기록해도 한 번만 기록한다.
      */
     @Transactional
     public Payment recordCompleted(
@@ -75,7 +74,8 @@ public class PaymentRecorder {
             final String tossOrderId,
             final String paymentKey,
             final int amount,
-            final LocalDateTime approvedAt
+            final LocalDateTime approvedAt,
+            final PaymentRefundReason refundReason
     ) {
         final Optional<Payment> existing = lockByOrderId(orderId);
         if (existing.isPresent() && existing.get().isApproved()) {
@@ -91,7 +91,9 @@ public class PaymentRecorder {
                 })
                 .orElseGet(() -> save(Payment.done(orderId, tossOrderId, paymentKey, amount, approvedAt)));
 
-        eventPublisher.publishEvent(new PaymentCompleted(orderId));
+        if (refundReason != null) {
+            paymentRefundService.request(orderId, refundReason);
+        }
         return payment;
     }
 

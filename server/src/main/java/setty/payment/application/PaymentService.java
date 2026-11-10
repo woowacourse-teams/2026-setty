@@ -18,10 +18,10 @@ import setty.platform.PaymentOrderReader;
  * 결제 승인·실패 흐름을 조율한다.
  *
  * <p>주문은 결제 이전에 PENDING으로 먼저 존재한다(order 팀). payment는 주문을 만들지 않고,
- * {@code orderId}를 앵커로 주문·매물을 <b>읽기만</b> 해서 검증한 뒤 결과를 이벤트로 알린다.
+ * {@code orderId}를 앵커로 주문·매물을 읽어 검증하고, 승인을 확인하면 주문 쪽 경계에 결과를 먼저 정하게 한다.
  *
  * <p>순서가 중요하다. 토스 승인(외부 HTTP)은 트랜잭션 밖에서 호출하고,
- * 승인이 확정된 뒤에야 {@link PaymentRecorder}가 결제 저장 + 이벤트 발행을 한 트랜잭션으로 처리한다.
+ * 승인이 확인된 뒤 {@link PaymentApprovalRecorder}가 주문 결정 → 결제 저장 순서로 따로 커밋한다.
  *
  * <p>매물 상태·주문 만료/선점 판정은 읽지 않는다. 실패 복귀 후 주문은 원래 만료 시각까지
  * PENDING으로 유지하며, 만료 전이는 플랫폼(주문) 팀이 담당한다.
@@ -34,6 +34,7 @@ public class PaymentService {
     private final PaymentRepository paymentRepository;
     private final TossPaymentClient tossPaymentClient;
     private final PaymentRecorder paymentRecorder;
+    private final PaymentApprovalRecorder paymentApprovalRecorder;
     private final ApplicationEventPublisher eventPublisher;
 
     /**
@@ -63,7 +64,7 @@ public class PaymentService {
         }
         final TossConfirmResult result = confirmWithToss(orderId, tossOrderId, paymentKey, amount);
 
-        return paymentRecorder.recordCompleted(orderId, tossOrderId, paymentKey, amount, result.approvedAtAsLocalDateTime());
+        return paymentApprovalRecorder.record(orderId, tossOrderId, paymentKey, amount, result.approvedAtAsLocalDateTime());
     }
 
     private TossConfirmResult confirmWithToss(

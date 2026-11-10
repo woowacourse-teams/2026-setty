@@ -32,7 +32,6 @@ import setty.common.OrderCancellationRequested;
 import setty.common.OrderCancelled;
 import setty.common.OrderConfirmed;
 import setty.common.OrderStatusNotified;
-import setty.common.PaymentRefundRequested;
 import setty.global.exception.BusinessException;
 import setty.global.exception.ErrorCode;
 import setty.platform.listing.application.ListingService;
@@ -175,6 +174,7 @@ class OrderServiceTest {
                 new OrderPlace("주문 때 판매자 주소", "010-3333-4444", "1111060000", "04524", "SELLER-MGMT"),
                 new OrderPlace("주문 때 주소", "010-1111-2222", "1111053000", "06236", "BUYER-MGMT"));
         ReflectionTestUtils.setField(order, "id", ORDER_ID);
+        order.acceptPayment(Instant.now());
         final Listing listing = mock(Listing.class);
         when(listing.getId()).thenReturn(LISTING_ID);
         when(listing.getSellerId()).thenReturn(SELLER_ID);
@@ -184,7 +184,7 @@ class OrderServiceTest {
         when(orderRepository.findByIdForUpdate(ORDER_ID)).thenReturn(Optional.of(order));
         when(listingRepository.findById(LISTING_ID)).thenReturn(Optional.of(listing));
 
-        orderService.publishOrderConfirmed(ORDER_ID);
+        orderService.confirmPaid(ORDER_ID);
 
         final ArgumentCaptor<OrderConfirmed> eventCaptor = ArgumentCaptor.forClass(OrderConfirmed.class);
         verify(eventPublisher).publishEvent(eventCaptor.capture());
@@ -198,7 +198,7 @@ class OrderServiceTest {
 
     @Test
     void 출발지_저장_전_주문은_지금_판매자_정보와_매물_동으로_배송을_요청한다() {
-        final Order order = order();
+        final Order order = paidOrder();
         final Listing listing = listing();
         when(listing.getDongCode()).thenReturn("1111060000");
         final Member seller = member("판매자 주소", "010-0000-0001");
@@ -208,7 +208,7 @@ class OrderServiceTest {
         when(memberRepository.findById(SELLER_ID)).thenReturn(Optional.of(seller));
         when(memberRepository.findById(BUYER_ID)).thenReturn(Optional.of(buyer));
 
-        orderService.publishOrderConfirmed(ORDER_ID);
+        orderService.confirmPaid(ORDER_ID);
 
         final ArgumentCaptor<OrderConfirmed> eventCaptor = ArgumentCaptor.forClass(OrderConfirmed.class);
         verify(eventPublisher).publishEvent(eventCaptor.capture());
@@ -242,31 +242,40 @@ class OrderServiceTest {
         ReflectionTestUtils.setField(order, "id", ORDER_ID);
         when(orderRepository.findByIdForUpdate(ORDER_ID)).thenReturn(Optional.of(order));
 
-        orderService.publishOrderConfirmed(ORDER_ID);
+        orderService.confirmPaid(ORDER_ID);
 
         verifyNoInteractions(listingRepository, memberRepository, eventPublisher, orderStatusNotifier);
     }
 
     @Test
-    void 만료된_주문에_늦게_온_결제_완료는_배송_대신_환불을_요청한다() {
+    void 결제를_받아들이지_않은_만료_주문은_확정하지_않는다() {
         final Order order = Order.pending(LISTING_ID, BUYER_ID, Instant.parse("2026-09-02T05:00:00Z"));
         ReflectionTestUtils.setField(order, "id", ORDER_ID);
         order.expire(Instant.parse("2026-09-02T05:00:00Z"));
         when(orderRepository.findByIdForUpdate(ORDER_ID)).thenReturn(Optional.of(order));
 
-        orderService.publishOrderConfirmed(ORDER_ID);
+        orderService.confirmPaid(ORDER_ID);
 
         assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.EXPIRED);
         assertThat(order.getDeliveryStatus()).isEqualTo(DeliveryStatus.PENDING);
-        verify(eventPublisher).publishEvent(new PaymentRefundRequested(ORDER_ID, "EXPIRED"));
-        verifyNoMoreInteractions(eventPublisher);
-        verifyNoInteractions(listingRepository, memberRepository, orderStatusNotifier);
+        verifyNoInteractions(eventPublisher, listingRepository, memberRepository, orderStatusNotifier);
+    }
+
+    @Test
+    void 결제_대기_주문의_확정은_버그라_예외로_알린다() {
+        when(orderRepository.findByIdForUpdate(ORDER_ID)).thenReturn(Optional.of(order()));
+
+        assertThatThrownBy(() -> orderService.confirmPaid(ORDER_ID))
+                .isInstanceOf(BusinessException.class)
+                .extracting(e -> ((BusinessException) e).getErrorCode())
+                .isEqualTo(ErrorCode.INVALID_ORDER_STATUS_TRANSITION);
+        verifyNoInteractions(eventPublisher);
     }
 
     @Test
     void 결제_확정은_구매자와_판매자에게_알릴_이벤트를_낸다() {
         final Instant confirmedAt = Instant.parse("2026-11-06T01:00:00Z");
-        final Order order = order();
+        final Order order = paidOrder();
         final Listing listing = listing();
         final Member seller = member("판매자 주소", "010-0000-0001");
         final Member buyer = member("구매자 주소", "010-0000-0002");
@@ -276,24 +285,9 @@ class OrderServiceTest {
         when(memberRepository.findById(BUYER_ID)).thenReturn(Optional.of(buyer));
         when(clock.instant()).thenReturn(confirmedAt);
 
-        orderService.publishOrderConfirmed(ORDER_ID);
+        orderService.confirmPaid(ORDER_ID);
 
         verify(orderStatusNotifier).notify(order, OrderStatusNotified.Change.CONFIRMED, confirmedAt);
-    }
-
-    @Test
-    void 판매자가_취소한_주문에_늦게_온_결제_완료는_예외_없이_환불을_요청한다() {
-        final Order order = Order.pending(LISTING_ID, BUYER_ID, Instant.parse("2026-11-06T01:06:00Z"));
-        ReflectionTestUtils.setField(order, "id", ORDER_ID);
-        order.cancelBySeller(Instant.parse("2026-11-06T01:00:00Z"));
-        when(orderRepository.findByIdForUpdate(ORDER_ID)).thenReturn(Optional.of(order));
-
-        orderService.publishOrderConfirmed(ORDER_ID);
-
-        assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.CANCELLED);
-        verify(eventPublisher).publishEvent(new PaymentRefundRequested(ORDER_ID, "CANCELLED"));
-        verifyNoMoreInteractions(eventPublisher);
-        verifyNoInteractions(listingRepository, memberRepository, orderStatusNotifier);
     }
 
     @Test
@@ -482,6 +476,12 @@ class OrderServiceTest {
     private static Order order() {
         final Order order = Order.pending(LISTING_ID, BUYER_ID);
         ReflectionTestUtils.setField(order, "id", ORDER_ID);
+        return order;
+    }
+
+    private static Order paidOrder() {
+        final Order order = order();
+        order.acceptPayment(Instant.now());
         return order;
     }
 

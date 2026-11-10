@@ -20,6 +20,7 @@ public class PaymentEventListener {
 
     private final PaymentRefundService paymentRefundService;
 
+    // 더 이상 발행하지 않는다. 이전 버전이 남긴 발행 기록만 처리하며, 남은 기록이 없음을 확인한 뒤 지운다(server/docs/event/PaymentRefundRequested.md).
     @ApplicationModuleListener
     public void onPaymentRefundRequested(final PaymentRefundRequested event) {
         if (event == null || event.orderId() == null) {

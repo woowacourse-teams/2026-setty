@@ -5,8 +5,8 @@
 ## 자동 처리
 
 1. 승인 요청 전에 `payments`에 `UNKNOWN` 행을 `paymentKey`와 함께 남긴다. 토스가 명확히 거절하면 지우고, 승인 여부를 끝내 확인하지 못하면 남긴다. 같은 주문의 다른 결제 키 승인은 `409 PAYMENT_IN_PROGRESS`로 막는다.
-2. 결제 복구 배치(`PaymentRecoveryScheduler`, 기본 5분, 결제 전용 스레드)가 만든 지 10분 넘은 `UNKNOWN`을 `GET /v1/payments/{paymentKey}`로 조회한다. 승인됐으면 `DONE`으로 기록해 `PaymentCompleted`를 낸다. 승인되지 않았거나 토스에 없으면 행을 지운다. 아직 처리 중이거나 조회에 실패하면 다음 주기에 다시 묻는다.
-3. 주문이 이미 끝났으면 `OrderService#publishOrderConfirmed`가 [`PaymentRefundRequested`](../event/PaymentRefundRequested.md)를 내고, 결제 모듈이 `payment_refunds`에 `REQUESTED`로 기록한다.
+2. 결제 복구 배치(`PaymentRecoveryScheduler`, 기본 5분, 결제 전용 스레드)가 만든 지 10분 넘은 `UNKNOWN`을 `GET /v1/payments/{paymentKey}`로 조회한다. 승인됐으면 주문 경계에 결과를 먼저 정하게 한 뒤 `DONE`으로 기록한다. 승인되지 않았거나 토스에 없으면 행을 지운다. 아직 처리 중이거나 조회에 실패하면 다음 주기에 다시 묻는다.
+3. 승인 요청 응답이나 2번 조회로 승인을 확인하면 주문 경계(`PaymentOrderAcceptance`)가 먼저 결과를 정한다. 주문이 이미 끝났거나 만료 시각이 지났으면 주문을 그대로 두거나 만료하고, 결제 모듈이 `DONE` 기록과 같은 트랜잭션에서 `payment_refunds`에 `REQUESTED`로 기록한다.
 4. 같은 배치가 `REQUESTED` 환불을 `POST /v1/payments/{paymentKey}/cancel`로 전액 취소한다. 환불 행마다 정해 둔 `Idempotency-Key`로만 보내므로 다시 보내도 한 번만 취소된다.
    - 성공하고 취소 금액이 결제 금액과 같으면 환불 `DONE`, 결제 `CANCELED`.
    - `ALREADY_CANCELED_PAYMENT`도 완료로 본다.

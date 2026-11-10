@@ -2,8 +2,8 @@
 
 ## 발생
 
-- 발행자: [`OrderService#publishOrderConfirmed`](../../src/main/java/setty/platform/order/service/OrderService.java)
-- 상황: `OrderEventListener#onPaymentCompleted`가 `PaymentCompleted`를 수신한 뒤, 주문이 `PENDING`에서 `CONFIRMED`로 처음 전이될 때 발행한다. 주문의 배송 상태도 `PENDING`에서 `REQUESTED`로 바뀐다. 이미 `CONFIRMED`인 주문에는 다시 발행하지 않는다.
+- 발행자: [`OrderService#confirmPaid`](../../src/main/java/setty/platform/order/service/OrderService.java)
+- 상황: [`OrderPaid`](OrderPaid.md)를 수신했거나 `PAID` 재확정 배치가 부른 뒤, 주문이 `PAID`에서 `CONFIRMED`로 처음 전이될 때 발행한다. 주문의 배송 상태도 `PENDING`에서 `REQUESTED`로 바뀐다. 이미 확정 이후인 주문에는 다시 발행하지 않는다.
 - 전달 값: [이벤트 클래스](../../src/main/java/setty/common/OrderConfirmed.java)에 정의된 주문 ID, 매물명·카테고리·배송비, 출발지·도착지 주소와 연락처, 정산에 쓰는 매물 ID·판매자 ID·물품 가격, 도착지 행정동 코드.
 - 배송비·도착지 주소·연락처·행정동은 주문을 만들 때 `orders`에 저장한 값이다. 배송비는 구매자 행정동 기준 거리 배송비다. 저장값이 없는 도입 전 주문은 매물 배송비와 발행 시점의 회원 주소·연락처로 대신하고, 행정동은 `null`이다.
 

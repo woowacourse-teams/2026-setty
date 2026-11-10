@@ -9,11 +9,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.transaction.support.TransactionTemplate;
-import setty.common.PaymentCompleted;
+import setty.platform.PaymentOrderAcceptance;
 import setty.platform.listing.storage.ListingImageStorage;
 import setty.platform.member.repository.MemberRepository;
 import setty.platform.order.controller.dto.OrderCreateRequest;
@@ -39,10 +37,7 @@ class OrderDeliverySnapshotIntegrationTest extends MySqlIntegrationTestSupport {
     private MemberRepository memberRepository;
 
     @Autowired
-    private ApplicationEventPublisher eventPublisher;
-
-    @Autowired
-    private TransactionTemplate transactionTemplate;
+    private PaymentOrderAcceptance paymentOrderAcceptance;
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
@@ -125,7 +120,7 @@ class OrderDeliverySnapshotIntegrationTest extends MySqlIntegrationTestSupport {
     }
 
     private void completePayment(final long orderId) {
-        transactionTemplate.executeWithoutResult(status -> eventPublisher.publishEvent(new PaymentCompleted(orderId)));
+        paymentOrderAcceptance.accept(orderId);
         awaitEventsHandled(jdbcTemplate);
     }
 
