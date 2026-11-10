@@ -14,6 +14,7 @@ import com.google.firebase.remoteconfig.FirebaseRemoteConfig
 import com.setty.android.devtools.model.AppBuildInfo
 import com.setty.android.devtools.remoteconfig.RemoteConfigOverrideStore
 import com.setty.android.devtools.scenario.MockScenarioStore
+import com.setty.android.devtools.ui.DeepLinkPanel
 import com.setty.android.devtools.ui.DevToolsScreen
 import com.setty.android.devtools.ui.RemoteConfigPanel
 import com.setty.android.devtools.ui.UpdateScenarioPanel
@@ -79,6 +80,7 @@ class DevToolsActivity : ComponentActivity() {
                     updateScenarioContent = {
                         UpdateScenarioPanel(store = updateScenarioStore, overrideStore = remoteConfigOverrideStore)
                     },
+                    deepLinkContent = { DeepLinkPanel() },
                 )
             }
         }
