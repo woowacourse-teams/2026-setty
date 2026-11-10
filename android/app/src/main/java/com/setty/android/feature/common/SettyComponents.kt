@@ -107,7 +107,10 @@ fun SettyMessage(
     }
 }
 
-/** 불러오기 실패 화면. 로그인이 풀린 경우 로그인 화면으로 보낸다. */
+/**
+ * 불러오기 실패 화면. 로그인이 풀린 경우 로그인 화면으로 보낸다.
+ * 대상이 없거나 삭제됐으면([isNotFound]) 다시 시도해도 소용이 없으므로 버튼을 숨긴다.
+ */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun ErrorContent(
@@ -116,6 +119,7 @@ fun ErrorContent(
     onRetry: () -> Unit,
     onRequireLogin: () -> Unit,
     modifier: Modifier = Modifier,
+    isNotFound: Boolean = false,
 ) {
     Box(
         contentAlignment = Alignment.Center,
@@ -125,15 +129,19 @@ fun ErrorContent(
             title = message,
             shape = MaterialShapes.SoftBurst.toShape(),
             shapeColor = MaterialTheme.colorScheme.errorContainer,
-            action = {
-                Button(
-                    onClick = if (isUnauthorized) onRequireLogin else onRetry,
-                    shapes = ButtonDefaults.shapes(),
-                ) {
-                    Text(
-                        text = if (isUnauthorized) "로그인하기" else "다시 시도",
-                        style = MaterialTheme.typography.bodyLargeEmphasized,
-                    )
+            action = if (isNotFound) {
+                null
+            } else {
+                {
+                    Button(
+                        onClick = if (isUnauthorized) onRequireLogin else onRetry,
+                        shapes = ButtonDefaults.shapes(),
+                    ) {
+                        Text(
+                            text = if (isUnauthorized) "로그인하기" else "다시 시도",
+                            style = MaterialTheme.typography.bodyLargeEmphasized,
+                        )
+                    }
                 }
             },
         )
