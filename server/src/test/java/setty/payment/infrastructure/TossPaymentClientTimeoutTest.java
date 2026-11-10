@@ -74,7 +74,7 @@ class TossPaymentClientTimeoutTest {
     void 제한_시간_안에_온_응답은_승인된다() {
         respondAfter(Duration.ofMillis(100));
 
-        assertThat(client().confirm("pk", "1_a", 1000).status()).isEqualTo("DONE");
+        assertThat(client().confirm("pk", "1_a", 1000).status()).isEqualTo(TossPaymentStatus.DONE);
     }
 
     @Test

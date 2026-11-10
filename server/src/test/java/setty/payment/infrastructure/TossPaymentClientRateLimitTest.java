@@ -53,7 +53,7 @@ class TossPaymentClientRateLimitTest {
     void 승인이_한도_초과면_RetryAfter만큼_기다렸다가_같은_멱등키로_한_번_더_보낸다() {
         respondTooManyThen("/v1/payments/confirm", "0", DONE_BODY);
 
-        assertThat(client().confirm("pk", "1_a", 1000).status()).isEqualTo("DONE");
+        assertThat(client().confirm("pk", "1_a", 1000).status()).isEqualTo(TossPaymentStatus.DONE);
         assertThat(requests).hasValue(2);
         assertThat(idempotencyKeys).containsExactly("pk", "pk");
     }

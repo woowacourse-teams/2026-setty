@@ -27,6 +27,7 @@ import setty.global.exception.ErrorCode;
 import setty.payment.application.PaymentService;
 import setty.payment.domain.Payment;
 import setty.payment.infrastructure.TossConfirmResult;
+import setty.payment.infrastructure.TossPaymentStatus;
 import setty.payment.infrastructure.TossPaymentClient;
 import setty.platform.listing.storage.ListingImageStorage;
 import setty.platform.order.service.OrderPaid;
@@ -305,7 +306,7 @@ class PaymentServiceIntegrationTest extends MySqlIntegrationTestSupport {
     private void stubTossSuccess() {
         when(tossPaymentClient.confirm(eq(PAYMENT_KEY), eq(TOSS_ORDER_ID), eq(TOTAL_PRICE)))
                 .thenReturn(new TossConfirmResult(
-                        PAYMENT_KEY, TOSS_ORDER_ID, "DONE", TOTAL_PRICE, "2026-08-31T12:00:00+09:00"));
+                        PAYMENT_KEY, TOSS_ORDER_ID, TossPaymentStatus.DONE, TOTAL_PRICE, "2026-08-31T12:00:00+09:00"));
     }
 
     private void stubTossSuccessAfter(final Runnable duringApproval) {
@@ -313,7 +314,7 @@ class PaymentServiceIntegrationTest extends MySqlIntegrationTestSupport {
                 .thenAnswer(invocation -> {
                     duringApproval.run();
                     return new TossConfirmResult(
-                            PAYMENT_KEY, TOSS_ORDER_ID, "DONE", TOTAL_PRICE, "2026-08-31T12:00:00+09:00");
+                            PAYMENT_KEY, TOSS_ORDER_ID, TossPaymentStatus.DONE, TOTAL_PRICE, "2026-08-31T12:00:00+09:00");
                 });
     }
 

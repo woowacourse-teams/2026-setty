@@ -76,7 +76,7 @@ class TossPaymentClientRejectionTest {
             respond(exchange, 200, DONE_BODY);
         });
 
-        assertThat(client().confirm("pk", "1_a", 1000).status()).isEqualTo("DONE");
+        assertThat(client().confirm("pk", "1_a", 1000).status()).isEqualTo(TossPaymentStatus.DONE);
         assertThat(lookupRequests).hasValue(1);
     }
 

@@ -7,14 +7,14 @@ import java.util.List;
 /** 토스 결제 취소({@code POST /v1/payments/{paymentKey}/cancel}) 결과. */
 public sealed interface TossCancelResult {
 
-    record Canceled(String status, List<Cancel> cancels) implements TossCancelResult {
+    record Canceled(TossPaymentStatus status, List<Cancel> cancels) implements TossCancelResult {
 
         public int canceledAmount() {
             return doneCancels().stream().mapToInt(Cancel::cancelAmount).sum();
         }
 
         public boolean isFullyCanceled(final int amount) {
-            return "CANCELED".equals(status) && canceledAmount() == amount;
+            return status == TossPaymentStatus.CANCELED && canceledAmount() == amount;
         }
 
         public String lastTransactionKey() {
