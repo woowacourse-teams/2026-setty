@@ -8,6 +8,7 @@ import com.setty.android.network.MemberUpdateRequest
 import com.setty.android.network.SettyNetworkApi
 import com.setty.android.network.SignUpRequest
 import com.setty.android.network.apiCall
+import kotlinx.coroutines.flow.first
 import retrofit2.HttpException
 import java.io.IOException
 
@@ -19,6 +20,9 @@ class UserRepository(
         val result = apiCall { settyNetworkApi.login(LoginRequest(username, password)) }
         tokenLocalDataSource.writeCredentialToken(result.token)
     }
+
+    /** 기기에 저장한 토큰이 있는지 여부. 토큰이 서버에서 유효한지는 API를 호출해야 알 수 있다. */
+    suspend fun hasCredential(): Boolean = tokenLocalDataSource.getCredentialToken().first().isNotBlank()
 
     suspend fun signUp(
         loginId: String,
