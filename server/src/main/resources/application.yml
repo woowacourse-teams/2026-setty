@@ -81,6 +81,10 @@ setty:
       scan-interval: ${PENDING_ORDER_EXPIRATION_SCAN_INTERVAL:PT1M}
     completion:
       scan-interval: ${ORDER_COMPLETION_SCAN_INTERVAL:PT1M}
+    paid-confirmation:
+      # 결제 만료 시각에서 이만큼 지난 PAID 주문을 다시 확정한다. 이벤트 재시도(1분 간격 5회)와 staleness(5분)보다 길게 둔다.
+      stuck-after: ${PAID_ORDER_STUCK_AFTER:PT15M}
+      scan-interval: ${PAID_ORDER_CONFIRMATION_SCAN_INTERVAL:PT5M}
   storage:
     listing-images:
       region: ${AWS_REGION:ap-northeast-2}

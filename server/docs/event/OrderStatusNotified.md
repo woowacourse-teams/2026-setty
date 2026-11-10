@@ -3,7 +3,7 @@
 ## 발생
 
 - 발행자: [`OrderStatusNotifier#notify`](../../src/main/java/setty/platform/order/service/OrderStatusNotifier.java). 아래 처리에서 상태가 실제로 바뀐 경우에만 부른다. 같은 원인 이벤트가 다시 와서 상태가 그대로면 발행하지 않는다.
-  - [`OrderService#publishOrderConfirmed`](../../src/main/java/setty/platform/order/service/OrderService.java): 결제 대기 주문이 `CONFIRMED`가 될 때 `CONFIRMED`.
+  - [`OrderService#confirmPaid`](../../src/main/java/setty/platform/order/service/OrderService.java): 승인을 받아들인(`PAID`) 주문이 `CONFIRMED`가 될 때 `CONFIRMED`.
   - [`OrderService#confirmCancellation`](../../src/main/java/setty/platform/order/service/OrderService.java): 구매자 취소가 확정될 때 `CANCELLED_BY_BUYER`.
   - [`OrderService#rejectCancellation`](../../src/main/java/setty/platform/order/service/OrderService.java): 취소가 거절돼 `CONFIRMED`로 돌아올 때 `CANCELLATION_REJECTED`.
   - [`SyncOrderDeliveryStatusService#sync`](../../src/main/java/setty/platform/order/service/SyncOrderDeliveryStatusService.java): 배송 상태가 `ACCEPTED`·`PICKED_UP`·`DELIVERED`로 바뀔 때. 같은 `ACCEPTED`라도 수락 시각이 다르면(재배차) 다시 발행한다.

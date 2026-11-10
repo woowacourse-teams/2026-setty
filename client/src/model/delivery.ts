@@ -24,6 +24,12 @@ export type DeliverySummary = {
     status: DeliveryStatus;
 };
 
+/** 지금 칸에서 출발해 내 진행 중 배차의 도착 칸 근처로 가는 대기 요청. 서버가 내 칸을 모르면 cell이 null이다. */
+export type BundleCandidates = {
+    cell: number | null;
+    items: DeliverySummary[];
+};
+
 /** 아직 수락하지 않은 배차 요청 상세. 전화번호는 수락한 뒤에만 볼 수 있다. */
 export type DeliveryRequestDetail = {
     deliveryId: number;

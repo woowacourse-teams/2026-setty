@@ -228,7 +228,7 @@ public class ListingQueryRepository {
         String placeholders = String.join(",", Collections.nCopies(listingIds.size(), "?"));
         Map<Long, List<String>> statuses = new HashMap<>();
         jdbcTemplate.query(
-                "SELECT listing_id, order_status FROM orders WHERE order_status IN ('PENDING', 'CONFIRMED', 'CANCEL_PENDING')"
+                "SELECT listing_id, order_status FROM orders WHERE order_status IN ('PENDING', 'PAID', 'CONFIRMED', 'CANCEL_PENDING')"
                         + " AND listing_id IN (" + placeholders + ")",
                 (ResultSet resultSet) -> {
                     statuses.computeIfAbsent(resultSet.getLong("listing_id"), id -> new ArrayList<>())

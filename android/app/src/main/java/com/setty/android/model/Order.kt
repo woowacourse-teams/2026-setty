@@ -29,6 +29,7 @@ data class OrderedFurniture(
 
 enum class OrderStatus {
     PENDING,
+    PAID,
     CONFIRMED,
     CANCEL_PENDING,
     CANCELLED,

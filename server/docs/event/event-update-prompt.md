@@ -19,8 +19,8 @@
 
 - 배송: [DeliveryAccepted.md](DeliveryAccepted.md), [DeliveryAssignmentCancelled.md](DeliveryAssignmentCancelled.md), [DeliveryCancellationRejected.md](DeliveryCancellationRejected.md), [DeliveryCancelled.md](DeliveryCancelled.md), [DeliveryDelivered.md](DeliveryDelivered.md), [DeliveryPickedUp.md](DeliveryPickedUp.md), [DeliveryRequestsChanged.md](DeliveryRequestsChanged.md)
 - 매물: [ListingCreated.md](ListingCreated.md)
-- 주문: [OrderCancelled.md](OrderCancelled.md), [OrderCancellationRequested.md](OrderCancellationRequested.md), [OrderCompleted.md](OrderCompleted.md), [OrderConfirmed.md](OrderConfirmed.md), [OrderStatusNotified.md](OrderStatusNotified.md)
-- 결제: [PaymentCompleted.md](PaymentCompleted.md), [PaymentFailed.md](PaymentFailed.md), [PaymentRefundRequested.md](PaymentRefundRequested.md)
+- 주문: [OrderCancelled.md](OrderCancelled.md), [OrderCancellationRequested.md](OrderCancellationRequested.md), [OrderCompleted.md](OrderCompleted.md), [OrderConfirmed.md](OrderConfirmed.md), [OrderPaid.md](OrderPaid.md), [OrderStatusNotified.md](OrderStatusNotified.md)
+- 결제: [PaymentFailed.md](PaymentFailed.md), [PaymentRefundRequested.md](PaymentRefundRequested.md)
 - 정산: [SettlementConfirmed.md](SettlementConfirmed.md)
 
 인덱스는 현재 발행 이벤트 문서의 파일 목록만 제공한다. 후속 발행 관계의 단일 출처는 각 이벤트 파일의 `다음 확인할 이벤트 문서` 절이다.
