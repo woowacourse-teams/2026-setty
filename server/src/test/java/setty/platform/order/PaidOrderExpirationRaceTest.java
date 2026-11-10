@@ -1,6 +1,7 @@
 package setty.platform.order;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.doThrow;
 import static setty.global.event.EventPublicationTestSupport.awaitEventsHandled;
 
@@ -35,6 +36,8 @@ import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import setty.global.event.FailedEventResubmissionScheduler;
+import setty.global.exception.BusinessException;
+import setty.global.exception.ErrorCode;
 import setty.payment.application.PaymentRecorder;
 import setty.payment.application.PaymentService;
 import setty.payment.application.UnknownPaymentResolver;
@@ -172,8 +175,13 @@ class PaidOrderExpirationRaceTest extends MySqlIntegrationTestSupport {
         insertOrder("PENDING", 120);
         paymentRecorder.recordAttempt(ORDER_ID, TOSS_ORDER_ID, PAYMENT_KEY, AMOUNT);
         // 토스 승인 뒤 주문은 결정을 커밋했고, 결제를 기록하기 전에 프로세스가 내려갔다.
-        assertThat(paymentOrderAcceptance.accept(ORDER_ID).accepted()).isTrue();
+        assertThat(paymentOrderAcceptance.accept(ORDER_ID, Instant.now()).accepted()).isTrue();
         assertThat(paymentStatus()).isEqualTo("UNKNOWN");
+        // 구매자가 같은 결제를 다시 요청해도 실패가 아니라 결과 확인 중으로 답한다.
+        assertThatThrownBy(() -> paymentService.confirm(TOSS_ORDER_ID, PAYMENT_KEY, AMOUNT))
+                .isInstanceOf(BusinessException.class)
+                .extracting(e -> ((BusinessException) e).getErrorCode())
+                .isEqualTo(ErrorCode.PAYMENT_IN_PROGRESS);
 
         // 정리 배치가 이 시도를 집을 만큼 시간이 흐른다. 주문의 결제 만료 시각도 지난다.
         jdbcTemplate.update("UPDATE payments SET attempted_at = DATE_SUB(NOW(6), INTERVAL 11 MINUTE)");
@@ -204,7 +212,7 @@ class PaidOrderExpirationRaceTest extends MySqlIntegrationTestSupport {
         try {
             final Future<PaymentAcceptance> accepting = executor.submit(() -> {
                 start.await();
-                return paymentOrderAcceptance.accept(ORDER_ID);
+                return paymentOrderAcceptance.accept(ORDER_ID, Instant.now());
             });
             final Future<Boolean> expiring = executor.submit(() -> {
                 start.await();
@@ -225,6 +233,33 @@ class PaidOrderExpirationRaceTest extends MySqlIntegrationTestSupport {
             assertThat(acceptance.orderStatus()).isEqualTo("EXPIRED");
             assertThat(orderStatus()).isEqualTo("EXPIRED");
         }
+    }
+
+    @Test
+    void 만료_시각_전에_확인한_승인은_잠금을_기다리다_기한이_지나도_받아들인다() {
+        insertListingAndMembers();
+        insertOrder("PENDING", -1);
+        final Instant confirmedBeforeDeadline = Instant.now().minusSeconds(5);
+
+        final PaymentAcceptance acceptance = paymentOrderAcceptance.accept(ORDER_ID, confirmedBeforeDeadline);
+
+        assertThat(acceptance.accepted()).isTrue();
+        assertThat(orderStatus()).isIn("PAID", "CONFIRMED");
+    }
+
+    @Test
+    void 받아들인_뒤_구매자_취소로_끝난_주문은_다시_확인해도_처음_결정을_유지한다() {
+        insertListingAndMembers();
+        insertOrder("PENDING", 120);
+        assertThat(paymentOrderAcceptance.accept(ORDER_ID, Instant.now()).accepted()).isTrue();
+        awaitEventsHandled(jdbcTemplate);
+        // 결제를 기록하기 전에 중단된 사이 확정과 구매자 취소가 끝났다.
+        jdbcTemplate.update(
+                "UPDATE orders SET order_status = 'CANCELLED', cancellation_request_id = 'cancel-1' WHERE id = ?",
+                ORDER_ID);
+
+        assertThat(paymentOrderAcceptance.accept(ORDER_ID, Instant.now()).accepted()).isTrue();
+        assertThat(orderStatus()).isEqualTo("CANCELLED");
     }
 
     @Test

@@ -120,7 +120,7 @@ class OrderDeliverySnapshotIntegrationTest extends MySqlIntegrationTestSupport {
     }
 
     private void completePayment(final long orderId) {
-        paymentOrderAcceptance.accept(orderId);
+        paymentOrderAcceptance.accept(orderId, java.time.Instant.now());
         awaitEventsHandled(jdbcTemplate);
     }
 

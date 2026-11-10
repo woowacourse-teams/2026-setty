@@ -52,7 +52,7 @@ public class PaymentService {
             return alreadyPaid;
         }
 
-        final int payableAmount = paymentOrderReader.payableAmount(orderId);
+        final int payableAmount = payableAmount(orderId, alreadyPaid);
         if (payableAmount != amount) {
             throw new BusinessException(ErrorCode.PAYMENT_AMOUNT_MISMATCH);
         }
@@ -65,6 +65,18 @@ public class PaymentService {
         final TossConfirmResult result = confirmWithToss(orderId, tossOrderId, paymentKey, amount);
 
         return paymentApprovalRecorder.record(orderId, tossOrderId, paymentKey, amount, result.approvedAtAsLocalDateTime());
+    }
+
+    // 결과를 아직 기록하지 못한 시도가 있는데 주문이 결제 대기가 아니면, 승인은 됐을 수 있으므로 실패가 아니라 결과 확인 중으로 답한다.
+    private int payableAmount(final Long orderId, final Payment attempt) {
+        try {
+            return paymentOrderReader.payableAmount(orderId);
+        } catch (final BusinessException e) {
+            if (attempt != null && attempt.isUnknown() && e.getErrorCode() == ErrorCode.ORDER_NOT_PAYABLE) {
+                throw new BusinessException(ErrorCode.PAYMENT_IN_PROGRESS);
+            }
+            throw e;
+        }
     }
 
     private TossConfirmResult confirmWithToss(

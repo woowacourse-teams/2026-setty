@@ -1,5 +1,7 @@
 package setty.payment.application;
 
+import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -27,6 +29,7 @@ public class PaymentApprovalRecorder {
 
     private final PaymentOrderAcceptance paymentOrderAcceptance;
     private final PaymentRecorder paymentRecorder;
+    private final Clock clock;
 
     public Payment record(
             final Long orderId,
@@ -35,7 +38,9 @@ public class PaymentApprovalRecorder {
             final int amount,
             final LocalDateTime approvedAt
     ) {
-        final PaymentAcceptance acceptance = decideOrder(orderId);
+        // 승인을 확인한 시각. 주문 잠금을 기다리기 전에 정해 둔다.
+        final Instant confirmedAt = clock.instant();
+        final PaymentAcceptance acceptance = decideOrder(orderId, confirmedAt);
         final PaymentRefundReason refundReason = acceptance.accepted()
                 ? null
                 : PaymentRefundReason.ofOrderStatus(acceptance.orderStatus());
@@ -43,9 +48,9 @@ public class PaymentApprovalRecorder {
     }
 
     // 승인은 됐는데 주문 결정을 못 했다. 결제는 UNKNOWN으로 남아 정리 배치가 이어받으므로 "결과 확인 중"으로 답한다.
-    private PaymentAcceptance decideOrder(final Long orderId) {
+    private PaymentAcceptance decideOrder(final Long orderId, final Instant confirmedAt) {
         try {
-            return paymentOrderAcceptance.accept(orderId);
+            return paymentOrderAcceptance.accept(orderId, confirmedAt);
         } catch (final RuntimeException exception) {
             log.error("승인된 결제의 주문 결정에 실패했습니다. 결제는 결과 확인 중으로 남습니다. orderId={}", orderId, exception);
             throw new BusinessException(ErrorCode.PAYMENT_IN_PROGRESS);

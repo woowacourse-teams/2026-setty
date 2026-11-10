@@ -239,6 +239,16 @@ class OrderTest {
     }
 
     @Test
+    void 받아들인_뒤_구매자_취소로_끝난_주문은_결제를_받아들였던_주문이다() {
+        final Order order = new Order(1L, 2L);
+        order.requestCancellation("cancel-1");
+        order.confirmCancellation("cancel-1");
+
+        assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.CANCELLED);
+        assertThat(order.hasAcceptedPayment()).isTrue();
+    }
+
+    @Test
     void PAID_주문은_판매자_취소와_구매자_취소를_받지_않는다() {
         final Instant pendingExpiresAt = Instant.parse("2026-09-02T05:10:00Z");
         final Order order = Order.pending(1L, 2L, pendingExpiresAt);

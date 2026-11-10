@@ -106,12 +106,14 @@ public class Order {
         return true;
     }
 
-    // 결제를 받아들인 뒤의 상태(확정·취소 진행·판매 완료 포함)인가. 같은 승인이 다시 와도 같은 결과를 돌려주는 데 쓴다.
+    // 결제를 받아들인 뒤의 상태인가. 같은 승인이 다시 와도 처음과 같은 결과를 돌려주는 데 쓴다.
+    // 구매자 취소는 확정 뒤에만 시작되므로, 구매자 취소로 끝난 주문도 결제를 받아들였던 주문이다. 판매자 취소는 결제 전이다.
     public boolean hasAcceptedPayment() {
         return orderStatus == OrderStatus.PAID
                 || orderStatus == OrderStatus.CONFIRMED
                 || orderStatus == OrderStatus.CANCEL_PENDING
-                || orderStatus == OrderStatus.COMPLETED;
+                || orderStatus == OrderStatus.COMPLETED
+                || (orderStatus == OrderStatus.CANCELLED && cancellationRequestId != null);
     }
 
     // PAID 주문만 확정한다. 이미 확정 이후로 넘어간 주문에 같은 확정이 다시 오면 false로 넘긴다.

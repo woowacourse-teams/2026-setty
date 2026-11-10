@@ -2,7 +2,6 @@ package setty.platform.order.service;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.LockModeType;
-import java.time.Clock;
 import java.time.Instant;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,28 +36,25 @@ public class OrderPaymentAcceptor implements PaymentOrderAcceptance {
     private final ListingService listingService;
     private final ApplicationEventPublisher eventPublisher;
     private final EntityManager entityManager;
-    private final Clock clock;
 
     public OrderPaymentAcceptor(
             final OrderRepository orderRepository,
             final ListingRepository listingRepository,
             final ListingService listingService,
             final ApplicationEventPublisher eventPublisher,
-            final EntityManager entityManager,
-            final Clock clock
+            final EntityManager entityManager
     ) {
         this.orderRepository = orderRepository;
         this.listingRepository = listingRepository;
         this.listingService = listingService;
         this.eventPublisher = eventPublisher;
         this.entityManager = entityManager;
-        this.clock = clock;
     }
 
     @Override
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public PaymentAcceptance accept(final Long orderId) {
-        if (orderId == null || orderId <= 0) {
+    public PaymentAcceptance accept(final Long orderId, final Instant confirmedAt) {
+        if (orderId == null || orderId <= 0 || confirmedAt == null) {
             throw new BusinessException(ErrorCode.INVALID_REQUEST);
         }
         final Long listingId = orderRepository.findListingIdById(orderId)
@@ -70,15 +66,14 @@ public class OrderPaymentAcceptor implements PaymentOrderAcceptance {
                 .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
         entityManager.refresh(order, LockModeType.PESSIMISTIC_WRITE);
 
-        final Instant now = clock.instant();
-        if (order.acceptPayment(now)) {
+        if (order.acceptPayment(confirmedAt)) {
             eventPublisher.publishEvent(new OrderPaid(orderId));
             return PaymentAcceptance.ofAccepted();
         }
         if (order.hasAcceptedPayment()) {
             return PaymentAcceptance.ofAccepted();
         }
-        if (order.expire(now)) {
+        if (order.expire(confirmedAt)) {
             // 만료 스캔 전에 기한이 지난 승인이 도착했다. 만료 경로와 같이 선점을 해제하고 승인은 환불로 보낸다.
             listingService.releasePurchaseRequestForExpiredPendingOrder(listingId);
             log.warn("만료 시각이 지난 주문에 승인이 도착해 만료 처리했습니다. orderId={}", orderId);
