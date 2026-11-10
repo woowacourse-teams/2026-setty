@@ -6,6 +6,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import java.time.Instant;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 @Entity
@@ -40,6 +41,9 @@ public class DeliveryMember {
     @Column(length = 36)
     private String token;
 
+    @Column(name = "token_expires_at")
+    private Instant tokenExpiresAt;
+
     protected DeliveryMember() {
     }
 
@@ -63,8 +67,9 @@ public class DeliveryMember {
         return encoder.matches(rawPassword, this.password);
     }
 
-    public void rotateToken(final String newToken) {
+    public void rotateToken(final String newToken, final Instant expiresAt) {
         this.token = newToken;
+        this.tokenExpiresAt = expiresAt;
     }
 
     public Long getId() {
@@ -97,5 +102,9 @@ public class DeliveryMember {
 
     public String getToken() {
         return token;
+    }
+
+    public Instant getTokenExpiresAt() {
+        return tokenExpiresAt;
     }
 }

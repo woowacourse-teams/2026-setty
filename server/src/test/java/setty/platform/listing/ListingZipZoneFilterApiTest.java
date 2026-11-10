@@ -335,8 +335,9 @@ class ListingZipZoneFilterApiTest extends MySqlIntegrationTestSupport {
     private void insertMember(long id, String dongCode, String zipCode) {
         jdbcTemplate.update("""
                 INSERT INTO members (id, login_id, password, role, phone_number, address, dong_code, zip_code,
-                                     address_status, token)
-                VALUES (?, ?, 'encoded-password', 'MEMBER', '010-0000-0000', '가상 주소', ?, ?, ?, ?)
+                                     address_status, token, token_expires_at)
+                VALUES (?, ?, 'encoded-password', 'MEMBER', '010-0000-0000', '가상 주소', ?, ?, ?, ?,
+                        TIMESTAMPADD(DAY, 1, UTC_TIMESTAMP(6)))
                 """, id, "member" + id, dongCode, zipCode, zipCode == null ? "UNMATCHED" : "MATCHED", "token-" + id);
     }
 

@@ -241,11 +241,13 @@ class MemberWithdrawalServiceTest extends MySqlIntegrationTestSupport {
 
     private void assertWithdrawnAndMasked() {
         final Map<String, Object> row = jdbcTemplate.queryForMap(
-                "SELECT login_id, phone_number, token, withdrawn_at FROM members WHERE id = ?", MEMBER_ID);
+                "SELECT login_id, phone_number, token, token_expires_at, withdrawn_at FROM members WHERE id = ?",
+                MEMBER_ID);
         assertThat(row.get("withdrawn_at")).isNotNull();
         assertThat(row.get("login_id")).isEqualTo("withdrawn-101");
         assertThat(row.get("phone_number")).isEqualTo("000-0000-0000");
         assertThat(row.get("token")).isNull();
+        assertThat(row.get("token_expires_at")).isNull();
     }
 
     // 두 작업을 동시에 출발시키고 둘 다 끝날 때까지 기다린다. 어느 쪽이 실패하든 결과만 모은다.
@@ -299,8 +301,10 @@ class MemberWithdrawalServiceTest extends MySqlIntegrationTestSupport {
     private void insertMember(final long memberId) {
         jdbcTemplate.update(
                 """
-                INSERT INTO members (id, login_id, password, role, phone_number, address, dong_code, token)
-                VALUES (?, ?, 'encoded-password', 'MEMBER', '010-0000-0000', '가상 주소', '1111053000', ?)
+                INSERT INTO members (id, login_id, password, role, phone_number, address, dong_code, token,
+                                     token_expires_at)
+                VALUES (?, ?, 'encoded-password', 'MEMBER', '010-0000-0000', '가상 주소', '1111053000', ?,
+                        TIMESTAMPADD(DAY, 1, UTC_TIMESTAMP(6)))
                 """,
                 memberId,
                 "member" + memberId,

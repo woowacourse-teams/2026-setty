@@ -160,8 +160,10 @@ class SimilarListingApiTest extends MySqlIntegrationTestSupport {
 
     private void insertMember(long id) {
         jdbcTemplate.update("""
-                INSERT INTO members (id, login_id, password, role, phone_number, address, dong_code, token)
-                VALUES (?, ?, 'encoded-password', 'MEMBER', '010-0000-0000', '가상 주소', ?, ?)
+                INSERT INTO members (id, login_id, password, role, phone_number, address, dong_code, token,
+                                     token_expires_at)
+                VALUES (?, ?, 'encoded-password', 'MEMBER', '010-0000-0000', '가상 주소', ?, ?,
+                        TIMESTAMPADD(DAY, 1, UTC_TIMESTAMP(6)))
                 """, id, "member" + id, DONG, "token-" + id);
     }
 

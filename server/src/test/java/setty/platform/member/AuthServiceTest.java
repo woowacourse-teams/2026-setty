@@ -3,6 +3,8 @@ package setty.platform.member;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.time.Duration;
+import java.time.Instant;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -12,6 +14,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import setty.address.AddressResolution.Status;
 import setty.global.exception.BusinessException;
 import setty.global.exception.ErrorCode;
+import setty.platform.member.controller.dto.LoginRequest;
+import setty.platform.member.controller.dto.LoginResponse;
 import setty.platform.member.controller.dto.MemberMeResponse;
 import setty.platform.member.controller.dto.SignupRequest;
 import setty.platform.member.controller.dto.UpdateDongRequest;
@@ -27,6 +31,7 @@ class AuthServiceTest extends MySqlIntegrationTestSupport {
 
     private static final long MEMBER_ID = 101L;
     private static final String TOKEN = "token-101";
+    private static final Duration TOKEN_TTL = Duration.ofDays(30);
     private static final String CITY_HALL = "1114010300100310000019224";
     private static final String CITY_HALL_DONG = "1114055000";
 
@@ -61,6 +66,45 @@ class AuthServiceTest extends MySqlIntegrationTestSupport {
         authService.logout(MEMBER_ID);
 
         assertThat(memberRepository.findByToken(TOKEN)).isEmpty();
+        assertThat(memberRepository.findById(MEMBER_ID).orElseThrow().getTokenExpiresAt()).isNull();
+    }
+
+    @Test
+    void 로그인하면_토큰과_30일_뒤_만료_시각을_저장한다() {
+        authService.signup(new SignupRequest("newmember", "password1", "010-1111-2222", "가상 주소", null));
+        final Instant before = Instant.now();
+
+        final LoginResponse response = authService.login(new LoginRequest("newmember", "password1"));
+
+        final Member member = memberRepository.findByToken(response.token()).orElseThrow();
+        assertThat(member.getTokenExpiresAt()).isBetween(
+                before.plus(TOKEN_TTL).minusSeconds(1), Instant.now().plus(TOKEN_TTL).plusSeconds(1));
+    }
+
+    // 매물 조회와 마이그레이션은 DB의 UTC 시계로 만료를 본다. 서버가 쓴 만료 시각이 그 시계로도 같은 시점이어야 한다.
+    @Test
+    void 로그인_때_쓴_만료_시각은_DB_시계로_봐도_30일_뒤다() {
+        authService.signup(new SignupRequest("newmember", "password1", "010-1111-2222", "가상 주소", null));
+
+        final LoginResponse response = authService.login(new LoginRequest("newmember", "password1"));
+
+        final Long remainingSeconds = jdbcTemplate.queryForObject(
+                "SELECT TIMESTAMPDIFF(SECOND, UTC_TIMESTAMP(6), token_expires_at) FROM members WHERE token = ?",
+                Long.class, response.token());
+        assertThat(remainingSeconds).isBetween(TOKEN_TTL.toSeconds() - 60, TOKEN_TTL.toSeconds());
+    }
+
+    @Test
+    void 다시_로그인하면_만료_시각도_새로_잡는다() {
+        authService.signup(new SignupRequest("newmember", "password1", "010-1111-2222", "가상 주소", null));
+        authService.login(new LoginRequest("newmember", "password1"));
+        jdbcTemplate.update(
+                "UPDATE members SET token_expires_at = TIMESTAMPADD(SECOND, -1, UTC_TIMESTAMP(6)) WHERE login_id = 'newmember'");
+
+        final LoginResponse response = authService.login(new LoginRequest("newmember", "password1"));
+
+        assertThat(memberRepository.findByToken(response.token()).orElseThrow().getTokenExpiresAt())
+                .isAfter(Instant.now().plus(TOKEN_TTL).minusSeconds(60));
     }
 
     @Test
@@ -211,8 +255,8 @@ class AuthServiceTest extends MySqlIntegrationTestSupport {
     private void insertMember(final long memberId, final String token) {
         jdbcTemplate.update(
                 """
-                INSERT INTO members (id, login_id, password, role, phone_number, address, token)
-                VALUES (?, ?, 'encoded-password', 'MEMBER', '010-0000-0000', '가상 주소', ?)
+                INSERT INTO members (id, login_id, password, role, phone_number, address, token, token_expires_at)
+                VALUES (?, ?, 'encoded-password', 'MEMBER', '010-0000-0000', '가상 주소', ?, TIMESTAMPADD(DAY, 1, UTC_TIMESTAMP(6)))
                 """,
                 memberId,
                 "member" + memberId,

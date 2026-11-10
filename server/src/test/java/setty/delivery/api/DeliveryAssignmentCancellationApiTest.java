@@ -143,8 +143,9 @@ class DeliveryAssignmentCancellationApiTest extends MySqlIntegrationTestSupport 
         jdbcTemplate.update(
                 """
                 INSERT INTO delivery_member (id, login_id, password, phone_number, license_plate_number, car_type,
-                                             business_registration_number, token)
-                VALUES (?, ?, 'encoded-password', '010-0000-0000', '12가3456', '다마스', '000-00-00000', ?)
+                                             business_registration_number, token, token_expires_at)
+                VALUES (?, ?, 'encoded-password', '010-0000-0000', '12가3456', '다마스', '000-00-00000', ?,
+                        TIMESTAMPADD(DAY, 1, UTC_TIMESTAMP(6)))
                 """,
                 id,
                 "driver" + id,

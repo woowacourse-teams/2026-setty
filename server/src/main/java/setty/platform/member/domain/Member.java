@@ -51,6 +51,9 @@ public class Member {
     @Column(length = 36)
     private String token;
 
+    @Column(name = "token_expires_at")
+    private Instant tokenExpiresAt;
+
     @Column(name = "withdrawn_at")
     private Instant withdrawnAt;
 
@@ -113,12 +116,18 @@ public class Member {
         return token;
     }
 
-    public void rotateToken(final String newToken) {
+    public Instant getTokenExpiresAt() {
+        return tokenExpiresAt;
+    }
+
+    public void rotateToken(final String newToken, final Instant expiresAt) {
         this.token = newToken;
+        this.tokenExpiresAt = expiresAt;
     }
 
     public void clearToken() {
         this.token = null;
+        this.tokenExpiresAt = null;
     }
 
     public void updateContact(final String phoneNumber, final String address) {
@@ -145,7 +154,7 @@ public class Member {
         this.address = WITHDRAWN_ADDRESS;
         this.dongCode = null;
         this.resolvedAddress = ResolvedAddress.unmatched();
-        this.token = null;
+        clearToken();
         this.withdrawnAt = withdrawnAt;
     }
 
