@@ -132,6 +132,10 @@ setty:
       # 클라이언트 키의 gck를 gsk로 바꾸어 시크릿 키를 만들 수 없다. 공식 키 쌍을 사용한다.
       secret-key: ${TOSS_SECRET_KEY:test_gsk_docs_OaPz8L5KdmQXkzRz3y47BMw6}
       base-url: ${TOSS_BASE_URL:https://api.tosspayments.com}
+    # 토스 승인 호출 한도(토큰 버킷). 최악(토스 60초 지연)에도 대기 승인이 capacity + 초당 보충 × 60건을 넘지 않는다.
+    confirm-limit:
+      capacity: ${PAYMENT_CONFIRM_LIMIT_CAPACITY:20}
+      refill-per-second: ${PAYMENT_CONFIRM_LIMIT_REFILL_PER_SECOND:2}
     # 결과를 모르는 승인 정리와 환불 배치. 결제 전용 스레드 하나에서 돈다.
     recovery:
       interval: ${PAYMENT_RECOVERY_INTERVAL:PT5M}

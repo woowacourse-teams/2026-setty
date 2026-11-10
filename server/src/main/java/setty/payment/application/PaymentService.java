@@ -35,6 +35,7 @@ public class PaymentService {
     private final TossPaymentClient tossPaymentClient;
     private final PaymentRecorder paymentRecorder;
     private final PaymentApprovalRecorder paymentApprovalRecorder;
+    private final PaymentConfirmLimiter paymentConfirmLimiter;
     private final ApplicationEventPublisher eventPublisher;
 
     /**
@@ -57,6 +58,10 @@ public class PaymentService {
             throw new BusinessException(ErrorCode.PAYMENT_AMOUNT_MISMATCH);
         }
 
+        // 토스를 부를 승인만 한도를 쓴다. 한도를 넘으면 시도를 남기지 않아 토스를 부르지 않은 것이 분명하다.
+        if (!paymentConfirmLimiter.tryAcquire()) {
+            throw new BusinessException(ErrorCode.PAYMENT_TOO_MANY_REQUESTS);
+        }
         // 클라가 토스에 넘긴 orderId 문자열을 그대로 승인에 사용한다(재구성하면 값이 어긋난다).
         final Payment attempt = paymentRecorder.recordAttempt(orderId, tossOrderId, paymentKey, amount);
         if (attempt.isDone()) {

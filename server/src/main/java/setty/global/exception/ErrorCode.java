@@ -49,6 +49,7 @@ public enum ErrorCode {
     PAYMENT_SESSION_EXPIRED(400, "결제 가능 시간이 지났습니다. 처음부터 다시 결제해 주세요"),
     PAYMENT_TEMPORARILY_UNAVAILABLE(400, "결제사에 일시적인 문제가 있습니다. 잠시 뒤 다시 결제해 주세요"),
     ALREADY_PAID(400, "이미 결제된 주문입니다"),
+    PAYMENT_TOO_MANY_REQUESTS(429, "결제 요청이 몰려 처리하지 못했습니다. 잠시 뒤 다시 결제해 주세요"),
     PAYMENT_IN_PROGRESS(409, "결제 결과를 확인하고 있는 주문입니다. 잠시 뒤 주문 내역을 확인해 주세요"),
 
     // ===== 배송 (배송 팀) =====
