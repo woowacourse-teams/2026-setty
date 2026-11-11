@@ -261,8 +261,9 @@ class ListingDeliveryFeeFilterApiTest extends MySqlIntegrationTestSupport {
     void 배송원_토큰으로는_배송비_필터를_쓸_수_없다() throws Exception {
         jdbcTemplate.update("""
                 INSERT INTO delivery_member (id, login_id, password, phone_number, license_plate_number, car_type,
-                                             business_registration_number, token)
-                VALUES (901, 'driver901', 'encoded-password', '010-0000-0000', '12가3456', '다마스', '000-00-00000', 'driver-token')
+                                             business_registration_number, token, token_expires_at)
+                VALUES (901, 'driver901', 'encoded-password', '010-0000-0000', '12가3456', '다마스', '000-00-00000', 'driver-token',
+                        TIMESTAMPADD(DAY, 1, UTC_TIMESTAMP(6)))
                 """);
 
         mockMvc.perform(get("/api/listings")
@@ -441,8 +442,10 @@ class ListingDeliveryFeeFilterApiTest extends MySqlIntegrationTestSupport {
 
     private void insertMember(long id, String dongCode) {
         jdbcTemplate.update("""
-                INSERT INTO members (id, login_id, password, role, phone_number, address, dong_code, token)
-                VALUES (?, ?, 'encoded-password', 'MEMBER', '010-0000-0000', '가상 주소', ?, ?)
+                INSERT INTO members (id, login_id, password, role, phone_number, address, dong_code, token,
+                                     token_expires_at)
+                VALUES (?, ?, 'encoded-password', 'MEMBER', '010-0000-0000', '가상 주소', ?, ?,
+                        TIMESTAMPADD(DAY, 1, UTC_TIMESTAMP(6)))
                 """, id, "member" + id, dongCode, "token-" + id);
     }
 

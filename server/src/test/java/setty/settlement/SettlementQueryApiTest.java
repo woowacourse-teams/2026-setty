@@ -126,8 +126,9 @@ class SettlementQueryApiTest extends MySqlIntegrationTestSupport {
     private void insertMember(final long memberId) {
         jdbcTemplate.update(
                 """
-                INSERT INTO members (id, login_id, password, role, phone_number, address, token)
-                VALUES (?, ?, 'encoded-password', 'MEMBER', '010-0000-0000', '가상 주소', ?)
+                INSERT INTO members (id, login_id, password, role, phone_number, address, token, token_expires_at)
+                VALUES (?, ?, 'encoded-password', 'MEMBER', '010-0000-0000', '가상 주소', ?,
+                        TIMESTAMPADD(DAY, 1, UTC_TIMESTAMP(6)))
                 """,
                 memberId, "member" + memberId, "token-" + memberId);
     }
@@ -136,8 +137,9 @@ class SettlementQueryApiTest extends MySqlIntegrationTestSupport {
         jdbcTemplate.update(
                 """
                 INSERT INTO delivery_member (id, login_id, password, phone_number, license_plate_number, car_type,
-                                             business_registration_number, token)
-                VALUES (?, ?, 'encoded-password', '010-0000-0000', '12가3456', '다마스', '000-00-00000', ?)
+                                             business_registration_number, token, token_expires_at)
+                VALUES (?, ?, 'encoded-password', '010-0000-0000', '12가3456', '다마스', '000-00-00000', ?,
+                        TIMESTAMPADD(DAY, 1, UTC_TIMESTAMP(6)))
                 """,
                 driverId, "driver" + driverId, "driver-token-" + driverId);
     }

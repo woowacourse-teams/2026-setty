@@ -932,8 +932,9 @@ class ListingApiTest extends MySqlIntegrationTestSupport {
     private void insertMember(long memberId) {
         jdbcTemplate.update(
                 """
-                INSERT INTO members (id, login_id, password, role, phone_number, address, dong_code, token)
-                VALUES (?, ?, ?, 'MEMBER', '010-0000-0000', '가상 주소', ?, ?)
+                INSERT INTO members (id, login_id, password, role, phone_number, address, dong_code, token,
+                                     token_expires_at)
+                VALUES (?, ?, ?, 'MEMBER', '010-0000-0000', '가상 주소', ?, ?, TIMESTAMPADD(DAY, 1, UTC_TIMESTAMP(6)))
                 """,
                 memberId,
                 "member" + memberId,

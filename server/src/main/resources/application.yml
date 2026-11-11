@@ -72,6 +72,9 @@ management:
         enabled: false
 
 setty:
+  auth:
+    # 로그인 토큰 수명. 로그인 시각부터 이만큼 지나면 다시 로그인해야 한다.
+    token-ttl: ${SETTY_AUTH_TOKEN_TTL:P30D}
   events:
     resubmission-interval: ${SETTY_EVENT_RESUBMISSION_INTERVAL:PT1M}
   delivery:

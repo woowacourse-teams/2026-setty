@@ -37,7 +37,7 @@ class FlywayMigrationTest {
             "delivery_dong_code", "delivery_zip_code");
     private static final List<String> DELIVERY_CELL_COLUMNS = List.of("pickup_cell", "delivery_cell");
     private static final List<String> KEYWORD_CONDITION_COLUMNS = List.of("max_delivery_fee", "max_total_price");
-    private static final int MIGRATION_COUNT = 19;
+    private static final int MIGRATION_COUNT = 20;
 
     @Container
     static final MySQLContainer MYSQL = new MySQLContainer("mysql:8.4.11");
@@ -174,6 +174,31 @@ class FlywayMigrationTest {
         assertThat(deliveryAfter.remove("delivery_cell")).isNull();
         assertThat(deliveryAfter).isEqualTo(new HashMap<>(deliveryBefore));
         assertThat(flyway(false).migrate().migrationsExecuted).isZero();
+    }
+
+    @Test
+    void loginTokenExpiryGivesExistingTokensThirtyDaysAndLeavesTokenlessRowsEmpty() {
+        Flyway.configure().dataSource(dataSource).locations("classpath:db/migration")
+                .target("18").cleanDisabled(true).load().migrate();
+        jdbc.update("""
+                INSERT INTO members(id,login_id,password,role,phone_number,address,token)
+                VALUES (1,'logged-in','encoded-password','MEMBER','010-0000-0000','synthetic address','member-token'),
+                       (2,'logged-out','encoded-password','MEMBER','010-0000-0000','synthetic address',NULL)
+                """);
+        jdbc.update("""
+                INSERT INTO delivery_member(id,login_id,password,phone_number,license_plate_number,car_type,
+                    business_registration_number,token)
+                VALUES (1,'driver-in','encoded-password','010-0000-0000','12가3456','다마스','000-00-00000','driver-token'),
+                       (2,'driver-out','encoded-password','010-0000-0000','12가3457','다마스','000-00-00001',NULL)
+                """);
+
+        flyway(false).migrate();
+
+        final String remainingDays = "SELECT TIMESTAMPDIFF(HOUR, UTC_TIMESTAMP(6), token_expires_at) FROM %s WHERE id=1";
+        assertThat(jdbc.queryForObject(remainingDays.formatted("members"), Integer.class)).isBetween(719, 720);
+        assertThat(jdbc.queryForObject(remainingDays.formatted("delivery_member"), Integer.class)).isBetween(719, 720);
+        assertThat(count("SELECT COUNT(*) FROM members WHERE id=2 AND token_expires_at IS NULL")).isOne();
+        assertThat(count("SELECT COUNT(*) FROM delivery_member WHERE id=2 AND token_expires_at IS NULL")).isOne();
     }
 
     @Test
@@ -314,7 +339,8 @@ class FlywayMigrationTest {
                 || table.equals("payment_refunds")
                 || table.equals("payments") && name.equals("attempted_at")
                 || table.equals("listing_notifications") && name.equals("read_at")
-                || table.equals("members") && name.equals("withdrawn_at");
+                || table.equals("members") && name.equals("withdrawn_at")
+                || List.of("members", "delivery_member").contains(table) && name.equals("token_expires_at");
     }
 
     private int count(final String sql) {

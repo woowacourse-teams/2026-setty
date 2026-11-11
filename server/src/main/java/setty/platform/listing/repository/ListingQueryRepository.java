@@ -187,7 +187,8 @@ public class ListingQueryRepository {
     }
 
     public Optional<MemberArea> findMemberAreaByToken(String token) {
-        return jdbcTemplate.query("SELECT id, dong_code, zip_code FROM members WHERE token = ?",
+        return jdbcTemplate.query(
+                "SELECT id, dong_code, zip_code FROM members WHERE token = ? AND token_expires_at > UTC_TIMESTAMP(6)",
                 (resultSet, rowNum) -> new MemberArea(resultSet.getLong("id"), resultSet.getString("dong_code"),
                         resultSet.getString("zip_code")),
                 token)
