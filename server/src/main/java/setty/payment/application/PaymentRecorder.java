@@ -22,7 +22,7 @@ import setty.payment.repository.PaymentRepository;
  *
  * <p>주문의 결과는 승인을 기록하기 전에 주문 쪽이 먼저 정한다({@link PaymentApprovalRecorder}). 여기서는 그 결과에 따라 결제만 기록한다.
  *
- * <p>요청 동안 영속성 컨텍스트가 열려 있어(OSIV) 앞서 읽은 결제가 남아 있을 수 있으므로, 잠글 때 DB 값으로 다시 읽는다.
+ * <p>잠그기 전에 읽은 결제는 그사이 다른 요청·배치가 바꿨을 수 있으므로, 잠글 때 DB 값으로 다시 읽는다.
  */
 @Component
 @RequiredArgsConstructor

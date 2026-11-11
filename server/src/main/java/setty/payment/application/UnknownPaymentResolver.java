@@ -55,9 +55,9 @@ public class UnknownPaymentResolver {
                 log.info("결과를 모르던 결제가 토스에서 승인되어 기록했습니다. orderId={}", payment.getOrderId());
             }
             case TossPaymentLookup.Found(final TossConfirmResult found) when found.isNotApproved() ->
-                    discard(payment, found.status());
+                    discard(payment, found.status().name());
             case TossPaymentLookup.NotFound notFound -> discard(payment, "NOT_FOUND_PAYMENT");
-            case TossPaymentLookup.Found(final TossConfirmResult found) when "DONE".equals(found.status()) ->
+            case TossPaymentLookup.Found(final TossConfirmResult found) when found.isDone() ->
                     log.error("토스에서 승인된 결제가 주문과 맞지 않습니다. 수동 확인이 필요합니다. orderId={}, totalAmount={}",
                             payment.getOrderId(), found.totalAmount());
             case TossPaymentLookup.Found(final TossConfirmResult found) ->

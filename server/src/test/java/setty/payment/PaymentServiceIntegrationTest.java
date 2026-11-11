@@ -26,7 +26,9 @@ import setty.global.exception.BusinessException;
 import setty.global.exception.ErrorCode;
 import setty.payment.application.PaymentService;
 import setty.payment.domain.Payment;
+import setty.payment.application.PaymentConfirmLimiter;
 import setty.payment.infrastructure.TossConfirmResult;
+import setty.payment.infrastructure.TossPaymentStatus;
 import setty.payment.infrastructure.TossPaymentClient;
 import setty.platform.listing.storage.ListingImageStorage;
 import setty.platform.order.service.OrderPaid;
@@ -66,8 +68,12 @@ class PaymentServiceIntegrationTest extends MySqlIntegrationTestSupport {
     @MockitoBean
     private ListingImageStorage listingImageStorage;
 
+    @MockitoBean
+    private PaymentConfirmLimiter paymentConfirmLimiter;
+
     @BeforeEach
     void setUp() {
+        when(paymentConfirmLimiter.tryAcquire()).thenReturn(true);
         cleanUp();
         insertMember(SELLER_ID);
         insertMember(BUYER_ID);
@@ -122,6 +128,19 @@ class PaymentServiceIntegrationTest extends MySqlIntegrationTestSupport {
                 .isEqualTo("CANCELLED");
         assertThat(events.stream(OrderPaid.class)).isEmpty();
         assertThat(refunds()).containsExactly("ORDER_CANCELLED/REQUESTED");
+    }
+
+    @Test
+    void 승인_한도를_넘으면_토스를_호출하지_않고_시도도_남기지_않는다() {
+        when(paymentConfirmLimiter.tryAcquire()).thenReturn(false);
+
+        assertThatThrownBy(() -> paymentService.confirm(TOSS_ORDER_ID, PAYMENT_KEY, TOTAL_PRICE))
+                .isInstanceOf(BusinessException.class)
+                .extracting(e -> ((BusinessException) e).getErrorCode())
+                .isEqualTo(ErrorCode.PAYMENT_TOO_MANY_REQUESTS);
+
+        verify(tossPaymentClient, never()).confirm(anyString(), anyString(), anyInt());
+        assertThat(paymentCount()).isZero();
     }
 
     @Test
@@ -305,7 +324,7 @@ class PaymentServiceIntegrationTest extends MySqlIntegrationTestSupport {
     private void stubTossSuccess() {
         when(tossPaymentClient.confirm(eq(PAYMENT_KEY), eq(TOSS_ORDER_ID), eq(TOTAL_PRICE)))
                 .thenReturn(new TossConfirmResult(
-                        PAYMENT_KEY, TOSS_ORDER_ID, "DONE", TOTAL_PRICE, "2026-08-31T12:00:00+09:00"));
+                        PAYMENT_KEY, TOSS_ORDER_ID, TossPaymentStatus.DONE, TOTAL_PRICE, "2026-08-31T12:00:00+09:00"));
     }
 
     private void stubTossSuccessAfter(final Runnable duringApproval) {
@@ -313,7 +332,7 @@ class PaymentServiceIntegrationTest extends MySqlIntegrationTestSupport {
                 .thenAnswer(invocation -> {
                     duringApproval.run();
                     return new TossConfirmResult(
-                            PAYMENT_KEY, TOSS_ORDER_ID, "DONE", TOTAL_PRICE, "2026-08-31T12:00:00+09:00");
+                            PAYMENT_KEY, TOSS_ORDER_ID, TossPaymentStatus.DONE, TOTAL_PRICE, "2026-08-31T12:00:00+09:00");
                 });
     }
 

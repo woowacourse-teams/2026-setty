@@ -2,8 +2,6 @@ package setty.payment.infrastructure;
 
 import java.util.Map;
 import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,12 +33,13 @@ public class TossPaymentClient {
     private static final String NOT_FOUND_PAYMENT = "NOT_FOUND_PAYMENT";
     // 토스 결제 취소 에러표에서 "잠시 후 다시 시도해주세요"로 안내하는 4xx. 5xx와 409는 상태 코드로 가린다.
     private static final Set<String> RETRY_LATER_CANCEL_CODES = Set.of("PROVIDER_ERROR", "FORBIDDEN_CONSECUTIVE_REQUEST");
-    private static final Pattern ERROR_CODE = Pattern.compile("\"code\"\\s*:\\s*\"([^\"]+)\"");
+    // 이미 처리됐거나 같은 요청을 처리 중이라는 승인 거절. 토스에서는 승인됐을 수 있다.
+    private static final Set<String> MAY_BE_APPROVED_CONFIRM_CODES = Set.of("ALREADY_PROCESSED_PAYMENT", "ALREADY_PROCESSING_REQUEST");
 
     private final RestClient tossRestClient;
 
     /**
-     * 승인이 확인되면 결과를 돌려준다. 토스가 명확히 거절하면 {@code PAYMENT_CONFIRM_FAILED}를,
+     * 승인이 확인되면 결과를 돌려준다. 토스가 명확히 거절하면 거절 종류에 맞는 승인 실패({@link TossConfirmRejection})를,
      * 승인됐을 수 있는데 확인하지 못하면 {@link TossPaymentUncertainException}을 던진다.
      */
     public TossConfirmResult confirm(final String paymentKey, final String tossOrderId, final int amount) {
@@ -50,8 +49,9 @@ public class TossPaymentClient {
                 "amount", amount
         );
 
+        final TossConfirmResult result;
         try {
-            return tossRestClient.post()
+            result = tossRestClient.post()
                     .uri(CONFIRM_PATH)
                     // 같은 키로 다시 승인하면 토스가 처음 응답을 그대로 돌려준다(키 300자 이하·15일 유효, paymentKey는 200자 이하).
                     .header(IDEMPOTENCY_KEY, paymentKey)
@@ -64,8 +64,15 @@ public class TossPaymentClient {
             if (mayHaveBeenApproved(exception)) {
                 return findApproved(paymentKey, tossOrderId, amount);
             }
-            throw new BusinessException(ErrorCode.PAYMENT_CONFIRM_FAILED);
+            throw rejected((HttpClientErrorException) exception);
         }
+        if (result != null && result.isDoneFor(tossOrderId, amount)) {
+            return result;
+        }
+        // 2xx인데 본문이 없거나 이 주문·금액의 승인 완료가 아니다. 응답만으로 승인으로 기록하지 않고 조회로 다시 확인한다.
+        log.warn("토스 승인 응답이 기대한 승인 상태가 아닙니다. tossOrderId={}, status={}, totalAmount={}",
+                tossOrderId, result == null ? null : result.status(), result == null ? null : result.totalAmount());
+        return findApproved(paymentKey, tossOrderId, amount);
     }
 
     public TossPaymentLookup find(final String paymentKey) {
@@ -109,8 +116,10 @@ public class TossPaymentClient {
 
     private TossCancelResult classifyCancelFailure(final HttpStatusCodeException exception) {
         final String code = errorCode(exception);
+        // 429는 한 번 다시 보낸 뒤에도 한도를 넘은 경우다(TossRetryAfterInterceptor). 토스가 처리하지 않았으므로 다음 배치에서 보낸다.
         if (exception.getStatusCode().is5xxServerError()
                 || exception.getStatusCode().isSameCodeAs(HttpStatus.CONFLICT)
+                || exception.getStatusCode().isSameCodeAs(HttpStatus.TOO_MANY_REQUESTS)
                 || RETRY_LATER_CANCEL_CODES.contains(code)) {
             return new TossCancelResult.Retryable(code);
         }
@@ -121,13 +130,23 @@ public class TossPaymentClient {
     }
 
     // 토스가 4xx로 거절한 것만 명확한 실패다. 응답을 못 받았거나(통신 실패·5xx·읽을 수 없는 응답),
-    // 같은 멱등키 요청이 처리 중이거나(409), 이미 처리됐다는 응답이면 토스에서는 승인됐을 수 있다.
+    // 같은 멱등키 요청이 처리 중이거나(409), 이미 처리됐거나 처리 중이라는 응답이면 토스에서는 승인됐을 수 있다.
+    // 한 번 다시 보낸 뒤에도 남은 429는 토스가 처리하지 않은 요청이므로 명확한 실패로 본다.
     private boolean mayHaveBeenApproved(final RestClientException exception) {
         if (!(exception instanceof HttpClientErrorException clientError)) {
             return true;
         }
         return clientError.getStatusCode().isSameCodeAs(HttpStatus.CONFLICT)
-                || "ALREADY_PROCESSED_PAYMENT".equals(errorCode(clientError));
+                || MAY_BE_APPROVED_CONFIRM_CODES.contains(errorCode(clientError));
+    }
+
+    private BusinessException rejected(final HttpClientErrorException exception) {
+        final String code = errorCode(exception);
+        final TossConfirmRejection rejection = TossConfirmRejection.of(exception.getStatusCode().value(), code);
+        if (rejection.needsOperator()) {
+            log.error("토스가 가맹점 설정 문제로 승인을 거절했습니다. 키·계약 정보를 확인해야 합니다. code={}", code);
+        }
+        return new BusinessException(rejection.errorCode());
     }
 
     private TossConfirmResult findApproved(final String paymentKey, final String tossOrderId, final int amount) {
@@ -152,7 +171,12 @@ public class TossPaymentClient {
         if (!(exception instanceof HttpStatusCodeException statusError)) {
             return null;
         }
-        final Matcher matcher = ERROR_CODE.matcher(statusError.getResponseBodyAsString());
-        return matcher.find() ? matcher.group(1) : "HTTP_" + statusError.getStatusCode().value();
+        final String fallback = "HTTP_" + statusError.getStatusCode().value();
+        try {
+            final TossErrorResponse error = statusError.getResponseBodyAs(TossErrorResponse.class);
+            return error == null || error.code() == null ? fallback : error.code();
+        } catch (final RuntimeException unreadable) {
+            return fallback;
+        }
     }
 }
