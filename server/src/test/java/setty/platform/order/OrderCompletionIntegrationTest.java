@@ -113,9 +113,11 @@ class OrderCompletionIntegrationTest extends MySqlIntegrationTestSupport {
         assertThat(column(ORDER_ID, "order_status")).isEqualTo("COMPLETED");
     }
 
+    // 판매자에게는 판매 확정 대신 정산 확정을 금액과 함께 알린다.
     @Test
-    void 구매_확정은_구매자와_판매자에게_한_번씩_알린다() {
+    void 구매_확정은_구매자에게_구매_확정을_판매자에게_정산_확정을_한_번씩_알린다() {
         deliver(ORDER_ID, Instant.now());
+        insertPendingSellerSettlement(ORDER_ID, LISTING_ID);
 
         orderCompletionService.confirmByBuyer(ORDER_ID, BUYER_ID);
         orderCompletionService.confirmByBuyer(ORDER_ID, BUYER_ID);
@@ -123,10 +125,11 @@ class OrderCompletionIntegrationTest extends MySqlIntegrationTestSupport {
 
         assertThat(jdbcTemplate.queryForList(
                 """
-                SELECT CONCAT(kind, ':', member_id) FROM order_notifications
-                WHERE order_id = ? AND kind IN ('PURCHASE_COMPLETED', 'SALE_COMPLETED')
+                SELECT CONCAT(kind, ':', member_id, ':', IFNULL(amount, '-')) FROM order_notifications
+                WHERE order_id = ? AND kind IN ('PURCHASE_COMPLETED', 'SALE_COMPLETED', 'SETTLEMENT_CONFIRMED')
                 """, String.class, ORDER_ID))
-                .containsExactlyInAnyOrder("PURCHASE_COMPLETED:" + BUYER_ID, "SALE_COMPLETED:" + SELLER_ID);
+                .containsExactlyInAnyOrder("PURCHASE_COMPLETED:" + BUYER_ID + ":-",
+                        "SETTLEMENT_CONFIRMED:" + SELLER_ID + ":150000");
     }
 
     @Test
@@ -210,6 +213,18 @@ class OrderCompletionIntegrationTest extends MySqlIntegrationTestSupport {
                 """,
                 listingId,
                 SELLER_ID
+        );
+    }
+
+    private void insertPendingSellerSettlement(final long orderId, final long listingId) {
+        jdbcTemplate.update(
+                """
+                INSERT INTO settlements (order_id, payee_type, payee_id, listing_id, amount, status, created_at)
+                VALUES (?, 'SELLER', ?, ?, 150000, 'PENDING', NOW(6))
+                """,
+                orderId,
+                SELLER_ID,
+                listingId
         );
     }
 

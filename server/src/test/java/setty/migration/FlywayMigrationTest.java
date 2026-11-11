@@ -37,7 +37,7 @@ class FlywayMigrationTest {
             "delivery_dong_code", "delivery_zip_code");
     private static final List<String> DELIVERY_CELL_COLUMNS = List.of("pickup_cell", "delivery_cell");
     private static final List<String> KEYWORD_CONDITION_COLUMNS = List.of("max_delivery_fee", "max_total_price");
-    private static final int MIGRATION_COUNT = 18;
+    private static final int MIGRATION_COUNT = 19;
 
     @Container
     static final MySQLContainer MYSQL = new MySQLContainer("mysql:8.4.11");
@@ -165,7 +165,7 @@ class FlywayMigrationTest {
         seedExistingRows();
         var deliveryBefore = jdbc.queryForMap("SELECT * FROM delivery WHERE id=1");
 
-        assertThat(flyway(false).migrate().migrationsExecuted).isEqualTo(9);
+        assertThat(flyway(false).migrate().migrationsExecuted).isEqualTo(MIGRATION_COUNT - 9);
 
         assertCurrentSchema();
         // 기존 배송 행은 그대로이고, 나중에 더한 칸 번호만 NULL로 생긴다.

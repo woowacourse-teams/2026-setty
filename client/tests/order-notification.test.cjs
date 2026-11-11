@@ -27,6 +27,11 @@ test('주문 알림 필드가 빠지거나 받는 사람을 모르면 주문 알
     assert.equal(orderNoticeOf(7001, 'BUYER', ''), null);
     assert.equal(orderNoticeOf(Number.NaN, 'BUYER', '기사가 배정됐어요'), null);
 });
+test('정산 확정 알림만 금액을 들고 다니고 나머지는 null이다', () => {
+    assert.equal(orderNoticeOf(7001, 'SELLER', '정산이 확정됐어요', 150000).amount, 150000);
+    assert.equal(orderNoticeOf(7001, 'SELLER', '내 물건이 팔렸어요', null).amount, null);
+    assert.equal(orderNoticeOf(7001, 'SELLER', '내 물건이 팔렸어요').amount, null);
+});
 test('알림 종류는 KEYWORD·ORDER 말고는 UNKNOWN이다', () => {
     assert.equal(notificationTypeOf('ORDER'), 'ORDER');
     assert.equal(notificationTypeOf('KEYWORD'), 'KEYWORD');

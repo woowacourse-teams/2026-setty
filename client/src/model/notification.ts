@@ -15,6 +15,8 @@ export type OrderNotice = {
     orderId: number;
     recipient: NotificationRecipient;
     headline: string;
+    // 정산 확정 알림만 금액이 있다
+    amount: number | null;
 };
 
 export type Notification = NotificationRef & {
@@ -48,11 +50,12 @@ export function notificationTypeOf(value: string | null | undefined): Notificati
 export function orderNoticeOf(
     orderId: number | null | undefined,
     recipient: string | null | undefined,
-    headline: string | null | undefined
+    headline: string | null | undefined,
+    amount: number | null | undefined = null
 ): OrderNotice | null {
     if (typeof orderId !== 'number' || !Number.isSafeInteger(orderId) || !headline) return null;
     if (recipient !== 'BUYER' && recipient !== 'SELLER') return null;
-    return { orderId, recipient, headline };
+    return { orderId, recipient, headline, amount: typeof amount === 'number' ? amount : null };
 }
 
 /** 구매자는 주문 상세로, 판매자와 키워드 알림은 매물 상세로 간다. */

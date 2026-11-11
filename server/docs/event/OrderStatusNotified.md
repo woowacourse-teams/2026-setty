@@ -15,7 +15,7 @@
 
 | 수신자 | 처리 |
 | --- | --- |
-| [`OrderNotificationDispatcher#onOrderStatusNotified`](../../src/main/java/setty/notification/order/application/OrderNotificationDispatcher.java) | 커밋 뒤 비동기로 받는 사람마다 `order_notifications` 행을 만들고 바로 푸시한다. `(주문, 회원, 종류, 바뀐 시각)` 유니크 키로 재발행돼도 행은 하나다. 발송 실패는 시도 횟수를 올리고 세 번째에 `FAILED`가 된다. 재시도할 알림이 남으면 예외를 던져 발행 기록을 남긴다. |
+| [`OrderNotificationDispatcher#onOrderStatusNotified`](../../src/main/java/setty/notification/order/application/OrderNotificationDispatcher.java) | 커밋 뒤 비동기로 받는 사람마다 `order_notifications` 행을 만들고 바로 푸시한다. `COMPLETED`는 구매자에게만 만들고, 판매자에게는 `SettlementConfirmed`로 정산 확정 알림이 따로 간다(`SALE_COMPLETED`는 더 만들지 않는다). `(주문, 회원, 종류, 바뀐 시각)` 유니크 키로 재발행돼도 행은 하나다. 발송 실패는 시도 횟수를 올리고 세 번째에 `FAILED`가 된다. 재시도할 알림이 남으면 예외를 던져 발행 기록을 남긴다. |
 
 ## 다음 확인할 이벤트 문서
 
