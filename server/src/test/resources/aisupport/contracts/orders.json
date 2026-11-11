@@ -1,0 +1,45 @@
+{
+  "turnId" : 1,
+  "clientRequestId" : "contract-request",
+  "input" : {
+    "type" : "TEXT",
+    "text" : "주문 목록",
+    "sourceTurnId" : null,
+    "orderId" : null
+  },
+  "status" : "SUCCEEDED",
+  "createdAt" : "2026-11-06T00:00:00Z",
+  "processingDeadlineAt" : "2026-11-06T00:01:00Z",
+  "answer" : "주문 1건을 표시했어요. 아래 카드에서 주문을 확인해 주세요.",
+  "cards" : [ {
+    "type" : "ORDERS",
+    "orders" : [ {
+      "title" : "책상",
+      "orderId" : 101,
+      "createdAt" : "2026-11-06T00:00:00Z",
+      "totalPrice" : null,
+      "orderStatus" : "CONFIRMED",
+      "thumbnailUrl" : null,
+      "createdDateKst" : "2026-11-06",
+      "deliveryStatus" : null
+    } ],
+    "search" : {
+      "title" : null,
+      "toDate" : null,
+      "orderId" : null,
+      "fromDate" : null,
+      "pageSize" : 1,
+      "datePreset" : null,
+      "cancelledOnly" : false,
+      "excludedOrderId" : null,
+      "cancellationTargets" : true
+    },
+    "purpose" : "CANCEL_CHECK",
+    "ordering" : "ORDER_ID_DESC",
+    "pageSize" : 1,
+    "nextCursor" : null,
+    "hasUndatedOrders" : false,
+    "excludedUndatedCount" : 0
+  } ],
+  "errorCode" : null
+}
