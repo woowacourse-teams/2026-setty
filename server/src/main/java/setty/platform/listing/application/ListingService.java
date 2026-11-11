@@ -184,8 +184,7 @@ public class ListingService {
         static final ListingFilter NONE = new ListingFilter(null, null, null, null, null);
     }
 
-    // 매물 조회는 비로그인도 허용해 인터셉터가 회원을 읽지 않는다. JPA로 회원을 읽으면 OSIV 아래에서
-    // 응답이 끝날 때까지 커넥션을 붙잡으므로, 토큰으로 행정동만 JDBC로 한 번 읽는다.
+    // 매물 조회는 비로그인도 허용해 인터셉터가 회원을 읽지 않는다. 회원 엔티티 전체 대신 토큰으로 행정동만 JDBC로 한 번 읽는다.
     private Buyer buyerOf(ListingQueryRepository reader, String token) {
         if (token == null) {
             return Buyer.ANONYMOUS;

@@ -8,6 +8,9 @@ spring:
     password: setty
 
   jpa:
+    # 요청이 끝날 때까지 영속성 컨텍스트와 DB 커넥션을 붙잡지 않는다. 켜 두면 토스 승인처럼 외부 응답을 기다리는
+    # 요청이 그동안 커넥션을 쥐고 있어 풀이 바닥날 수 있다. 엔티티는 트랜잭션 안에서만 읽고 고친다.
+    open-in-view: false
     hibernate:
       # Flyway가 스키마를 변경하고, JPA는 엔티티와의 일치 여부만 검사한다.
       ddl-auto: validate

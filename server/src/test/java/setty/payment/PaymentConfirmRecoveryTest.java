@@ -8,6 +8,7 @@ import static setty.global.event.EventPublicationTestSupport.awaitEventsHandled;
 
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
+import com.zaxxer.hikari.HikariDataSource;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.InetSocketAddress;
@@ -22,6 +23,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import javax.sql.DataSource;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -78,6 +80,9 @@ class PaymentConfirmRecoveryTest extends MySqlIntegrationTestSupport {
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
+
+    @Autowired
+    private DataSource dataSource;
 
     @Autowired
     private ApplicationEvents events;
@@ -355,6 +360,26 @@ class PaymentConfirmRecoveryTest extends MySqlIntegrationTestSupport {
         unknownPaymentResolver.resolveStale();
 
         assertLeftUnknown();
+    }
+
+    // 토스 응답을 기다리는 동안 DB 커넥션을 쥐고 있으면, 토스가 느려질 때 승인 요청만으로 커넥션 풀이 바닥난다.
+    @Test
+    void 토스_승인_응답을_기다리는_동안_DB_커넥션을_쓰지_않는다() throws Exception {
+        toss(Confirm.LATE_DONE, Lookup.FAIL);
+        final HikariDataSource pool = dataSource.unwrap(HikariDataSource.class);
+        final ExecutorService executor = Executors.newSingleThreadExecutor();
+        try {
+            final Future<Integer> confirmed = executor.submit(() -> confirm().andReturn().getResponse().getStatus());
+            while (confirmRequests.get() == 0 && !confirmed.isDone()) {
+                Thread.sleep(10);
+            }
+            Thread.sleep(200);
+
+            assertThat(pool.getHikariPoolMXBean().getActiveConnections()).isZero();
+            assertThat(confirmed.get(10, TimeUnit.SECONDS)).isEqualTo(409);
+        } finally {
+            executor.shutdownNow();
+        }
     }
 
     @Test
