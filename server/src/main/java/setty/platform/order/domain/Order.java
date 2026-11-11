@@ -12,6 +12,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Objects;
 import setty.common.DeliveryStatus;
 import setty.global.exception.BusinessException;
 import setty.global.exception.ErrorCode;
@@ -49,6 +50,10 @@ public class Order {
 
     @Column(name = "pending_expires_at")
     private Instant pendingExpiresAt;
+
+    // 도입 전 주문은 날짜를 추정하지 않고 NULL로 남긴다.
+    @Column(name = "created_at", updatable = false)
+    private Instant createdAt;
 
     // 배송 모듈의 이벤트로 동기화된 시각. DELIVERED는 마지막 배송 상태라 배송 완료 후에는 배송 완료 시각으로 고정된다.
     @Column(name = "delivery_status_changed_at")
@@ -196,6 +201,24 @@ public class Order {
         order.pickup = pickup;
         order.destination = destination;
         return order;
+    }
+
+    public static Order pending(
+            final Long listingId,
+            final Long buyerId,
+            final Instant pendingExpiresAt,
+            final int deliveryFee,
+            final OrderPlace pickup,
+            final OrderPlace destination,
+            final Instant createdAt
+    ) {
+        final Order order = pending(listingId, buyerId, pendingExpiresAt, deliveryFee, pickup, destination);
+        order.createdAt = Objects.requireNonNull(createdAt);
+        return order;
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
     }
 
     public boolean canExpire(final Instant referenceTime) {

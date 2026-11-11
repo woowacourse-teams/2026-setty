@@ -111,7 +111,8 @@ public class OrderService {
                     new OrderPlace(seller.getAddress(), seller.getPhoneNumber(), purchase.dongCode(),
                             purchase.zipCode(), managementNumberOf(seller)),
                     new OrderPlace(buyer.getAddress(), buyer.getPhoneNumber(), buyer.getDongCode(),
-                            buyer.getZipCode(), managementNumberOf(buyer))
+                            buyer.getZipCode(), managementNumberOf(buyer)),
+                    now
             ));
         } catch (final DataIntegrityViolationException e) {
             throw new BusinessException(ErrorCode.ALREADY_ORDERED);
