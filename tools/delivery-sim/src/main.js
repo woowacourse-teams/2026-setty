@@ -16,6 +16,7 @@ const INK = '#191F28';
 const ROUTE = '#4E5968';
 const OTHER_CALL = '#6B7684';
 const BRAND = '#3182F6';
+const DEEP = '#1B64DA';
 
 const $ = (id) => document.getElementById(id);
 
@@ -343,7 +344,7 @@ const rangeLayer = L.layerGroup().addTo(map);
 const legend = L.control({ position: 'bottomleft' });
 legend.onAdd = () => {
     const box = L.DomUtil.create('div', 'legend');
-    box.innerHTML = '<span><i class="key key--start"></i>후보 출발 칸</span><span><i class="key key--range"></i>후보 도착 범위</span><span><i class="key key--route"></i>내 경로</span>';
+    box.innerHTML = '<span><i class="key key--start"></i>출발 칸</span><span><i class="key key--dest"></i>도착 칸</span><span><i class="key key--near"></i>도착 근처</span>';
     return box;
 };
 legend.addTo(map);
@@ -363,23 +364,27 @@ function edgePoint(from, [[s, w], [n, e]]) {
     return { lat: to.lat + dLat * t, lng: to.lng + dLng * t };
 }
 
-// km 평면에서 2차 곡선과 화살촉을 만든 뒤 위경도로 되돌린다
-function curvedArrow(from, to) {
+// km 평면에서 직선 화살표(선 + 작은 화살촉)를 만든 뒤 위경도로 되돌린다
+function straightArrow(from, to) {
     const P = (p) => ({ x: p.lng * KM_X, y: p.lat * KM_Y });
     const Q = (p) => [p.y / KM_Y, p.x / KM_X];
     const a = P(from), b = P(to);
-    const dx = b.x - a.x, dy = b.y - a.y, len = Math.hypot(dx, dy);
-    const c = { x: (a.x + b.x) / 2 - dy * 0.22, y: (a.y + b.y) / 2 + dx * 0.22 };
-    const line = [];
-    for (let i = 0; i <= 24; i++) {
-        const t = i / 24;
-        line.push(Q({ x: (1 - t) ** 2 * a.x + 2 * (1 - t) * t * c.x + t ** 2 * b.x, y: (1 - t) ** 2 * a.y + 2 * (1 - t) * t * c.y + t ** 2 * b.y }));
-    }
-    const ux = b.x - c.x, uy = b.y - c.y, ul = Math.hypot(ux, uy) || 1;
-    const size = Math.min(0.09, len * 0.25);
-    const back = { x: b.x - (ux / ul) * size, y: b.y - (uy / ul) * size };
-    const head = [Q(b), Q({ x: back.x - (uy / ul) * size * 0.6, y: back.y + (ux / ul) * size * 0.6 }), Q({ x: back.x + (uy / ul) * size * 0.6, y: back.y - (ux / ul) * size * 0.6 })];
-    return { line, head };
+    const len = Math.hypot(b.x - a.x, b.y - a.y) || 1;
+    const ux = (b.x - a.x) / len, uy = (b.y - a.y) / len;
+    const size = Math.min(0.035, len * 0.3);
+    const back = { x: b.x - ux * size, y: b.y - uy * size };
+    const head = [Q(b), Q({ x: back.x - uy * size * 0.55, y: back.y + ux * size * 0.55 }), Q({ x: back.x + uy * size * 0.55, y: back.y - ux * size * 0.55 })];
+    return { line: [Q(a), Q(back)], head };
+}
+
+// 칸 왼쪽 위 모서리 안쪽에 "출발"·"도착" 글자표를 붙인다
+function cellTag(cell, text, tone) {
+    const [[, west], [north]] = cellBounds(cell);
+    L.marker([north, west], {
+        interactive: false,
+        keyboard: false,
+        icon: L.divIcon({ className: `cell-tag cell-tag--${tone}`, html: `<span>${text}</span>`, iconSize: null, iconAnchor: [-4, -4] })
+    }).addTo(rangeLayer);
 }
 
 // 목적지를 바꾸면 다음 후보 조회(최대 10초)를 기다리지 않고 마지막 응답으로 범위를 바로 다시 그린다
@@ -394,19 +399,29 @@ function drawRange(code, items) {
         note.textContent = '';
         return;
     }
+    cellTag(cellFromCode(code), '출발', 'start');
     if (!state.destCell) {
         note.textContent = '목적지를 찍으면 도착 범위가 보입니다.';
         return;
     }
     note.textContent = '모두 이 칸에서 출발해 도착 근처 범위로 갑니다.';
-    const range = rangeBounds(state.destCell);
-    L.rectangle(range, { color: BRAND, weight: 1.5, opacity: 0.6, dashArray: '6 5', fillColor: BRAND, fillOpacity: 0.1, interactive: false }).addTo(rangeLayer);
-    L.rectangle(cellBounds(state.destCell), { color: BRAND, weight: 2.5, opacity: 0.85, fillColor: BRAND, fillOpacity: 0.12, interactive: false }).addTo(rangeLayer);
+    const dest = state.destCell;
+    for (let dx = -1; dx <= 1; dx++) {
+        for (let dy = -1; dy <= 1; dy++) {
+            if (dx || dy) {
+                L.rectangle(cellBounds({ x: dest.x + dx, y: dest.y + dy }), { color: BRAND, weight: 0.8, opacity: 0.35, fillColor: BRAND, fillOpacity: 0.08, interactive: false }).addTo(rangeLayer);
+            }
+        }
+    }
+    const range = rangeBounds(dest);
+    L.rectangle(range, { color: DEEP, weight: 1.5, opacity: 0.7, dashArray: '6 5', fill: false, interactive: false }).addTo(rangeLayer);
+    L.rectangle(cellBounds(dest), { color: DEEP, weight: 3, opacity: 1, fillColor: BRAND, fillOpacity: 0.24, interactive: false }).addTo(rangeLayer);
+    cellTag(dest, '도착', 'dest');
     const from = cellBounds(cellFromCode(code));
     const start = { lat: (from[0][0] + from[1][0]) / 2, lng: (from[0][1] + from[1][1]) / 2 };
-    const { line, head } = curvedArrow(start, edgePoint(start, range));
-    L.polyline(line, { color: BRAND, weight: 5, opacity: 0.9, lineCap: 'round', interactive: false }).addTo(rangeLayer);
-    L.polygon(head, { color: BRAND, weight: 1, fillColor: BRAND, fillOpacity: 0.95, interactive: false }).addTo(rangeLayer);
+    const { line, head } = straightArrow(start, edgePoint(start, range));
+    L.polyline(line, { color: DEEP, weight: 2.5, opacity: 0.9, interactive: false }).addTo(rangeLayer);
+    L.polygon(head, { color: DEEP, weight: 1, fillColor: DEEP, fillOpacity: 1, interactive: false }).addTo(rangeLayer);
 }
 
 // ---------- 상태 표시 ----------
