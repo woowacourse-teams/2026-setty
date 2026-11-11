@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static setty.global.event.EventPublicationTestSupport.awaitEventsHandled;
 
 import java.time.Instant;
+import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -76,6 +77,7 @@ class DeliveryAssignmentCancellationFlowIntegrationTest extends MySqlIntegration
     void cleanUp() {
         awaitEventsHandled(jdbcTemplate);
         jdbcTemplate.update("DELETE FROM EVENT_PUBLICATION");
+        jdbcTemplate.update("DELETE FROM order_notifications");
         jdbcTemplate.update("DELETE FROM delivery");
         jdbcTemplate.update("DELETE FROM delivery_order_decision");
         jdbcTemplate.update("DELETE FROM settlements");
@@ -98,6 +100,8 @@ class DeliveryAssignmentCancellationFlowIntegrationTest extends MySqlIntegration
 
         assertThat(orderColumn("delivery_status")).isEqualTo("REQUESTED");
         assertThat(listingColumn("sale_status")).isEqualTo("RESERVED");
+        assertThat(cancelNotificationRows()).containsExactlyInAnyOrder(
+                BUYER_ID + ":BUYER:SENT", SELLER_ID + ":SELLER:SENT");
         assertThat(incompletePublicationCount()).isZero();
     }
 
@@ -146,6 +150,8 @@ class DeliveryAssignmentCancellationFlowIntegrationTest extends MySqlIntegration
 
         assertThat(orderColumn("delivery_status")).isEqualTo("ACCEPTED");
         assertThat(orderChangedAt()).isEqualTo(secondAcceptedAt);
+        awaitEventsHandled(jdbcTemplate);
+        assertThat(cancelNotificationRows()).isEmpty();
     }
 
     @Test
@@ -160,6 +166,8 @@ class DeliveryAssignmentCancellationFlowIntegrationTest extends MySqlIntegration
 
         assertThat(orderColumn("delivery_status")).isEqualTo("REQUESTED");
         assertThat(orderChangedAt()).isEqualTo(reopenedAt);
+        awaitEventsHandled(jdbcTemplate);
+        assertThat(cancelNotificationRows()).hasSize(2);
     }
 
     private DeliveryId requestDelivery() {
@@ -191,6 +199,13 @@ class DeliveryAssignmentCancellationFlowIntegrationTest extends MySqlIntegration
 
     private Instant orderChangedAt() {
         return orderRepository.findById(ORDER_ID).orElseThrow().getDeliveryStatusChangedAt();
+    }
+
+    private List<String> cancelNotificationRows() {
+        return jdbcTemplate.queryForList(
+                "SELECT CONCAT(member_id, ':', recipient, ':', status) FROM order_notifications"
+                        + " WHERE order_id = ? AND kind = 'DELIVERY_ASSIGNMENT_CANCELLED'",
+                String.class, ORDER_ID);
     }
 
     private long incompletePublicationCount() {

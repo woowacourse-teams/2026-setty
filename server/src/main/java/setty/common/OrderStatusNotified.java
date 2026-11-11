@@ -15,6 +15,7 @@ public record OrderStatusNotified(
     public enum Change {
         CONFIRMED,
         DELIVERY_ACCEPTED,
+        DELIVERY_ASSIGNMENT_CANCELLED,
         DELIVERY_PICKED_UP,
         DELIVERY_DELIVERED,
         COMPLETED,
