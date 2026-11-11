@@ -27,7 +27,9 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.test.util.ReflectionTestUtils;
 import setty.address.AddressResolution;
 import setty.address.StandardAddress;
+import setty.common.CancellationRejectionReasons;
 import setty.common.DeliveryStatus;
+import setty.common.OrderCancellationDeclined;
 import setty.common.OrderCancellationRequested;
 import setty.common.OrderCancelled;
 import setty.common.OrderConfirmed;
@@ -94,6 +96,23 @@ class OrderServiceTest {
     }
 
     @Test
+    void 결제_대기_주문_재사용은_기존_생성일을_보존한다() {
+        final Instant original = Instant.parse("2026-09-02T05:00:00Z");
+        final Instant now = original.plusSeconds(30);
+        final Order existing = Order.pending(LISTING_ID, BUYER_ID, original.plusSeconds(180),
+                10000, null, null, original);
+        final Member buyer = mock(Member.class);
+        when(buyer.getId()).thenReturn(BUYER_ID);
+        when(clock.instant()).thenReturn(now);
+        when(orderRepository.findPayableByListingIdAndBuyerId(LISTING_ID, BUYER_ID, now))
+                .thenReturn(Optional.of(existing));
+
+        assertThat(orderService.pending(new OrderCreateRequest(LISTING_ID), buyer)).isSameAs(existing);
+        assertThat(existing.getCreatedAt()).isEqualTo(original);
+        verify(orderRepository, never()).saveAndFlush(any());
+    }
+
+    @Test
     void 결제_대기_주문에_설정된_만료_시간을_저장한다() {
         final Instant createdAt = Instant.parse("2026-09-02T05:00:00Z");
         final Duration timeout = Duration.ofMinutes(3);
@@ -112,6 +131,7 @@ class OrderServiceTest {
         assertThat(order.getDeliveryStatus()).isEqualTo(DeliveryStatus.PENDING);
         assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.PENDING);
         assertThat(order.getPendingExpiresAt()).isEqualTo(createdAt.plus(timeout));
+        assertThat(order.getCreatedAt()).isEqualTo(createdAt);
         verify(listingService).registerPurchaseRequest(LISTING_ID, BUYER_ID, null, null);
     }
 
@@ -366,8 +386,11 @@ class OrderServiceTest {
         orderService.rejectCancellation(ORDER_ID, "cancel-request-1", decidedAt);
 
         assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.CONFIRMED);
-        verifyNoInteractions(eventPublisher);
+        verify(eventPublisher).publishEvent(new OrderCancellationDeclined(
+                ORDER_ID, "cancel-request-1", decidedAt, CancellationRejectionReasons.DRIVER_ACCEPTED_OR_LATER));
+        verifyNoMoreInteractions(eventPublisher);
         verify(orderStatusNotifier).notify(order, OrderStatusNotified.Change.CANCELLATION_REJECTED, decidedAt);
+        verifyNoMoreInteractions(orderStatusNotifier);
     }
 
     @Test

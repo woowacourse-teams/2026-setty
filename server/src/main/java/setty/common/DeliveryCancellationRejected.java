@@ -7,6 +7,16 @@ public record DeliveryCancellationRejected(
         Long deliveryId,
         Long orderId,
         String cancellationRequestId,
-        Instant decidedAt
+        Instant decidedAt,
+        String reasonCode
 ) {
+    public DeliveryCancellationRejected(
+            final Long deliveryId,
+            final Long orderId,
+            final String cancellationRequestId,
+            final Instant decidedAt
+    ) {
+        this(deliveryId, orderId, cancellationRequestId, decidedAt,
+                CancellationRejectionReasons.DRIVER_ACCEPTED_OR_LATER);
+    }
 }

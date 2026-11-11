@@ -14,6 +14,8 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import setty.common.OrderCancellationRequested;
+import setty.common.OrderCancellationDeclined;
+import setty.common.CancellationRejectionReasons;
 import setty.common.OrderCancelled;
 import setty.common.OrderConfirmed;
 import setty.common.OrderStatusNotified;
@@ -109,7 +111,8 @@ public class OrderService {
                     new OrderPlace(seller.getAddress(), seller.getPhoneNumber(), purchase.dongCode(),
                             purchase.zipCode(), managementNumberOf(seller)),
                     new OrderPlace(buyer.getAddress(), buyer.getPhoneNumber(), buyer.getDongCode(),
-                            buyer.getZipCode(), managementNumberOf(buyer))
+                            buyer.getZipCode(), managementNumberOf(buyer)),
+                    now
             ));
         } catch (final DataIntegrityViolationException e) {
             throw new BusinessException(ErrorCode.ALREADY_ORDERED);
@@ -224,11 +227,26 @@ public class OrderService {
             final String cancellationRequestId,
             final Instant decidedAt
     ) {
+        rejectCancellation(orderId, cancellationRequestId, decidedAt,
+                CancellationRejectionReasons.DRIVER_ACCEPTED_OR_LATER);
+    }
+
+    @Transactional
+    public void rejectCancellation(
+            final Long orderId,
+            final String cancellationRequestId,
+            final Instant decidedAt,
+            final String reasonCode
+    ) {
         validateCancellationResult(orderId, cancellationRequestId, decidedAt);
 
         final Order order = orderRepository.findByIdForUpdate(orderId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
         if (order.rejectCancellation(cancellationRequestId)) {
+            final String reason = reasonCode == null
+                    ? CancellationRejectionReasons.DRIVER_ACCEPTED_OR_LATER : reasonCode;
+            eventPublisher.publishEvent(new OrderCancellationDeclined(
+                    orderId, cancellationRequestId, decidedAt, reason));
             orderStatusNotifier.notify(order, OrderStatusNotified.Change.CANCELLATION_REJECTED, decidedAt);
         }
     }

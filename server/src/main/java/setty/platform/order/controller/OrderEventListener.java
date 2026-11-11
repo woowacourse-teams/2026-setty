@@ -45,7 +45,8 @@ public class OrderEventListener {
         orderService.rejectCancellation(
                 event.orderId(),
                 event.cancellationRequestId(),
-                event.decidedAt()
+                event.decidedAt(),
+                event.reasonCode()
         );
     }
 

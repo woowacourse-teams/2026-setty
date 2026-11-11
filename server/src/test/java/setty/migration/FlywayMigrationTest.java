@@ -37,7 +37,7 @@ class FlywayMigrationTest {
             "delivery_dong_code", "delivery_zip_code");
     private static final List<String> DELIVERY_CELL_COLUMNS = List.of("pickup_cell", "delivery_cell");
     private static final List<String> KEYWORD_CONDITION_COLUMNS = List.of("max_delivery_fee", "max_total_price");
-    private static final int MIGRATION_COUNT = 20;
+    private static final int MIGRATION_COUNT = 21;
 
     @Container
     static final MySQLContainer MYSQL = new MySQLContainer("mysql:8.4.11");
@@ -99,6 +99,7 @@ class FlywayMigrationTest {
         assertThat(flyway(true).migrate().migrationsExecuted).isEqualTo(MIGRATION_COUNT);
 
         assertCurrentSchema();
+        assertThat(jdbc.queryForObject("SELECT created_at FROM orders WHERE id=1", Object.class)).isNull();
         assertThat(jdbc.queryForObject("SELECT title FROM listings WHERE id=1", String.class))
                 .isEqualTo("migration fixture");
         assertThat(jdbc.queryForObject("SELECT dong_code FROM listings WHERE id=1", String.class)).isNull();
@@ -259,6 +260,8 @@ class FlywayMigrationTest {
     }
 
     private void assertCurrentSchema() {
+        assertThat(columnCount("orders", "created_at")).isOne();
+        assertThat(indexColumns("orders", "idx_orders_buyer_created_at")).isEqualTo("buyer_id,created_at,id");
         assertThat(columnCount("members", "dong_code")).isOne();
         for (var column : STANDARD_ADDRESS_COLUMNS) {
             assertThat(columnCount("members", column)).as("members.%s", column).isOne();
@@ -328,6 +331,7 @@ class FlywayMigrationTest {
         var table = (String) column.get("table_name");
         var name = (String) column.get("column_name");
         return table.equals("address_reference")
+                || table.equals("orders") && name.equals("created_at")
                 || table.equals("members") && STANDARD_ADDRESS_COLUMNS.contains(name)
                 || table.equals("listings") && name.equals("zip_zone")
                 || table.equals("orders") && ORDER_PICKUP_SNAPSHOT_COLUMNS.contains(name)
