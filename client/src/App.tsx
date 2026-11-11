@@ -23,6 +23,7 @@ import { PaymentCompleteScreen } from './features/payment/PaymentCompleteScreen'
 import { PaymentReturnScreen } from './features/payment/PaymentReturnScreen';
 import { PaymentScreen } from './features/payment/PaymentScreen';
 import { ProfileEditScreen } from './features/profile/ProfileEditScreen';
+import { SupportScreen } from './features/support/SupportScreen';
 import { SignUpScreen } from './features/signup/SignUpScreen';
 import { loginStateFrom, routes } from './navigation';
 import { onScreenChanged } from './ui/snackbar';
@@ -65,6 +66,8 @@ export const router = createBrowserRouter([
             // 매물 목록·상세는 로그인 없이 둘러볼 수 있게 열고, 찜·구매처럼 로그인이 필요할 때 로그인으로 보낸다
             { index: true, Component: HomeScreen },
             { path: '/listings/:listingId', Component: FurnitureDetailScreen },
+            { path: routes.support, element: <RequireLogin><SupportScreen /></RequireLogin> },
+            { path: '/support/:conversationId', element: <RequireLogin><SupportScreen /></RequireLogin> },
             { path: routes.myPage, element: <RequireLogin><MyPageScreen /></RequireLogin> },
             { path: routes.profileEdit, element: <RequireLogin><ProfileEditScreen /></RequireLogin> },
             { path: routes.myListings, element: <RequireLogin><MyListingsScreen /></RequireLogin> },

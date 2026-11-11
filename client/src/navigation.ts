@@ -10,6 +10,8 @@ export const routes = {
     home: '/',
     furnitureDetail: (furnitureId: number) => `/listings/${furnitureId}`,
     myPage: '/me',
+    support: '/support',
+    supportConversation: (id: number) => `/support/${id}`,
     profileEdit: '/me/profile',
     myListings: '/me/listings',
     listingCreate: '/me/listings/new',
