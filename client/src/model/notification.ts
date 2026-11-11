@@ -67,6 +67,17 @@ export type DriverNotice = {
 
 export const DRIVER_NOTICE_PATH = '/driver/me';
 
+/** 기사 알림함의 한 줄. 지금은 배송비 정산 확정뿐이라 금액이 있다. */
+export type DriverNotification = {
+    id: number;
+    kind: string;
+    headline: string;
+    amount: number | null;
+    orderId: number;
+    read: boolean;
+    createdAt: string;
+};
+
 export function driverNoticeOf(data: Record<string, string | undefined>): DriverNotice | null {
     if (data.type !== 'DRIVER' || !data.headline) return null;
     return { headline: data.headline, body: data.body ?? '', path: DRIVER_NOTICE_PATH };

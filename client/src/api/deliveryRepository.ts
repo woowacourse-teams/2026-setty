@@ -1,3 +1,4 @@
+import type { DriverNotification } from '../model/notification';
 import type {
     BundleCandidates,
     DeliveryRequestDetail,
@@ -25,6 +26,15 @@ export const deliveryRepository = {
 
     async unregisterDeviceToken(token: string) {
         await apiCall('/api/delivery/device-token', { ...delivery, method: 'DELETE', body: { token } });
+    },
+
+    async getNotifications(): Promise<DriverNotification[]> {
+        const result = await apiCall<{ items: DriverNotification[] }>('/api/delivery/notifications', { ...delivery, query: { size: 50 } });
+        return result.items;
+    },
+
+    async readNotification(notificationId: number) {
+        await apiCall(`/api/delivery/notifications/${notificationId}/read`, { ...delivery, method: 'POST' });
     },
 
     async signUp(form: DeliverySignUpForm) {

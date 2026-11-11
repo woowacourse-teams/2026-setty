@@ -5,6 +5,7 @@ import { DemoScreen } from './features/demo/DemoScreen';
 import { DriverRequestDetailScreen } from './features/driver/DriverRequestDetailScreen';
 import { DriverRequestsScreen } from './features/driver/DriverRequestsScreen';
 import { DriverMyPageScreen } from './features/driver/DriverMyPageScreen';
+import { DriverNotificationsScreen } from './features/driver/DriverNotificationsScreen';
 import { DriverShipmentDetailScreen } from './features/driver/DriverShipmentDetailScreen';
 import { DriverShipmentsScreen } from './features/driver/DriverShipmentsScreen';
 import { FavoritesScreen } from './features/favorites/FavoritesScreen';
@@ -88,6 +89,7 @@ export const router = createBrowserRouter([
             { path: routes.driverShipments, element: <RequireDriverLogin><DriverShipmentsScreen /></RequireDriverLogin> },
             { path: '/driver/shipments/:deliveryId', element: <RequireDriverLogin><DriverShipmentDetailScreen /></RequireDriverLogin> },
             { path: routes.driverMyPage, element: <RequireDriverLogin><DriverMyPageScreen /></RequireDriverLogin> },
+            { path: routes.driverNotifications, element: <RequireDriverLogin><DriverNotificationsScreen /></RequireDriverLogin> },
             { path: '*', element: <Navigate replace to={routes.home} /> }
         ]
     }

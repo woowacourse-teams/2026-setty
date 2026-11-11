@@ -31,6 +31,7 @@ export const routes = {
     driverShipments: '/driver/shipments',
     driverShipmentDetail: (deliveryId: number) => `/driver/shipments/${deliveryId}`,
     driverMyPage: '/driver/me',
+    driverNotifications: '/driver/notifications',
     demo: '/demo'
 } as const;
 
