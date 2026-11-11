@@ -7,6 +7,7 @@ import setty.notification.device.application.DeviceTokenService;
 import setty.notification.keyword.application.KeywordSubscriptionService;
 import setty.notification.listing.application.ListingNotificationService;
 import setty.notification.order.application.OrderNotificationService;
+import setty.notification.owner.NotificationOwner;
 
 @Component
 public class MemberWithdrawalListener {
@@ -30,9 +31,10 @@ public class MemberWithdrawalListener {
 
     @ApplicationModuleListener
     public void onMemberWithdrawn(final MemberWithdrawn event) {
+        final NotificationOwner member = NotificationOwner.member(event.memberId());
         keywordSubscriptionService.unsubscribeAll(event.memberId());
-        deviceTokenService.unregisterAll(event.memberId());
+        deviceTokenService.unregisterAll(member);
         listingNotificationService.deleteAllOf(event.memberId());
-        orderNotificationService.deleteAllOf(event.memberId());
+        orderNotificationService.deleteAllOf(member);
     }
 }

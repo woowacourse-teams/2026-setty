@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import setty.global.auth.LoginMember;
 import setty.notification.device.application.DeviceTokenService;
+import setty.notification.owner.NotificationOwner;
 
 @RestController
 @RequestMapping("/api/me/device-token")
@@ -25,7 +26,7 @@ public class MyDeviceTokenController {
             @LoginMember final Long memberId,
             @Valid @RequestBody final DeviceTokenRequest request
     ) {
-        deviceTokenService.register(memberId, request.token(), request.platform());
+        deviceTokenService.register(NotificationOwner.member(memberId), request.token(), request.platform());
         return ResponseEntity.noContent().build();
     }
 
@@ -34,7 +35,7 @@ public class MyDeviceTokenController {
             @LoginMember final Long memberId,
             @Valid @RequestBody final DeviceTokenDeleteRequest request
     ) {
-        deviceTokenService.unregister(memberId, request.token());
+        deviceTokenService.unregister(NotificationOwner.member(memberId), request.token());
         return ResponseEntity.noContent().build();
     }
 }

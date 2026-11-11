@@ -34,6 +34,7 @@ class OrderCompletionIntegrationTest extends MySqlIntegrationTestSupport {
     private static final long OTHER_LISTING_ID = 12L;
     private static final long ORDER_ID = 1L;
     private static final long OTHER_ORDER_ID = 2L;
+    private static final long DRIVER_ID = 301L;
 
     @Autowired
     private OrderCompletionService orderCompletionService;
@@ -133,6 +134,25 @@ class OrderCompletionIntegrationTest extends MySqlIntegrationTestSupport {
     }
 
     @Test
+    void 구매_확정은_배송한_기사에게_배송비_정산_확정을_한_번_알린다() {
+        deliver(ORDER_ID, Instant.now());
+        insertPendingSellerSettlement(ORDER_ID, LISTING_ID);
+        insertPendingDriverSettlement(ORDER_ID);
+
+        orderCompletionService.confirmByBuyer(ORDER_ID, BUYER_ID);
+        orderCompletionService.confirmByBuyer(ORDER_ID, BUYER_ID);
+        awaitEventsHandled(jdbcTemplate);
+
+        assertThat(jdbcTemplate.queryForList(
+                """
+                SELECT CONCAT(kind, ':', owner_type, ':', member_id, ':', amount) FROM order_notifications
+                WHERE order_id = ? AND kind IN ('SETTLEMENT_CONFIRMED', 'DRIVER_SETTLEMENT_CONFIRMED')
+                """, String.class, ORDER_ID))
+                .containsExactlyInAnyOrder("SETTLEMENT_CONFIRMED:MEMBER:" + SELLER_ID + ":150000",
+                        "DRIVER_SETTLEMENT_CONFIRMED:DRIVER:" + DRIVER_ID + ":10000");
+    }
+
+    @Test
     void 다른_구매자의_주문은_확인할_수_없다() {
         deliver(ORDER_ID, Instant.now());
 
@@ -225,6 +245,17 @@ class OrderCompletionIntegrationTest extends MySqlIntegrationTestSupport {
                 orderId,
                 SELLER_ID,
                 listingId
+        );
+    }
+
+    private void insertPendingDriverSettlement(final long orderId) {
+        jdbcTemplate.update(
+                """
+                INSERT INTO settlements (order_id, payee_type, payee_id, listing_id, amount, status, created_at)
+                VALUES (?, 'DRIVER', ?, NULL, 10000, 'PENDING', NOW(6))
+                """,
+                orderId,
+                DRIVER_ID
         );
     }
 

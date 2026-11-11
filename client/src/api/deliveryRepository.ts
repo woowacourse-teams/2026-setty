@@ -18,6 +18,15 @@ export const deliveryRepository = {
         deliveryLoginIdStore.set(loginId);
     },
 
+    /** 브라우저가 받은 FCM 토큰을 기사 기기로 등록한다. 같은 토큰을 회원이 쓰고 있었다면 주인이 기사로 바뀐다. */
+    async registerDeviceToken(token: string) {
+        await apiCall('/api/delivery/device-token', { ...delivery, method: 'PUT', body: { token, platform: 'WEB' } });
+    },
+
+    async unregisterDeviceToken(token: string) {
+        await apiCall('/api/delivery/device-token', { ...delivery, method: 'DELETE', body: { token } });
+    },
+
     async signUp(form: DeliverySignUpForm) {
         await apiCall('/api/delivery/auth/signup', { method: 'POST', body: form });
     },

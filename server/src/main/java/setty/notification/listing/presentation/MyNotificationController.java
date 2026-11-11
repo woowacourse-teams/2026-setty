@@ -21,6 +21,7 @@ import setty.notification.inbox.NotificationInbox;
 import setty.notification.listing.domain.ListingNotification;
 import setty.notification.order.application.OrderNotificationService;
 import setty.notification.order.domain.OrderNotification;
+import setty.notification.owner.NotificationOwner;
 import setty.notification.presentation.ListResponse;
 import setty.platform.MemberDeliveryArea;
 import setty.platform.NotificationListingReader;
@@ -80,7 +81,8 @@ public class MyNotificationController {
             @LoginMember final Long memberId,
             @RequestParam(required = false) final String include
     ) {
-        final long orders = includesOrders(include) ? orderNotificationService.countUnread(memberId) : 0;
+        final NotificationOwner member = NotificationOwner.member(memberId);
+        final long orders = includesOrders(include) ? orderNotificationService.countUnread(member) : 0;
         return ResponseEntity.ok(new UnreadCountResponse(listingNotificationService.countUnread(memberId) + orders));
     }
 
@@ -91,7 +93,7 @@ public class MyNotificationController {
     ) {
         listingNotificationService.readAll(memberId);
         if (includesOrders(include)) {
-            orderNotificationService.readAll(memberId);
+            orderNotificationService.readAll(NotificationOwner.member(memberId));
         }
         return ResponseEntity.noContent().build();
     }
@@ -101,7 +103,7 @@ public class MyNotificationController {
             @LoginMember final Long memberId,
             @PathVariable final Long notificationId
     ) {
-        orderNotificationService.read(memberId, notificationId);
+        orderNotificationService.read(NotificationOwner.member(memberId), notificationId);
         return ResponseEntity.noContent().build();
     }
 
@@ -110,7 +112,7 @@ public class MyNotificationController {
             @LoginMember final Long memberId,
             @PathVariable final Long notificationId
     ) {
-        orderNotificationService.ack(memberId, notificationId);
+        orderNotificationService.ack(NotificationOwner.member(memberId), notificationId);
         return ResponseEntity.noContent().build();
     }
 

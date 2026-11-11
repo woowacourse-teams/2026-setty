@@ -24,6 +24,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 import setty.common.DeliveryDelivered;
 import setty.common.OrderCompleted;
 import setty.common.OrderConfirmed;
+import setty.common.DriverSettlementConfirmed;
 import setty.common.SettlementConfirmed;
 import setty.settlement.domain.Settlement;
 import setty.settlement.persistence.SettlementRepository;
@@ -179,6 +180,48 @@ class SettlementServiceIntegrationTest extends MySqlIntegrationTestSupport {
     }
 
     @Test
+    void 기사_정산이_확정되면_기사에게_배송비와_함께_알린다() {
+        recordSeller(ORDER_ID);
+        recordDriver(ORDER_ID);
+
+        settlementService.complete(ORDER_ID, DECIDED_AT);
+
+        assertThat(driverConfirmedEvents()).containsExactly(
+                new DriverSettlementConfirmed(ORDER_ID, DRIVER_ID, DELIVERY_FEE, DECIDED_AT));
+        assertThat(confirmedEvents()).hasSize(1);
+    }
+
+    @Test
+    void 판매_완료가_먼저_도착해_기록할_때_확정되는_기사_정산도_알린다() {
+        settlementService.complete(ORDER_ID, DECIDED_AT);
+
+        recordDriver(ORDER_ID);
+
+        assertThat(driverConfirmedEvents()).containsExactly(
+                new DriverSettlementConfirmed(ORDER_ID, DRIVER_ID, DELIVERY_FEE, DECIDED_AT));
+    }
+
+    @Test
+    void 같은_판매_완료가_다시_와도_기사_정산_확정은_한_번만_알린다() {
+        recordDriver(ORDER_ID);
+        settlementService.complete(ORDER_ID, DECIDED_AT);
+
+        settlementService.complete(ORDER_ID, DECIDED_AT.plusSeconds(60));
+        recordDriver(ORDER_ID);
+
+        assertThat(driverConfirmedEvents()).hasSize(1);
+    }
+
+    @Test
+    void 취소된_기사_정산은_알리지_않는다() {
+        recordDriver(ORDER_ID);
+
+        settlementService.cancel(ORDER_ID, DECIDED_AT);
+
+        assertThat(driverConfirmedEvents()).isEmpty();
+    }
+
+    @Test
     void 기사_정산_기록과_판매_완료가_동시에_처리돼도_정산이_확정된다() throws Exception {
         final List<Long> orderIds = LongStream.rangeClosed(1, 20).boxed().toList();
         final ExecutorService executor = Executors.newFixedThreadPool(2);
@@ -235,6 +278,10 @@ class SettlementServiceIntegrationTest extends MySqlIntegrationTestSupport {
 
     private List<SettlementConfirmed> confirmedEvents() {
         return events.stream(SettlementConfirmed.class).toList();
+    }
+
+    private List<DriverSettlementConfirmed> driverConfirmedEvents() {
+        return events.stream(DriverSettlementConfirmed.class).toList();
     }
 
     private void recordSeller(final long orderId) {

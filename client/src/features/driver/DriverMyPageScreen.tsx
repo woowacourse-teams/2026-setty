@@ -3,6 +3,8 @@ import { deliveryRepository } from '../../api/deliveryRepository';
 import { shortAddress } from '../../model/delivery';
 import { formatWon } from '../../model/furniture';
 import { routes, useNavigateBack, useNavigateToDriverLogin } from '../../navigation';
+import { PushToggle } from '../../push/PushToggle';
+import { clearPushToken } from '../../push/webPush';
 import {
     AlertDialog,
     BackIconButton,
@@ -81,6 +83,10 @@ export function DriverMyPageScreen() {
                             )}
                         </section>
                         <section className={styles.section}>
+                            <SectionTitle>알림</SectionTitle>
+                            <PushToggle account="driver" onUnauthorized={navigateToDriverLogin} />
+                        </section>
+                        <section className={styles.section}>
                             <SectionTitle>계정</SectionTitle>
                             <SegmentedList>
                                 <SegmentedListItem
@@ -103,8 +109,10 @@ export function DriverMyPageScreen() {
                 <AlertDialog
                     confirmLabel="로그아웃"
                     dismissLabel="취소"
-                    onConfirm={() => {
+                    onConfirm={async () => {
                         setIsLogoutDialogVisible(false);
+                        // 서버 등록을 지우려면 로그인 토큰이 남아 있어야 해서 로그아웃 전에 부른다
+                        await clearPushToken('driver');
                         navigateToDriverLogin();
                     }}
                     onDismiss={() => setIsLogoutDialogVisible(false)}

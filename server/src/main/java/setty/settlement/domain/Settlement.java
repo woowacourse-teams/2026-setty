@@ -118,6 +118,10 @@ public class Settlement {
         return payeeType == PayeeType.SELLER && isConfirmed();
     }
 
+    public boolean isConfirmedDriverSettlement() {
+        return payeeType == PayeeType.DRIVER && isConfirmed();
+    }
+
     private static boolean isPositive(final Long value) {
         return value != null && value > 0;
     }

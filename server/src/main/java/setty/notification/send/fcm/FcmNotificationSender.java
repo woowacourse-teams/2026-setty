@@ -12,6 +12,8 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 import setty.notification.device.application.DeviceTokenService;
 import setty.notification.device.domain.DeviceToken;
+import setty.notification.owner.NotificationOwner;
+import setty.notification.owner.OwnerType;
 import setty.notification.send.NotificationMessage;
 import setty.notification.send.NotificationSender;
 import setty.notification.send.SendResult;
@@ -22,6 +24,7 @@ public class FcmNotificationSender implements NotificationSender {
 
     private static final String KEYWORD_TYPE = "KEYWORD";
     private static final String ORDER_TYPE = "ORDER";
+    private static final String DRIVER_TYPE = "DRIVER";
 
     private final DeviceTokenService deviceTokenService;
     private final FcmClient fcmClient;
@@ -33,11 +36,11 @@ public class FcmNotificationSender implements NotificationSender {
 
     @Override
     public SendResult send(final List<NotificationMessage> messages) {
-        final Map<Long, List<String>> tokensByMember = tokensByMember(messages);
+        final Map<NotificationOwner, List<String>> tokensByOwner = tokensByOwner(messages);
         final List<Message> fcmMessages = new ArrayList<>();
         final List<Target> targets = new ArrayList<>();
         for (final NotificationMessage message : messages) {
-            for (final String token : tokensByMember.getOrDefault(message.memberId(), List.of())) {
+            for (final String token : tokensByOwner.getOrDefault(message.owner(), List.of())) {
                 fcmMessages.add(toFcmMessage(message, token));
                 targets.add(new Target(message.notificationId(), token));
             }
@@ -45,14 +48,14 @@ public class FcmNotificationSender implements NotificationSender {
         return collect(messages, targets, deliverInBatches(fcmMessages));
     }
 
-    private Map<Long, List<String>> tokensByMember(final List<NotificationMessage> messages) {
-        final Set<Long> memberIds = new HashSet<>();
+    private Map<NotificationOwner, List<String>> tokensByOwner(final List<NotificationMessage> messages) {
+        final Set<NotificationOwner> owners = new HashSet<>();
         for (final NotificationMessage message : messages) {
-            memberIds.add(message.memberId());
+            owners.add(message.owner());
         }
-        final Map<Long, List<String>> result = new HashMap<>();
-        for (final DeviceToken deviceToken : deviceTokenService.findAllByMemberIds(memberIds)) {
-            result.computeIfAbsent(deviceToken.getMemberId(), ignored -> new ArrayList<>()).add(deviceToken.getToken());
+        final Map<NotificationOwner, List<String>> result = new HashMap<>();
+        for (final DeviceToken deviceToken : deviceTokenService.findAllByOwners(owners)) {
+            result.computeIfAbsent(deviceToken.getOwner(), ignored -> new ArrayList<>()).add(deviceToken.getToken());
         }
         return result;
     }
@@ -100,10 +103,12 @@ public class FcmNotificationSender implements NotificationSender {
         final Message.Builder builder = Message.builder()
                 .setToken(token)
                 .putData("notificationId", String.valueOf(message.notificationId()))
-                .putData("listingId", String.valueOf(message.listingId()))
                 .setAndroidConfig(AndroidConfig.builder().setPriority(toAndroidPriority(message)).build());
+        if (message.listingId() != null) {
+            builder.putData("listingId", String.valueOf(message.listingId()));
+        }
         if (message.order() != null) {
-            return withOrder(builder, message.order()).build();
+            return withOrder(builder, typeOf(message.owner()), message.order()).build();
         }
         builder.putData("type", KEYWORD_TYPE).putData("title", message.title());
         if (message.price() != null) {
@@ -115,9 +120,18 @@ public class FcmNotificationSender implements NotificationSender {
         return builder.build();
     }
 
-    private static Message.Builder withOrder(final Message.Builder builder, final NotificationMessage.Order order) {
+    // 기사 알림은 회원 화면의 주문 알림 처리로 가지 않도록 종류를 따로 둔다.
+    private static String typeOf(final NotificationOwner owner) {
+        return owner.type() == OwnerType.DRIVER ? DRIVER_TYPE : ORDER_TYPE;
+    }
+
+    private static Message.Builder withOrder(
+            final Message.Builder builder,
+            final String type,
+            final NotificationMessage.Order order
+    ) {
         return builder
-                .putData("type", ORDER_TYPE)
+                .putData("type", type)
                 .putData("orderId", String.valueOf(order.orderId()))
                 .putData("kind", order.kind())
                 .putData("recipient", order.recipient())

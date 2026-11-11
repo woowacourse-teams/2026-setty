@@ -5,10 +5,12 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import setty.common.DriverSettlementConfirmed;
 import setty.common.OrderStatusNotified;
 import setty.common.SettlementConfirmed;
 import setty.global.exception.BusinessException;
@@ -17,6 +19,7 @@ import setty.notification.order.domain.OrderNotification;
 import setty.notification.order.domain.OrderNotificationKind;
 import setty.notification.order.domain.OrderNotificationRecipient;
 import setty.notification.order.repository.OrderNotificationRepository;
+import setty.notification.owner.NotificationOwner;
 
 @Service
 public class OrderNotificationService {
@@ -41,7 +44,8 @@ public class OrderNotificationService {
         final List<OrderNotificationKind> kinds = OrderNotificationKind.of(event.change());
         for (final OrderNotificationKind kind : kinds) {
             for (final OrderNotificationRecipient recipient : kind.recipients()) {
-                insert(event.orderId(), event.listingId(), memberOf(event, recipient), recipient, kind, null, occurredAt);
+                insert(event.orderId(), event.listingId(), recipient.ownerOf(memberOf(event, recipient)), recipient, kind,
+                        null, occurredAt);
             }
         }
         return findPending(event.orderId(), occurredAt, kinds);
@@ -51,8 +55,16 @@ public class OrderNotificationService {
     public List<PendingOrderNotification> createFor(final SettlementConfirmed event) {
         final Timestamp occurredAt = toTimestamp(event.confirmedAt());
         final OrderNotificationKind kind = OrderNotificationKind.SETTLEMENT_CONFIRMED;
-        insert(event.orderId(), event.listingId(), event.sellerId(), OrderNotificationRecipient.SELLER, kind,
-                event.amount(), occurredAt);
+        final OrderNotificationRecipient seller = OrderNotificationRecipient.SELLER;
+        insert(event.orderId(), event.listingId(), seller.ownerOf(event.sellerId()), seller, kind, event.amount(), occurredAt);
+        return findPending(event.orderId(), occurredAt, List.of(kind));
+    }
+
+    public List<PendingOrderNotification> createFor(final DriverSettlementConfirmed event) {
+        final Timestamp occurredAt = toTimestamp(event.confirmedAt());
+        final OrderNotificationKind kind = OrderNotificationKind.DRIVER_SETTLEMENT_CONFIRMED;
+        final OrderNotificationRecipient driver = OrderNotificationRecipient.DRIVER;
+        insert(event.orderId(), null, driver.ownerOf(event.driverId()), driver, kind, event.amount(), occurredAt);
         return findPending(event.orderId(), occurredAt, List.of(kind));
     }
 
@@ -63,7 +75,7 @@ public class OrderNotificationService {
     private void insert(
             final Long orderId,
             final Long listingId,
-            final Long memberId,
+            final NotificationOwner owner,
             final OrderNotificationRecipient recipient,
             final OrderNotificationKind kind,
             final Integer amount,
@@ -72,11 +84,12 @@ public class OrderNotificationService {
         jdbcTemplate.update(
                 """
                 INSERT INTO order_notifications
-                    (order_id, listing_id, member_id, recipient, kind, amount, status, attempts, occurred_at, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, 'PENDING', 0, ?, NOW(6))
+                    (order_id, listing_id, owner_type, member_id, recipient, kind, amount, status, attempts, occurred_at,
+                     created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, 'PENDING', 0, ?, NOW(6))
                 ON DUPLICATE KEY UPDATE order_id = order_notifications.order_id
                 """,
-                orderId, listingId, memberId, recipient.name(), kind.name(), amount, occurredAt
+                orderId, listingId, owner.type().name(), owner.id(), recipient.name(), kind.name(), amount, occurredAt
         );
     }
 
@@ -95,11 +108,15 @@ public class OrderNotificationService {
                 ORDER BY id
                 """,
                 Map.of("orderId", orderId, "occurredAt", occurredAt, "kinds", kinds.stream().map(Enum::name).toList()),
-                (resultSet, rowNum) -> new PendingOrderNotification(
-                        resultSet.getLong("id"),
-                        resultSet.getLong("member_id"),
-                        OrderNotificationRecipient.valueOf(resultSet.getString("recipient")),
-                        OrderNotificationKind.valueOf(resultSet.getString("kind")))
+                (resultSet, rowNum) -> {
+                    final OrderNotificationRecipient recipient =
+                            OrderNotificationRecipient.valueOf(resultSet.getString("recipient"));
+                    return new PendingOrderNotification(
+                            resultSet.getLong("id"),
+                            recipient.ownerOf(resultSet.getLong("member_id")),
+                            recipient,
+                            OrderNotificationKind.valueOf(resultSet.getString("kind")));
+                }
         );
     }
 
@@ -142,16 +159,22 @@ public class OrderNotificationService {
         );
     }
 
-    public void ack(final Long memberId, final Long notificationId) {
+    public void ack(final NotificationOwner owner, final Long notificationId) {
         requireMatched(jdbcTemplate.update(
-                "UPDATE order_notifications SET acked_at = COALESCE(acked_at, NOW(6)) WHERE id = ? AND member_id = ?",
-                notificationId, memberId));
+                """
+                UPDATE order_notifications SET acked_at = COALESCE(acked_at, NOW(6))
+                WHERE id = ? AND owner_type = ? AND member_id = ?
+                """,
+                notificationId, owner.type().name(), owner.id()));
     }
 
-    public void read(final Long memberId, final Long notificationId) {
+    public void read(final NotificationOwner owner, final Long notificationId) {
         requireMatched(jdbcTemplate.update(
-                "UPDATE order_notifications SET read_at = COALESCE(read_at, NOW(6)) WHERE id = ? AND member_id = ?",
-                notificationId, memberId));
+                """
+                UPDATE order_notifications SET read_at = COALESCE(read_at, NOW(6))
+                WHERE id = ? AND owner_type = ? AND member_id = ?
+                """,
+                notificationId, owner.type().name(), owner.id()));
     }
 
     private static void requireMatched(final int matched) {
@@ -160,18 +183,24 @@ public class OrderNotificationService {
         }
     }
 
-    public long countUnread(final Long memberId) {
+    public long countUnread(final NotificationOwner owner) {
         return jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM order_notifications WHERE member_id = ? AND status = 'SENT' AND read_at IS NULL",
+                """
+                SELECT COUNT(*) FROM order_notifications
+                WHERE owner_type = ? AND member_id = ? AND status = 'SENT' AND read_at IS NULL
+                """,
                 Long.class,
-                memberId
+                owner.type().name(), owner.id()
         );
     }
 
-    public void readAll(final Long memberId) {
+    public void readAll(final NotificationOwner owner) {
         jdbcTemplate.update(
-                "UPDATE order_notifications SET read_at = NOW(6) WHERE member_id = ? AND status = 'SENT' AND read_at IS NULL",
-                memberId
+                """
+                UPDATE order_notifications SET read_at = NOW(6)
+                WHERE owner_type = ? AND member_id = ? AND status = 'SENT' AND read_at IS NULL
+                """,
+                owner.type().name(), owner.id()
         );
     }
 
@@ -183,8 +212,14 @@ public class OrderNotificationService {
         return orderNotificationRepository.findAllByIdIn(notificationIds);
     }
 
+    @Transactional(readOnly = true)
+    public List<OrderNotification> findPage(final NotificationOwner owner, final int page, final int size) {
+        return orderNotificationRepository.findAllByOwnerTypeAndOwnerIdOrderByCreatedAtDescIdDesc(
+                owner.type(), owner.id(), PageRequest.of(page, size));
+    }
+
     @Transactional
-    public void deleteAllOf(final Long memberId) {
-        orderNotificationRepository.deleteAllByMemberId(memberId);
+    public void deleteAllOf(final NotificationOwner owner) {
+        orderNotificationRepository.deleteAllByOwner(owner.type(), owner.id());
     }
 }

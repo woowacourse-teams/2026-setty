@@ -15,7 +15,7 @@ function load(file, dependencies) {
     } });
     return module.exports;
 }
-const { notificationPath, notificationTypeOf, orderNoticeOf } = load('model/notification.ts', {});
+const { driverNoticeOf, notificationPath, notificationTypeOf, orderNoticeOf } = load('model/notification.ts', {});
 test('주문 알림은 구매자면 주문 상세, 판매자면 매물 상세로 간다', () => {
     assert.equal(notificationPath(71, orderNoticeOf(7001, 'BUYER', '기사가 배정됐어요')), '/me/orders/7001');
     assert.equal(notificationPath(71, orderNoticeOf(7001, 'SELLER', '내 물건이 팔렸어요')), '/listings/71');
@@ -37,4 +37,12 @@ test('알림 종류는 KEYWORD·ORDER 말고는 UNKNOWN이다', () => {
     assert.equal(notificationTypeOf('KEYWORD'), 'KEYWORD');
     assert.equal(notificationTypeOf('PRICE'), 'UNKNOWN');
     assert.equal(notificationTypeOf(null), 'UNKNOWN');
+});
+test('기사 푸시는 type이 DRIVER이고 제목이 있을 때만 기사 내 정보로 간다', () => {
+    const notice = driverNoticeOf({ type: 'DRIVER', headline: '배송비 정산이 확정됐어요', body: '15,000원' });
+    assert.equal(notice.headline, '배송비 정산이 확정됐어요');
+    assert.equal(notice.body, '15,000원');
+    assert.equal(notice.path, '/driver/me');
+    assert.equal(driverNoticeOf({ type: 'ORDER', headline: '배송비 정산이 확정됐어요' }), null);
+    assert.equal(driverNoticeOf({ type: 'DRIVER' }), null);
 });

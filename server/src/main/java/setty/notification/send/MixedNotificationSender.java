@@ -7,6 +7,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import setty.notification.device.application.DeviceTokenService;
 import setty.notification.device.domain.DeviceToken;
+import setty.notification.owner.NotificationOwner;
 
 public class MixedNotificationSender implements NotificationSender {
 
@@ -26,19 +27,19 @@ public class MixedNotificationSender implements NotificationSender {
 
     @Override
     public SendResult send(final List<NotificationMessage> messages) {
-        final Set<Long> membersWithDevice = membersWithDevice(messages);
+        final Set<NotificationOwner> ownersWithDevice = ownersWithDevice(messages);
         final Map<Boolean, List<NotificationMessage>> byDevice = messages.stream()
-                .collect(Collectors.partitioningBy(message -> membersWithDevice.contains(message.memberId())));
+                .collect(Collectors.partitioningBy(message -> ownersWithDevice.contains(message.owner())));
         final Set<Long> failed = new HashSet<>();
         failed.addAll(sendIfAny(loadSender, byDevice.get(false)));
         failed.addAll(sendIfAny(deviceSender, byDevice.get(true)));
         return new SendResult(failed);
     }
 
-    private Set<Long> membersWithDevice(final List<NotificationMessage> messages) {
-        final Set<Long> memberIds = messages.stream().map(NotificationMessage::memberId).collect(Collectors.toSet());
-        return deviceTokenService.findAllByMemberIds(memberIds).stream()
-                .map(DeviceToken::getMemberId)
+    private Set<NotificationOwner> ownersWithDevice(final List<NotificationMessage> messages) {
+        final Set<NotificationOwner> owners = messages.stream().map(NotificationMessage::owner).collect(Collectors.toSet());
+        return deviceTokenService.findAllByOwners(owners).stream()
+                .map(DeviceToken::getOwner)
                 .collect(Collectors.toSet());
     }
 
