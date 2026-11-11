@@ -97,16 +97,25 @@ public class Settlement {
     }
 
     // 결론이 난 정산은 바꾸지 않는다. 재발행된 결론 이벤트는 같은 결론이므로 무시해도 된다.
-    public void apply(final SettlementDecision decision) {
+    public boolean apply(final SettlementDecision decision) {
         if (status != SettlementStatus.PENDING) {
-            return;
+            return false;
         }
         status = decision.status();
         if (status == SettlementStatus.CONFIRMED) {
             confirmedAt = decision.decidedAt();
-            return;
+        } else {
+            cancelledAt = decision.decidedAt();
         }
-        cancelledAt = decision.decidedAt();
+        return true;
+    }
+
+    public boolean isConfirmed() {
+        return status == SettlementStatus.CONFIRMED;
+    }
+
+    public boolean isConfirmedSellerSettlement() {
+        return payeeType == PayeeType.SELLER && isConfirmed();
     }
 
     private static boolean isPositive(final Long value) {

@@ -71,12 +71,28 @@ class SettlementTest {
     @Test
     void 결론이_난_정산은_바뀌지_않는다() {
         final Settlement settlement = Settlement.seller(1L, 10L, 100L, 150_000, CREATED_AT);
-        settlement.apply(SettlementDecision.completed(DECIDED_AT));
+        assertThat(settlement.apply(SettlementDecision.completed(DECIDED_AT))).isTrue();
 
-        settlement.apply(SettlementDecision.cancelled(DECIDED_AT.plusSeconds(60)));
+        assertThat(settlement.apply(SettlementDecision.cancelled(DECIDED_AT.plusSeconds(60)))).isFalse();
 
         assertThat(settlement.getStatus()).isEqualTo(SettlementStatus.CONFIRMED);
         assertThat(settlement.getCancelledAt()).isNull();
+    }
+
+    @Test
+    void 확정된_판매자_정산만_알림_대상이다() {
+        final Settlement seller = Settlement.seller(1L, 10L, 100L, 150_000, CREATED_AT);
+        final Settlement driver = Settlement.driver(1L, 20L, 10_000, CREATED_AT);
+        final Settlement cancelled = Settlement.seller(2L, 10L, 100L, 150_000, CREATED_AT);
+
+        seller.apply(SettlementDecision.completed(DECIDED_AT));
+        driver.apply(SettlementDecision.completed(DECIDED_AT));
+        cancelled.apply(SettlementDecision.cancelled(DECIDED_AT));
+
+        assertThat(seller.isConfirmedSellerSettlement()).isTrue();
+        assertThat(driver.isConfirmedSellerSettlement()).isFalse();
+        assertThat(cancelled.isConfirmedSellerSettlement()).isFalse();
+        assertThat(Settlement.seller(3L, 10L, 100L, 150_000, CREATED_AT).isConfirmedSellerSettlement()).isFalse();
     }
 
     @Test

@@ -1,8 +1,8 @@
 package setty.notification.order.application;
 
 import java.sql.Timestamp;
+import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -10,6 +10,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import setty.common.OrderStatusNotified;
+import setty.common.SettlementConfirmed;
 import setty.global.exception.BusinessException;
 import setty.global.exception.ErrorCode;
 import setty.notification.order.domain.OrderNotification;
@@ -36,22 +37,56 @@ public class OrderNotificationService {
     // 이벤트가 다시 와도 유니크 키로 한 번만 만든다. 아직 못 보낸 이 이벤트의 알림을 돌려준다.
     // 같은 이벤트를 동시에 처리하면 여러 행을 한 트랜잭션에 넣을 때 서로 잠금을 기다려 교착이 나므로, 문장마다 바로 커밋한다.
     public List<PendingOrderNotification> createFor(final OrderStatusNotified event) {
-        final Timestamp occurredAt = Timestamp.from(event.occurredAt().truncatedTo(ChronoUnit.MICROS));
-        final List<String> kinds = new ArrayList<>();
-        for (final OrderNotificationKind kind : OrderNotificationKind.of(event.change())) {
-            kinds.add(kind.name());
+        final Timestamp occurredAt = toTimestamp(event.occurredAt());
+        final List<OrderNotificationKind> kinds = OrderNotificationKind.of(event.change());
+        for (final OrderNotificationKind kind : kinds) {
             for (final OrderNotificationRecipient recipient : kind.recipients()) {
-                jdbcTemplate.update(
-                        """
-                        INSERT INTO order_notifications
-                            (order_id, listing_id, member_id, recipient, kind, status, attempts, occurred_at, created_at)
-                        VALUES (?, ?, ?, ?, ?, 'PENDING', 0, ?, NOW(6))
-                        ON DUPLICATE KEY UPDATE order_id = order_notifications.order_id
-                        """,
-                        event.orderId(), event.listingId(), memberOf(event, recipient), recipient.name(), kind.name(),
-                        occurredAt
-                );
+                insert(event.orderId(), event.listingId(), memberOf(event, recipient), recipient, kind, null, occurredAt);
             }
+        }
+        return findPending(event.orderId(), occurredAt, kinds);
+    }
+
+    // 정산 확정 시각을 occurred_at으로 써서 같은 확정이 다시 와도 한 행이다.
+    public List<PendingOrderNotification> createFor(final SettlementConfirmed event) {
+        final Timestamp occurredAt = toTimestamp(event.confirmedAt());
+        final OrderNotificationKind kind = OrderNotificationKind.SETTLEMENT_CONFIRMED;
+        insert(event.orderId(), event.listingId(), event.sellerId(), OrderNotificationRecipient.SELLER, kind,
+                event.amount(), occurredAt);
+        return findPending(event.orderId(), occurredAt, List.of(kind));
+    }
+
+    private static Timestamp toTimestamp(final Instant instant) {
+        return Timestamp.from(instant.truncatedTo(ChronoUnit.MICROS));
+    }
+
+    private void insert(
+            final Long orderId,
+            final Long listingId,
+            final Long memberId,
+            final OrderNotificationRecipient recipient,
+            final OrderNotificationKind kind,
+            final Integer amount,
+            final Timestamp occurredAt
+    ) {
+        jdbcTemplate.update(
+                """
+                INSERT INTO order_notifications
+                    (order_id, listing_id, member_id, recipient, kind, amount, status, attempts, occurred_at, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, 'PENDING', 0, ?, NOW(6))
+                ON DUPLICATE KEY UPDATE order_id = order_notifications.order_id
+                """,
+                orderId, listingId, memberId, recipient.name(), kind.name(), amount, occurredAt
+        );
+    }
+
+    private List<PendingOrderNotification> findPending(
+            final Long orderId,
+            final Timestamp occurredAt,
+            final List<OrderNotificationKind> kinds
+    ) {
+        if (kinds.isEmpty()) {
+            return List.of();
         }
         return namedJdbcTemplate.query(
                 """
@@ -59,7 +94,7 @@ public class OrderNotificationService {
                 WHERE order_id = :orderId AND occurred_at = :occurredAt AND kind IN (:kinds) AND status = 'PENDING'
                 ORDER BY id
                 """,
-                Map.of("orderId", event.orderId(), "occurredAt", occurredAt, "kinds", kinds),
+                Map.of("orderId", orderId, "occurredAt", occurredAt, "kinds", kinds.stream().map(Enum::name).toList()),
                 (resultSet, rowNum) -> new PendingOrderNotification(
                         resultSet.getLong("id"),
                         resultSet.getLong("member_id"),

@@ -17,16 +17,20 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.context.event.ApplicationEvents;
+import org.springframework.test.context.event.RecordApplicationEvents;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 import setty.common.DeliveryDelivered;
 import setty.common.OrderCompleted;
 import setty.common.OrderConfirmed;
+import setty.common.SettlementConfirmed;
 import setty.settlement.domain.Settlement;
 import setty.settlement.persistence.SettlementRepository;
 import setty.support.MySqlIntegrationTestSupport;
 
 @SpringBootTest
+@RecordApplicationEvents
 class SettlementServiceIntegrationTest extends MySqlIntegrationTestSupport {
 
     private static final long ORDER_ID = 1L;
@@ -52,6 +56,9 @@ class SettlementServiceIntegrationTest extends MySqlIntegrationTestSupport {
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
+
+    @Autowired
+    private ApplicationEvents events;
 
     @BeforeEach
     @AfterEach
@@ -130,6 +137,48 @@ class SettlementServiceIntegrationTest extends MySqlIntegrationTestSupport {
     }
 
     @Test
+    void 판매자_정산이_확정되면_금액과_함께_알린다() {
+        recordSeller(ORDER_ID);
+        recordDriver(ORDER_ID);
+
+        settlementService.complete(ORDER_ID, DECIDED_AT);
+
+        assertThat(confirmedEvents()).containsExactly(
+                new SettlementConfirmed(ORDER_ID, LISTING_ID, SELLER_ID, ITEM_PRICE, DECIDED_AT));
+    }
+
+    @Test
+    void 판매_완료가_먼저_도착해_기록할_때_확정되는_판매자_정산도_알린다() {
+        settlementService.complete(ORDER_ID, DECIDED_AT);
+        recordDriver(ORDER_ID);
+
+        recordSeller(ORDER_ID);
+
+        assertThat(confirmedEvents()).containsExactly(
+                new SettlementConfirmed(ORDER_ID, LISTING_ID, SELLER_ID, ITEM_PRICE, DECIDED_AT));
+    }
+
+    @Test
+    void 같은_판매_완료가_다시_와도_정산_확정은_한_번만_알린다() {
+        recordSeller(ORDER_ID);
+        settlementService.complete(ORDER_ID, DECIDED_AT);
+
+        settlementService.complete(ORDER_ID, DECIDED_AT.plusSeconds(60));
+        recordSeller(ORDER_ID);
+
+        assertThat(confirmedEvents()).hasSize(1);
+    }
+
+    @Test
+    void 취소된_정산은_알리지_않는다() {
+        recordSeller(ORDER_ID);
+
+        settlementService.cancel(ORDER_ID, DECIDED_AT);
+
+        assertThat(confirmedEvents()).isEmpty();
+    }
+
+    @Test
     void 기사_정산_기록과_판매_완료가_동시에_처리돼도_정산이_확정된다() throws Exception {
         final List<Long> orderIds = LongStream.rangeClosed(1, 20).boxed().toList();
         final ExecutorService executor = Executors.newFixedThreadPool(2);
@@ -182,6 +231,10 @@ class SettlementServiceIntegrationTest extends MySqlIntegrationTestSupport {
                 Integer.class,
                 ORDER_ID
         )).isEqualTo(ITEM_PRICE + DELIVERY_FEE);
+    }
+
+    private List<SettlementConfirmed> confirmedEvents() {
+        return events.stream(SettlementConfirmed.class).toList();
     }
 
     private void recordSeller(final long orderId) {

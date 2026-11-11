@@ -8,6 +8,7 @@ import static setty.global.event.EventPublicationTestSupport.awaitEventsHandled;
 
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
+import com.zaxxer.hikari.HikariDataSource;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.InetSocketAddress;
@@ -22,6 +23,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import javax.sql.DataSource;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -78,6 +80,9 @@ class PaymentConfirmRecoveryTest extends MySqlIntegrationTestSupport {
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
+
+    @Autowired
+    private DataSource dataSource;
 
     @Autowired
     private ApplicationEvents events;
@@ -176,6 +181,47 @@ class PaymentConfirmRecoveryTest extends MySqlIntegrationTestSupport {
     @Test
     void 조회한_결제_금액이_다르면_결과_확인_중으로_답하고_시도는_결과를_모르는_채로_남긴다() throws Exception {
         toss(Confirm.ALREADY_PROCESSED, Lookup.WRONG_AMOUNT);
+
+        confirm().andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("PAYMENT_IN_PROGRESS"));
+
+        assertLeftUnknown();
+    }
+
+    @Test
+    void 승인_응답의_금액이_다르면_승인으로_기록하지_않고_결과_확인_중으로_남긴다() throws Exception {
+        toss(Confirm.WRONG_AMOUNT, Lookup.WRONG_AMOUNT);
+
+        confirm().andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("PAYMENT_IN_PROGRESS"));
+
+        assertThat(lookupRequests).hasValue(1);
+        assertLeftUnknown();
+    }
+
+    @Test
+    void 승인_응답이_승인_완료가_아니면_조회로_확인해_기록한다() throws Exception {
+        toss(Confirm.IN_PROGRESS, Lookup.DONE);
+
+        confirm().andExpect(status().isOk());
+
+        assertThat(lookupRequests).hasValue(1);
+        assertRecordedOnce();
+    }
+
+    @Test
+    void 승인_응답_본문이_없으면_조회로_확인해_기록한다() throws Exception {
+        toss(Confirm.EMPTY, Lookup.DONE);
+
+        confirm().andExpect(status().isOk());
+
+        assertThat(lookupRequests).hasValue(1);
+        assertRecordedOnce();
+    }
+
+    @Test
+    void 승인_응답이_승인_완료가_아니고_조회로도_확인하지_못하면_결과_확인_중으로_남긴다() throws Exception {
+        toss(Confirm.IN_PROGRESS, Lookup.IN_PROGRESS);
 
         confirm().andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("PAYMENT_IN_PROGRESS"));
@@ -314,6 +360,26 @@ class PaymentConfirmRecoveryTest extends MySqlIntegrationTestSupport {
         unknownPaymentResolver.resolveStale();
 
         assertLeftUnknown();
+    }
+
+    // 토스 응답을 기다리는 동안 DB 커넥션을 쥐고 있으면, 토스가 느려질 때 승인 요청만으로 커넥션 풀이 바닥난다.
+    @Test
+    void 토스_승인_응답을_기다리는_동안_DB_커넥션을_쓰지_않는다() throws Exception {
+        toss(Confirm.LATE_DONE, Lookup.FAIL);
+        final HikariDataSource pool = dataSource.unwrap(HikariDataSource.class);
+        final ExecutorService executor = Executors.newSingleThreadExecutor();
+        try {
+            final Future<Integer> confirmed = executor.submit(() -> confirm().andReturn().getResponse().getStatus());
+            while (confirmRequests.get() == 0 && !confirmed.isDone()) {
+                Thread.sleep(10);
+            }
+            Thread.sleep(200);
+
+            assertThat(pool.getHikariPoolMXBean().getActiveConnections()).isZero();
+            assertThat(confirmed.get(10, TimeUnit.SECONDS)).isEqualTo(409);
+        } finally {
+            executor.shutdownNow();
+        }
     }
 
     @Test
@@ -463,7 +529,7 @@ class PaymentConfirmRecoveryTest extends MySqlIntegrationTestSupport {
     }
 
     // 가짜 토스: 승인은 confirmMode, 조회(GET /v1/payments/{paymentKey})는 lookupMode대로 응답한다.
-    private enum Confirm { DONE, SLOW_DONE, LATE_DONE, ALREADY_PROCESSED, SERVER_ERROR, REJECTED }
+    private enum Confirm { DONE, SLOW_DONE, LATE_DONE, WRONG_AMOUNT, IN_PROGRESS, EMPTY, ALREADY_PROCESSED, SERVER_ERROR, REJECTED }
 
     private enum Lookup { DONE, WRONG_AMOUNT, IN_PROGRESS, NOT_FOUND, PATH_NOT_FOUND, FAIL }
 
@@ -485,6 +551,9 @@ class PaymentConfirmRecoveryTest extends MySqlIntegrationTestSupport {
                         sleep(3_000);
                         respond(exchange, 200, payment(AMOUNT));
                     }
+                    case WRONG_AMOUNT -> respond(exchange, 200, payment(AMOUNT - 1));
+                    case IN_PROGRESS -> respond(exchange, 200, payment("IN_PROGRESS", AMOUNT));
+                    case EMPTY -> respond(exchange, 200, "");
                     case ALREADY_PROCESSED -> respond(exchange, 400, error("ALREADY_PROCESSED_PAYMENT"));
                     case SERVER_ERROR -> respond(exchange, 500, error("FAILED_INTERNAL_SYSTEM_PROCESSING"));
                     case REJECTED -> respond(exchange, 400, error("REJECT_CARD_PAYMENT"));

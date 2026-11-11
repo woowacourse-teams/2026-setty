@@ -398,7 +398,7 @@ function toNotification(response: NotificationResponse): Notification {
         listingStatus: notifiedListingStatusOf(response.listingStatus),
         read: response.read,
         createdAt: response.createdAt,
-        order: orderNoticeOf(response.orderId, response.recipient, response.headline)
+        order: orderNoticeOf(response.orderId, response.recipient, response.headline, response.amount)
     };
 }
 

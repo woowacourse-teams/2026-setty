@@ -21,8 +21,7 @@ import setty.platform.listing.domain.ConditionGrade;
 import setty.platform.listing.domain.ListingCategory;
 import setty.platform.listing.domain.ListingSearchTerms;
 
-// 목록은 JPA 엔티티 대신 JDBC로 읽는다. OSIV 아래에서 JPA로 조회하면 응답이 끝날 때까지 커넥션을 붙잡지만,
-// 트랜잭션 밖의 JdbcTemplate은 쿼리가 끝나면 바로 반납한다.
+// 목록은 JPA 엔티티 대신 JDBC로 읽는다. 트랜잭션 밖의 JdbcTemplate은 쿼리가 끝나면 커넥션을 바로 반납한다.
 @Repository
 public class ListingQueryRepository {
 

@@ -19,7 +19,8 @@ public record NotificationResponse(
         String kind,
         Long orderId,
         String recipient,
-        String headline
+        String headline,
+        Integer amount
 ) {
 
     static final String KEYWORD = "KEYWORD";
@@ -46,6 +47,7 @@ public record NotificationResponse(
                 null,
                 null,
                 null,
+                null,
                 null
         );
     }
@@ -69,7 +71,8 @@ public record NotificationResponse(
                 notification.getKind().name(),
                 notification.getOrderId(),
                 notification.getRecipient().name(),
-                notification.getKind().headline()
+                notification.getKind().headline(),
+                notification.getAmount()
         );
     }
 }

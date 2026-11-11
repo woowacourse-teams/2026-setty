@@ -2,7 +2,6 @@ package setty.payment.infrastructure;
 
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
-import java.util.Set;
 
 /**
  * 토스 결제 승인·조회 응답(Payment 객체) 중 우리가 판단에 쓰는 필드만 담는다.
@@ -11,20 +10,26 @@ import java.util.Set;
 public record TossConfirmResult(
         String paymentKey,
         String orderId,
-        String status,
+        TossPaymentStatus status,
         Integer totalAmount,
         String approvedAt
 ) {
 
-    // 승인되지 않았거나 이미 돈이 돌아간 결제. 이 결제로는 우리 쪽에 남길 승인이 없다.
-    private static final Set<String> NOT_APPROVED = Set.of("ABORTED", "EXPIRED", "CANCELED");
+    public TossConfirmResult {
+        // 본문에 status가 없으면 판단할 수 없는 상태로 둔다.
+        status = status == null ? TossPaymentStatus.UNKNOWN : status;
+    }
 
     public boolean isNotApproved() {
-        return NOT_APPROVED.contains(status);
+        return status.isNotApproved();
+    }
+
+    public boolean isDone() {
+        return status == TossPaymentStatus.DONE;
     }
 
     public boolean isDoneFor(final String tossOrderId, final int amount) {
-        return "DONE".equals(status) && tossOrderId.equals(orderId) && totalAmount != null && totalAmount == amount;
+        return isDone() && tossOrderId.equals(orderId) && totalAmount != null && totalAmount == amount;
     }
 
     public LocalDateTime approvedAtAsLocalDateTime() {
