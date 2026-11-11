@@ -33,7 +33,7 @@ final class SupportRetention {
                             "DELETE FROM ai_support_conversation WHERE expires_at<=? LIMIT 200",
                             ts(clock.instant()));
         } while (removed == 200);
-        var cutoff = SupportDailyUsage.today(clock).minusDays(7);
+        var cutoff = SupportDailyUsage.today(clock).minusDays(40);
         do {
             removed = jdbc.update(
                     "DELETE FROM ai_support_daily_usage WHERE usage_date<=? LIMIT 200", cutoff);
