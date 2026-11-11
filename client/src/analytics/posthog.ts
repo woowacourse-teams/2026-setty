@@ -52,7 +52,15 @@ export function initializeAnalytics() {
         person_profiles: 'identified_only',
         // 리플레이에서 모든 입력값을 마스킹한다.
         session_recording: {
-            maskAllInputs: true
+            maskAllInputs: true,
+            blockSelector: '.support-private',
+            maskTextSelector: '.support-private',
+            // 원격에서 네트워크 캡처를 켜도 상담 요청/응답 본문과 헤더는 전송하지 않는다.
+            maskCapturedNetworkRequestFn: (request) => {
+                try {
+                    return new URL(request.name, window.location.origin).pathname.startsWith('/api/support/') ? undefined : request;
+                } catch { return undefined; }
+            }
         },
         loaded: (client) => {
             client.register(COMMON_PROPERTIES);

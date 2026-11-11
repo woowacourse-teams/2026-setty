@@ -1,5 +1,15 @@
 function createTokenStore(key: string) {
     return {
+        /** 현재 탭과 다른 탭의 인증 변경을 구독해 개인 정보 화면을 즉시 교체한다. */
+        subscribe(listener: () => void) {
+            const onStorage = (event: StorageEvent) => { if (event.key === key || event.key === null) listener(); };
+            window.addEventListener('storage', onStorage);
+            window.addEventListener('setty:token-changed', listener);
+            return () => {
+                window.removeEventListener('storage', onStorage);
+                window.removeEventListener('setty:token-changed', listener);
+            };
+        },
         get(): string {
             try {
                 return window.localStorage.getItem(key) ?? '';
@@ -10,6 +20,7 @@ function createTokenStore(key: string) {
         set(token: string) {
             try {
                 window.localStorage.setItem(key, token);
+                window.dispatchEvent(new Event('setty:token-changed'));
             } catch {
                 // 저장소를 쓸 수 없으면 이번 화면에서만 로그인한 것으로 본다
             }
@@ -17,6 +28,7 @@ function createTokenStore(key: string) {
         clear() {
             try {
                 window.localStorage.removeItem(key);
+                window.dispatchEvent(new Event('setty:token-changed'));
             } catch {
                 // 저장소를 쓸 수 없으면 지울 토큰도 없다
             }
