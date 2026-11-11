@@ -9,6 +9,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import setty.common.DeliveryAccepted;
+import setty.common.CancellationRejectionReasons;
 import setty.common.DeliveryAssignmentCancelled;
 import setty.common.DeliveryCancellationRejected;
 import setty.common.DeliveryCancelled;
@@ -112,7 +113,13 @@ public class DeliveryLifecycleService {
         }
         if (!delivery.isCancellable()) {
             eventPublisher.publishEvent(new DeliveryCancellationRejected(
-                    delivery.getId().value(), orderId.value(), cancellationRequestId, decidedAt
+                    delivery.getId().value(), orderId.value(), cancellationRequestId, decidedAt,
+                    switch (delivery.getStatus()) {
+                        case ACCEPTED -> CancellationRejectionReasons.DRIVER_ACCEPTED;
+                        case PICKED_UP -> CancellationRejectionReasons.ALREADY_PICKED_UP;
+                        case DELIVERED -> CancellationRejectionReasons.ALREADY_DELIVERED;
+                        default -> CancellationRejectionReasons.STATE_NOT_SYNCHRONIZED;
+                    }
             ));
             return;
         }

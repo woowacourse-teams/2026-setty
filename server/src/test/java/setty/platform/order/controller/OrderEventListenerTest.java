@@ -43,6 +43,6 @@ class OrderEventListenerTest {
 
         listener.onDeliveryCancellationRejected(event);
 
-        verify(orderService).rejectCancellation(101L, "cancel-1", decidedAt);
+        verify(orderService).rejectCancellation(101L, "cancel-1", decidedAt,"DRIVER_ACCEPTED_OR_LATER");
     }
 }

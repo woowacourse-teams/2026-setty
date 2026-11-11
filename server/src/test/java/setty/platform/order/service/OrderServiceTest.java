@@ -27,7 +27,9 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.test.util.ReflectionTestUtils;
 import setty.address.AddressResolution;
 import setty.address.StandardAddress;
+import setty.common.CancellationRejectionReasons;
 import setty.common.DeliveryStatus;
+import setty.common.OrderCancellationDeclined;
 import setty.common.OrderCancellationRequested;
 import setty.common.OrderCancelled;
 import setty.common.OrderConfirmed;
@@ -366,8 +368,11 @@ class OrderServiceTest {
         orderService.rejectCancellation(ORDER_ID, "cancel-request-1", decidedAt);
 
         assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.CONFIRMED);
-        verifyNoInteractions(eventPublisher);
+        verify(eventPublisher).publishEvent(new OrderCancellationDeclined(
+                ORDER_ID, "cancel-request-1", decidedAt, CancellationRejectionReasons.DRIVER_ACCEPTED_OR_LATER));
+        verifyNoMoreInteractions(eventPublisher);
         verify(orderStatusNotifier).notify(order, OrderStatusNotified.Change.CANCELLATION_REJECTED, decidedAt);
+        verifyNoMoreInteractions(orderStatusNotifier);
     }
 
     @Test
