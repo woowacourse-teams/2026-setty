@@ -17,10 +17,6 @@ export function cellBounds({ x, y }) {
     ];
 }
 
-export function cellCenter({ x, y }) {
-    return { lat: (y + 0.5) * DY, lng: (x + 0.5) * DX };
-}
-
 // 서버가 칸을 int 하나로 다루는 번호(열 × 2^15 + 행).
 export function cellCode({ x, y }) {
     return x * (1 << 15) + y;
