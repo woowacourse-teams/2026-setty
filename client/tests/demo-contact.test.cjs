@@ -5,18 +5,22 @@ const { test } = require('node:test');
 const { runInNewContext } = require('node:vm');
 const ts = require('typescript');
 
-function load(file) {
+function load(file, dependencies = {}) {
     const source = readFileSync(path.join(__dirname, '../src/model', file), 'utf8');
     const { outputText } = ts.transpileModule(source, { compilerOptions: {
         module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020
     } });
     const module = { exports: {} };
-    runInNewContext(outputText, { module, exports: module.exports, require: (name) => assert.fail(`Unexpected dependency: ${name}`) });
+    runInNewContext(outputText, { module, exports: module.exports, require: (name) => {
+        assert.ok(Object.hasOwn(dependencies, name), `Unexpected dependency: ${name}`);
+        return dependencies[name];
+    } });
     return module.exports;
 }
 
 const demo = load('demoContact.ts');
 const member = load('member.ts');
+const delivery = load('delivery.ts', { './furniture': { furnitureCategories: [], categoryLabel: (value) => value } });
 const seoulDongs = new Map(readFileSync(path.join(__dirname, '../../server/src/main/resources/deliveryfee/seoul-dongs.csv'), 'utf8')
     .trim().split('\n')
     .map((line) => line.split(','))
@@ -61,4 +65,17 @@ test('받아 주는 행정동의 주소만 고른다', () => {
 
 test('받아 주는 행정동이 없으면 채우지 않는다', () => {
     assert.equal(demo.randomDemoContact(() => false), null);
+});
+
+test('배송원 시연 값은 가입 형식을 모두 통과한다', () => {
+    [0, 0.5, 0.999999].forEach((value) => {
+        const driver = demo.randomDemoDriver(() => value);
+        assert.ok(member.isPhoneNumberValid(driver.phoneNumber), driver.phoneNumber);
+        assert.match(member.formatPhoneNumber(driver.phoneNumber), /^010-0000-[1-9]\d{3}$/);
+        assert.match(driver.licensePlateNumber, delivery.LICENSE_PLATE_REGEX);
+        assert.ok(driver.carType.length > 0 && driver.carType.length <= delivery.CAR_TYPE_MAX_LENGTH);
+        assert.match(driver.businessRegistrationNumber, delivery.BUSINESS_NUMBER_REGEX);
+        assert.ok(driver.businessRegistrationNumber.startsWith('000-00-'));
+        assert.equal(delivery.formatBusinessNumber(driver.businessRegistrationNumber), driver.businessRegistrationNumber);
+    });
 });

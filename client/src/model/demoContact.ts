@@ -32,6 +32,16 @@ function pick<T>(items: readonly T[], random: () => number): T {
     return items[Math.min(Math.floor(random() * items.length), items.length - 1)];
 }
 
+/** [min] 이상 [max] 이하의 정수. */
+function between(min: number, max: number, random: () => number): number {
+    return min + Math.min(Math.floor(random() * (max - min + 1)), max - min);
+}
+
+/** 하이픈 없는 010-0000-XXXX 번호. */
+export function randomDemoPhoneNumber(random: () => number = Math.random): string {
+    return DEMO_PHONE_PREFIX + String(between(1000, 9999, random));
+}
+
 /**
  * 시연용 전화번호·주소·행정동을 고른다. [isAvailableDong]이 받아 주는 동의 주소만 고르고,
  * 하나도 없으면 null을 돌려준다.
@@ -43,6 +53,29 @@ export function randomDemoContact(
     const places = DEMO_PLACES.filter((place) => isAvailableDong(place.dongCode));
     if (places.length === 0) return null;
     const place = pick(places, random);
-    const lastFour = String(1000 + Math.min(Math.floor(random() * 9000), 8999));
-    return { phoneNumber: DEMO_PHONE_PREFIX + lastFour, address: place.address, dongCode: place.dongCode };
+    return { phoneNumber: randomDemoPhoneNumber(random), address: place.address, dongCode: place.dongCode };
+}
+
+/** 부스 시연에서 배송원 가입 화면의 배송 정보를 대신 채울 값. */
+export type DemoDriver = {
+    // 하이픈 없는 숫자만 담는다
+    phoneNumber: string;
+    licensePlateNumber: string;
+    carType: string;
+    businessRegistrationNumber: string;
+};
+
+export const DEMO_CAR_TYPES: readonly string[] = ['1톤 탑차', '1톤 카고', '1.4톤 탑차', '2.5톤 탑차'];
+
+/** 세무서 코드 000은 없으므로 실제 사업자등록번호와 겹치지 않는다. */
+export const DEMO_BUSINESS_NUMBER_PREFIX = '000-00-';
+
+/** 시연용 배송원 전화번호·번호판·차종·사업자등록번호를 고른다. 번호판은 택배 영업용 '배' 글자를 쓴다. */
+export function randomDemoDriver(random: () => number = Math.random): DemoDriver {
+    return {
+        phoneNumber: randomDemoPhoneNumber(random),
+        licensePlateNumber: `${between(80, 99, random)}배${between(1000, 9999, random)}`,
+        carType: pick(DEMO_CAR_TYPES, random),
+        businessRegistrationNumber: DEMO_BUSINESS_NUMBER_PREFIX + String(between(0, 99999, random)).padStart(5, '0')
+    };
 }
