@@ -1,10 +1,11 @@
 {
   "name": "delivery-sim",
   "private": true,
-  "description": "시연용 배송 시뮬레이터. 시연 노트북에서 로컬로만 띄운다.",
+  "description": "시연용 배송 시뮬레이터. Vercel 정적 배포 또는 시연 노트북 로컬로 띄운다.",
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "build": "vite build",
     "osrm": "./osrm.sh"
   },
   "dependencies": {

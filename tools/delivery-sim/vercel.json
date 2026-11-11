@@ -1,0 +1,20 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "SIM_API_URL=https://setty.cloud SIM_CLIENT_URL=https://setty.cloud npm run build",
+  "outputDirectory": "dist",
+  "routes": [
+    {
+      "src": "/api/delivery/(.*)",
+      "dest": "https://setty.cloud/api/delivery/$1",
+      "headers": { "x-vercel-enable-rewrite-caching": "0" },
+      "transforms": [
+        { "type": "request.headers", "op": "delete", "target": { "key": "origin" } }
+      ]
+    },
+    {
+      "src": "/osrm/(.*)",
+      "dest": "https://router.project-osrm.org/$1",
+      "headers": { "x-vercel-enable-rewrite-caching": "0" }
+    }
+  ]
+}

@@ -2,7 +2,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import QRCode from 'qrcode';
 import { HttpError, fetchBundleCandidates, fetchInProgressShipments, fetchRoute, login, sendLocation } from './api.js';
-import { cellBounds, cellCenter, cellCode, cellFromCode, cellOf } from './grid.js';
+import { cellBounds, cellCode, cellFromCode, cellOf } from './grid.js';
 import { createPath } from './route.js';
 
 const config = __SIM_CONFIG__;
@@ -10,10 +10,13 @@ const BASE_SPEED_MPS = 30_000 / 3600;
 const SEND_INTERVAL_MS = 1500;
 const TOKEN_KEY = 'delivery-sim:token';
 const LOGIN_ID_KEY = 'delivery-sim:login-id';
-// 바탕은 무채색, 격자는 회색, 지금 칸 테두리는 먹색, 경로·차·후보만 점토색으로 둔다
-const GRID = '#9AA09A';
-const INK = '#3A4637';
-const CLAY = '#A65E44';
+// 세티 배송원 웹 색을 따른다. 바탕은 무채색, 격자는 회색, 차의 경로와 지금 칸 테두리는 먹색, 차·후보만 파란 강조색
+const GRID = '#8B95A1';
+const INK = '#191F28';
+const ROUTE = '#4E5968';
+const OTHER_CALL = '#6B7684';
+const BRAND = '#3182F6';
+const DEEP = '#1B64DA';
 
 const $ = (id) => document.getElementById(id);
 
@@ -27,7 +30,9 @@ const state = {
     sending: false,
     resend: false,
     currentCellKey: null,
-    serverCell: null
+    serverCell: null,
+    destCell: null,
+    bundle: null
 };
 
 // ---------- 지도와 격자 ----------
@@ -71,11 +76,11 @@ for (const cell of areaCells) {
 }
 
 const currentCellLayer = L.rectangle([[0, 0], [0, 0]], { color: INK, weight: 2.5, fill: false, interactive: false });
-const routeLine = L.polyline([], { color: CLAY, weight: 4, opacity: 0.8 }).addTo(map);
+const routeLine = L.polyline([], { color: ROUTE, weight: 5, opacity: 0.55 }).addTo(map);
 // 후보 칸 글씨가 차를 가리지 않게 차와 목적지는 맨 위 층에 그린다
 map.createPane('car').style.zIndex = 650;
-const carMarker = L.circleMarker([0, 0], { pane: 'car', radius: 9, color: '#fff', weight: 3, fillColor: CLAY, fillOpacity: 1 });
-const destMarker = L.circleMarker([0, 0], { pane: 'car', radius: 7, color: CLAY, weight: 3, fillColor: '#fff', fillOpacity: 1 });
+const carMarker = L.circleMarker([0, 0], { pane: 'car', radius: 9, color: '#fff', weight: 3, fillColor: BRAND, fillOpacity: 1 });
+const destMarker = L.circleMarker([0, 0], { pane: 'car', radius: 7, color: ROUTE, weight: 3, fillColor: '#fff', fillOpacity: 1 });
 
 function key(cell) {
     return `${cell.x},${cell.y}`;
@@ -106,6 +111,9 @@ async function showLoggedIn() {
     clearCandidates();
     $('server-cell').textContent = '-';
     $('bundle').textContent = '-';
+    showBundle(null);
+    setBadge('badge-login', loggedIn ? 'on' : null, loggedIn ? `${state.loginId} 연결됨` : '로그인 전');
+    setBadge('badge-send', null, '위치 전송 대기');
     $('login-form').hidden = loggedIn;
     $('logged-in').hidden = !loggedIn;
     $('to-arrival').disabled = !loggedIn;
@@ -118,7 +126,7 @@ async function showLoggedIn() {
     $('qr-link').href = url;
     // 화면 글자에는 토큰을 가린다. QR과 링크 주소에는 그대로 담는다.
     $('qr-link').textContent = `${config.clientUrl}/driver#token=••••&sim=1`;
-    await QRCode.toCanvas($('qr'), url, { width: 180, margin: 1 });
+    await QRCode.toCanvas($('qr'), url, { width: 112, margin: 1 });
 }
 
 $('login-form').addEventListener('submit', async (event) => {
@@ -176,11 +184,13 @@ async function routeTo(dest) {
         state.travelled = 0;
         routeLine.setLatLngs(points.map((p) => [p.lat, p.lng]));
         destMarker.setLatLng(dest).addTo(map);
+        state.destCell = cellOf(dest.lat, dest.lng);
+        redrawRange();
         $('toggle').disabled = false;
         message(`도로 경로 ${(distance / 1000).toFixed(2)}km. 출발을 누르세요.`);
         updatePosition();
     } catch (error) {
-        message(`경로 실패: ${error.message} (OSRM이 떠 있는지 확인)`);
+        message(`경로를 찾지 못했습니다: ${error.message}. 길찾기 서버(/osrm)에 닿는지 확인하세요.`);
     }
 }
 
@@ -188,6 +198,8 @@ map.on('click', (event) => {
     if (state.running) return;
     if (mode() === 'start') {
         clearRoute();
+        state.destCell = null;
+        redrawRange();
         placeCar(event.latlng);
         setMode('dest');
         message('목적지를 찍으세요.');
@@ -223,7 +235,7 @@ setInterval(() => {
     const now = performance.now();
     const seconds = Math.min((now - lastTick) / 1000, 2);
     lastTick = now;
-    state.travelled += BASE_SPEED_MPS * Number($('speed').value) * seconds;
+    state.travelled += BASE_SPEED_MPS * Number(document.querySelector('input[name="speed"]:checked').value) * seconds;
     state.car = state.path.at(state.travelled);
     carMarker.setLatLng([state.car.lat, state.car.lng]);
     updatePosition();
@@ -259,6 +271,7 @@ function updatePosition() {
     $('lat').textContent = state.car.lat.toFixed(6);
     $('lng').textContent = state.car.lng.toFixed(6);
     $('cell').textContent = `${cellCode(cell)} (${cell.x}, ${cell.y})${cellLayers.has(cellKey) ? '' : ' 영역 밖'}`;
+    $('cell-big').textContent = `${cell.x}, ${cell.y}`;
     $('remain').textContent = state.path ? `${Math.max(0, state.path.length - state.travelled).toFixed(0)}m` : '-';
     if (cellKey !== state.currentCellKey) {
         currentCellLayer.setBounds(cellBounds(cell)).addTo(map);
@@ -281,6 +294,7 @@ async function sendTick() {
     try {
         const { cell } = await sendLocation(state.token, sent);
         $('send').textContent = `${at} 성공`;
+        setBadge('badge-send', 'ok', '위치 전송 중');
         const local = cellCode(cellOf(sent.lat, sent.lng));
         $('server-cell').textContent = cell === local ? `${cell}` : `${cell} (화면 칸과 다름)`;
         if (cell !== state.serverCell) {
@@ -292,6 +306,7 @@ async function sendTick() {
         $('send').textContent = expired
             ? `${at} 401: 토큰이 끝났습니다. 다시 로그인하세요(폰에서 따로 로그인하면 이렇게 됩니다)`
             : `${at} 실패: ${error.message}`;
+        setBadge('badge-send', 'fail', expired ? '토큰 끝남 · 다시 로그인' : '위치 전송 실패');
     } finally {
         state.sending = false;
         if (state.resend) {
@@ -309,7 +324,12 @@ async function refreshBundle() {
         $('bundle').textContent = items.length
             ? `${items.length}건 (${items.map((item) => `#${item.deliveryId}`).join(', ')})`
             : '0건';
-        if (cell != null) markCandidates(cell, items);
+        showBundle(items);
+        if (cell != null) {
+            state.bundle = { cell, items };
+            markCandidates(cell, items);
+            drawRange(cell, items);
+        }
     } catch (error) {
         $('bundle').textContent = `조회 실패: ${error.message}`;
     }
@@ -317,57 +337,144 @@ async function refreshBundle() {
 // 칸이 그대로여도 새 콜이 들어오거나 수락돼 후보가 바뀔 수 있다
 setInterval(() => state.serverCell != null && refreshBundle(), 10_000);
 
+// ---------- 후보 출발 칸과 도착 범위 ----------
+// 서버는 콜 위치를 주지 않으므로 콜마다 점을 찍지 않는다. bundle 응답의 칸(= 후보가 출발하는 칸)과
+// 진행자가 찍은 목적지 칸 + 이웃 8칸(서버가 후보를 고르는 도착 범위와 같은 모양)을 칠하고 둘을 화살표로 잇는다.
+const rangeLayer = L.layerGroup().addTo(map);
+const legend = L.control({ position: 'bottomleft' });
+legend.onAdd = () => {
+    const box = L.DomUtil.create('div', 'legend');
+    box.innerHTML = '<span><i class="key key--start"></i>출발 칸</span><span><i class="key key--dest"></i>도착 칸</span><span><i class="key key--near"></i>도착 근처</span>';
+    return box;
+};
+legend.addTo(map);
+const KM_X = 111.32 * Math.cos((37.55 * Math.PI) / 180);
+const KM_Y = 110.95;
+
+function rangeBounds(cell) {
+    return [cellBounds({ x: cell.x - 1, y: cell.y - 1 })[0], cellBounds({ x: cell.x + 1, y: cell.y + 1 })[1]];
+}
+
+// 출발 칸 가운데에서 도착 범위 가운데로 가는 직선이 범위 가장자리와 만나는 점
+function edgePoint(from, [[s, w], [n, e]]) {
+    const to = { lat: (s + n) / 2, lng: (w + e) / 2 };
+    const dLat = from.lat - to.lat;
+    const dLng = from.lng - to.lng;
+    const t = Math.min(dLat ? Math.abs((n - s) / 2 / dLat) : Infinity, dLng ? Math.abs((e - w) / 2 / dLng) : Infinity, 1);
+    return { lat: to.lat + dLat * t, lng: to.lng + dLng * t };
+}
+
+// km 평면에서 직선 화살표(선 + 작은 화살촉)를 만든 뒤 위경도로 되돌린다
+function straightArrow(from, to) {
+    const P = (p) => ({ x: p.lng * KM_X, y: p.lat * KM_Y });
+    const Q = (p) => [p.y / KM_Y, p.x / KM_X];
+    const a = P(from), b = P(to);
+    const len = Math.hypot(b.x - a.x, b.y - a.y) || 1;
+    const ux = (b.x - a.x) / len, uy = (b.y - a.y) / len;
+    const size = Math.min(0.035, len * 0.3);
+    const back = { x: b.x - ux * size, y: b.y - uy * size };
+    const head = [Q(b), Q({ x: back.x - uy * size * 0.55, y: back.y + ux * size * 0.55 }), Q({ x: back.x + uy * size * 0.55, y: back.y - ux * size * 0.55 })];
+    return { line: [Q(a), Q(back)], head };
+}
+
+// 칸 왼쪽 위 모서리 안쪽에 "출발"·"도착" 글자표를 붙인다
+function cellTag(cell, text, tone) {
+    const [[, west], [north]] = cellBounds(cell);
+    L.marker([north, west], {
+        interactive: false,
+        keyboard: false,
+        icon: L.divIcon({ className: `cell-tag cell-tag--${tone}`, html: `<span>${text}</span>`, iconSize: null, iconAnchor: [-4, -4] })
+    }).addTo(rangeLayer);
+}
+
+// 목적지를 바꾸면 다음 후보 조회(최대 10초)를 기다리지 않고 마지막 응답으로 범위를 바로 다시 그린다
+function redrawRange() {
+    if (state.bundle) drawRange(state.bundle.cell, state.bundle.items);
+}
+
+function drawRange(code, items) {
+    rangeLayer.clearLayers();
+    const note = $('range-note');
+    if (!items.length) {
+        note.textContent = '';
+        return;
+    }
+    cellTag(cellFromCode(code), '출발', 'start');
+    if (!state.destCell) {
+        note.textContent = '목적지를 찍으면 도착 범위가 보입니다.';
+        return;
+    }
+    note.textContent = '모두 이 칸에서 출발해 도착 근처 범위로 갑니다.';
+    const dest = state.destCell;
+    for (let dx = -1; dx <= 1; dx++) {
+        for (let dy = -1; dy <= 1; dy++) {
+            if (dx || dy) {
+                L.rectangle(cellBounds({ x: dest.x + dx, y: dest.y + dy }), { color: BRAND, weight: 0.8, opacity: 0.35, fillColor: BRAND, fillOpacity: 0.08, interactive: false }).addTo(rangeLayer);
+            }
+        }
+    }
+    const range = rangeBounds(dest);
+    L.rectangle(range, { color: DEEP, weight: 1.5, opacity: 0.7, dashArray: '6 5', fill: false, interactive: false }).addTo(rangeLayer);
+    L.rectangle(cellBounds(dest), { color: DEEP, weight: 3, opacity: 1, fillColor: BRAND, fillOpacity: 0.24, interactive: false }).addTo(rangeLayer);
+    cellTag(dest, '도착', 'dest');
+    const from = cellBounds(cellFromCode(code));
+    const start = { lat: (from[0][0] + from[1][0]) / 2, lng: (from[0][1] + from[1][1]) / 2 };
+    const { line, head } = straightArrow(start, edgePoint(start, range));
+    L.polyline(line, { color: DEEP, weight: 2.5, opacity: 0.9, interactive: false }).addTo(rangeLayer);
+    L.polygon(head, { color: DEEP, weight: 1, fillColor: DEEP, fillOpacity: 1, interactive: false }).addTo(rangeLayer);
+}
+
+// ---------- 상태 표시 ----------
+function setBadge(id, tone, text) {
+    $(id).className = tone ? `badge badge--${tone}` : 'badge';
+    $(id).textContent = text;
+}
+
+// 지금 칸의 묶음 후보를 크게 건수로, 아래에 상품명과 배송비를 보여 준다
+function showBundle(items) {
+    $('bundle-big').textContent = items == null ? '-' : `${items.length}건`;
+    $('candidates').replaceChildren(...(items ?? []).map((item) => {
+        const li = document.createElement('li');
+        const name = document.createElement('span');
+        name.textContent = item.itemName;
+        const fee = document.createElement('b');
+        fee.textContent = `${item.deliveryFee.toLocaleString('ko-KR')}원`;
+        li.append(name, fee);
+        return li;
+    }));
+}
+
 // ---------- 후보 칸 표시 ----------
 // 서버에 전체 대기 콜 위치를 묻는 API는 없으므로(시뮬레이터 전용 코드 금지) 묶음 후보 응답으로 지금 칸만 강조하고,
 // 후보가 떴던 칸은 지나간 뒤에도 옅게 남긴다.
 const candidateCells = new Map();
 let activeCandidateCell = null;
 
-function shortName(name) {
-    const plain = name.replace(/\s*\(.*\)\s*/g, '').replace(/^.*:\s*/, '');
-    return plain.length > 6 ? `${plain.slice(0, 6).trim()}…` : plain;
-}
-
-function drawCandidateCell(code, items, active) {
-    const cell = cellFromCode(code);
-    let entry = candidateCells.get(code);
-    if (!entry) {
-        entry = {
-            rect: L.rectangle(cellBounds(cell), { interactive: false }).addTo(map),
-            label: L.marker({ lat: cellBounds(cell)[1][0], lng: cellCenter(cell).lng }, { interactive: false, keyboard: false }).addTo(map),
-            items
-        };
-        candidateCells.set(code, entry);
+function drawCandidateCell(code, active) {
+    let rect = candidateCells.get(code);
+    if (!rect) {
+        rect = L.rectangle(cellBounds(cellFromCode(code)), { interactive: false }).addTo(map);
+        candidateCells.set(code, rect);
     }
-    if (items) entry.items = items;
-    const names = entry.items.slice(0, 3).map((item) => shortName(item.itemName)).join(' · ');
-    const more = entry.items.length > 3 ? ' …' : '';
-    entry.rect.setStyle(active
-        ? { color: CLAY, weight: 2, opacity: 1, fillColor: CLAY, fillOpacity: 0.28 }
-        : { color: CLAY, weight: 1, opacity: 0.45, fillColor: CLAY, fillOpacity: 0.1 });
-    entry.label.setIcon(L.divIcon({
-        className: active ? 'cand-label' : 'cand-label past',
-        iconSize: [120, 40],
-        iconAnchor: [60, -3],
-        html: `<span>${active ? `<b>후보 ${entry.items.length}건</b><br>${names}${more}` : `후보 ${entry.items.length}건`}</span>`
-    }));
+    rect.setStyle(active
+        ? { color: BRAND, weight: 3, opacity: 1, fillColor: BRAND, fillOpacity: 0.38 }
+        : { color: BRAND, weight: 1, opacity: 0.35, fillColor: BRAND, fillOpacity: 0.08 });
 }
 
 function markCandidates(code, items) {
     if (activeCandidateCell != null && (activeCandidateCell !== code || !items.length)) {
-        drawCandidateCell(activeCandidateCell, null, false);
+        drawCandidateCell(activeCandidateCell, false);
         activeCandidateCell = null;
     }
     if (!items.length) return;
-    drawCandidateCell(code, items, true);
+    drawCandidateCell(code, true);
     activeCandidateCell = code;
 }
 
 function clearCandidates() {
-    for (const { rect, label } of candidateCells.values()) {
-        rect.remove();
-        label.remove();
-    }
+    for (const rect of candidateCells.values()) rect.remove();
+    rangeLayer.clearLayers();
+    state.bundle = null;
     candidateCells.clear();
     activeCandidateCell = null;
 }
