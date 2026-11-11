@@ -33,6 +33,10 @@ export const deliveryRepository = {
         return result.items;
     },
 
+    async readAllNotifications() {
+        await apiCall('/api/delivery/notifications/read', { ...delivery, method: 'POST' });
+    },
+
     async readNotification(notificationId: number) {
         await apiCall(`/api/delivery/notifications/${notificationId}/read`, { ...delivery, method: 'POST' });
     },

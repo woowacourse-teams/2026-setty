@@ -181,6 +181,23 @@ class DriverNotificationIntegrationTest extends MySqlIntegrationTestSupport {
     }
 
     @Test
+    void 기사가_모두_읽음을_누르면_자기_알림만_읽음이_된다() throws Exception {
+        dispatcher.dispatch(new SettlementConfirmed(ORDER_ID, LISTING_ID, SHARED_ID, 150_000, CONFIRMED_AT));
+        dispatcher.dispatch(driverSettlementConfirmed());
+        dispatcher.dispatch(new DriverSettlementConfirmed(ORDER_ID + 1, SHARED_ID, DELIVERY_FEE, CONFIRMED_AT));
+
+        mockMvc.perform(post("/api/delivery/notifications/read").header(HttpHeaders.AUTHORIZATION, driverBearer()))
+                .andExpect(status().isNoContent());
+
+        assertThat(jdbcTemplate.queryForList(
+                "SELECT CONCAT(owner_type, ':', read_at IS NOT NULL) FROM order_notifications ORDER BY id", String.class))
+                .containsExactly("MEMBER:0", "DRIVER:1", "DRIVER:1");
+        mockMvc.perform(get("/api/delivery/notifications").header(HttpHeaders.AUTHORIZATION, driverBearer()))
+                .andExpect(jsonPath("$.items[0].read").value(true))
+                .andExpect(jsonPath("$.items[1].read").value(true));
+    }
+
+    @Test
     void 기사는_자기_로그인으로_기기_토큰을_등록하고_해제한다() throws Exception {
         mockMvc.perform(put("/api/delivery/device-token").header(HttpHeaders.AUTHORIZATION, driverBearer())
                         .contentType(MediaType.APPLICATION_JSON)

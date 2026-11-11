@@ -5,6 +5,7 @@ import { formatNotifiedAt, type DriverNotification } from '../../model/notificat
 import { routes, useNavigateBack, useNavigateToDriverLogin } from '../../navigation';
 import {
     BackIconButton,
+    Button,
     CenterFill,
     ErrorContent,
     FlexibleTopAppBar,
@@ -27,16 +28,31 @@ export function DriverNotificationsScreen() {
     // 서버 응답을 다시 받기 전에도 누른 알림이 바로 읽음으로 보이게 한다
     const [readIds, setReadIds] = useState<ReadonlySet<number>>(new Set());
     const isRead = (notification: DriverNotification) => notification.read || readIds.has(notification.id);
+    const hasUnread = state.status === 'success' && state.data.some((notification) => !isRead(notification));
 
-    /** 읽음 표시는 실패해도 화면에는 읽음으로 둔다. 다음에 다시 열면 서버 값으로 맞춰진다. */
+    /** 읽음 표시는 실패해도 화면에는 읽음으로 둔다. 다음에 다시 열면 서버 값으로 맞춰진다. 모두 읽음도 같다. */
     const read = (notification: DriverNotification) => {
         if (isRead(notification)) return;
         setReadIds((previous) => new Set(previous).add(notification.id));
         void deliveryRepository.readNotification(notification.id).catch(() => undefined);
     };
 
+    const readAll = () => {
+        if (state.status !== 'success') return;
+        setReadIds(new Set(state.data.map((notification) => notification.id)));
+        void deliveryRepository.readAllNotifications().catch(() => undefined);
+    };
+
     return (
-        <Scaffold topBar={<FlexibleTopAppBar navigation={<BackIconButton onBack={navigateBack} />} title="받은 알림" />}>
+        <Scaffold
+            topBar={(
+                <FlexibleTopAppBar
+                    actions={hasUnread && <Button onClick={readAll} variant="text">모두 읽음</Button>}
+                    navigation={<BackIconButton onBack={navigateBack} />}
+                    title="받은 알림"
+                />
+            )}
+        >
             {state.status === 'loading' && <LoadingContent />}
             {state.status === 'error' && (
                 <ErrorContent isUnauthorized={state.isUnauthorized} message={state.message} onRequireLogin={navigateToDriverLogin} onRetry={load} />

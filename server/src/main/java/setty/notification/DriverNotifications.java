@@ -48,6 +48,10 @@ public class DriverNotifications {
         orderNotificationService.read(NotificationOwner.driver(driverId), notificationId);
     }
 
+    public void readAll(final Long driverId) {
+        orderNotificationService.readAll(NotificationOwner.driver(driverId));
+    }
+
     private static DevicePlatform platformOf(final String platform) {
         return Arrays.stream(DevicePlatform.values())
                 .filter(candidate -> candidate.name().equals(platform))

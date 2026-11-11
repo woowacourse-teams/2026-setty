@@ -53,6 +53,12 @@ public class DriverNotificationController {
         return ResponseEntity.ok(new DriverNotificationsResponse(driverNotifications.findPage(member.getId(), page, size)));
     }
 
+    @PostMapping("/notifications/read")
+    public ResponseEntity<Void> readAll(@LoginDeliveryMember final DeliveryMember member) {
+        driverNotifications.readAll(member.getId());
+        return ResponseEntity.noContent().build();
+    }
+
     @PostMapping("/notifications/{notificationId}/read")
     public ResponseEntity<Void> read(
             @LoginDeliveryMember final DeliveryMember member,
