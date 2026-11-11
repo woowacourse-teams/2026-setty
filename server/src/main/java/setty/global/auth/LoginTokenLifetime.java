@@ -27,4 +27,8 @@ public class LoginTokenLifetime {
     public boolean isExpired(final Instant expiresAt) {
         return expiresAt == null || !clock.instant().isBefore(expiresAt);
     }
+
+    public boolean isPastHalf(final Instant expiresAt) {
+        return !isExpired(expiresAt) && Duration.between(clock.instant(), expiresAt).compareTo(ttl.dividedBy(2)) < 0;
+    }
 }

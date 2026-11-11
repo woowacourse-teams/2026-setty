@@ -54,4 +54,11 @@ public class DeliveryAuthService {
         member.rotateToken(token, loginTokenLifetime.expiresAt());
         return new LoginResult(token);
     }
+
+    @Transactional
+    public void extendTokenInUse(final String token) {
+        deliveryMemberRepository.findByToken(token)
+                .filter(member -> loginTokenLifetime.isPastHalf(member.getTokenExpiresAt()))
+                .ifPresent(member -> member.extendToken(loginTokenLifetime.expiresAt()));
+    }
 }

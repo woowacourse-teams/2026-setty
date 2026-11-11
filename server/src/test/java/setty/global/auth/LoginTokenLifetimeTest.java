@@ -36,4 +36,17 @@ class LoginTokenLifetimeTest {
     void 만료_시각이_없으면_만료다() {
         assertThat(lifetime.isExpired(null)).isTrue();
     }
+
+    @Test
+    void 남은_시간이_수명의_절반보다_적으면_절반을_넘긴_것이다() {
+        assertThat(lifetime.isPastHalf(NOW.plus(TTL.dividedBy(2)).minusNanos(1))).isTrue();
+        assertThat(lifetime.isPastHalf(NOW.plus(TTL.dividedBy(2)))).isFalse();
+        assertThat(lifetime.isPastHalf(NOW.plus(TTL))).isFalse();
+    }
+
+    @Test
+    void 만료됐거나_만료_시각이_없으면_절반을_넘긴_것으로_보지_않는다() {
+        assertThat(lifetime.isPastHalf(NOW)).isFalse();
+        assertThat(lifetime.isPastHalf(null)).isFalse();
+    }
 }

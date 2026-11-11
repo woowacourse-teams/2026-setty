@@ -72,6 +72,10 @@ public class DeliveryMember {
         this.tokenExpiresAt = expiresAt;
     }
 
+    public void extendToken(final Instant expiresAt) {
+        this.tokenExpiresAt = expiresAt;
+    }
+
     public Long getId() {
         return id;
     }
