@@ -63,7 +63,7 @@ class SupportStore {
             Clock clock,
             OrderSupportReader orders,
             int dailyTextLimit) {
-        this(jdbc, manager, json, clock, orders, dailyTextLimit, 30000);
+        this(jdbc, manager, json, clock, orders, dailyTextLimit, 12000);
     }
 
     @Autowired
@@ -74,7 +74,7 @@ class SupportStore {
             Clock clock,
             OrderSupportReader orders,
             @Value("${setty.ai-support.daily-text-limit:50}") int dailyTextLimit,
-            @Value("${setty.ai-support.monthly-text-limit:30000}") int monthlyTextLimit) {
+            @Value("${setty.ai-support.monthly-text-limit:12000}") int monthlyTextLimit) {
         if (monthlyTextLimit < 0)
             throw new IllegalArgumentException("Monthly text limit must not be negative");
         this.monthlyTextLimit = monthlyTextLimit;
