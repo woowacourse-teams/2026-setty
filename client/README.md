@@ -21,6 +21,7 @@ SETTY_API_URL=https://dev.example.com npm run dev
 | :-- | :-- |
 | `SETTY_API_URL` | 개발 서버가 `/api`를 넘길 백엔드 주소. |
 | `SETTY_TOSS_CLIENT_KEY` | 토스페이먼츠 결제위젯 클라이언트 키. 비우면 공개 문서용 테스트 키를 쓴다. |
+| `SETTY_ENABLE_DEMO_FILL` | `true`면 회원가입 화면에 전화번호·행정동·주소를 시연 값으로 채우는 버튼을 보여준다. 부스 시연용. |
 
 ## 화면
 

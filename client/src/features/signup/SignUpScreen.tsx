@@ -2,6 +2,7 @@ import { useState, type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router';
 import { ApiError, NetworkError } from '../../api/http';
 import { userRepository } from '../../api/repositories';
+import { randomDemoContact } from '../../model/demoContact';
 import {
     ADDRESS_MAX_LENGTH,
     digitsOnly,
@@ -93,6 +94,17 @@ function MemberSignUpScreen() {
 
     const update = (patch: Partial<SignUpForm>) => setForm((current) => ({ ...current, ...patch }));
 
+    // 부스 시연에서 가입을 빨리 끝내도록 아이디·비밀번호 밖의 칸을 채운다
+    const fillDemoContact = () => {
+        if (catalog.status !== 'success') return;
+        const contact = randomDemoContact((code) => catalog.data.find(code) !== null);
+        if (contact === null) {
+            showSnackbar('채울 수 있는 시연 주소가 없습니다');
+            return;
+        }
+        update(contact);
+    };
+
     const signUp = async () => {
         if (!canSubmit || form.dongCode === null) return;
         setIsLoading(true);
@@ -164,7 +176,18 @@ function MemberSignUpScreen() {
                     />
                     <div style={{ height: 16 }} />
                 </SignUpSection>
-                <SignUpSection title="거래 정보">
+                <SignUpSection
+                    action={__ENABLE_DEMO_FILL__ && (
+                        <Button
+                            disabled={isLoading || catalog.status !== 'success'}
+                            onClick={fillDemoContact}
+                            variant="text"
+                        >
+                            시연 값 채우기
+                        </Button>
+                    )}
+                    title="거래 정보"
+                >
                     <TextField
                         autoComplete="tel"
                         enterKeyHint="next"
@@ -199,10 +222,11 @@ function MemberSignUpScreen() {
     );
 }
 
-export function SignUpSection({ title, children }: { title: string; children: ReactNode }) {
+export function SignUpSection({ title, action, children }: { title: string; action?: ReactNode; children: ReactNode }) {
+    const heading = <h2 className={`${styles['form-section__title']} type-title-medium-em`}>{title}</h2>;
     return (
         <section className={styles['form-section']}>
-            <h2 className={`${styles['form-section__title']} type-title-medium-em`}>{title}</h2>
+            {action ? <div className={styles['form-section__header']}>{heading}{action}</div> : heading}
             {children}
         </section>
     );

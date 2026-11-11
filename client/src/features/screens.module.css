@@ -23,6 +23,13 @@
     color: var(--primary);
 }
 
+.form-section__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
 .lead {
     margin: 0;
     white-space: pre-line;
