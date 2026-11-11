@@ -45,6 +45,7 @@ class SupportStore {
     private final SupportQuestionStore questions;
     private final SupportRetention retention;
     private final SupportDailyUsage usage;
+    private final int monthlyTextLimit;
 
     SupportStore(
             JdbcTemplate jdbc,
@@ -55,6 +56,16 @@ class SupportStore {
         this(jdbc, manager, json, clock, orders, 50);
     }
 
+    SupportStore(
+            JdbcTemplate jdbc,
+            PlatformTransactionManager manager,
+            ObjectMapper json,
+            Clock clock,
+            OrderSupportReader orders,
+            int dailyTextLimit) {
+        this(jdbc, manager, json, clock, orders, dailyTextLimit, 30000);
+    }
+
     @Autowired
     SupportStore(
             JdbcTemplate jdbc,
@@ -62,7 +73,11 @@ class SupportStore {
             ObjectMapper json,
             Clock clock,
             OrderSupportReader orders,
-            @Value("${setty.ai-support.daily-text-limit:50}") int dailyTextLimit) {
+            @Value("${setty.ai-support.daily-text-limit:50}") int dailyTextLimit,
+            @Value("${setty.ai-support.monthly-text-limit:30000}") int monthlyTextLimit) {
+        if (monthlyTextLimit < 0)
+            throw new IllegalArgumentException("Monthly text limit must not be negative");
+        this.monthlyTextLimit = monthlyTextLimit;
         this.jdbc = jdbc;
         this.tx = new TransactionTemplate(manager);
         this.acceptanceTx = new TransactionTemplate(manager);
@@ -200,7 +215,10 @@ class SupportStore {
                             throw new SupportException(
                                     409, "ORDER_CONFIRMATION_EXPIRED", "현재 확인 질문에 답해주세요.");
                     }
-                    if (request.input().type() == InputKind.TEXT) usage.acceptText(member);
+                    if (request.input().type() == InputKind.TEXT) {
+                        checkMonthlyTextLimit();
+                        usage.acceptText(member);
+                    }
                     Instant now = clock.instant();
                     long turnId =
                             insert(
@@ -229,6 +247,21 @@ class SupportStore {
                             id);
                     return new Acceptance(turn(turnId), true, question(id));
                 });
+    }
+
+    private void checkMonthlyTextLimit() {
+        if (monthlyTextLimit == 0) return;
+        var today = SupportDailyUsage.today(clock);
+        // 잠금 없이 합계를 읽으므로 동시 처리 중인 요청 수만큼 한도를 조금 넘을 수 있다.
+        long total = jdbc.queryForObject(
+                "SELECT COALESCE(SUM(text_turns),0) FROM ai_support_daily_usage"
+                        + " WHERE usage_date BETWEEN ? AND ?",
+                Long.class, today.withDayOfMonth(1), today);
+        if (total >= monthlyTextLimit)
+            throw new SupportException(
+                    429,
+                    "AI_MONTHLY_LIMIT",
+                    "이번 달 상담 사용량을 모두 사용했어요. 버튼 선택과 이전 대화 기록은 계속 이용할 수 있어요.");
     }
 
     private Turn duplicate(long id, SendRequest request) {

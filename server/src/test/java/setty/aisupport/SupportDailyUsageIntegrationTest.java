@@ -153,14 +153,14 @@ class SupportDailyUsageIntegrationTest extends MySqlIntegrationTestSupport {
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
-    @Test void withdrawalAndSevenDayCleanupAreIndependentOfConversationRetention() {
+    @Test void withdrawalAndFortyDayCleanupAreIndependentOfConversationRetention() {
         jdbc.update("INSERT INTO ai_support_daily_usage VALUES(910111,?,50),(910112,?,3),(910112,?,4),(910112,?,5)",
-                TODAY, TODAY.minusDays(8), TODAY.minusDays(7), TODAY.minusDays(6));
+                TODAY, TODAY.minusDays(41), TODAY.minusDays(40), TODAY.minusDays(39));
         store.withdrawn(new MemberWithdrawn(910111L));
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM ai_support_daily_usage WHERE member_id=910111", Integer.class)).isZero();
         store.purgeExpired();
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM ai_support_daily_usage", Integer.class)).isEqualTo(1);
-        assertThat(count(910112, TODAY.minusDays(6))).isEqualTo(5);
+        assertThat(count(910112, TODAY.minusDays(39))).isEqualTo(5);
     }
 
     private int count(long member, LocalDate date) {

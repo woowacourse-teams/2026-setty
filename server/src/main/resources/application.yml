@@ -159,3 +159,4 @@ setty:
     max-concurrent: ${SETTY_AI_SUPPORT_MAX_CONCURRENT:4}
     slot-wait-ms: ${SETTY_AI_SUPPORT_SLOT_WAIT_MS:2000}
     daily-text-limit: ${SETTY_AI_SUPPORT_DAILY_TEXT_LIMIT:50}
+    monthly-text-limit: ${SETTY_AI_SUPPORT_MONTHLY_TEXT_LIMIT:30000}
