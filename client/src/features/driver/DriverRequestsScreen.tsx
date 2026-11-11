@@ -25,6 +25,7 @@ import { DeliveryLoadMore } from './DeliveryLoadMore';
 import { requestPageStore } from './deliveryPageStore';
 import { useDeliveryPage } from './useDeliveryPage';
 import { useDriverLocation } from './useDriverLocation';
+import { DriverNotificationsButton } from './DriverNotificationsButton';
 import styles from './driver.module.css';
 
 /**
@@ -72,11 +73,14 @@ export function DriverRequestsScreen() {
             topBar={(
                 <TopAppBar
                     actions={(
-                        <button aria-label="내 정보" className={styles['profile-button']} onClick={() => navigate(routes.driverMyPage)} type="button">
-                            <span className={styles['profile-button__shape']} style={shapeStyle('cookie9')}>
-                                {profileInitial || <Icon name="accountCircle" size={20} />}
-                            </span>
-                        </button>
+                        <>
+                            <DriverNotificationsButton onClick={() => navigate(routes.driverNotifications)} />
+                            <button aria-label="내 정보" className={styles['profile-button']} onClick={() => navigate(routes.driverMyPage)} type="button">
+                                <span className={styles['profile-button__shape']} style={shapeStyle('cookie9')}>
+                                    {profileInitial || <Icon name="accountCircle" size={20} />}
+                                </span>
+                            </button>
+                        </>
                     )}
                     height={72}
                     subtitle="가까운 가구 배송을 골라 가볍게"
