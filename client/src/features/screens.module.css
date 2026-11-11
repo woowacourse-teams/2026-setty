@@ -30,6 +30,31 @@
     gap: 8px;
 }
 
+/* 부스 시연용 랜덤 값 채우기. 아직 누르지 않았으면 주변으로 퍼지는 링으로 눌러 보게 한다 */
+.random-fill-button {
+    gap: 4px;
+}
+
+.random-fill-button--attention:not(:disabled) {
+    animation: random-fill-pulse 1.6s ease-out infinite;
+}
+
+@keyframes random-fill-pulse {
+    0% {
+        box-shadow: 0 0 0 0 color-mix(in srgb, var(--primary) 45%, transparent);
+    }
+    100% {
+        box-shadow: 0 0 0 10px color-mix(in srgb, var(--primary) 0%, transparent);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .random-fill-button--attention:not(:disabled) {
+        animation: none;
+        box-shadow: 0 0 0 2px var(--primary);
+    }
+}
+
 .lead {
     margin: 0;
     white-space: pre-line;

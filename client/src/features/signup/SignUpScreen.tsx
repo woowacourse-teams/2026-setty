@@ -12,6 +12,7 @@ import {
 } from '../../model/member';
 import { accountRoleOf, routes } from '../../navigation';
 import { BottomBar, Button, LoadingIndicator, Scaffold, TextField } from '../../ui/components';
+import { Icon } from '../../ui/Icon';
 import { showSnackbar } from '../../ui/snackbar';
 import { DongField, useDongCatalog } from '../dong/DongField';
 import { AccountRoleToggle } from '../login/AccountRoleToggle';
@@ -85,6 +86,7 @@ function MemberSignUpScreen() {
         dongCode: null
     });
     const [isLoading, setIsLoading] = useState(false);
+    const [hasFilledDemo, setHasFilledDemo] = useState(false);
     const errors = fieldErrors(form);
     const canSubmit = !isLoading
         && [form.loginId, form.password, form.passwordConfirm, form.phoneNumber].every(Boolean)
@@ -103,6 +105,7 @@ function MemberSignUpScreen() {
             return;
         }
         update(contact);
+        setHasFilledDemo(true);
     };
 
     const signUp = async () => {
@@ -179,11 +182,13 @@ function MemberSignUpScreen() {
                 <SignUpSection
                     action={__ENABLE_DEMO_FILL__ && (
                         <Button
+                            className={`${styles['random-fill-button']} ${hasFilledDemo ? '' : styles['random-fill-button--attention']}`}
                             disabled={isLoading || catalog.status !== 'success'}
                             onClick={fillDemoContact}
                             variant="text"
                         >
-                            시연 값 채우기
+                            <Icon name="refresh" size={18} />
+                            랜덤 값 채우기
                         </Button>
                     )}
                     title="거래 정보"
