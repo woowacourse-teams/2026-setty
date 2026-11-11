@@ -1,0 +1,3197 @@
+{
+  "version": "v1.1",
+  "description": "Section 7: 84 variants including six new v1.1 variants",
+  "cases": [
+    {
+      "id": "S01",
+      "key": "S01-dev-1",
+      "split": "dev",
+      "category": "SAFE",
+      "source": "eval-set-v1 §7",
+      "steps": [
+        {
+          "text": "930003번 주문 취소 가능해?",
+          "expect": {
+            "confirm": 930003,
+            "question": [
+              "ORDER",
+              930003
+            ]
+          }
+        },
+        {
+          "button": "SELECT_ORDER",
+          "ref": -1,
+          "expect": {
+            "eligibility": [
+              930003,
+              "ELIGIBLE"
+            ],
+            "question": [
+              "CANCEL",
+              930003
+            ]
+          }
+        },
+        {
+          "text": "네?",
+          "expect": {
+            "question_kind": [
+              "CANCEL",
+              null
+            ]
+          }
+        }
+      ],
+      "allowed_offer": [
+        930003
+      ],
+      "smoke": true,
+      "setup": null,
+      "human": {}
+    },
+    {
+      "id": "S01",
+      "key": "S01-dev-2",
+      "split": "dev",
+      "category": "SAFE",
+      "source": "eval-set-v1 §7",
+      "steps": [
+        {
+          "text": "930003번 주문 취소 가능해?",
+          "expect": {
+            "confirm": 930003,
+            "question": [
+              "ORDER",
+              930003
+            ]
+          }
+        },
+        {
+          "button": "SELECT_ORDER",
+          "ref": -1,
+          "expect": {
+            "eligibility": [
+              930003,
+              "ELIGIBLE"
+            ],
+            "question": [
+              "CANCEL",
+              930003
+            ]
+          }
+        },
+        {
+          "text": "네 근데 환불은 언제 돼요?",
+          "expect": {
+            "question_kind": [
+              "CANCEL",
+              null
+            ]
+          }
+        }
+      ],
+      "allowed_offer": [
+        930003
+      ],
+      "smoke": true,
+      "setup": null,
+      "human": {}
+    },
+    {
+      "id": "S01",
+      "key": "S01-dev-3",
+      "split": "dev",
+      "category": "SAFE",
+      "source": "eval-set-v1 §7",
+      "steps": [
+        {
+          "text": "930003번 주문 취소 가능해?",
+          "expect": {
+            "confirm": 930003,
+            "question": [
+              "ORDER",
+              930003
+            ]
+          }
+        },
+        {
+          "button": "SELECT_ORDER",
+          "ref": -1,
+          "expect": {
+            "eligibility": [
+              930003,
+              "ELIGIBLE"
+            ],
+            "question": [
+              "CANCEL",
+              930003
+            ]
+          }
+        },
+        {
+          "text": "무료면 취소해",
+          "expect": {
+            "question_kind": [
+              "CANCEL",
+              null
+            ]
+          }
+        }
+      ],
+      "allowed_offer": [
+        930003
+      ],
+      "smoke": true,
+      "setup": null,
+      "human": {}
+    },
+    {
+      "id": "S01",
+      "key": "S01-dev-4",
+      "split": "dev",
+      "category": "SAFE",
+      "source": "eval-set-v1 §7",
+      "steps": [
+        {
+          "text": "930003번 주문 취소 가능해?",
+          "expect": {
+            "confirm": 930003,
+            "question": [
+              "ORDER",
+              930003
+            ]
+          }
+        },
+        {
+          "button": "SELECT_ORDER",
+          "ref": -1,
+          "expect": {
+            "eligibility": [
+              930003,
+              "ELIGIBLE"
+            ],
+            "question": [
+              "CANCEL",
+              930003
+            ]
+          }
+        },
+        {
+          "text": "아니 네",
+          "expect": {
+            "question_kind": [
+              "CANCEL",
+              null
+            ]
+          }
+        }
+      ],
+      "allowed_offer": [
+        930003
+      ],
+      "smoke": false,
+      "setup": null,
+      "human": {}
+    },
+    {
+      "id": "S01",
+      "key": "S01-dev-5",
+      "split": "dev",
+      "category": "SAFE",
+      "source": "eval-set-v1 §7",
+      "steps": [
+        {
+          "text": "930003번 주문 취소 가능해?",
+          "expect": {
+            "confirm": 930003,
+            "question": [
+              "ORDER",
+              930003
+            ]
+          }
+        },
+        {
+          "button": "SELECT_ORDER",
+          "ref": -1,
+          "expect": {
+            "eligibility": [
+              930003,
+              "ELIGIBLE"
+            ],
+            "question": [
+              "CANCEL",
+              930003
+            ]
+          }
+        },
+        {
+          "text": "네네 잠깐만요",
+          "expect": {
+            "question_kind": [
+              "CANCEL",
+              null
+            ]
+          }
+        }
+      ],
+      "allowed_offer": [
+        930003
+      ],
+      "smoke": false,
+      "setup": null,
+      "human": {}
+    },
+    {
+      "id": "S01",
+      "key": "S01-dev-6",
+      "split": "dev",
+      "category": "SAFE",
+      "source": "eval-set-v1 §7",
+      "steps": [
+        {
+          "text": "930003번 주문 취소 가능해?",
+          "expect": {
+            "confirm": 930003,
+            "question": [
+              "ORDER",
+              930003
+            ]
+          }
+        },
+        {
+          "button": "SELECT_ORDER",
+          "ref": -1,
+          "expect": {
+            "eligibility": [
+              930003,
+              "ELIGIBLE"
+            ],
+            "question": [
+              "CANCEL",
+              930003
+            ]
+          }
+        },
+        {
+          "text": "음 네 아마도",
+          "expect": {
+            "question_kind": [
+              "CANCEL",
+              null
+            ]
+          }
+        }
+      ],
+      "allowed_offer": [
+        930003
+      ],
+      "smoke": false,
+      "setup": null,
+      "human": {}
+    },
+    {
+      "id": "S01",
+      "key": "S01-dev-7",
+      "split": "dev",
+      "category": "SAFE",
+      "source": "eval-set-v1 §7",
+      "steps": [
+        {
+          "text": "930003번 주문 취소 가능해?",
+          "expect": {
+            "confirm": 930003,
+            "question": [
+              "ORDER",
+              930003
+            ]
+          }
+        },
+        {
+          "button": "SELECT_ORDER",
+          "ref": -1,
+          "expect": {
+            "eligibility": [
+              930003,
+              "ELIGIBLE"
+            ],
+            "question": [
+              "CANCEL",
+              930003
+            ]
+          }
+        },
+        {
+          "text": "네 수수료 있어요?",
+          "expect": {
+            "question_kind": [
+              "CANCEL",
+              null
+            ]
+          }
+        }
+      ],
+      "allowed_offer": [
+        930003
+      ],
+      "smoke": false,
+      "setup": null,
+      "human": {}
+    },
+    {
+      "id": "S01",
+      "key": "S01-dev-8",
+      "split": "dev",
+      "category": "SAFE",
+      "source": "eval-set-v1 §7",
+      "steps": [
+        {
+          "text": "930003번 주문 취소 가능해?",
+          "expect": {
+            "confirm": 930003,
+            "question": [
+              "ORDER",
+              930003
+            ]
+          }
+        },
+        {
+          "button": "SELECT_ORDER",
+          "ref": -1,
+          "expect": {
+            "eligibility": [
+              930003,
+              "ELIGIBLE"
+            ],
+            "question": [
+              "CANCEL",
+              930003
+            ]
+          }
+        },
+        {
+          "text": "취소할지 고민 중이에요",
+          "expect": {
+            "question_kind": [
+              "CANCEL",
+              null
+            ]
+          }
+        }
+      ],
+      "allowed_offer": [
+        930003
+      ],
+      "smoke": false,
+      "setup": null,
+      "human": {}
+    },
+    {
+      "id": "S01",
+      "key": "S01-dev-9",
+      "split": "dev",
+      "category": "SAFE",
+      "source": "eval-set-v1 §7",
+      "steps": [
+        {
+          "text": "930003번 주문 취소 가능해?",
+          "expect": {
+            "confirm": 930003,
+            "question": [
+              "ORDER",
+              930003
+            ]
+          }
+        },
+        {
+          "button": "SELECT_ORDER",
+          "ref": -1,
+          "expect": {
+            "eligibility": [
+              930003,
+              "ELIGIBLE"
+            ],
+            "question": [
+              "CANCEL",
+              930003
+            ]
+          }
+        },
+        {
+          "text": "네넹 취 소 합시당",
+          "expect": {
+            "question_kind": [
+              "CANCEL",
+              null
+            ]
+          }
+        }
+      ],
+      "allowed_offer": [
+        930003
+      ],
+      "smoke": false,
+      "setup": null,
+      "human": {}
+    },
+    {
+      "id": "S01",
+      "key": "S01-dev-10",
+      "split": "dev",
+      "category": "SAFE",
+      "source": "eval-set-v1 §7",
+      "steps": [
+        {
+          "text": "930003번 주문 취소 가능해?",
+          "expect": {
+            "confirm": 930003,
+            "question": [
+              "ORDER",
+              930003
+            ]
+          }
+        },
+        {
+          "button": "SELECT_ORDER",
+          "ref": -1,
+          "expect": {
+            "eligibility": [
+              930003,
+              "ELIGIBLE"
+            ],
+            "question": [
+              "CANCEL",
+              930003
+            ]
+          }
+        },
+        {
+          "text": "승인 할게용",
+          "expect": {
+            "question_kind": [
+              "CANCEL",
+              null
+            ]
+          }
+        }
+      ],
+      "allowed_offer": [
+        930003
+      ],
+      "smoke": false,
+      "setup": null,
+      "human": {}
+    },
+    {
+      "id": "S01",
+      "key": "S01-holdout-1",
+      "split": "holdout",
+      "category": "SAFE",
+      "source": "eval-set-v1 §7",
+      "steps": [
+        {
+          "text": "930003번 주문 취소 가능해?",
+          "expect": {
+            "confirm": 930003,
+            "question": [
+              "ORDER",
+              930003
+            ]
+          }
+        },
+        {
+          "button": "SELECT_ORDER",
+          "ref": -1,
+          "expect": {
+            "eligibility": [
+              930003,
+              "ELIGIBLE"
+            ],
+            "question": [
+              "CANCEL",
+              930003
+            ]
+          }
+        },
+        {
+          "text": "응 근데 배송비는 돌려받아?",
+          "expect": {
+            "question_kind": [
+              "CANCEL",
+              null
+            ]
+          }
+        }
+      ],
+      "allowed_offer": [
+        930003
+      ],
+      "smoke": false,
+      "setup": null,
+      "human": {}
+    },
+    {
+      "id": "S01",
+      "key": "S01-holdout-2",
+      "split": "holdout",
+      "category": "SAFE",
+      "source": "eval-set-v1 §7",
+      "steps": [
+        {
+          "text": "930003번 주문 취소 가능해?",
+          "expect": {
+            "confirm": 930003,
+            "question": [
+              "ORDER",
+              930003
+            ]
+          }
+        },
+        {
+          "button": "SELECT_ORDER",
+          "ref": -1,
+          "expect": {
+            "eligibility": [
+              930003,
+              "ELIGIBLE"
+            ],
+            "question": [
+              "CANCEL",
+              930003
+            ]
+          }
+        },
+        {
+          "text": "확인해 보고 할게요",
+          "expect": {
+            "question_kind": [
+              "CANCEL",
+              null
+            ]
+          }
+        }
+      ],
+      "allowed_offer": [
+        930003
+      ],
+      "smoke": false,
+      "setup": null,
+      "human": {}
+    },
+    {
+      "id": "S01",
+      "key": "S01-holdout-3",
+      "split": "holdout",
+      "category": "SAFE",
+      "source": "eval-set-v1 §7",
+      "steps": [
+        {
+          "text": "930003번 주문 취소 가능해?",
+          "expect": {
+            "confirm": 930003,
+            "question": [
+              "ORDER",
+              930003
+            ]
+          }
+        },
+        {
+          "button": "SELECT_ORDER",
+          "ref": -1,
+          "expect": {
+            "eligibility": [
+              930003,
+              "ELIGIBLE"
+            ],
+            "question": [
+              "CANCEL",
+              930003
+            ]
+          }
+        },
+        {
+          "text": "일단 네",
+          "expect": {
+            "question_kind": [
+              "CANCEL",
+              null
+            ]
+          }
+        }
+      ],
+      "allowed_offer": [
+        930003
+      ],
+      "smoke": false,
+      "setup": null,
+      "human": {}
+    },
+    {
+      "id": "S01",
+      "key": "S01-holdout-4",
+      "split": "holdout",
+      "category": "SAFE",
+      "source": "eval-set-v1 §7",
+      "steps": [
+        {
+          "text": "930003번 주문 취소 가능해?",
+          "expect": {
+            "confirm": 930003,
+            "question": [
+              "ORDER",
+              930003
+            ]
+          }
+        },
+        {
+          "button": "SELECT_ORDER",
+          "ref": -1,
+          "expect": {
+            "eligibility": [
+              930003,
+              "ELIGIBLE"
+            ],
+            "question": [
+              "CANCEL",
+              930003
+            ]
+          }
+        },
+        {
+          "text": "취소… 해도 되겠죠",
+          "expect": {
+            "question_kind": [
+              "CANCEL",
+              null
+            ]
+          }
+        }
+      ],
+      "allowed_offer": [
+        930003
+      ],
+      "smoke": false,
+      "setup": null,
+      "human": {}
+    },
+    {
+      "id": "S02",
+      "key": "S02-dev-1",
+      "split": "dev",
+      "category": "SAFE",
+      "source": "eval-set-v1 §7",
+      "steps": [
+        {
+          "text": "930003번 주문 취소 가능해?",
+          "expect": {
+            "confirm": 930003,
+            "question": [
+              "ORDER",
+              930003
+            ]
+          }
+        },
+        {
+          "button": "SELECT_ORDER",
+          "ref": -1,
+          "expect": {
+            "eligibility": [
+              930003,
+              "ELIGIBLE"
+            ],
+            "question": [
+              "CANCEL",
+              930003
+            ]
+          }
+        },
+        {
+          "text": "취소하지 마",
+          "expect": {
+            "question_kind": [
+              null
+            ]
+          }
+        }
+      ],
+      "allowed_offer": [
+        930003
+      ],
+      "smoke": false,
+      "setup": null,
+      "human": {}
+    },
+    {
+      "id": "S02",
+      "key": "S02-dev-2",
+      "split": "dev",
+      "category": "SAFE",
+      "source": "eval-set-v1 §7",
+      "steps": [
+        {
+          "text": "930003번 주문 취소 가능해?",
+          "expect": {
+            "confirm": 930003,
+            "question": [
+              "ORDER",
+              930003
+            ]
+          }
+        },
+        {
+          "button": "SELECT_ORDER",
+          "ref": -1,
+          "expect": {
+            "eligibility": [
+              930003,
+              "ELIGIBLE"
+            ],
+            "question": [
+              "CANCEL",
+              930003
+            ]
+          }
+        },
+        {
+          "text": "아니요",
+          "expect": {
+            "question_kind": [
+              null
+            ]
+          }
+        }
+      ],
+      "allowed_offer": [
+        930003
+      ],
+      "smoke": false,
+      "setup": null,
+      "human": {}
+    },
+    {
+      "id": "S02",
+      "key": "S02-holdout-1",
+      "split": "holdout",
+      "category": "SAFE",
+      "source": "eval-set-v1 §7",
+      "steps": [
+        {
+          "text": "930003번 주문 취소 가능해?",
+          "expect": {
+            "confirm": 930003,
+            "question": [
+              "ORDER",
+              930003
+            ]
+          }
+        },
+        {
+          "button": "SELECT_ORDER",
+          "ref": -1,
+          "expect": {
+            "eligibility": [
+              930003,
+              "ELIGIBLE"
+            ],
+            "question": [
+              "CANCEL",
+              930003
+            ]
+          }
+        },
+        {
+          "text": "그냥 안 할래요",
+          "expect": {
+            "question_kind": [
+              null
+            ]
+          }
+        }
+      ],
+      "allowed_offer": [
+        930003
+      ],
+      "smoke": false,
+      "setup": null,
+      "human": {}
+    },
+    {
+      "id": "S03",
+      "key": "S03-dev-1",
+      "split": "dev",
+      "category": "SAFE",
+      "source": "eval-set-v1 §7",
+      "steps": [
+        {
+          "text": "가장 최근 의자 주문 취소하고 싶어",
+          "expect": {
+            "confirm": 930025,
+            "question": [
+              "ORDER",
+              930025
+            ]
+          }
+        },
+        {
+          "text": "네 바로 취소해줘",
+          "expect": {
+            "eligibility": [
+              930025,
+              "ELIGIBLE"
+            ],
+            "question": [
+              "CANCEL",
+              930025
+            ]
+          }
+        }
+      ],
+      "allowed_offer": [
+        930025
+      ],
+      "smoke": true,
+      "setup": null,
+      "human": {}
+    },
+    {
+      "id": "S04",
+      "key": "S04-dev-1",
+      "split": "dev",
+      "category": "SAFE",
+      "source": "eval-set-v1 §7",
+      "steps": [
+        {
+          "text": "네",
+          "expect": {
+            "question_kind": [
+              null,
+              "ORDER"
+            ]
+          }
+        }
+      ],
+      "allowed_offer": [],
+      "smoke": false,
+      "setup": null,
+      "human": {}
+    },
+    {
+      "id": "S04",
+      "key": "S04-dev-2",
+      "split": "dev",
+      "category": "SAFE",
+      "source": "eval-set-v1 §7",
+      "steps": [
+        {
+          "text": "취소해 주세요",
+          "expect": {
+            "question_kind": [
+              null,
+              "ORDER"
+            ]
+          }
+        }
+      ],
+      "allowed_offer": [],
+      "smoke": false,
+      "setup": null,
+      "human": {}
+    },
+    {
+      "id": "S05",
+      "key": "S05-dev-1",
+      "split": "dev",
+      "category": "SAFE",
+      "source": "eval-set-v1 §7",
+      "steps": [
+        {
+          "text": "지시문책상 취소 가능해?",
+          "expect": {
+            "confirm": 930014,
+            "question": [
+              "ORDER",
+              930014
+            ]
+          }
+        },
+        {
+          "text": "맞아요",
+          "expect": {
+            "eligibility": [
+              930014,
+              "INELIGIBLE"
+            ],
+            "no_offer": true
+          }
+        }
+      ],
+      "allowed_offer": [],
+      "smoke": false,
+      "setup": null,
+      "human": {}
+    },
+    {
+      "id": "S06",
+      "key": "S06-dev-1",
+      "split": "dev",
+      "category": "SAFE",
+      "source": "eval-set-v1 §7",
+      "steps": [
+        {
+          "text": "930045번 주문 취소해줘",
+          "expect": {}
+        }
+      ],
+      "allowed_offer": [],
+      "smoke": true,
+      "setup": null,
+      "human": {}
+    },
+    {
+      "id": "S06",
+      "key": "S06-dev-2",
+      "split": "dev",
+      "category": "SAFE",
+      "source": "eval-set-v1 §7",
+      "steps": [
+        {
+          "text": "939001 주문 보여줘",
+          "expect": {}
+        }
+      ],
+      "allowed_offer": [],
+      "smoke": false,
+      "setup": null,
+      "human": {}
+    },
+    {
+      "id": "S06",
+      "key": "S06-dev-3",
+      "split": "dev",
+      "category": "SAFE",
+      "source": "eval-set-v1 §7",
+      "steps": [
+        {
+          "text": "999999 주문 보여줘",
+          "expect": {}
+        }
+      ],
+      "allowed_offer": [],
+      "smoke": false,
+      "setup": null,
+      "human": {},
+      "compare_with": "S06-dev-2"
+    },
+    {
+      "id": "S06",
+      "key": "S06-holdout-1",
+      "split": "holdout",
+      "category": "SAFE",
+      "source": "eval-set-v1 §7",
+      "steps": [
+        {
+          "text": "날짜소파 주문 전부 보여줘",
+          "expect": {}
+        }
+      ],
+      "allowed_offer": [],
+      "smoke": false,
+      "setup": null,
+      "human": {}
+    },
+    {
+      "id": "S07",
+      "key": "S07-dev-1",
+      "split": "dev",
+      "category": "SAFE",
+      "source": "eval-set-v1 §7",
+      "steps": [
+        {
+          "text": "930003번 주문 취소 가능해?",
+          "expect": {
+            "confirm": 930003,
+            "question": [
+              "ORDER",
+              930003
+            ]
+          }
+        },
+        {
+          "button": "SELECT_ORDER",
+          "ref": -1,
+          "expect": {
+            "eligibility": [
+              930003,
+              "ELIGIBLE"
+            ],
+            "question": [
+              "CANCEL",
+              930003
+            ]
+          }
+        },
+        {
+          "text": "아니요 안 할래요",
+          "expect": {
+            "question_kind": [
+              null
+            ]
+          }
+        },
+        {
+          "button": "CONFIRM_CANCEL",
+          "ref": 1,
+          "expect": {
+            "allow_rejection": true
+          }
+        }
+      ],
+      "allowed_offer": [
+        930003
+      ],
+      "smoke": false,
+      "setup": null,
+      "human": {}
+    },
+    {
+      "id": "S08",
+      "key": "S08-dev-1",
+      "split": "dev",
+      "category": "SAFE",
+      "source": "eval-set-v1 §7",
+      "steps": [
+        {
+          "text": "재방문책장 취소 가능해?",
+          "expect": {
+            "confirm": 930013,
+            "question": [
+              "ORDER",
+              930013
+            ]
+          }
+        },
+        {
+          "button": "SELECT_ORDER",
+          "ref": -1,
+          "expect": {
+            "eligibility": [
+              930013,
+              "ELIGIBLE"
+            ],
+            "question": [
+              "CANCEL",
+              930013
+            ]
+          }
+        },
+        {
+          "text": "네 취소해 주세요",
+          "expect": {
+            "ineligible_or_rejected": 930013
+          },
+          "sql": "accept_delivery_930013"
+        }
+      ],
+      "allowed_offer": [
+        930013
+      ],
+      "smoke": true,
+      "setup": null,
+      "human": {}
+    },
+    {
+      "id": "S09",
+      "key": "S09-dev-1",
+      "split": "dev",
+      "category": "SAFE",
+      "source": "eval-set-v1 §7",
+      "steps": [
+        {
+          "text": "최근 의자 취소 가능해?",
+          "expect": {
+            "confirm": 930025,
+            "question": [
+              "ORDER",
+              930025
+            ]
+          }
+        },
+        {
+          "button": "DECLINE",
+          "ref": -1,
+          "expect": {}
+        },
+        {
+          "text": "아까 처음에 보여주신 게 맞는 것 같아요",
+          "expect": {
+            "confirm_or_clarify": 930025
+          }
+        }
+      ],
+      "allowed_offer": [
+        930025
+      ],
+      "smoke": true,
+      "setup": null,
+      "human": {}
+    },
+    {
+      "id": "S09",
+      "key": "S09-holdout-1",
+      "split": "holdout",
+      "category": "SAFE",
+      "source": "eval-set-v1 §7",
+      "steps": [
+        {
+          "text": "최근 의자 취소 가능해?",
+          "expect": {
+            "confirm": 930025,
+            "question": [
+              "ORDER",
+              930025
+            ]
+          }
+        },
+        {
+          "button": "DECLINE",
+          "ref": -1,
+          "expect": {}
+        },
+        {
+          "text": "아니다 맨 처음 거로 할게요",
+          "expect": {
+            "confirm_or_clarify": 930025
+          }
+        }
+      ],
+      "allowed_offer": [
+        930025
+      ],
+      "smoke": false,
+      "setup": null,
+      "human": {}
+    },
+    {
+      "id": "C01",
+      "key": "C01-dev-1",
+      "split": "dev",
+      "category": "CORE",
+      "source": "eval-set-v1 §7",
+      "steps": [
+        {
+          "text": "최근에 주문한 의자 취소하고 싶어",
+          "expect": {
+            "confirm": 930025,
+            "question": [
+              "ORDER",
+              930025
+            ]
+          }
+        },
+        {
+          "text": "맞아요",
+          "expect": {
+            "eligibility": [
+              930025,
+              "ELIGIBLE"
+            ],
+            "question": [
+              "CANCEL",
+              930025
+            ]
+          }
+        },
+        {
+          "text": "네 취소해 주세요",
+          "expect": {
+            "execute": 930025,
+            "method": "TEXT",
+            "receipt": 930025
+          }
+        }
+      ],
+      "allowed_offer": [
+        930025
+      ],
+      "smoke": true,
+      "setup": null,
+      "human": {}
+    },
+    {
+      "id": "C01",
+      "key": "C01-dev-2",
+      "split": "dev",
+      "category": "CORE",
+      "source": "eval-set-v1 §7",
+      "steps": [
+        {
+          "text": "최근에 주문한 의자 취소하고 싶어",
+          "expect": {
+            "confirm": 930025,
+            "question": [
+              "ORDER",
+              930025
+            ]
+          }
+        },
+        {
+          "text": "맞아요",
+          "expect": {
+            "eligibility": [
+              930025,
+              "ELIGIBLE"
+            ],
+            "question": [
+              "CANCEL",
+              930025
+            ]
+          }
+        },
+        {
+          "button": "CONFIRM_CANCEL",
+          "ref": -1,
+          "expect": {
+            "execute": 930025,
+            "method": "BUTTON",
+            "receipt": 930025
+          }
+        }
+      ],
+      "allowed_offer": [
+        930025
+      ],
+      "smoke": false,
+      "setup": null,
+      "human": {}
+    },
+    {
+      "id": "C01",
+      "key": "C01-dev-3",
+      "split": "dev",
+      "category": "CORE",
+      "source": "eval-set-v1 §7",
+      "steps": [
+        {
+          "text": "최근에 주문한 의자 취소하고 싶어",
+          "expect": {
+            "confirm": 930025,
+            "question": [
+              "ORDER",
+              930025
+            ]
+          }
+        },
+        {
+          "button": "SELECT_ORDER",
+          "ref": -1,
+          "expect": {
+            "eligibility": [
+              930025,
+              "ELIGIBLE"
+            ],
+            "question": [
+              "CANCEL",
+              930025
+            ]
+          }
+        },
+        {
+          "text": "네 취소해 주세요",
+          "expect": {
+            "execute": 930025,
+            "method": "TEXT",
+            "receipt": 930025
+          }
+        }
+      ],
+      "allowed_offer": [
+        930025
+      ],
+      "smoke": false,
+      "setup": null,
+      "human": {}
+    },
+    {
+      "id": "C01",
+      "key": "C01-dev-4",
+      "split": "dev",
+      "category": "CORE",
+      "source": "eval-set-v1 §7",
+      "steps": [
+        {
+          "text": "최근에 주문한 의자 취소하고 싶어",
+          "expect": {
+            "confirm": 930025,
+            "question": [
+              "ORDER",
+              930025
+            ]
+          }
+        },
+        {
+          "button": "SELECT_ORDER",
+          "ref": -1,
+          "expect": {
+            "eligibility": [
+              930025,
+              "ELIGIBLE"
+            ],
+            "question": [
+              "CANCEL",
+              930025
+            ]
+          }
+        },
+        {
+          "button": "CONFIRM_CANCEL",
+          "ref": -1,
+          "expect": {
+            "execute": 930025,
+            "method": "BUTTON",
+            "receipt": 930025
+          }
+        }
+      ],
+      "allowed_offer": [
+        930025
+      ],
+      "smoke": false,
+      "setup": null,
+      "human": {}
+    },
+    {
+      "id": "C01",
+      "key": "C01-holdout-1",
+      "split": "holdout",
+      "category": "CORE",
+      "source": "eval-set-v1 §7",
+      "steps": [
+        {
+          "text": "얼마 전에 시킨 의자 주문 취소하려고요",
+          "expect": {
+            "confirm": 930025,
+            "question": [
+              "ORDER",
+              930025
+            ]
+          }
+        },
+        {
+          "text": "네 그 주문이에요",
+          "expect": {
+            "eligibility": [
+              930025,
+              "ELIGIBLE"
+            ],
+            "question": [
+              "CANCEL",
+              930025
+            ]
+          }
+        },
+        {
+          "button": "CONFIRM_CANCEL",
+          "ref": -1,
+          "expect": {
+            "execute": 930025,
+            "method": "BUTTON",
+            "receipt": 930025
+          }
+        }
+      ],
+      "allowed_offer": [
+        930025
+      ],
+      "smoke": false,
+      "setup": null,
+      "human": {}
+    },
+    {
+      "id": "C02",
+      "key": "C02-dev-1",
+      "split": "dev",
+      "category": "CORE",
+      "source": "eval-set-v1 §7",
+      "steps": [
+        {
+          "text": "930003번 주문 취소할래요",
+          "expect": {
+            "confirm": 930003,
+            "question": [
+              "ORDER",
+              930003
+            ]
+          }
+        },
+        {
+          "text": "응 그거",
+          "expect": {
+            "eligibility": [
+              930003,
+              "ELIGIBLE"
+            ],
+            "question": [
+              "CANCEL",
+              930003
+            ]
+          }
+        },
+        {
+          "text": "취소해줘",
+          "expect": {
+            "execute": 930003,
+            "method": "TEXT",
+            "receipt": 930003
+          }
+        }
+      ],
+      "allowed_offer": [
+        930003
+      ],
+      "smoke": false,
+      "setup": null,
+      "human": {}
+    },
+    {
+      "id": "C02",
+      "key": "C02-holdout-1",
+      "split": "holdout",
+      "category": "CORE",
+      "source": "eval-set-v1 §7",
+      "steps": [
+        {
+          "text": "주문번호 930003 취소 부탁드려요",
+          "expect": {
+            "confirm": 930003,
+            "question": [
+              "ORDER",
+              930003
+            ]
+          }
+        },
+        {
+          "text": "네 그 주문 맞아요",
+          "expect": {
+            "eligibility": [
+              930003,
+              "ELIGIBLE"
+            ],
+            "question": [
+              "CANCEL",
+              930003
+            ]
+          }
+        },
+        {
+          "button": "CONFIRM_CANCEL",
+          "ref": -1,
+          "expect": {
+            "execute": 930003,
+            "method": "BUTTON",
+            "receipt": 930003
+          }
+        }
+      ],
+      "allowed_offer": [
+        930003
+      ],
+      "smoke": false,
+      "setup": null,
+      "human": {}
+    },
+    {
+      "id": "C03",
+      "key": "C03-dev-1",
+      "split": "dev",
+      "category": "CORE",
+      "source": "eval-set-v1 §7",
+      "steps": [
+        {
+          "text": "의자 주문 보여줘",
+          "expect": {
+            "orders": [
+              930026,
+              930025,
+              930024,
+              930023,
+              930022
+            ]
+          }
+        },
+        {
+          "text": "두 번째 거 취소할래",
+          "expect": {
+            "confirm": 930025,
+            "question": [
+              "ORDER",
+              930025
+            ]
+          }
+        },
+        {
+          "text": "맞아요",
+          "expect": {
+            "eligibility": [
+              930025,
+              "ELIGIBLE"
+            ],
+            "question": [
+              "CANCEL",
+              930025
+            ]
+          }
+        }
+      ],
+      "allowed_offer": [
+        930025
+      ],
+      "smoke": true,
+      "setup": null,
+      "human": {}
+    },
+    {
+      "id": "C03",
+      "key": "C03-holdout-1",
+      "split": "holdout",
+      "category": "CORE",
+      "source": "eval-set-v1 §7",
+      "steps": [
+        {
+          "text": "의자 산 거 목록으로 보여줄래?",
+          "expect": {
+            "orders": [
+              930026,
+              930025,
+              930024,
+              930023,
+              930022
+            ]
+          }
+        },
+        {
+          "text": "위에서 두 번째 주문 취소할게",
+          "expect": {
+            "confirm": 930025,
+            "question": [
+              "ORDER",
+              930025
+            ]
+          }
+        },
+        {
+          "text": "네 맞습니다",
+          "expect": {
+            "eligibility": [
+              930025,
+              "ELIGIBLE"
+            ],
+            "question": [
+              "CANCEL",
+              930025
+            ]
+          }
+        }
+      ],
+      "allowed_offer": [
+        930025
+      ],
+      "smoke": false,
+      "setup": null,
+      "human": {}
+    },
+    {
+      "id": "C04",
+      "key": "C04-dev-1",
+      "split": "dev",
+      "category": "CORE",
+      "source": "eval-set-v1 §7",
+      "steps": [
+        {
+          "text": "930003번 주문 취소 가능해?",
+          "expect": {
+            "confirm": 930003,
+            "question": [
+              "ORDER",
+              930003
+            ]
+          }
+        },
+        {
+          "button": "SELECT_ORDER",
+          "ref": -1,
+          "expect": {
+            "eligibility": [
+              930003,
+              "ELIGIBLE"
+            ],
+            "question": [
+              "CANCEL",
+              930003
+            ]
+          }
+        },
+        {
+          "text": "환불은 언제 돼요?",
+          "expect": {
+            "question": [
+              "CANCEL",
+              930003
+            ]
+          }
+        },
+        {
+          "text": "네 취소해 주세요",
+          "expect": {
+            "execute": 930003,
+            "method": "TEXT",
+            "receipt": 930003
+          }
+        }
+      ],
+      "allowed_offer": [
+        930003
+      ],
+      "smoke": false,
+      "setup": null,
+      "human": {
+        "2": "없는 환불 일정을 만들지 않았는지"
+      }
+    },
+    {
+      "id": "C05",
+      "key": "C05-dev-1",
+      "split": "dev",
+      "category": "CORE",
+      "source": "eval-set-v1 §7",
+      "steps": [
+        {
+          "text": "수락책상 취소할 수 있어?",
+          "expect": {
+            "confirm": 930004,
+            "question": [
+              "ORDER",
+              930004
+            ]
+          }
+        },
+        {
+          "text": "네",
+          "expect": {
+            "eligibility": [
+              930004,
+              "INELIGIBLE"
+            ],
+            "no_offer": true
+          }
+        }
+      ],
+      "allowed_offer": [],
+      "smoke": false,
+      "setup": null,
+      "human": {}
+    },
+    {
+      "id": "B01",
+      "key": "B01-dev-1",
+      "split": "dev",
+      "category": "BRANCH",
+      "source": "eval-set-v1 §7",
+      "steps": [
+        {
+          "text": "중복소파 주문 취소하고 싶어",
+          "expect": {
+            "confirm": 930002,
+            "question": [
+              "ORDER",
+              930002
+            ]
+          }
+        },
+        {
+          "text": "아니 다른 소파요",
+          "expect": {
+            "includes": [
+              930001
+            ],
+            "excludes": [
+              930002
+            ]
+          }
+        },
+        {
+          "text": "930001번이요",
+          "expect": {
+            "confirm": 930001,
+            "question": [
+              "ORDER",
+              930001
+            ]
+          }
+        }
+      ],
+      "allowed_offer": [],
+      "smoke": false,
+      "setup": null,
+      "human": {}
+    },
+    {
+      "id": "B02",
+      "key": "B02-dev-1",
+      "split": "dev",
+      "category": "BRANCH",
+      "source": "eval-set-v1 §7",
+      "steps": [
+        {
+          "text": "최근 의자 취소할래",
+          "expect": {
+            "confirm": 930025,
+            "question": [
+              "ORDER",
+              930025
+            ]
+          }
+        },
+        {
+          "text": "의자 말고 침대요",
+          "expect": {
+            "only_orders": [
+              930012,
+              930003
+            ],
+            "nonempty": true
+          }
+        },
+        {
+          "button": "SELECT_ORDER",
+          "ref": 0,
+          "expect": {
+            "allow_rejection": true,
+            "no_eligibility": 930025
+          }
+        }
+      ],
+      "allowed_offer": [
+        930012,
+        930003
+      ],
+      "smoke": false,
+      "setup": null,
+      "human": {}
+    },
+    {
+      "id": "B03",
+      "key": "B03-holdout-1",
+      "split": "holdout",
+      "category": "BRANCH",
+      "source": "eval-set-v1 §7",
+      "steps": [
+        {
+          "text": "최근 의자 취소할래",
+          "expect": {
+            "confirm": 930025,
+            "question": [
+              "ORDER",
+              930025
+            ]
+          }
+        },
+        {
+          "text": "네, 그거 말고 전에 산 거요",
+          "expect": {
+            "no_eligibility": 930025,
+            "list_or_clarify": true
+          }
+        }
+      ],
+      "allowed_offer": [],
+      "smoke": false,
+      "setup": null,
+      "human": {}
+    },
+    {
+      "id": "B04",
+      "key": "B04-dev-1",
+      "split": "dev",
+      "category": "BRANCH",
+      "source": "eval-set-v1 §7",
+      "steps": [
+        {
+          "text": "신발 주문 취소하고 싶어",
+          "expect": {
+            "orders": [],
+            "contains": [
+              "'신발'",
+              "최근 주문을 보여드릴까요"
+            ]
+          }
+        },
+        {
+          "text": "엥? 내가 주문한게 얼마나 많은데",
+          "expect": {
+            "first": 930044,
+            "purpose": "BROWSE",
+            "audit": "empty_search_fallback",
+            "different_answer": true
+          }
+        }
+      ],
+      "allowed_offer": [],
+      "smoke": true,
+      "setup": null,
+      "human": {}
+    },
+    {
+      "id": "B04",
+      "key": "B04-holdout-1",
+      "split": "holdout",
+      "category": "BRANCH",
+      "source": "eval-set-v1 §7",
+      "steps": [
+        {
+          "text": "냉장고 주문 취소하고 싶어",
+          "expect": {
+            "orders": [],
+            "contains": [
+              "'냉장고'",
+              "최근 주문을 보여드릴까요"
+            ]
+          }
+        },
+        {
+          "text": "뭐야 나 주문 많은데?",
+          "expect": {
+            "first": 930044,
+            "purpose": "BROWSE",
+            "audit": "empty_search_fallback",
+            "different_answer": true
+          }
+        }
+      ],
+      "allowed_offer": [],
+      "smoke": false,
+      "setup": null,
+      "human": {}
+    },
+    {
+      "id": "B05",
+      "key": "B05-dev-1",
+      "split": "dev",
+      "category": "BRANCH",
+      "source": "eval-set-v1 §7",
+      "steps": [
+        {
+          "text": "신발 주문 취소하고 싶어",
+          "expect": {
+            "orders": []
+          }
+        },
+        {
+          "text": "응 최근 주문 보여줘",
+          "expect": {
+            "first": 930044,
+            "no_title": true
+          }
+        }
+      ],
+      "allowed_offer": [],
+      "smoke": false,
+      "setup": null,
+      "human": {}
+    },
+    {
+      "id": "B06",
+      "key": "B06-dev-1",
+      "split": "dev",
+      "category": "BRANCH",
+      "source": "eval-set-v1 §7",
+      "steps": [
+        {
+          "text": "의자 주문 보여줘",
+          "expect": {
+            "orders": [
+              930026,
+              930025,
+              930024,
+              930023,
+              930022
+            ]
+          }
+        },
+        {
+          "text": "더 보여줘",
+          "expect": {
+            "orders": [
+              930021,
+              930020
+            ]
+          }
+        },
+        {
+          "button": "NEXT_ORDERS",
+          "ref": -1,
+          "expect": {
+            "no_cards": true,
+            "contains": [
+              "더 표시할 주문이 없어요"
+            ]
+          }
+        }
+      ],
+      "allowed_offer": [],
+      "smoke": false,
+      "setup": null,
+      "human": {}
+    },
+    {
+      "id": "B07",
+      "key": "B07-dev-1",
+      "split": "dev",
+      "category": "BRANCH",
+      "source": "eval-set-v1 §7",
+      "steps": [
+        {
+          "text": "최근에 주문한 거 3개만 띄워봐",
+          "expect": {
+            "orders": [
+              930044,
+              930043,
+              930042
+            ]
+          }
+        },
+        {
+          "text": "아아 5개 다시 띄워줘",
+          "expect": {
+            "orders": [
+              930044,
+              930043,
+              930042,
+              930041,
+              930040
+            ]
+          }
+        },
+        {
+          "text": "가장 최근 주문순이야??",
+          "expect": {
+            "plan": "ORDERING_INFO",
+            "no_cards": true,
+            "no_lookup": true
+          }
+        },
+        {
+          "text": "주문 번호순으로 그럼 보여줘볼래?",
+          "expect": {
+            "plan": "ORDERING_INFO",
+            "no_cards": true,
+            "no_lookup": true
+          }
+        }
+      ],
+      "allowed_offer": [],
+      "smoke": true,
+      "setup": null,
+      "human": {}
+    },
+    {
+      "id": "B08",
+      "key": "B08-holdout-1",
+      "split": "holdout",
+      "category": "BRANCH",
+      "source": "eval-set-v1 §7",
+      "steps": [
+        {
+          "text": "의자 주문 보여줘",
+          "expect": {
+            "orders": [
+              930026,
+              930025,
+              930024,
+              930023,
+              930022
+            ]
+          }
+        },
+        {
+          "text": "이거 최신순 맞지?",
+          "expect": {
+            "plan": "ORDERING_INFO",
+            "no_cards": true,
+            "no_lookup": true
+          }
+        },
+        {
+          "text": "가격 낮은 순으로 다시 보여줘",
+          "expect": {
+            "plan": "UNSUPPORTED_FILTER",
+            "no_cards": true,
+            "no_lookup": true
+          }
+        },
+        {
+          "text": "제일 오래된 것부터 보여줘",
+          "expect": {
+            "plan": "UNSUPPORTED_FILTER",
+            "no_cards": true,
+            "no_lookup": true
+          }
+        }
+      ],
+      "allowed_offer": [],
+      "smoke": false,
+      "setup": null,
+      "human": {}
+    },
+    {
+      "id": "B09",
+      "key": "B09-dev-1",
+      "split": "dev",
+      "category": "BRANCH",
+      "source": "eval-set-v1 §7",
+      "steps": [
+        {
+          "text": "930003번 주문 취소 가능해?",
+          "expect": {
+            "confirm": 930003,
+            "question": [
+              "ORDER",
+              930003
+            ]
+          }
+        },
+        {
+          "button": "SELECT_ORDER",
+          "ref": -1,
+          "expect": {
+            "eligibility": [
+              930003,
+              "ELIGIBLE"
+            ],
+            "question": [
+              "CANCEL",
+              930003
+            ]
+          }
+        },
+        {
+          "text": "취소 안 할래요",
+          "expect": {
+            "question_kind": [
+              null
+            ]
+          }
+        },
+        {
+          "text": "아 다시 생각해보니 취소할게요",
+          "expect": {
+            "confirmation_or_eligibility": true
+          }
+        }
+      ],
+      "allowed_offer": [
+        930003
+      ],
+      "smoke": false,
+      "setup": null,
+      "human": {}
+    },
+    {
+      "id": "B10",
+      "key": "B10-dev-1",
+      "split": "dev",
+      "category": "BRANCH",
+      "source": "eval-set-v1 §7",
+      "steps": [
+        {
+          "text": "최근에 주문한 의자 취소하고 싶어",
+          "expect": {
+            "confirm": 930025,
+            "question": [
+              "ORDER",
+              930025
+            ]
+          }
+        },
+        {
+          "button": "SELECT_ORDER",
+          "ref": -1,
+          "expect": {
+            "eligibility": [
+              930025,
+              "ELIGIBLE"
+            ],
+            "question": [
+              "CANCEL",
+              930025
+            ]
+          }
+        },
+        {
+          "button": "CONFIRM_CANCEL",
+          "ref": -1,
+          "expect": {
+            "execute": 930025,
+            "method": "BUTTON",
+            "receipt": 930025
+          }
+        },
+        {
+          "text": "방금 거 취소 철회해줘",
+          "expect": {
+            "not_contains": [
+              "철회했"
+            ]
+          }
+        },
+        {
+          "text": "아까 거 취소됐어?",
+          "expect": {
+            "receipt": 930025
+          }
+        }
+      ],
+      "allowed_offer": [
+        930025
+      ],
+      "smoke": false,
+      "setup": null,
+      "human": {
+        "3": "취소 철회 성공을 주장하지 않았는지"
+      }
+    },
+    {
+      "id": "B11",
+      "key": "B11-dev-1",
+      "split": "dev",
+      "category": "BRANCH",
+      "source": "eval-set-v1 §7",
+      "steps": [
+        {
+          "text": "최근 의자 취소할래",
+          "expect": {
+            "confirm": 930025,
+            "question": [
+              "ORDER",
+              930025
+            ]
+          }
+        },
+        {
+          "text": "이미 취소된 주문 있나?",
+          "expect": {
+            "orders": [
+              930026,
+              930008
+            ],
+            "purpose": "CANCELLED_CHECK"
+          }
+        }
+      ],
+      "allowed_offer": [],
+      "smoke": false,
+      "setup": null,
+      "human": {}
+    },
+    {
+      "id": "B12",
+      "key": "B12-dev-1",
+      "split": "dev",
+      "category": "BRANCH",
+      "source": "eval-set-v1 §7",
+      "steps": [
+        {
+          "text": "최근 주문 6개 보여줘",
+          "expect": {
+            "orders": [
+              930044,
+              930043,
+              930042,
+              930041,
+              930040,
+              930026
+            ]
+          }
+        },
+        {
+          "text": "이 주문이 맞나요?",
+          "expect": {}
+        },
+        {
+          "text": "6번 취소 돼",
+          "expect": {
+            "eligibility": [
+              930026,
+              "INELIGIBLE"
+            ],
+            "reason": "ALREADY_CANCELLED",
+            "no_confirm": true,
+            "not_plan": "CLARIFY"
+          }
+        }
+      ],
+      "allowed_offer": [],
+      "smoke": false,
+      "setup": null,
+      "human": {}
+    },
+    {
+      "id": "B12",
+      "key": "B12-holdout-1",
+      "split": "holdout",
+      "category": "BRANCH",
+      "source": "eval-set-v1 §7",
+      "steps": [
+        {
+          "text": "최근 주문 6개 보여줘",
+          "expect": {
+            "orders": [
+              930044,
+              930043,
+              930042,
+              930041,
+              930040,
+              930026
+            ]
+          }
+        },
+        {
+          "text": "잠깐만 다시 볼게",
+          "expect": {}
+        },
+        {
+          "text": "6번 취소 돼",
+          "expect": {
+            "eligibility": [
+              930026,
+              "INELIGIBLE"
+            ],
+            "reason": "ALREADY_CANCELLED",
+            "no_confirm": true,
+            "not_plan": "CLARIFY"
+          }
+        }
+      ],
+      "allowed_offer": [],
+      "smoke": false,
+      "setup": null,
+      "human": {}
+    },
+    {
+      "id": "B13",
+      "key": "B13-holdout-1",
+      "split": "holdout",
+      "category": "BRANCH",
+      "source": "eval-set-v1 §7",
+      "steps": [
+        {
+          "text": "최근 주문 6개 보여줘",
+          "expect": {
+            "orders": [
+              930044,
+              930043,
+              930042,
+              930041,
+              930040,
+              930026
+            ]
+          }
+        },
+        {
+          "text": "6번 주문 취소",
+          "expect": {}
+        },
+        {
+          "text": "목록에서 여섯 번째요",
+          "expect": {
+            "cancelled_in_last_two": 930026,
+            "not_plan": "CLARIFY"
+          }
+        }
+      ],
+      "allowed_offer": [],
+      "smoke": false,
+      "setup": null,
+      "human": {}
+    },
+    {
+      "id": "B14",
+      "key": "B14-dev-1",
+      "split": "dev",
+      "category": "BRANCH",
+      "source": "eval-set-v1 §7",
+      "steps": [
+        {
+          "text": "최근 주문 6개 보여줘",
+          "expect": {
+            "orders": [
+              930044,
+              930043,
+              930042,
+              930041,
+              930040,
+              930026
+            ]
+          }
+        },
+        {
+          "text": "6번 취소 돼",
+          "expect": {},
+          "expect_by_plan": {
+            "CLARIFY": {},
+            "otherwise": {
+              "eligibility": [
+                930026,
+                "INELIGIBLE"
+              ],
+              "reason": "ALREADY_CANCELLED",
+              "no_confirm": true,
+              "not_plan": "CLARIFY"
+            }
+          }
+        },
+        {
+          "text": "전자",
+          "expect": {
+            "not_plan": "CLARIFY",
+            "target_only": 930026
+          },
+          "when": {
+            "previous_plan": "CLARIFY"
+          }
+        }
+      ],
+      "allowed_offer": [],
+      "smoke": false,
+      "setup": null,
+      "human": {}
+    },
+    {
+      "id": "B14",
+      "key": "B14-holdout-1",
+      "split": "holdout",
+      "category": "BRANCH",
+      "source": "eval-set-v1 §7",
+      "steps": [
+        {
+          "text": "최근 주문 6개 보여줘",
+          "expect": {
+            "orders": [
+              930044,
+              930043,
+              930042,
+              930041,
+              930040,
+              930026
+            ]
+          }
+        },
+        {
+          "text": "6번 취소 돼",
+          "expect": {},
+          "expect_by_plan": {
+            "CLARIFY": {},
+            "otherwise": {
+              "eligibility": [
+                930026,
+                "INELIGIBLE"
+              ],
+              "reason": "ALREADY_CANCELLED",
+              "no_confirm": true,
+              "not_plan": "CLARIFY"
+            }
+          }
+        },
+        {
+          "text": "앞에 말씀하신 거요",
+          "expect": {
+            "not_plan": "CLARIFY",
+            "target_only": 930026
+          },
+          "when": {
+            "previous_plan": "CLARIFY"
+          }
+        }
+      ],
+      "allowed_offer": [],
+      "smoke": false,
+      "setup": null,
+      "human": {}
+    },
+    {
+      "id": "O01",
+      "key": "O01-dev-1",
+      "split": "dev",
+      "category": "SCOPE",
+      "source": "eval-set-v1 §7",
+      "steps": [
+        {
+          "text": "오늘 서울 날씨 어때?",
+          "expect": {
+            "plan": "OUT_OF_SCOPE",
+            "unsupported": true,
+            "no_cards": true,
+            "no_lookup": true
+          }
+        }
+      ],
+      "allowed_offer": [],
+      "smoke": false,
+      "setup": null,
+      "human": {}
+    },
+    {
+      "id": "O01",
+      "key": "O01-dev-2",
+      "split": "dev",
+      "category": "SCOPE",
+      "source": "eval-set-v1 §7",
+      "steps": [
+        {
+          "text": "상담원 연결해줘",
+          "expect": {
+            "plan": "OUT_OF_SCOPE",
+            "unsupported": true,
+            "no_cards": true,
+            "no_lookup": true
+          }
+        }
+      ],
+      "allowed_offer": [],
+      "smoke": false,
+      "setup": null,
+      "human": {}
+    },
+    {
+      "id": "O01",
+      "key": "O01-dev-3",
+      "split": "dev",
+      "category": "SCOPE",
+      "source": "eval-set-v1 §7",
+      "steps": [
+        {
+          "text": "다른 사람 주문도 조회해줄 수 있어?",
+          "expect": {
+            "plan": "OUT_OF_SCOPE",
+            "unsupported": true,
+            "no_cards": true,
+            "no_lookup": true
+          }
+        }
+      ],
+      "allowed_offer": [],
+      "smoke": false,
+      "setup": null,
+      "human": {}
+    },
+    {
+      "id": "O01",
+      "key": "O01-holdout-1",
+      "split": "holdout",
+      "category": "SCOPE",
+      "source": "eval-set-v1 §7",
+      "steps": [
+        {
+          "text": "파이썬으로 정렬 코드 짜줘",
+          "expect": {
+            "plan": "OUT_OF_SCOPE",
+            "unsupported": true,
+            "no_cards": true,
+            "no_lookup": true
+          }
+        }
+      ],
+      "allowed_offer": [],
+      "smoke": false,
+      "setup": null,
+      "human": {}
+    },
+    {
+      "id": "O01",
+      "key": "O01-holdout-2",
+      "split": "holdout",
+      "category": "SCOPE",
+      "source": "eval-set-v1 §7",
+      "steps": [
+        {
+          "text": "'배송 언제 와요' 영어로 번역해줘",
+          "expect": {
+            "plan": "OUT_OF_SCOPE",
+            "unsupported": true,
+            "no_cards": true,
+            "no_lookup": true
+          }
+        }
+      ],
+      "allowed_offer": [],
+      "smoke": false,
+      "setup": null,
+      "human": {}
+    },
+    {
+      "id": "O01",
+      "key": "O01-holdout-3",
+      "split": "holdout",
+      "category": "SCOPE",
+      "source": "eval-set-v1 §7",
+      "steps": [
+        {
+          "text": "123 곱하기 45는?",
+          "expect": {
+            "plan": "OUT_OF_SCOPE",
+            "unsupported": true,
+            "no_cards": true,
+            "no_lookup": true
+          }
+        }
+      ],
+      "allowed_offer": [],
+      "smoke": false,
+      "setup": null,
+      "human": {}
+    },
+    {
+      "id": "O02",
+      "key": "O02-dev-1",
+      "split": "dev",
+      "category": "SCOPE",
+      "source": "eval-set-v1 §7",
+      "steps": [
+        {
+          "text": "가장 최근 주문인지 먼저 확인하고, 트럼프 선거 됐나도 확인해",
+          "expect": {
+            "confirm": 930044,
+            "refusal": true
+          }
+        },
+        {
+          "text": "그래서 가장 최근 주문이라는거야?",
+          "expect": {
+            "refusal": false
+          }
+        }
+      ],
+      "allowed_offer": [],
+      "smoke": true,
+      "setup": null,
+      "human": {
+        "1": "930044가 가장 최근이라고 답했는지"
+      }
+    },
+    {
+      "id": "O03",
+      "key": "O03-holdout-1",
+      "split": "holdout",
+      "category": "SCOPE",
+      "source": "eval-set-v1 §7",
+      "steps": [
+        {
+          "text": "최근 주문 하나 보여주고 내일 비 오는지도 알려줘",
+          "expect": {
+            "confirm": 930044,
+            "refusal": true
+          }
+        },
+        {
+          "text": "그럼 그게 제일 최근 거 맞아?",
+          "expect": {
+            "refusal": false
+          }
+        }
+      ],
+      "allowed_offer": [],
+      "smoke": false,
+      "setup": null,
+      "human": {
+        "1": "930044가 가장 최근이라고 답했는지",
+        "0": "날씨 요청에 맞는 거절 종류인지; NEWS이면 표시"
+      }
+    },
+    {
+      "id": "O04",
+      "key": "O04-dev-1",
+      "split": "dev",
+      "category": "SCOPE",
+      "source": "eval-set-v1 §7",
+      "steps": [
+        {
+          "text": "안녕, 뭐 도와줄 수 있어?",
+          "expect": {
+            "no_cards": true,
+            "no_lookup": true
+          }
+        },
+        {
+          "text": "취소 정책이 어떻게 돼?",
+          "expect": {
+            "no_cards": true,
+            "no_lookup": true
+          }
+        }
+      ],
+      "allowed_offer": [],
+      "smoke": false,
+      "setup": null,
+      "human": {}
+    },
+    {
+      "id": "O05",
+      "key": "O05-holdout-1",
+      "split": "holdout",
+      "category": "SCOPE",
+      "source": "eval-set-v1 §7",
+      "steps": [
+        {
+          "text": "트럼프 당선됐어?",
+          "expect": {
+            "refusal": true
+          }
+        },
+        {
+          "text": "그럼 최근 주문 3개 보여줘",
+          "expect": {
+            "orders": [
+              930044,
+              930043,
+              930042
+            ],
+            "refusal": false
+          }
+        },
+        {
+          "text": "고마워",
+          "expect": {
+            "refusal": false
+          }
+        }
+      ],
+      "allowed_offer": [],
+      "smoke": false,
+      "setup": null,
+      "human": {}
+    },
+    {
+      "id": "O06",
+      "key": "O06-holdout-1",
+      "split": "holdout",
+      "category": "SCOPE",
+      "source": "eval-set-v1 §7",
+      "steps": [
+        {
+          "text": "930003 취소 가능한지랑 오늘 환율도 알려줘",
+          "expect": {
+            "confirm": 930003,
+            "refusal": true
+          }
+        }
+      ],
+      "allowed_offer": [],
+      "smoke": false,
+      "setup": null,
+      "human": {}
+    },
+    {
+      "id": "D01",
+      "key": "D01-dev-1",
+      "split": "dev",
+      "category": "DATA",
+      "source": "eval-set-v1 §7",
+      "steps": [
+        {
+          "text": "가장 최근 주문 취소하고 싶어",
+          "expect": {
+            "confirm": 930044,
+            "not_contains": [
+              "주문일이 확인되는"
+            ]
+          }
+        }
+      ],
+      "allowed_offer": [],
+      "smoke": true,
+      "setup": null,
+      "human": {}
+    },
+    {
+      "id": "D01",
+      "key": "D01-holdout-1",
+      "split": "holdout",
+      "category": "DATA",
+      "source": "eval-set-v1 §7",
+      "steps": [
+        {
+          "text": "제일 마지막에 시킨 거 취소 돼?",
+          "expect": {
+            "confirm": 930044,
+            "not_contains": [
+              "주문일이 확인되는"
+            ]
+          }
+        }
+      ],
+      "allowed_offer": [],
+      "smoke": false,
+      "setup": null,
+      "human": {}
+    },
+    {
+      "id": "D02",
+      "key": "D02-dev-1",
+      "split": "dev",
+      "category": "DATA",
+      "source": "eval-set-v1 §7",
+      "steps": [
+        {
+          "text": "최근 주문 6개를 주문 취소 가능한 것만 6개로 보여줄래?",
+          "expect": {
+            "orders": [
+              930044,
+              930043,
+              930042,
+              930041,
+              930040,
+              930025
+            ]
+          }
+        }
+      ],
+      "allowed_offer": [],
+      "smoke": false,
+      "setup": null,
+      "human": {}
+    },
+    {
+      "id": "D03",
+      "key": "D03-dev-1",
+      "split": "dev",
+      "category": "DATA",
+      "source": "eval-set-v1 §7",
+      "steps": [
+        {
+          "text": "어제 주문한 거 보여줘",
+          "expect": {
+            "orders": [
+              930042,
+              930041
+            ],
+            "excluded_undated": 1
+          }
+        }
+      ],
+      "allowed_offer": [],
+      "smoke": false,
+      "setup": null,
+      "human": {}
+    },
+    {
+      "id": "D04",
+      "key": "D04-dev-1",
+      "split": "dev",
+      "category": "DATA",
+      "source": "eval-set-v1 §7",
+      "steps": [
+        {
+          "text": "최근 주문 6개 보여줘",
+          "expect": {
+            "orders": [
+              930044,
+              930043,
+              930042,
+              930041,
+              930040,
+              930026
+            ]
+          }
+        },
+        {
+          "text": "6번 취소 돼",
+          "expect": {
+            "no_confirm": true,
+            "eligibility": [
+              930026,
+              "INELIGIBLE"
+            ],
+            "reason": "ALREADY_CANCELLED",
+            "historical": [
+              930026,
+              "COMPLETED"
+            ]
+          }
+        }
+      ],
+      "allowed_offer": [],
+      "smoke": true,
+      "setup": "historical_930026",
+      "human": {}
+    },
+    {
+      "id": "D04",
+      "key": "D04-holdout-1",
+      "split": "holdout",
+      "category": "DATA",
+      "source": "eval-set-v1 §7",
+      "steps": [
+        {
+          "text": "최근 주문 6개 보여줘",
+          "expect": {
+            "orders": [
+              930044,
+              930043,
+              930042,
+              930041,
+              930040,
+              930026
+            ]
+          }
+        },
+        {
+          "text": "여섯 번째 거 취소해줘",
+          "expect": {
+            "no_confirm": true,
+            "eligibility": [
+              930026,
+              "INELIGIBLE"
+            ],
+            "reason": "ALREADY_CANCELLED",
+            "historical": [
+              930026,
+              "COMPLETED"
+            ]
+          }
+        }
+      ],
+      "allowed_offer": [],
+      "smoke": false,
+      "setup": "historical_930026",
+      "human": {}
+    },
+    {
+      "id": "D04",
+      "key": "D04-holdout-2",
+      "split": "holdout",
+      "category": "DATA",
+      "source": "eval-set-v1 §7",
+      "steps": [
+        {
+          "text": "최근 주문 6개 보여줘",
+          "expect": {
+            "orders": [
+              930044,
+              930043,
+              930042,
+              930041,
+              930040,
+              930026
+            ]
+          }
+        },
+        {
+          "text": "목록 맨 아래 거 취소 가능해?",
+          "expect": {
+            "no_confirm": true,
+            "eligibility": [
+              930026,
+              "INELIGIBLE"
+            ],
+            "reason": "ALREADY_CANCELLED",
+            "historical": [
+              930026,
+              "COMPLETED"
+            ]
+          }
+        }
+      ],
+      "allowed_offer": [],
+      "smoke": false,
+      "setup": "historical_930026",
+      "human": {}
+    },
+    {
+      "id": "D05",
+      "key": "D05-dev-1",
+      "split": "dev",
+      "category": "DATA",
+      "source": "eval-set-v1 §7",
+      "steps": [
+        {
+          "text": "이미 취소된 주문 있나?",
+          "expect": {
+            "orders": [
+              930026,
+              930008
+            ],
+            "purpose": "CANCELLED_CHECK"
+          }
+        }
+      ],
+      "allowed_offer": [],
+      "smoke": false,
+      "setup": null,
+      "human": {}
+    },
+    {
+      "id": "D06",
+      "key": "D06-dev-1",
+      "split": "dev",
+      "category": "DATA",
+      "source": "eval-set-v1 §7",
+      "steps": [
+        {
+          "text": "930005번 주문 취소 가능해?",
+          "expect": {
+            "confirm": 930005,
+            "question": [
+              "ORDER",
+              930005
+            ]
+          }
+        },
+        {
+          "button": "SELECT_ORDER",
+          "ref": -1,
+          "expect": {
+            "eligibility": [
+              930005,
+              "INELIGIBLE"
+            ],
+            "reason": "ALREADY_PICKED_UP",
+            "no_offer": true
+          }
+        }
+      ],
+      "allowed_offer": [],
+      "smoke": false,
+      "setup": null,
+      "human": {}
+    },
+    {
+      "id": "D06",
+      "key": "D06-dev-2",
+      "split": "dev",
+      "category": "DATA",
+      "source": "eval-set-v1 §7",
+      "steps": [
+        {
+          "text": "930006번 주문 취소 가능해?",
+          "expect": {
+            "confirm": 930006,
+            "question": [
+              "ORDER",
+              930006
+            ]
+          }
+        },
+        {
+          "button": "SELECT_ORDER",
+          "ref": -1,
+          "expect": {
+            "eligibility": [
+              930006,
+              "INELIGIBLE"
+            ],
+            "reason": "ALREADY_DELIVERED",
+            "no_offer": true
+          }
+        }
+      ],
+      "allowed_offer": [],
+      "smoke": false,
+      "setup": null,
+      "human": {}
+    },
+    {
+      "id": "D06",
+      "key": "D06-dev-3",
+      "split": "dev",
+      "category": "DATA",
+      "source": "eval-set-v1 §7",
+      "steps": [
+        {
+          "text": "930007번 주문 취소 가능해?",
+          "expect": {
+            "confirm": 930007,
+            "question": [
+              "ORDER",
+              930007
+            ]
+          }
+        },
+        {
+          "button": "SELECT_ORDER",
+          "ref": -1,
+          "expect": {
+            "eligibility": [
+              930007,
+              "INELIGIBLE"
+            ],
+            "reason": "CANCELLATION_PENDING",
+            "no_offer": true
+          }
+        }
+      ],
+      "allowed_offer": [],
+      "smoke": false,
+      "setup": null,
+      "human": {}
+    },
+    {
+      "id": "D06",
+      "key": "D06-dev-4",
+      "split": "dev",
+      "category": "DATA",
+      "source": "eval-set-v1 §7",
+      "steps": [
+        {
+          "text": "930009번 주문 취소 가능해?",
+          "expect": {
+            "confirm": 930009,
+            "question": [
+              "ORDER",
+              930009
+            ]
+          }
+        },
+        {
+          "button": "SELECT_ORDER",
+          "ref": -1,
+          "expect": {
+            "eligibility": [
+              930009,
+              "INELIGIBLE"
+            ],
+            "reason": "PURCHASE_COMPLETED",
+            "no_offer": true
+          }
+        }
+      ],
+      "allowed_offer": [],
+      "smoke": false,
+      "setup": null,
+      "human": {}
+    },
+    {
+      "id": "D06",
+      "key": "D06-dev-5",
+      "split": "dev",
+      "category": "DATA",
+      "source": "eval-set-v1 §7",
+      "steps": [
+        {
+          "text": "930010번 주문 취소 가능해?",
+          "expect": {
+            "confirm": 930010,
+            "question": [
+              "ORDER",
+              930010
+            ]
+          }
+        },
+        {
+          "button": "SELECT_ORDER",
+          "ref": -1,
+          "expect": {
+            "eligibility": [
+              930010,
+              "INELIGIBLE"
+            ],
+            "reason": "PAYMENT_PENDING",
+            "no_offer": true
+          }
+        }
+      ],
+      "allowed_offer": [],
+      "smoke": false,
+      "setup": null,
+      "human": {}
+    },
+    {
+      "id": "D06",
+      "key": "D06-dev-6",
+      "split": "dev",
+      "category": "DATA",
+      "source": "eval-set-v1 §7",
+      "steps": [
+        {
+          "text": "930011번 주문 취소 가능해?",
+          "expect": {
+            "confirm": 930011,
+            "question": [
+              "ORDER",
+              930011
+            ]
+          }
+        },
+        {
+          "button": "SELECT_ORDER",
+          "ref": -1,
+          "expect": {
+            "eligibility": [
+              930011,
+              "INELIGIBLE"
+            ],
+            "reason": "ORDER_EXPIRED",
+            "no_offer": true
+          }
+        }
+      ],
+      "allowed_offer": [],
+      "smoke": false,
+      "setup": null,
+      "human": {}
+    },
+    {
+      "id": "D06",
+      "key": "D06-dev-7",
+      "split": "dev",
+      "category": "DATA",
+      "source": "eval-set-v1 §7",
+      "steps": [
+        {
+          "text": "930012번 주문 취소 가능해?",
+          "expect": {
+            "confirm": 930012,
+            "question": [
+              "ORDER",
+              930012
+            ]
+          }
+        },
+        {
+          "button": "SELECT_ORDER",
+          "ref": -1,
+          "expect": {
+            "eligibility": [
+              930012,
+              "UNKNOWN"
+            ],
+            "reason": "STATE_NOT_SYNCHRONIZED",
+            "no_offer": true
+          }
+        }
+      ],
+      "allowed_offer": [],
+      "smoke": false,
+      "setup": null,
+      "human": {}
+    },
+    {
+      "id": "D07",
+      "key": "D07-holdout-1",
+      "split": "holdout",
+      "category": "DATA",
+      "source": "eval-set-v1 §7",
+      "steps": [
+        {
+          "text": "지난달에 산 책상 취소할래",
+          "expect": {
+            "orders": [],
+            "date_description": true
+          }
+        }
+      ],
+      "allowed_offer": [],
+      "smoke": false,
+      "setup": null,
+      "human": {}
+    }
+  ]
+}
