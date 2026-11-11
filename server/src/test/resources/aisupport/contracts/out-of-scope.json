@@ -1,0 +1,16 @@
+{
+  "turnId" : 1,
+  "clientRequestId" : "contract-request",
+  "input" : {
+    "type" : "TEXT",
+    "text" : "뉴스 알려줘",
+    "sourceTurnId" : null,
+    "orderId" : null
+  },
+  "status" : "SUCCEEDED",
+  "createdAt" : "2026-11-06T00:00:00Z",
+  "processingDeadlineAt" : "2026-11-06T00:01:00Z",
+  "answer" : "요청하신 뉴스·날씨 같은 실시간 정보 안내는 이 상담에서 지원하지 않습니다. 본인 주문 찾기와 현재 취소 가능 여부, 취소 정책을 안내해 드릴 수 있어요.",
+  "cards" : [ ],
+  "errorCode" : null
+}

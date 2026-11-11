@@ -1,0 +1,31 @@
+{
+  "turnId" : 1,
+  "clientRequestId" : "contract-request",
+  "input" : {
+    "type" : "CONFIRM_CANCEL",
+    "text" : null,
+    "sourceTurnId" : 1,
+    "orderId" : 101
+  },
+  "status" : "SUCCEEDED",
+  "createdAt" : "2026-11-06T00:00:00Z",
+  "processingDeadlineAt" : "2026-11-06T00:01:00Z",
+  "answer" : "취소 요청을 접수했어요. 취소 확정은 배송 상태 확인 후 반영되며, 이 안내는 환불 완료를 뜻하지 않아요. 실제 결제가 없는 테스트 서비스입니다.",
+  "cards" : [ {
+    "type" : "CANCELLATION_REQUEST",
+    "order" : {
+      "title" : "책상",
+      "orderId" : 101,
+      "createdAt" : "2026-11-06T00:00:00Z",
+      "totalPrice" : null,
+      "orderStatus" : "CONFIRMED",
+      "thumbnailUrl" : null,
+      "createdDateKst" : "2026-11-06",
+      "deliveryStatus" : null
+    },
+    "status" : "ACCEPTED",
+    "requestId" : "contract-receipt",
+    "acceptedAt" : "2026-11-06T00:00:00Z"
+  } ],
+  "errorCode" : null
+}

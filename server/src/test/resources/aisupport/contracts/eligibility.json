@@ -1,0 +1,35 @@
+{
+  "turnId" : 1,
+  "clientRequestId" : "contract-request",
+  "input" : {
+    "type" : "SELECT_ORDER",
+    "text" : null,
+    "sourceTurnId" : 1,
+    "orderId" : 101
+  },
+  "status" : "SUCCEEDED",
+  "createdAt" : "2026-11-06T00:00:00Z",
+  "processingDeadlineAt" : "2026-11-06T00:01:00Z",
+  "answer" : "이 주문은 지금 취소 요청할 수 있어요. 아래에서 취소 여부를 선택해 주세요.",
+  "cards" : [ {
+    "type" : "ELIGIBILITY",
+    "order" : {
+      "title" : "책상",
+      "orderId" : 101,
+      "createdAt" : "2026-11-06T00:00:00Z",
+      "totalPrice" : null,
+      "orderStatus" : "CONFIRMED",
+      "thumbnailUrl" : null,
+      "createdDateKst" : "2026-11-06",
+      "deliveryStatus" : null
+    },
+    "observedAt" : "2026-11-06T00:00:00Z",
+    "reasonCode" : "BEFORE_DRIVER_ACCEPTANCE",
+    "eligibility" : "ELIGIBLE",
+    "policyVersion" : "p1",
+    "deliveryStatus" : "REQUESTED",
+    "cancellationOffer" : true,
+    "confirmationExpiresAt" : "2026-11-06T00:05:00Z"
+  } ],
+  "errorCode" : null
+}
