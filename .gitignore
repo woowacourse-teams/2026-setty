@@ -17,6 +17,7 @@
 # 주소 기준 데이터 원본과 생성 파일(좌표 포함)은 레포에 올리지 않는다.
 /server/scripts/address/**/*.txt
 /server/scripts/address/**/*.tsv
+/server/scripts/address/**/*.gz
 
 # Local support API secret; the key-free server/.env.example stays versioned.
 /server/.env.local

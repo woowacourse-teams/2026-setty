@@ -102,6 +102,19 @@ setty:
       enabled: ${SETTY_ADDRESS_BACKFILL_ENABLED:false}
       batch-size: ${SETTY_ADDRESS_BACKFILL_BATCH_SIZE:500}
       pause: ${SETTY_ADDRESS_BACKFILL_PAUSE:PT0.1S}
+    reference:
+      load:
+        # 주소 기준표가 rows보다 적으면 앱이 뜬 뒤 백그라운드에서 bucket/key의 gzip TSV를 받아 이어 넣는다.
+        # 레포가 공개라 자료는 비공개 버킷에만 둔다. 해시가 다르거나 받지 못하면 경고만 남긴다. 절차는 server/scripts/address/README.md.
+        enabled: ${SETTY_ADDRESS_REFERENCE_LOAD_ENABLED:false}
+        region: ${AWS_REGION:ap-northeast-2}
+        bucket: ${SETTY_ADDRESS_REFERENCE_LOAD_BUCKET:}
+        key: ${SETTY_ADDRESS_REFERENCE_LOAD_KEY:}
+        sha256: ${SETTY_ADDRESS_REFERENCE_LOAD_SHA256:}
+        rows: ${SETTY_ADDRESS_REFERENCE_LOAD_ROWS:0}
+        # 두 번 받기(해시 확인 + 적재)와 DB 넣기 전체에 거는 제한
+        timeout: ${SETTY_ADDRESS_REFERENCE_LOAD_TIMEOUT:PT10M}
+        batch-size: ${SETTY_ADDRESS_REFERENCE_LOAD_BATCH_SIZE:2000}
   listing:
     zip-zone-backfill:
       # 우편번호 구역이 빈 기존 매물을 시작할 때 한 번 채운다. 회원 주소 채우기가 끝난 뒤 켠다.
