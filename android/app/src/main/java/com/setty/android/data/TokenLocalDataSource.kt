@@ -35,6 +35,17 @@ class TokenLocalDataSource(
         }
     }
 
+    /** 늦게 도착한 이전 세션의 응답이 새 로그인 토큰을 삭제하지 않게 한다. */
+    suspend fun clearCredentialTokenIfMatches(token: String) {
+        context.dataStore.updateData { preferences ->
+            if (preferences[CREDENTIAL_TOKEN] == token) {
+                preferences.toMutablePreferences().also { it.remove(CREDENTIAL_TOKEN) }
+            } else {
+                preferences
+            }
+        }
+    }
+
     companion object {
         private val CREDENTIAL_TOKEN = stringPreferencesKey("credential_token")
     }
