@@ -78,3 +78,5 @@ Android 앱과 같이 앱이 직접 서버 승인 API를 부른다.
 - API를 같은 도메인의 `/api`로 부른다. CloudFront가 `/api/*`를 서버로 넘겨야 한다.
 - `/me/orders`, `/payment/success` 같은 경로는 S3에 파일이 없다. CloudFront가 403·404를 `/index.html`(200)로 돌려줘야 새로고침과 결제 복귀가 동작한다.
 - `/payment/success`, `/payment/fail`은 SPA 경로다. 서버 복귀 경로(`/payments/**`)와 다르다.
+
+[로컬 AI 상담 실행·데스크톱 검증 안내](../server/scripts/README-local-support.md)
