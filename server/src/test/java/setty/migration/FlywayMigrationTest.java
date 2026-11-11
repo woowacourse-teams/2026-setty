@@ -37,7 +37,7 @@ class FlywayMigrationTest {
             "delivery_dong_code", "delivery_zip_code");
     private static final List<String> DELIVERY_CELL_COLUMNS = List.of("pickup_cell", "delivery_cell");
     private static final List<String> KEYWORD_CONDITION_COLUMNS = List.of("max_delivery_fee", "max_total_price");
-    private static final int MIGRATION_COUNT = 21;
+    private static final int MIGRATION_COUNT = 25;
 
     @Container
     static final MySQLContainer MYSQL = new MySQLContainer("mysql:8.4.11");
@@ -260,6 +260,11 @@ class FlywayMigrationTest {
     }
 
     private void assertCurrentSchema() {
+        assertThat(indexColumns("ai_support_conversation", "idx_ai_support_member"))
+                .isEqualTo("member_id,last_activity_at,id");
+        assertThat(jdbc.queryForObject("SELECT collation_name FROM information_schema.columns "
+                + "WHERE table_schema=DATABASE() AND table_name='ai_support_turn' AND column_name='client_request_id'",
+                String.class)).isEqualTo("ascii_bin");
         assertThat(columnCount("orders", "created_at")).isOne();
         assertThat(indexColumns("orders", "idx_orders_buyer_created_at")).isEqualTo("buyer_id,created_at,id");
         assertThat(columnCount("members", "dong_code")).isOne();
@@ -310,7 +315,8 @@ class FlywayMigrationTest {
                 AND table_name='listings' AND index_name='idx_listings_public'
                 """)).isZero();
         for (var table : List.of("keyword_subscriptions", "keyword_exclusions", "listing_notifications", "device_tokens",
-                "delivery_order_decision", "settlements", "settlement_order", "EVENT_PUBLICATION")) {
+                "delivery_order_decision", "settlements", "settlement_order", "EVENT_PUBLICATION",
+                "ai_support_conversation", "ai_support_turn")) {
             assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM information_schema.tables "
                     + "WHERE table_schema=DATABASE() AND table_name=?", Integer.class, table)).as(table).isOne();
         }
@@ -331,6 +337,7 @@ class FlywayMigrationTest {
         var table = (String) column.get("table_name");
         var name = (String) column.get("column_name");
         return table.equals("address_reference")
+                || table.startsWith("ai_support_")
                 || table.equals("orders") && name.equals("created_at")
                 || table.equals("members") && STANDARD_ADDRESS_COLUMNS.contains(name)
                 || table.equals("listings") && name.equals("zip_zone")

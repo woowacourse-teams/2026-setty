@@ -1,0 +1,50 @@
+tasks.named('test') {
+    useJUnitPlatform()
+    // Even a leftover opt-in environment variable must not make an ordinary test run paid.
+    exclude '**/SupportLiveSmokeTest.class'
+}
+
+tasks.register('supportSmokeOffline', Test) {
+    description = 'Verify the isolated support smoke path with a scripted SDK and prove live is disabled.'
+    group = 'verification'
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform()
+    include '**/SupportSmokeOfflineTest.class', '**/SupportLiveSmokeTest.class'
+    environment 'SETTY_AI_LIVE_SMOKE_APPROVED', ''
+    maxParallelForks = 1
+}
+
+tasks.register('liveSupportSmoke', Test) {
+    description = 'Explicitly approved ONE synthetic turn, at most four real model calls; never part of test/check.'
+    group = 'verification'
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform()
+    include '**/SupportLiveSmokeTest.class'
+    maxParallelForks = 1
+    outputs.upToDateWhen { false }
+    doFirst {
+        if (System.getenv('SETTY_AI_LIVE_SMOKE_APPROVED') != 'one-synthetic-turn-max-four-model-calls') {
+            throw new GradleException('Live smoke is not approved. Use supportSmokeOffline for free local verification.')
+        }
+    }
+}
+
+tasks.register('runLocalSupportWeb', JavaExec) {
+    description = 'Explicit local HTTP app with a disposable synthetic database; not part of test/check.'
+    group = 'application'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'setty.aisupport.LocalSupportWebApplication'
+    maxHeapSize = '384m'
+    ['run-directory', 'port', 'provider', 'ai-enabled', 'model', 'restore-dump', 'eval-root', 'eval-clock'].each { setting ->
+        def value = providers.gradleProperty("settyLocal.${setting}")
+        if (value.isPresent()) systemProperty "setty.local.${setting}", value.get()
+    }
+    doFirst {
+        if (!providers.gradleProperty('settyLocal.run-directory').isPresent()) {
+            throw new GradleException('Use scripts/local-support-web.py start so lifecycle and environment are isolated.')
+        }
+    }
+}

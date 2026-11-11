@@ -149,3 +149,13 @@ setty:
       stale-after: ${PAYMENT_RECOVERY_STALE_AFTER:PT10M}
       batch-size: ${PAYMENT_RECOVERY_BATCH_SIZE:20}
       max-refund-attempts: ${PAYMENT_REFUND_MAX_ATTEMPTS:5}
+  ai-support:
+    # Disabled until the team account, permissions and paid-call budget have been verified.
+    enabled: ${SETTY_AI_SUPPORT_ENABLED:false}
+    region: ${SETTY_AI_SUPPORT_REGION:ap-northeast-2}
+    provider: ${SETTY_AI_SUPPORT_PROVIDER:bedrock}
+    # Blank chooses the provider default; API keys are server environment variables only.
+    model-id: ${SETTY_AI_SUPPORT_MODEL_ID:}
+    max-concurrent: ${SETTY_AI_SUPPORT_MAX_CONCURRENT:4}
+    slot-wait-ms: ${SETTY_AI_SUPPORT_SLOT_WAIT_MS:2000}
+    daily-text-limit: ${SETTY_AI_SUPPORT_DAILY_TEXT_LIMIT:50}
