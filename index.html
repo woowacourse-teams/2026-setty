@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>SETTY — 무거운 중고 가구를 더 가볍게</title>
-  <meta name="description" content="SETTY는 중고 가구를 고르는 순간 배송비와 총 결제 금액까지 보여주고, 주문에서 배차와 배송 상태를 확인할 수 있는 중고 가구 거래 서비스입니다." />
+  <meta name="description" content="가구값과 배송비를 한 번에 결제하는 중고 가구 거래 서비스입니다." />
   <meta property="og:title" content="SETTY — 무거운 중고 가구를 더 가볍게" />
   <meta property="og:description" content="매물 탐색 · 배송비 확인 · 결제를 하나의 거래 흐름으로" />
   <meta property="og:type" content="website" />
@@ -563,7 +563,7 @@
           <article class="who reveal">
             <div class="who-icon"><svg viewBox="0 0 100 100"><use href="#s-cookie9" /></svg><svg viewBox="0 0 24 24"><use href="#i-search" /></svg></div>
             <h3>차 없이 가구를 사려는 사람</h3>
-            <p>매물 상세에서 배송비까지 더한 총액을 보고, 주문 내역에서 배송 상태를 확인할 수 있어요.</p>
+            <p>매물 상세에서 배송비까지 더한 총액을 보고, 가구값과 배송비를 한 번에 결제해요.</p>
           </article>
           <article class="who reveal">
             <div class="who-icon"><svg viewBox="0 0 100 100"><use href="#s-cookie6" /></svg><svg viewBox="0 0 24 24"><use href="#i-sell" /></svg></div>
@@ -602,7 +602,7 @@
               <li><span class="who-tag tag-setty">SETTY</span>배송 요청 생성</li>
               <li><span class="who-tag tag-setty">SETTY</span>배송 상태 확인</li>
             </ol>
-            <div class="flow-count"><b>1곳</b>에서 확인하는 5단계</div>
+            <div class="flow-count"><b>1곳</b>에서 이어지는 5단계</div>
           </div>
         </div>
       </div>
@@ -756,7 +756,7 @@
         <p class="eyebrow reveal">배송비 안내</p>
         <h2 class="reveal">결제 전에,<br />배송비까지 확인해요</h2>
         <p class="section-lead reveal">예상 배송비는 가구 부피와 출발·도착 우편번호 구역 사이 도로 거리로 계산해요. 기본 10,000원에 부피 구간이 한 단계 커질 때마다 10,000원을, 거리 단계마다 5,000원을 더해요. 목록과 상세 화면에서 상품값에 예상 배송비를 더한 총액을 먼저 보여드려요.</p>
-        <p class="fee-method reveal">길찾기 서버(OSRM)는 상시로 띄우지 않고, 미리 만든 서울 우편번호 5,634개 구역 거리표를 메모리에 매핑해 씁니다. 무중단 배포로 앱이 둘 떠도 거리표는 한 벌만 차지합니다(126.5MB → 63.2MB).</p>
+        <p class="fee-method reveal">길찾기 서버(OSRM)는 상시로 띄우지 않고, 미리 만든 서울 우편번호 5,634개 구역 거리표를 메모리에 매핑해 씁니다. 무중단 배포로 앱이 둘 떠도 거리표는 한 벌만 차지합니다(126.5MB → 63.2MB). 무작위 쌍을 로컬에서 측정했을 때 요금 구간 불일치율은 직선 거리 79.6%에서 우편번호 구역 거리표 7.1%로 줄었습니다.</p>
         <p class="fee-basis reveal">출발·도착 우편번호 구역 사이 도로 거리가 3km 이내일 때</p>
         <div class="fee-grid">
           <div class="fee reveal">
@@ -809,14 +809,14 @@
               <ol class="pfr">
                 <li><span class="pfr-label">문제</span><p>배송비는 구매자마다 달라요. 출발·도착 우편번호 구역 사이 도로 거리와 가구 부피로 정해지니, <b>매물마다 배송비를 계산해 거르면</b> 목록 조회가 수천 번의 계산이 되고 목표 부하에서 p95(요청 100건 중 느린 쪽 5번째)가 1.8초까지 늘어났어요.</p></li>
                 <li><span class="pfr-label">풀이</span><p>서울 전체의 우편번호 구역 사이 도로 거리를 미리 재서 <b>거리표 한 장</b>으로 두고, 구매자 행 한 줄만 읽어 예산을 통과하는 구역을 찾아요. 통과 구역은 번호가 이어지니 <b>범위로 묶어 한 쿼리</b>에 넣어요. DB는 <b>id만 먼저 골라</b> 본문은 보여 줄 21개만 읽고, 커넥션은 요청당 한 번만 빌려요. 거리표는 파일을 메모리에 매핑해 두 앱이 함께 쓰니 무중단 배포 중에도 한 벌이에요. 구역은 행정동에서 <b>우편번호 구역</b>으로 더 촘촘하게 바꿨어요.</p></li>
-                <li><span class="pfr-label">결과</span><p>실제 앱에서 같은 부하로 잰 최대 처리량은 1.9배가 됐어요. 무작위 쌍의 요금 구간 불일치율은 직선 거리 79.6%에서 우편번호 구역 거리표 7.1%로 줄었어요. 우편번호 구역 거리표는 63.2MB예요.</p></li>
+                <li><span class="pfr-label">결과</span><p>실제 앱에서 같은 부하로 잰 전후예요. 최대 처리량은 1.9배가 됐고, 요금 구간이 실제 도로 거리와 어긋나는 비율은 행정동 표 22.1%에서 우편번호 표 7.1%로 줄었어요. 거리표가 쓰는 앱 서버 메모리는 약 48MB예요.</p></li>
               </ol>
             </div>
             <div class="stats">
               <div class="stat hi"><p class="stat-label">p95 응답 · 목표 부하</p><p class="stat-value">4.9<small>ms</small></p><p class="stat-before">바꾸기 전 1.8초</p></div>
               <div class="stat"><p class="stat-label">최대 처리량</p><p class="stat-value">1,777<small>건/초</small></p><p class="stat-before">바꾸기 전 917건/초 · 1.9배</p></div>
-              <div class="stat"><p class="stat-label">요금 구간 불일치</p><p class="stat-value">7.1<small>%</small></p><p class="stat-before">직선 거리 79.6% → 우편번호 표</p></div>
-              <div class="stat"><p class="stat-label">거리표 크기</p><p class="stat-value">63.2<small>MB</small></p><p class="stat-before">거리표 매핑 · 배포 중에도 한 벌</p></div>
+              <div class="stat"><p class="stat-label">요금 구간 불일치</p><p class="stat-value">7.1<small>%</small></p><p class="stat-before">행정동 표 22.1% → 우편번호 표</p></div>
+              <div class="stat"><p class="stat-label">앱 서버 메모리</p><p class="stat-value">48<small>MB</small></p><p class="stat-before">거리표 매핑 · 배포 중에도 한 벌</p></div>
             </div>
             <div class="figs">
       <details class="fold">
@@ -1149,7 +1149,7 @@
           <svg class="deco deco-c" viewBox="0 0 100 100" aria-hidden="true"><use href="#s-burst" /></svg>
           <svg class="deco deco-d" viewBox="0 0 100 100" aria-hidden="true"><use href="#s-cookie9" /></svg>
           <h2>무거운 중고 가구,<br />이제 가볍게 들여요</h2>
-          <p>둘러보는 건 로그인 없이도 할 수 있어요. 마음에 드는 가구를 찾으면 예상 배송비와 총액을 확인해 보세요.</p>
+          <p>마음에 드는 가구를 찾으면 배송비까지 확인하고 한 번에 결제해 보세요.</p>
           <a class="btn btn-large" href="https://www.setty.cloud">SETTY 시작하기<svg aria-hidden="true"><use href="#i-chevron" /></svg></a>
         </div>
       </div>
