@@ -273,6 +273,7 @@ function Card({ card, disabled, current, latest, onCancel, onCheck, onSelect, on
     return <div className={styles.card}>
         <span className={`${styles.eligibility} ${card.eligibility === 'ELIGIBLE' ? styles.eligible : card.eligibility === 'INELIGIBLE' ? styles.ineligible : styles.unknown}`}>{eligibilityLabel[card.eligibility]}</span>
         <p>{reasonLabels[card.reasonCode] ?? '상세 상태를 다시 확인해 주세요.'}</p>
+        {(card.eligibility === 'INELIGIBLE' || card.eligibility === 'UNKNOWN') && <p className={styles.meta}>이번 상담으로 주문 상태는 바뀌지 않았어요.</p>}
         <p>{card.order.title ?? '상품 정보 없음'} · 주문 #{card.order.orderId}</p>
         <p className={styles.meta}>확인 시각: {formatDate(card.observedAt)}{!latest && <><br />당시 조회 결과예요. 현재 상태는 다시 질문해 확인하세요.</>}</p>
         <Link to={routes.orderDetail(card.order.orderId)} onClick={onDetail}>주문 상세 보기</Link>
