@@ -451,6 +451,35 @@
       *, *::before, *::after { animation: none !important; transition-duration: 1ms !important; scroll-behavior: auto !important; }
       .reveal { opacity: 1; transform: none; }
     }
+
+    /* 자료와 팀 소개 */
+    .evidence-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+    .evidence-grid .stat { background: var(--surface-container); }
+    .evidence-grid .stat-value { color: var(--accent-text); }
+    .evidence-grid .stat-label { margin: 10px 0 0; color: var(--on-surface); }
+    .evidence-grid .stat-before { font-size: .75rem; line-height: 1.5; }
+    .source-grid { margin-bottom: 48px; }
+    .source-grid .stat-before a { text-decoration: underline; text-underline-offset: 3px; }
+    #fee, #tech { background: var(--surface-container-low); }
+    .proof-links { display: flex; flex-wrap: wrap; gap: 8px 20px; margin: 24px 0 0; font-size: .875rem; color: var(--on-surface-variant); }
+    .ai-layout { display: grid; grid-template-columns: 38% 1fr; align-items: center; gap: 48px; }
+    .ai-layout img { display: block; max-width: 100%; height: 480px; object-fit: contain; border-radius: 28px; }
+    .ai-layout p { max-width: 620px; }
+    .team-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
+    .team-grid .who { text-align: center; }
+    .team-grid img { width: 112px; height: 112px; border-radius: 50%; object-fit: cover; margin: 0 auto 16px; }
+    .team-grid .team-role { color: var(--accent-text); margin-bottom: 8px; font-size: .875rem; font-weight: 700; }
+    .team-grid a { display: inline-block; margin-top: 12px; color: var(--accent-text); font-size: .875rem; }
+    #team .section-lead { margin-inline: auto; }
+    #team h2, #team .section-lead { text-align: center; }
+    .footer-links { display: flex; flex-wrap: wrap; gap: 16px; }
+    @media (max-width: 720px) {
+      .evidence-grid { grid-template-columns: 1fr; }
+      .ai-layout { grid-template-columns: 1fr; gap: 24px; }
+      .ai-layout img { order: 2; height: auto; max-height: 400px; margin: auto; }
+      .team-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .team-grid .who { padding: 24px 12px; }
+    }
   </style>
 </head>
 <body class="no-js">
@@ -479,6 +508,8 @@
       </a>
       <nav class="topnav" aria-label="페이지 안 이동">
         <a href="#howto">사용법</a>
+        <a href="#proof">검증</a>
+        <a href="#team">팀</a>
         <a href="#tech">기술 소개</a>
       </nav>
       <a class="btn btn-tonal btn-small" href="https://www.setty.cloud">시작하기</a>
@@ -513,6 +544,12 @@
         <p class="eyebrow reveal">누구의 어떤 문제를 푸나요</p>
         <h2 class="reveal">싸게 찾은 가구,<br />옮기는 일에서 멈추지 않도록</h2>
         <p class="section-lead reveal">가구는 부피와 무게 때문에 사고 나서 운송 계획이 필요해요. 차가 없는 구매자는 판매자와 일정을 맞추고, 용달 견적을 받고, 운송을 따로 신청해야 하죠. 그래서 마음에 드는 매물을 찾아도 최종 비용과 배송 가능 여부를 바로 알기 어려웠어요.</p>
+
+        <div class="evidence-grid source-grid">
+          <div class="stat"><p class="stat-value">1억 9,000만 건</p><p class="stat-label">2025년 한 해 당근의 중고거래 연결 건수</p><p class="stat-before"><a href="https://about.daangn.com/company/pr/archive/%EB%8B%B9%EA%B7%BC-2025%EB%85%84-%EC%97%B0%EA%B0%84-%EC%8B%A4%EC%A0%81-%EB%B0%9C%ED%91%9C/">당근 2025년 연간 실적 발표</a></p></div>
+          <div class="stat"><p class="stat-value">12%</p><p class="stat-label">최근 1년 중고거래 경험자 1,000명 중 가구를 산 응답</p><p class="stat-before"><a href="https://ghcci.korcham.net/front/boardlink/boardlinkContentsView.do?boardId=13&amp;contId=20120941334&amp;menuId=5103">대한상공회의소 중고제품 이용실태 조사(2025) · 복수응답</a></p></div>
+          <div class="stat"><p class="stat-value">141%</p><p class="stat-label">배송비를 지원한 당근절 당일, 평소 토요일보다 늘어난 중고거래 건수</p><p class="stat-before"><a href="https://about.daangn.com/company/pr/archive/%EB%B0%B0%EC%86%A1%EB%B9%84-0%EC%9B%90%EC%97%90-%EC%A4%91%EA%B3%A0%EC%8B%9C%EC%9E%A5-%EB%93%A4%EC%8D%A9-%EB%8B%B9%EA%B7%BC%EC%A0%88-%EA%B1%B0%EB%9E%98%EB%9F%89-141-%EA%B8%89%EC%A6%9D/">당근 보도자료(2026.10)</a> · 중고거래 전체 품목 기준</p></div>
+        </div>
 
         <div class="who-grid">
           <article class="who reveal">
@@ -596,7 +633,7 @@
               <p>상세 화면에서 가구 가격, 예상 배송비, 총 결제 금액을 한눈에 확인해요.</p>
             </li>
             <li class="step reveal">
-              <img class="step-image" src="assets/screenshots/step3.jpg" alt="가구값과 배송비를 함께 승인한 결제 완료 화면" />
+              <img class="step-image" src="assets/screenshots/step3.jpg" alt="가구값과 배송비를 함께 승인한 테스트 결제 완료 화면" />
               <div class="step-badge"><svg viewBox="0 0 100 100" aria-hidden="true"><use href="#s-cookie6" /></svg><span>3</span></div>
               <p class="step-label">결제</p>
               <h3>한 번에 결제하기</h3>
@@ -669,6 +706,17 @@
       </div>
     </section>
 
+    <section id="ai">
+      <div class="wrap ai-layout">
+        <img src="assets/screenshots/role-ai.jpg" width="800" height="1200" loading="lazy" alt="취소 상담에서 주문을 확인하는 화면" />
+        <div>
+          <h2>주문 취소는 AI 상담으로</h2>
+          <p class="section-lead">“가장 최근 주문 취소 가능해?”처럼 물으면 AI가 주문을 찾아 확인을 받고, 서버가 취소 가능 여부와 최종 동의를 확인한 뒤 요청을 접수해요.</p>
+          <p class="stat-before">로컬 합성 대화 평가 252회 중 250회 통과 · 잘못된 취소 0건</p>
+        </div>
+      </div>
+    </section>
+
     <!-- 배송비 -->
     <section id="fee">
       <div class="wrap">
@@ -705,6 +753,22 @@
     </section>
 
     <!-- 기술 소개 -->
+    <section id="proof">
+      <div class="wrap">
+        <h2>직접 확인한 것</h2>
+        <p class="section-lead">가상 계정과 테스트 결제, 로컬 측정으로 확인한 결과예요. 실제 사용자의 구매 의사는 운영 조건을 갖춘 뒤 확인할 과제예요.</p>
+        <div class="evidence-grid">
+          <div class="stat"><p class="stat-value">100 → 51 → 21</p><p class="stat-label">구매 흐름을 단계별로 집계해요</p><p class="stat-before">가상 계정 100개 · 상세 조회 → 결제창 → 결제 · 단건 확인 포함</p></div>
+          <div class="stat"><p class="stat-value">두 화면 분기</p><p class="stat-label">총액을 먼저 보여 주는 화면을 나눠 계측해요</p><p class="stat-before">조건별 가상 계정 50개 · 결제창 진입 계측</p></div>
+          <div class="stat"><p class="stat-value">79.6% → 7.1%</p><p class="stat-label">배송비는 도로 거리로 매겨요</p><p class="stat-before">요금 구간 불일치 · 직선 → 우편번호 거리표 · 무작위 쌍 로컬 측정</p></div>
+          <div class="stat"><p class="stat-value">누락 0건</p><p class="stat-label">서버를 다시 켜도 배송 요청 목록을 다시 맞춰요</p><p class="stat-before">격리 로컬 서버 재시작 30회 · API 목록 복원 p95 3.07초</p></div>
+          <div class="stat"><p class="stat-value">40.5MB → 8.1KB</p><p class="stat-label">목록은 필요한 만큼만 가져와요</p><p class="stat-before">로컬 합성 매물 10만 건 · 전체 응답 대비 첫 페이지 크기</p></div>
+          <div class="stat"><p class="stat-value">2분 17초</p><p class="stat-label">백업과 변경 로그로 데이터를 복구해요</p><p class="stat-before">운영 DB 복사본 복구 훈련 · 사고 → 복구 확인 · 17개 테이블 일치</p></div>
+        </div>
+        <div class="proof-links"><a href="https://conscious-garlic-b97.notion.site/3eb2dbc171878094a3a0d075fa917ae1">유저 데이터 리포트</a><a href="https://conscious-garlic-b97.notion.site/27c2dbc1718783349ab6018a2eb51bb3">가설 대시보드</a><a href="https://github.com/woowacourse-teams/2026-setty/wiki/SETTY의-실서비스-운영-보류-배경">실서비스 운영 보류 배경</a><a href="https://github.com/woowacourse-teams/2026-setty#readme">README</a></div>
+      </div>
+    </section>
+
     <section id="tech">
       <div class="wrap">
         <div class="howto-head">
@@ -1061,6 +1125,40 @@
       </div>
     </section>
 
+    <section id="team">
+      <div class="wrap">
+        <h2>세티를 만든 사람들</h2>
+        <p class="section-lead">방향은 함께 정하고, 구현은 한 사람이 끝까지 이끕니다.</p>
+        <div class="team-grid">
+          <article class="who">
+            <img src="assets/screenshots/team-tjdakf.jpg" width="112" height="112" loading="lazy" alt="캐리의 GitHub 프로필 이미지" />
+            <h3>캐리</h3><p class="team-role">Backend</p><p>매물 조회 성능과 관측성, AI 취소 상담</p>
+            <a href="https://github.com/tjdakf">GitHub</a>
+          </article>
+          <article class="who">
+            <img src="assets/screenshots/team-aksworns22.jpg" width="112" height="112" loading="lazy" alt="스마일의 GitHub 프로필 이미지" />
+            <h3>스마일</h3><p class="team-role">Android · Frontend</p><p>모바일 웹 UI와 디자인</p>
+            <a href="https://github.com/aksworns22">GitHub</a>
+          </article>
+          <article class="who">
+            <img src="assets/screenshots/team-kangrae-jo.jpg" width="112" height="112" loading="lazy" alt="밀란의 GitHub 프로필 이미지" />
+            <h3>밀란</h3><p class="team-role">Backend</p><p>결제·주문과 제품 가설 계측</p>
+            <a href="https://github.com/kangrae-jo">GitHub</a>
+          </article>
+          <article class="who">
+            <img src="assets/screenshots/team-yejinkimis.jpg" width="112" height="112" loading="lazy" alt="코코의 GitHub 프로필 이미지" />
+            <h3>코코</h3><p class="team-role">Backend</p><p>주문·알림·정산과 데이터 백업·복구</p>
+            <a href="https://github.com/yejinkimis">GitHub</a>
+          </article>
+          <article class="who">
+            <img src="assets/screenshots/team-ghkdtjfxkd.jpg" width="112" height="112" loading="lazy" alt="타스의 GitHub 프로필 이미지" />
+            <h3>타스</h3><p class="team-role">Backend</p><p>배송 흐름·배송비와 배송원 기능</p>
+            <a href="https://github.com/ghkdtjfxkd">GitHub</a>
+          </article>
+        </div>
+      </div>
+    </section>
+
     <!-- 시작하기 -->
     <section>
       <div class="wrap">
@@ -1078,7 +1176,7 @@
   <footer>
     <div class="wrap">
       <span>© 2026 SETTY · 우아한테크코스 2026 팀 프로젝트</span>
-      <a href="https://github.com/woowacourse-teams/2026-setty">GitHub</a>
+      <div class="footer-links"><a href="https://github.com/woowacourse-teams/2026-setty">GitHub</a><a href="https://github.com/woowacourse-teams/2026-setty/wiki">위키</a><a href="https://conscious-garlic-b97.notion.site/3eb2dbc171878094a3a0d075fa917ae1">유저 데이터 리포트</a></div>
     </div>
   </footer>
 
