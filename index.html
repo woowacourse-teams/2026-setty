@@ -572,7 +572,7 @@
           </article>
           <article class="who reveal">
             <div class="who-icon"><svg viewBox="0 0 100 100"><use href="#s-burst" /></svg><svg viewBox="0 0 24 24"><use href="#i-ship" /></svg></div>
-            <h3>가구를 옮기는 배송 기사</h3>
+            <h3>가구를 옮기는 배송원</h3>
             <p>결제를 마친 주문은 배송 요청으로 들어와요. 배송원 화면에서 요청을 수락하고 배송 상태를 업데이트할 수 있어요.</p>
           </article>
         </div>
@@ -756,7 +756,7 @@
         <p class="eyebrow reveal">배송비 안내</p>
         <h2 class="reveal">결제 전에,<br />배송비까지 확인해요</h2>
         <p class="section-lead reveal">예상 배송비는 가구 부피와 출발·도착 우편번호 구역 사이 도로 거리로 계산해요. 기본 10,000원에 부피 구간이 한 단계 커질 때마다 10,000원을, 거리 단계마다 5,000원을 더해요. 목록과 상세 화면에서 상품값에 예상 배송비를 더한 총액을 먼저 보여드려요.</p>
-        <p class="fee-method reveal">길찾기 서버(OSRM)는 상시로 띄우지 않고, 미리 만든 서울 우편번호 5,634개 구역 거리표를 메모리에 매핑해 씁니다. 무중단 배포로 앱이 둘 떠도 거리표는 한 벌만 차지합니다(126.5MB → 63.2MB). 무작위 쌍을 로컬에서 측정했을 때 요금 구간 불일치율은 직선 거리 79.6%에서 우편번호 구역 거리표 7.1%로 줄었습니다.</p>
+        <p class="fee-method reveal">길찾기 서버(OSRM)는 상시로 띄우지 않고, 미리 만든 서울 우편번호 5,634개 구역 거리표를 메모리에 매핑해 씁니다. 무중단 배포로 앱이 둘 떠도 거리표는 한 벌만 차지합니다(126.5MB → 63.2MB).</p>
         <p class="fee-basis reveal">출발·도착 우편번호 구역 사이 도로 거리가 3km 이내일 때</p>
         <div class="fee-grid">
           <div class="fee reveal">
@@ -792,7 +792,7 @@
           <div>
             <p class="eyebrow reveal">기술 소개</p>
             <h2 class="reveal">배송비까지 더한 검색을,<br />빠르고 가볍게</h2>
-            <p class="section-lead reveal">가장 공들인 두 가지예요. 어떤 문제가 있었고, 어떻게 풀었고, 숫자가 어떻게 바뀌었는지 적었어요.</p>
+            <p class="section-lead reveal">가장 공들인 두 가지와, 구상 중인 하나예요. 어떤 문제가 있었고, 어떻게 풀었고, 숫자가 어떻게 바뀌었는지 적었어요.</p>
           </div>
           <div class="connected reveal" role="tablist" aria-label="기술 소개 주제">
             <button type="button" role="tab" id="tab-fee" aria-selected="true" aria-controls="tech-fee">배송비 예산 필터</button>
@@ -1072,7 +1072,7 @@
               <span class="node soft">푸시 발송 · 실패 3회 재시도</span>
             </div>
             <div class="bars" style="grid-column: 1 / -1" role="img" aria-label="바꾸기 전과 후를 막대로 비교. 구독자 1,000명에서 등록 응답 116.9초에서 0.183초, 발송 완료 116.9초에서 0.20초.">
-              <p class="bars-title">바꾸기 전(회색) → 후(보라) · 구독자 1,000명, 개발 서버</p>
+              <p class="bars-title">바꾸기 전(회색) → 후(파랑) · 구독자 1,000명, 개발 서버</p>
               <div class="bar-row"><span class="bar-name">등록 응답</span><div class="bar" style="--w: 100%">116.9초 · 시간 초과</div><div class="bar after" style="--w: 0.2%">183ms</div></div>
               <div class="bar-row"><span class="bar-name">발송 완료</span><div class="bar" style="--w: 100%">116.9초</div><div class="bar after" style="--w: 0.2%">0.20초</div></div>
               <p class="bar-legend">막대 길이는 항목마다 큰 값을 100으로 둔 비율이에요.</p>
@@ -1092,8 +1092,8 @@
               <h3>배송원이 가는 길에 있는 콜을 같이 받으려면</h3>
               <ol class="pfr">
                 <li><span class="pfr-label">문제</span><p>콜을 묶어 받으려면 배송원이 <b>지금 어디인지</b>와 <b>어느 콜이 가는 길에 있는지</b>를 알아야 해요. 집은 주소가 있어 우편번호로 구역을 정하지만 배송원은 움직여서 주소가 없어요. 콜마다 길찾기 엔진을 부르면 서버 한 대로는 감당이 안 돼요(1코어 초당 137~650건, 엔진 메모리 155~414MB).</p></li>
-                <li><span class="pfr-label">한 것</span><p>배송 요청에 <b>주문 시점의 출발·도착 동과 우편번호를 확정</b>해 저장해 두었어요. 판매자가 이사해도 출발지는 매물 등록 시점 값이에요(테스트 712개). 기사가 픽업 전에 <b>배차를 취소</b>하면 배송은 다시 대기가 되고 다른 기사 화면에 바로 다시 보여요.</p></li>
-                <li><span class="pfr-label">구상</span><p>배송원 위치는 10~20초마다 받은 좌표를 <b>250m 격자 칸</b>으로 바꾸고, 칸마다 그 칸에서 출발하는 대기 콜을 담아 둬요. 기사가 칸을 밟으면 <b>도착 칸이 내 목적지와 같은 콜만</b> 실시간으로 띄워요. 끼워 넣을 때 더 도는 거리는 거리표 숫자 네 개로 계산하니 길찾기 엔진이 없어도 돼요. 아직 확정 전이에요.</p></li>
+                <li><span class="pfr-label">한 것</span><p>배송 요청에 <b>주문 시점의 출발·도착 동과 우편번호를 확정</b>해 저장해 두었어요. 판매자가 이사해도 출발지는 매물 등록 시점 값이에요(테스트 712개). 배송원이 픽업 전에 <b>배차를 취소</b>하면 배송은 다시 대기가 되고 다른 배송원 화면에 바로 다시 보여요.</p></li>
+                <li><span class="pfr-label">구상</span><p>배송원 위치는 10~20초마다 받은 좌표를 <b>250m 격자 칸</b>으로 바꾸고, 칸마다 그 칸에서 출발하는 대기 콜을 담아 둬요. 배송원이 칸을 밟으면 <b>도착 칸이 내 목적지와 같은 콜만</b> 실시간으로 띄워요. 끼워 넣을 때 더 도는 거리는 거리표 숫자 네 개로 계산하니 길찾기 엔진이 없어도 돼요. 아직 확정 전이에요.</p></li>
               </ol>
             </div>
             <div class="stats">
@@ -1111,8 +1111,8 @@
         <figcaption><b>현재 배송비는 우편번호 구역을 기준으로 계산해요.</b>가운데 열은 이전 행정동 방식이고, 오른쪽 열은 움직이는 배송원을 좌표로 나타내는 구상이에요. 거리는 어느 표현이든 배송비 계산 모듈의 거리표에서만 재요.</figcaption>
       </figure>
       <figure class="fig wide" data-svg="assets/sketch/s12-note-bottom.svg">
-        <div class="fig-scroll"><img src="assets/sketch/s12-note-bottom.svg" width="1400" height="940" loading="lazy" alt="칸마다 그 칸에서 다른 칸으로 가는 콜을 약 3개씩 매핑해 두고, 기사가 E를 밟으면 목적지 칸으로 가는 콜을 폰에 띄운다. 목적지가 C인 기사와 A인 기사는 각자 다른 줄을 받는다." /></div>
-        <figcaption><b>칸마다 콜을 매핑해 두고, 기사가 칸을 밟으면 목적지 칸으로 가는 콜만 폰에 띄워요.</b>같은 칸을 밟아도 목적지가 다르면 다른 콜이에요. 위치는 10~20초마다 보내고 칸이 바뀔 때만 꺼내요(구상, 확정 전).</figcaption>
+        <div class="fig-scroll"><img src="assets/sketch/s12-note-bottom.svg" width="1400" height="940" loading="lazy" alt="칸마다 그 칸에서 다른 칸으로 가는 콜을 약 3개씩 매핑해 두고, 배송원이 E를 밟으면 목적지 칸으로 가는 콜을 폰에 띄운다. 목적지가 C인 배송원과 A인 배송원은 각자 다른 줄을 받는다." /></div>
+        <figcaption><b>칸마다 콜을 매핑해 두고, 배송원이 칸을 밟으면 목적지 칸으로 가는 콜만 폰에 띄워요.</b>같은 칸을 밟아도 목적지가 다르면 다른 콜이에요. 위치는 10~20초마다 보내고 칸이 바뀔 때만 꺼내요(구상, 확정 전).</figcaption>
       </figure>
       <figure class="fig wide" data-svg="assets/sketch/s10-detour.svg">
         <div class="fig-scroll"><img src="assets/sketch/s10-detour.svg" width="1400" height="700" loading="lazy" alt="가는 길 콜을 지금 경로에 끼우면 얼마나 더 도나. 늘어나는 거리는 (A→P)+(P→Q)+(Q→B)−(A→B)로 계산하고 예시는 3,734m." /></div>
