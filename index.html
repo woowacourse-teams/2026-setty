@@ -4,42 +4,46 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>SETTY — 무거운 중고 가구를 더 가볍게</title>
-  <meta name="description" content="SETTY는 중고 가구를 고르는 순간 배송비와 총 결제 금액까지 보여주고, 가구와 배송을 한 번에 결제하게 해주는 중고 가구 거래 서비스입니다." />
+  <meta name="description" content="SETTY는 중고 가구를 고르는 순간 배송비와 총 결제 금액까지 보여주고, 가구값과 배송비를 한 번에 테스트 결제해 볼 수 있는 중고 가구 거래 서비스입니다." />
   <meta property="og:title" content="SETTY — 무거운 중고 가구를 더 가볍게" />
-  <meta property="og:description" content="매물 탐색 · 배송비 확인 · 결제를 하나의 거래 흐름으로" />
+  <meta property="og:description" content="매물 탐색 · 배송비 확인 · 테스트 결제를 하나의 흐름으로" />
   <meta property="og:type" content="website" />
-  <meta name="theme-color" content="#6750A4" />
+  <meta name="theme-color" content="#3182F6" />
   <link rel="icon" type="image/svg+xml" href="assets/setty-favicon.svg" />
-  <link rel="preload" href="assets/fonts/paperlogy-9black.woff" as="font" type="font/woff" crossorigin />
+  <link rel="preload" href="assets/fonts/paperlogy-8extrabold.woff" as="font" type="font/woff" crossorigin />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nanum+Pen+Script&display=swap" />
   <style>
-    @font-face { font-family: "Paperlogy"; font-weight: 400; font-display: swap; src: url("assets/fonts/paperlogy-4regular.woff") format("woff"); }
-    @font-face { font-family: "Paperlogy"; font-weight: 600; font-display: swap; src: url("assets/fonts/paperlogy-6semibold.woff") format("woff"); }
     @font-face { font-family: "Paperlogy"; font-weight: 800; font-display: swap; src: url("assets/fonts/paperlogy-8extrabold.woff") format("woff"); }
-    @font-face { font-family: "Paperlogy"; font-weight: 900; font-display: swap; src: url("assets/fonts/paperlogy-9black.woff") format("woff"); }
 
-    /* 앱의 SettyTheme(Material 3 Expressive, 보라 기본 팔레트)와 같은 색 역할을 쓴다 */
+    /* 웹 앱의 라이트·다크 색 토큰을 쓴다 */
     :root {
-      --primary: #6750A4;
+      --primary: #3182F6;
       --on-primary: #FFFFFF;
-      --primary-container: #EADDFF;
-      --on-primary-container: #4F378B;
-      --secondary-container: #E8DEF8;
-      --on-secondary-container: #4A4458;
-      --tertiary: #7D5260;
-      --tertiary-container: #FFD8E4;
-      --on-tertiary-container: #633B48;
-      --surface: #FEF7FF;
-      --surface-container-low: #F7F2FA;
-      --surface-container: #F3EDF7;
-      --surface-container-high: #ECE6F0;
-      --surface-container-highest: #E6E0E9;
-      --on-surface: #1D1B20;
-      --on-surface-variant: #49454F;
-      --outline: #79747E;
-      --outline-variant: #CAC4D0;
-      --inverse-surface: #322F35;
-      --inverse-on-surface: #F5EFF7;
+      --primary-container: #E8F3FF;
+      --on-primary-container: #1B64DA;
+      --secondary-container: #F2F4F6;
+      --on-secondary-container: #333D4B;
+      --tertiary: #109595;
+      --tertiary-container: #EDF8F8;
+      --on-tertiary-container: #097575;
+      --surface: #FFFFFF;
+      --surface-container-low: #F9FAFB;
+      --surface-container: #F9FAFB;
+      --surface-container-high: #F2F4F6;
+      --surface-container-highest: #F2F4F6;
+      --on-surface: #191F28;
+      --on-surface-variant: #6B7684;
+      --outline: #B0B8C1;
+      --outline-variant: #E5E8EB;
+      --inverse-surface: #333D4B;
+      --inverse-on-surface: #FFFFFF;
+
+      --hero-background: #E8F3FF;
+      --accent-text: #1B64DA;
+      --hero-muted: #4E5968;
+      --action-text: #FFFFFF;
+      --font-plain: system-ui, -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", "Roboto", sans-serif;
+      --font-brand: "Paperlogy", var(--font-plain);
 
       --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
       --emphasized: cubic-bezier(0.2, 0, 0, 1);
@@ -49,26 +53,30 @@
     }
     @media (prefers-color-scheme: dark) {
       :root {
-        --primary: #D0BCFF;
-        --on-primary: #381E72;
-        --primary-container: #4F378B;
-        --on-primary-container: #EADDFF;
-        --secondary-container: #4A4458;
-        --on-secondary-container: #E8DEF8;
-        --tertiary: #EFB8C8;
-        --tertiary-container: #633B48;
-        --on-tertiary-container: #FFD8E4;
-        --surface: #141218;
-        --surface-container-low: #1D1B20;
-        --surface-container: #211F26;
-        --surface-container-high: #2B2930;
-        --surface-container-highest: #36343B;
-        --on-surface: #E6E0E9;
-        --on-surface-variant: #CAC4D0;
-        --outline: #938F99;
-        --outline-variant: #49454F;
-        --inverse-surface: #E6E0E9;
-        --inverse-on-surface: #322F35;
+        --primary: #4593FC;
+        --on-primary: #FFFFFF;
+        --primary-container: #194AA6;
+        --on-primary-container: #C9E2FF;
+        --secondary-container: #333D4B;
+        --on-secondary-container: #E5E8EB;
+        --tertiary: #58C7C7;
+        --tertiary-container: #076565;
+        --on-tertiary-container: #BCE9E9;
+        --surface: #191F28;
+        --surface-container-low: #191F28;
+        --surface-container: #222A35;
+        --surface-container-high: #2A333F;
+        --surface-container-highest: #333D4B;
+        --on-surface: #F2F4F6;
+        --on-surface-variant: #B0B8C1;
+        --outline: #6B7684;
+        --outline-variant: #333D4B;
+        --inverse-surface: #F2F4F6;
+        --inverse-on-surface: #191F28;
+        --hero-background: var(--surface-container);
+        --accent-text: #4593FC;
+        --hero-muted: var(--on-surface-variant);
+        --action-text: #191F28;
       }
     }
 
@@ -76,7 +84,7 @@
     html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
     body {
       margin: 0;
-      font-family: "Paperlogy", system-ui, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+      font-family: var(--font-plain);
       background: var(--surface);
       color: var(--on-surface);
       line-height: 1.6;
@@ -84,6 +92,7 @@
       overflow-x: hidden;
     }
     a { color: inherit; }
+    h1, h2, h3, .brand strong, .fee-price { font-family: var(--font-brand); }
     svg { display: block; }
     .wrap { width: min(1120px, 100% - 32px); margin-inline: auto; }
     .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
@@ -94,16 +103,16 @@
       display: inline-flex; align-items: center; justify-content: center; gap: 8px;
       min-height: 56px; padding: 0 28px;
       border: 0; border-radius: var(--btn-radius);
-      font: 800 1.0625rem/1 "Paperlogy", sans-serif;
+      font: 800 1.0625rem/1 var(--font-plain);
       text-decoration: none; cursor: pointer;
       transition: border-radius 260ms var(--spring), transform 260ms var(--spring), box-shadow 200ms var(--emphasized), background-color 200ms;
     }
     .btn:active { --btn-radius: 12px; transform: scale(0.97); }
     .btn:focus-visible { outline: 3px solid var(--primary); outline-offset: 3px; }
     .btn svg { width: 22px; height: 22px; fill: currentColor; transition: transform 260ms var(--spring); }
-    .btn-filled { background: var(--primary); color: var(--on-primary); box-shadow: 0 1px 3px rgb(0 0 0 / .15); }
+    .btn-filled { background: var(--accent-text); color: var(--action-text); box-shadow: 0 1px 3px rgb(0 0 0 / .15); }
     .btn-tonal { background: var(--secondary-container); color: var(--on-secondary-container); }
-    .btn-outlined { background: transparent; color: var(--primary); box-shadow: inset 0 0 0 1.5px var(--outline); }
+    .btn-outlined { background: transparent; color: var(--accent-text); box-shadow: inset 0 0 0 1.5px var(--outline); }
     .btn-small { min-height: 44px; padding: 0 20px; font-size: .9375rem; }
     .btn-large { min-height: 64px; padding: 0 36px; font-size: 1.1875rem; }
 
@@ -117,8 +126,8 @@
     .topbar.scrolled { background: color-mix(in srgb, var(--surface-container) 92%, transparent); }
     .topbar .wrap { display: flex; align-items: center; justify-content: space-between; height: 72px; }
     .brand { display: flex; flex-direction: column; text-decoration: none; line-height: 1.15; }
-    .brand strong { font-weight: 900; font-size: 1.5rem; letter-spacing: -.01em; }
-    .brand span { font-size: .8125rem; color: var(--on-surface-variant); font-weight: 600; }
+    .brand strong { font-weight: 800; font-size: 1.5rem; letter-spacing: -.01em; }
+    .brand span { font-size: .8125rem; color: var(--on-surface-variant); font-weight: 500; }
     .topnav { display: flex; align-items: center; gap: 4px; margin-left: auto; margin-right: 12px; }
     .topnav a { padding: 10px 14px; border-radius: 999px; text-decoration: none; font-weight: 800; font-size: .9375rem; color: var(--on-surface-variant); }
     .topnav a:hover { background: var(--surface-container-high); }
@@ -127,14 +136,11 @@
     .hero { padding: 8px 0 24px; }
     .hero-card {
       position: relative; overflow: hidden;
-      display: grid; grid-template-columns: 1.2fr .8fr; align-items: center; gap: 32px;
-      padding: 64px 56px;
-      background: var(--surface-container);
+      display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: center; gap: 32px;
+      padding: 64px 48px;
+      background: var(--hero-background);
       border-radius: var(--radius-xxl);
     }
-    .hero-card .deco { position: absolute; pointer-events: none; }
-    .deco-a { width: 340px; right: -110px; top: -120px; fill: var(--primary-container); animation: spin 40s linear infinite; }
-    .deco-b { width: 180px; left: -60px; bottom: -70px; fill: var(--tertiary-container); animation: spin 32s linear infinite reverse; }
     @keyframes spin { to { transform: rotate(360deg); } }
     .hero-copy { position: relative; }
     .chip {
@@ -146,61 +152,21 @@
     .chip svg { width: 18px; height: 18px; fill: currentColor; }
     h1 {
       margin: 20px 0 16px;
-      font-weight: 900; font-size: clamp(2.125rem, 4.6vw, 3.375rem); line-height: 1.16; letter-spacing: -.02em;
+      font-weight: 800; font-size: clamp(1.875rem, 4vw, 3.125rem); line-height: 1.16; letter-spacing: -.02em;
     }
-    h1 em { font-style: normal; color: var(--primary); }
-    .lead { margin: 0 0 32px; font-size: clamp(1.0625rem, 1.8vw, 1.25rem); color: var(--on-surface-variant); font-weight: 600; }
+    h1 em { font-style: normal; color: var(--accent-text); }
+    .lead { margin: 0 0 32px; font-size: clamp(1.0625rem, 1.8vw, 1.25rem); color: var(--hero-muted); font-weight: 500; }
     .cta-row { display: flex; flex-wrap: wrap; gap: 12px; }
 
-    /* 히어로 오른쪽: 앱의 가구 상세 화면을 닮은 예시 카드 */
-    .mock-stage { position: relative; display: grid; place-items: center; min-height: 460px; }
-    .mock {
-      position: relative; z-index: 1;
-      width: min(320px, 100%);
-      background: var(--surface); border-radius: 36px; padding: 14px;
-      box-shadow: 0 24px 60px -20px rgb(33 0 93 / .35), 0 0 0 1px var(--outline-variant);
-      animation: float 6s ease-in-out infinite;
-    }
-    @keyframes float { 50% { transform: translateY(-10px) rotate(-1deg); } }
-    .mock-photo {
-      position: relative; aspect-ratio: 4 / 3; border-radius: 24px; overflow: hidden;
-      background: var(--secondary-container); display: grid; place-items: center;
-    }
-    .mock-photo .sofa { width: 72%; }
-    .mock-badge {
-      position: absolute; left: 12px; top: 12px;
-      padding: 4px 10px; border-radius: 8px;
-      background: var(--primary); color: var(--on-primary); font-size: .75rem; font-weight: 800;
-    }
-    .mock-body { padding: 16px 8px 6px; }
-    .mock-meta { font-size: .8125rem; color: var(--on-surface-variant); font-weight: 600; }
-    .mock-title { margin: 2px 0 14px; font-size: 1.1875rem; font-weight: 900; }
-    .mock-rows { display: grid; gap: 2px; border-radius: 18px; overflow: hidden; }
-    .mock-row { display: flex; justify-content: space-between; padding: 10px 14px; background: var(--surface-container); font-size: .875rem; font-weight: 600; }
-    .mock-row b { font-weight: 800; }
-    .mock-row.total { background: var(--primary-container); color: var(--on-primary-container); font-size: 1rem; }
-    .mock-row.total b { font-weight: 900; }
-    .mock-buy {
-      margin-top: 12px; display: grid; place-items: center; height: 48px; border-radius: 999px;
-      background: var(--primary); color: var(--on-primary); font-weight: 800;
-    }
-    .sticker {
-      position: absolute; z-index: 2; display: grid; place-items: center;
-      animation: bob 5s ease-in-out infinite;
-    }
-    .sticker > svg { position: absolute; inset: 0; width: 100%; height: 100%; }
-    .sticker-inner { position: relative; display: grid; place-items: center; text-align: center; line-height: 1.2; font-weight: 900; }
-    .sticker-ship { width: 128px; height: 128px; right: -6px; top: 18px; color: var(--on-tertiary-container); }
-    .sticker-ship > svg { fill: var(--tertiary-container); animation: spin 18s linear infinite; }
-    .sticker-ship .sticker-inner { font-size: .8125rem; }
-    .sticker-ship .sticker-inner svg { width: 30px; height: 30px; fill: currentColor; margin-bottom: 2px; }
-    @keyframes bob { 50% { transform: translateY(-8px) rotate(6deg); } }
+    .hero-shot { margin: 0; min-width: 0; }
+    .hero-shot img { display: block; width: 100%; height: auto; border-radius: 20px; }
+    .hero-note { margin: 14px 0 0; color: var(--hero-muted); font-size: .875rem; }
 
     /* ---------- 공통 섹션 ---------- */
     section { padding: 72px 0; }
-    .eyebrow { margin: 0 0 8px; color: var(--primary); font-weight: 800; font-size: .9375rem; }
-    h2 { margin: 0 0 16px; font-weight: 900; font-size: clamp(1.75rem, 3.8vw, 2.625rem); line-height: 1.22; letter-spacing: -.015em; }
-    .section-lead { margin: 0 0 40px; max-width: 640px; color: var(--on-surface-variant); font-size: 1.0625rem; font-weight: 600; }
+    .eyebrow { margin: 0 0 8px; color: var(--accent-text); font-weight: 800; font-size: .9375rem; }
+    h2 { margin: 0 0 16px; font-weight: 800; font-size: clamp(1.75rem, 3.8vw, 2.625rem); line-height: 1.22; letter-spacing: -.015em; }
+    .section-lead { margin: 0 0 40px; max-width: 640px; color: var(--on-surface-variant); font-size: 1.0625rem; font-weight: 500; }
 
     /* ---------- 누구의 어떤 문제 ---------- */
     .who-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 48px; }
@@ -211,8 +177,8 @@
     .who-icon { width: 56px; height: 56px; position: relative; display: grid; place-items: center; margin-bottom: 16px; }
     .who-icon > svg:first-child { position: absolute; inset: 0; width: 100%; height: 100%; fill: var(--primary-container); }
     .who-icon > svg:last-child { position: relative; width: 26px; height: 26px; fill: var(--on-primary-container); }
-    .who h3 { margin: 0 0 6px; font-size: 1.1875rem; font-weight: 900; }
-    .who p { margin: 0; color: var(--on-surface-variant); font-weight: 600; font-size: .9688rem; }
+    .who h3 { margin: 0 0 6px; font-size: 1.1875rem; font-weight: 800; }
+    .who p { margin: 0; color: var(--on-surface-variant); font-weight: 500; font-size: .9688rem; }
 
     .compare { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
     .flow {
@@ -220,12 +186,12 @@
     }
     .flow-before { background: var(--surface-container-high); }
     .flow-after { background: var(--primary-container); color: var(--on-primary-container); }
-    .flow h3 { margin: 0 0 4px; font-size: 1.25rem; font-weight: 900; }
-    .flow .flow-sub { margin: 0 0 24px; font-weight: 600; font-size: .9375rem; opacity: .85; }
+    .flow h3 { margin: 0 0 4px; font-size: 1.25rem; font-weight: 800; }
+    .flow .flow-sub { margin: 0 0 24px; font-weight: 500; font-size: .9375rem; opacity: .85; }
     .steps-mini { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
     .steps-mini li {
       display: flex; align-items: center; gap: 10px;
-      padding: 10px 14px; border-radius: 8px; font-weight: 600; font-size: .9375rem;
+      padding: 10px 14px; border-radius: 8px; font-weight: 500; font-size: .9375rem;
       background: var(--surface);
     }
     .steps-mini li:first-child { border-radius: 20px 20px 8px 8px; }
@@ -235,9 +201,10 @@
     .tag-market { background: var(--secondary-container); color: var(--on-secondary-container); }
     .tag-seller { background: var(--tertiary-container); color: var(--on-tertiary-container); }
     .tag-truck { background: var(--surface-container-highest); color: var(--on-surface-variant); }
-    .tag-setty { background: var(--primary); color: var(--on-primary); }
-    .flow-count { margin-top: 20px; display: flex; align-items: baseline; gap: 2px; font-weight: 600; }
-    .flow-count b { font-size: 2.5rem; font-weight: 900; line-height: 1; }
+    .tag-setty { background: var(--accent-text); color: var(--action-text); }
+    .flow-count { margin-top: 20px; display: flex; align-items: baseline; gap: 2px; font-weight: 500; }
+    .flow-scope { margin: 16px 0 0; font-size: .875rem; color: var(--on-surface-variant); }
+    .flow-count b { font-size: 2.5rem; font-weight: 800; line-height: 1; }
 
     /* ---------- 사용법 ---------- */
     .howto { background: var(--surface-container-low); border-radius: var(--radius-xxl); }
@@ -247,14 +214,14 @@
     .connected { display: inline-flex; gap: 2px; }
     .connected button {
       min-height: 48px; padding: 0 22px; border: 0; cursor: pointer;
-      font: 800 1rem/1 "Paperlogy", sans-serif;
+      font: 800 1rem/1 var(--font-plain);
       background: var(--surface-container-highest); color: var(--on-surface-variant);
       border-radius: 8px;
       transition: border-radius 300ms var(--spring), background-color 200ms, color 200ms;
     }
     .connected button:first-child { border-radius: 24px 8px 8px 24px; }
     .connected button:last-child { border-radius: 8px 24px 24px 8px; }
-    .connected button[aria-selected="true"] { background: var(--primary); color: var(--on-primary); border-radius: 24px; }
+    .connected button[aria-selected="true"] { background: var(--accent-text); color: var(--action-text); border-radius: 24px; }
     .connected button:focus-visible { outline: 3px solid var(--primary); outline-offset: 2px; }
 
     .step-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
@@ -268,20 +235,20 @@
     .step-badge { position: relative; width: 64px; height: 64px; display: grid; place-items: center; margin-bottom: 20px; }
     .step-badge > svg { position: absolute; inset: 0; width: 100%; height: 100%; transition: transform 600ms var(--spring); }
     .step:hover .step-badge > svg { transform: rotate(40deg) scale(1.06); }
-    .step-badge span { position: relative; font-weight: 900; font-size: 1.5rem; }
+    .step-badge span { position: relative; font-weight: 800; font-size: 1.5rem; }
     .step:nth-child(4n+1) .step-badge > svg { fill: var(--primary); } .step:nth-child(4n+1) .step-badge span { color: var(--on-primary); }
     .step:nth-child(4n+2) .step-badge > svg { fill: var(--tertiary-container); } .step:nth-child(4n+2) .step-badge span { color: var(--on-tertiary-container); }
     .step:nth-child(4n+3) .step-badge > svg { fill: var(--secondary-container); } .step:nth-child(4n+3) .step-badge span { color: var(--on-secondary-container); }
     .step:nth-child(4n+4) .step-badge > svg { fill: var(--primary-container); } .step:nth-child(4n+4) .step-badge span { color: var(--on-primary-container); }
-    .step .step-label { margin: 0; font-size: .875rem; font-weight: 800; color: var(--primary); }
-    .step h3 { margin: 2px 0 8px; font-size: 1.25rem; font-weight: 900; }
-    .step p { margin: 0; color: var(--on-surface-variant); font-weight: 600; font-size: .9375rem; }
+    .step .step-label { margin: 0; font-size: .875rem; font-weight: 800; color: var(--accent-text); }
+    .step h3 { margin: 2px 0 8px; font-size: 1.25rem; font-weight: 800; }
+    .step p { margin: 0; color: var(--on-surface-variant); font-weight: 500; font-size: .9375rem; }
 
     .note {
       display: flex; gap: 14px; align-items: flex-start;
       margin-top: 24px; padding: 18px 22px; border-radius: 20px;
       background: var(--surface); box-shadow: inset 0 0 0 1px var(--outline-variant);
-      color: var(--on-surface-variant); font-size: .9375rem; font-weight: 600;
+      color: var(--on-surface-variant); font-size: .9375rem; font-weight: 500;
     }
     .note svg { flex: none; width: 22px; height: 22px; fill: var(--primary); margin-top: 2px; }
     .note b { color: var(--on-surface); font-weight: 800; }
@@ -294,8 +261,8 @@
     .demo-phone { padding: 8px; border-radius: 36px; background: var(--inverse-surface); }
     /* 녹화 원본 좌우의 검은 여백을 잘라 앱 화면만 보이게 한다 */
     .demo-phone video { display: block; width: 100%; height: auto; aspect-ratio: 9 / 20; object-fit: cover; border-radius: 28px; background: #000; }
-    .demo-side h3 { margin: 0 0 6px; font-size: 1.25rem; font-weight: 900; }
-    .demo-side > p { margin: 0 0 20px; color: var(--on-surface-variant); font-weight: 600; font-size: .9375rem; }
+    .demo-side h3 { margin: 0 0 6px; font-size: 1.25rem; font-weight: 800; }
+    .demo-side > p { margin: 0 0 20px; color: var(--on-surface-variant); font-weight: 500; font-size: .9375rem; }
     .chapters { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
     .chapters button {
       width: 100%; display: grid; grid-template-columns: 52px 1fr; gap: 12px; align-items: baseline;
@@ -304,10 +271,10 @@
     }
     .chapters button:focus-visible { outline: 3px solid var(--primary); outline-offset: 2px; }
     .chapters button[aria-current="true"] { background: var(--primary-container); color: var(--on-primary-container); }
-    .ch-time { font-weight: 800; font-size: .875rem; color: var(--primary); font-variant-numeric: tabular-nums; }
+    .ch-time { font-weight: 800; font-size: .875rem; color: var(--accent-text); font-variant-numeric: tabular-nums; }
     .chapters button[aria-current="true"] .ch-time { color: inherit; }
     .ch-text b { display: block; font-weight: 800; }
-    .ch-text span { display: block; font-size: .875rem; font-weight: 600; opacity: .8; }
+    .ch-text span { display: block; font-size: .875rem; font-weight: 500; opacity: .8; }
     @media (max-width: 720px) {
       .demo { grid-template-columns: 1fr; gap: 24px; padding: 20px; }
       .demo-phone { width: min(280px, 100%); margin-inline: auto; }
@@ -328,7 +295,9 @@
     @media (max-width: 720px) { .screenshots { grid-template-columns: 1fr; } }
 
     /* ---------- 배송비 정책 ---------- */
-    .fee-basis { margin: -24px 0 14px; font-size: .9375rem; font-weight: 800; color: var(--primary); }
+    .fee-method { margin: 0 0 24px; max-width: 640px; color: var(--on-surface-variant); font-size: .875rem; }
+    #fee .section-lead { margin-bottom: 12px; }
+    .fee-basis { margin: 0 0 14px; font-size: .9375rem; font-weight: 800; color: var(--accent-text); }
     .fee-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
     .fee {
       position: relative; overflow: hidden;
@@ -339,9 +308,9 @@
     .fee:nth-child(2) .fee-shape { width: 128px; fill: var(--tertiary-container); }
     .fee:nth-child(3) .fee-shape { width: 164px; fill: var(--primary-container); }
     .fee > :not(.fee-shape) { position: relative; }
-    .fee-size { margin: 0; font-weight: 800; color: var(--primary); }
-    .fee-price { margin: 4px 0 6px; font-size: 2rem; font-weight: 900; line-height: 1.2; }
-    .fee-desc { margin: 0; color: var(--on-surface-variant); font-weight: 600; font-size: .9375rem; }
+    .fee-size { margin: 0; font-weight: 800; color: var(--accent-text); }
+    .fee-price { margin: 4px 0 6px; font-size: 2rem; font-weight: 800; line-height: 1.2; }
+    .fee-desc { margin: 0; color: var(--on-surface-variant); font-weight: 500; font-size: .9375rem; }
 
     /* ---------- 기술 소개: 문제 → 풀이 → 결과 카드와 전후 수치 ---------- */
     .tech-grid { display: grid; gap: 12px; }
@@ -353,26 +322,26 @@
     }
     .tech-main { background: var(--surface-container); box-shadow: none; }
     .tech-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 10px; }
-    .tech-tag { padding: 4px 10px; border-radius: 8px; background: var(--primary); color: var(--on-primary); font-size: .75rem; font-weight: 800; }
+    .tech-tag { padding: 4px 10px; border-radius: 8px; background: var(--accent-text); color: var(--action-text); font-size: .75rem; font-weight: 800; }
     .tech-tag.tag-second { background: var(--tertiary-container); color: var(--on-tertiary-container); }
     .tech-where { font-size: .8125rem; font-weight: 700; color: var(--on-surface-variant); }
-    .tech h3 { margin: 0 0 20px; font-size: clamp(1.375rem, 2.4vw, 1.75rem); font-weight: 900; line-height: 1.25; letter-spacing: -.01em; }
+    .tech h3 { margin: 0 0 20px; font-size: clamp(1.375rem, 2.4vw, 1.75rem); font-weight: 800; line-height: 1.25; letter-spacing: -.01em; }
     .pfr { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
     .pfr li { display: grid; grid-template-columns: 44px 1fr; gap: 12px; align-items: start; padding: 14px 16px; border-radius: 16px; background: var(--surface); }
-    .pfr-label { padding-top: 3px; font-size: .8125rem; font-weight: 800; color: var(--primary); }
-    .pfr p { margin: 0; font-weight: 600; font-size: .9375rem; color: var(--on-surface-variant); }
+    .pfr-label { padding-top: 3px; font-size: .8125rem; font-weight: 800; color: var(--accent-text); }
+    .pfr p { margin: 0; font-weight: 500; font-size: .9375rem; color: var(--on-surface-variant); }
     .pfr p b { color: var(--on-surface); font-weight: 800; }
     .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-content: start; }
     .stat { padding: 18px 18px 16px; border-radius: 20px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--outline-variant); }
     .stat.hi { background: var(--primary-container); color: var(--on-primary-container); box-shadow: none; }
-    .stat-label { margin: 0 0 6px; font-size: .8125rem; font-weight: 800; color: var(--primary); }
+    .stat-label { margin: 0 0 6px; font-size: .8125rem; font-weight: 800; color: var(--accent-text); }
     .stat.hi .stat-label { color: inherit; }
-    .stat-value { margin: 0; font-size: clamp(1.5rem, 2.8vw, 2rem); font-weight: 900; line-height: 1.1; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+    .stat-value { margin: 0; font-size: clamp(1.5rem, 2.8vw, 2rem); font-weight: 800; line-height: 1.1; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
     .stat-value small { font-size: .55em; font-weight: 800; margin-left: 2px; }
     .stat-before { margin: 6px 0 0; font-size: .8125rem; font-weight: 700; color: var(--on-surface-variant); font-variant-numeric: tabular-nums; }
     .stat.hi .stat-before { color: inherit; opacity: .85; }
     .tech-foot { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
-    .tech-note { margin: 0; font-size: .8125rem; font-weight: 600; color: var(--on-surface-variant); }
+    .tech-note { margin: 0; font-size: .8125rem; font-weight: 500; color: var(--on-surface-variant); }
     .tech-foot .btn svg { width: 20px; height: 20px; }
     /* 기술 소개 시각 자료: 전후 막대와 발송 흐름 */
     .bars { display: grid; gap: 14px; align-content: start; padding: 18px 20px; border-radius: 20px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--outline-variant); }
@@ -386,7 +355,7 @@
     .bar-legend { margin: 0; font-size: .75rem; font-weight: 700; color: var(--on-surface-variant); }
     .flow-line { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 16px 18px; border-radius: 20px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--outline-variant); }
     .flow-line .node { padding: 8px 12px; border-radius: 10px; background: var(--surface-container-high); font-size: .8125rem; font-weight: 800; }
-    .flow-line .node.hi { background: var(--primary); color: var(--on-primary); }
+    .flow-line .node.hi { background: var(--accent-text); color: var(--action-text); }
     .flow-line .node.soft { background: var(--tertiary-container); color: var(--on-tertiary-container); }
     .flow-line .arrow { font-size: .8125rem; font-weight: 800; color: var(--on-surface-variant); }
     .flow-line .cut { align-self: stretch; width: 2px; margin: 0 4px; border-left: 2px dashed var(--outline); }
@@ -401,13 +370,13 @@
     .fig svg text { font-family: "Nanum Pen Script", "Apple SD Gothic Neo", sans-serif; fill: var(--on-surface); }
     .fig svg .clay { fill: var(--tertiary); }
     .fig svg .moss { fill: var(--on-surface-variant); }
-    .fig figcaption { margin-top: 10px; font-size: .8125rem; font-weight: 600; color: var(--on-surface-variant); line-height: 1.5; }
+    .fig figcaption { margin-top: 10px; font-size: .8125rem; font-weight: 500; color: var(--on-surface-variant); line-height: 1.5; }
     .fig figcaption b { color: var(--on-surface); font-weight: 800; }
     @media (prefers-color-scheme: dark) {
       .fig svg [stroke="#1D1B20"] { stroke: var(--on-surface); } .fig svg [fill="#1D1B20"] { fill: var(--on-surface); }
       .fig svg [stroke="#49454F"] { stroke: var(--on-surface-variant); }
-      .fig svg [stroke="#6750A4"], .fig svg [stroke="#B69DF8"] { stroke: var(--primary); }
-      .fig svg [stroke="#7D5260"], .fig svg [stroke="#EFB8C8"] { stroke: var(--tertiary); } .fig svg [fill="#7D5260"], .fig svg [fill="#EFB8C8"] { fill: var(--tertiary); }
+      .fig svg [stroke="#3182F6"], .fig svg [stroke="#64A8FF"] { stroke: var(--primary); }
+      .fig svg [stroke="#097575"], .fig svg [stroke="#58C7C7"] { stroke: var(--tertiary); } .fig svg [fill="#097575"], .fig svg [fill="#58C7C7"] { fill: var(--tertiary); }
       .fig svg [stroke="#ECE6F0"] { stroke: var(--outline-variant); }
     }
     .fold { grid-column: 1 / -1; }
@@ -418,7 +387,7 @@
     .fold[open] > summary::before { transform: rotate(45deg); }
     .fold > summary:focus-visible { outline: 3px solid var(--primary); outline-offset: 2px; }
     /* 설계 문서의 구조 그림: 클래스로 칠한다 */
-    .fig .diagram text { font-family: "Paperlogy", "Apple SD Gothic Neo", sans-serif; font-weight: 600; }
+    .fig .diagram text { font-family: var(--font-plain); font-weight: 500; }
     .fig .diagram .pt { font-size: 17px; fill: var(--on-surface); }
     .fig .diagram .lb { font-size: 14px; fill: var(--on-surface-variant); }
     .fig .diagram .rl, .fig .diagram .sl { font-size: 14px; fill: var(--on-surface); }
@@ -437,7 +406,7 @@
     .fig .diagram .axl { stroke: var(--outline-variant); stroke-width: 1.2; }
     @media (max-width: 720px) { .fig.diagram img, .fig.diagram svg { min-width: 600px; } }
     /* 교환 곡선: 가로축 메모리, 세로축 불일치. 강조점은 250m */
-    .fig.trade svg text { font-family: "Paperlogy", "Apple SD Gothic Neo", sans-serif; font-weight: 600; fill: var(--on-surface); }
+    .fig.trade svg text { font-family: var(--font-plain); font-weight: 500; fill: var(--on-surface); }
     .fig.trade .tg { stroke: var(--surface-container-highest); stroke-width: 1; }
     .fig.trade .ta { stroke: var(--outline-variant); stroke-width: 1.2; }
     .fig.trade .tgoal { stroke: var(--tertiary); stroke-width: 1.6; stroke-dasharray: 6 5; }
@@ -461,7 +430,7 @@
     .chart-title { margin: 0 0 14px; font-size: .875rem; font-weight: 800; }
     .chart-rows { display: grid; grid-template-columns: minmax(96px, auto) 1fr auto; gap: 10px 10px; align-items: center; }
     .chart-rows .l { font-size: .8125rem; font-weight: 700; color: var(--on-surface-variant); line-height: 1.3; }
-    .chart-rows .l small { display: block; font-size: .6875rem; font-weight: 600; opacity: .8; }
+    .chart-rows .l small { display: block; font-size: .6875rem; font-weight: 500; opacity: .8; }
     .track { position: relative; height: 16px; border-radius: 4px; background: var(--surface-container-high); }
     .fill { position: absolute; top: 0; bottom: 0; left: 0; border-radius: 4px; background: color-mix(in srgb, var(--primary) 55%, var(--surface)); }
     .fill.pick { background: var(--primary); }
@@ -475,7 +444,7 @@
     .axis span { position: absolute; top: 2px; transform: translateX(-50%); white-space: nowrap; }
     .axis span:first-child { transform: none; }
     .axis span:last-child { transform: translateX(-100%); }
-    .chart-note { margin: 12px 0 0; font-size: .75rem; font-weight: 600; color: var(--on-surface-variant); }
+    .chart-note { margin: 12px 0 0; font-size: .75rem; font-weight: 500; color: var(--on-surface-variant); }
     .tech-tag.tag-plan { background: var(--tertiary); color: var(--on-primary); }
     @media (max-width: 720px) { .figs { grid-template-columns: 1fr; } .fig img, .fig svg { min-width: 720px; } .chart-rows { grid-template-columns: 84px 1fr auto; } }
     @media (max-width: 960px) { .tech { grid-template-columns: 1fr; } }
@@ -485,16 +454,16 @@
     .final {
       position: relative; overflow: hidden; text-align: center;
       padding: 80px 24px; border-radius: var(--radius-xxl);
-      background: var(--primary); color: var(--on-primary);
+      background: var(--accent-text); color: var(--action-text);
     }
-    .final .deco { position: absolute; pointer-events: none; fill: color-mix(in srgb, var(--on-primary) 12%, transparent); }
+    .final .deco { position: absolute; pointer-events: none; fill: var(--hero-background); opacity: .16; }
     .final .deco-c { width: 260px; left: -80px; top: -90px; animation: spin 36s linear infinite; }
     .final .deco-d { width: 200px; right: -50px; bottom: -80px; animation: spin 28s linear infinite reverse; }
     .final h2 { position: relative; }
-    .final p { position: relative; margin: 0 auto 32px; max-width: 520px; font-weight: 600; opacity: .9; font-size: 1.0625rem; }
-    .final .btn { position: relative; background: var(--on-primary); color: var(--primary); }
+    .final p { position: relative; margin: 0 auto 32px; max-width: 520px; font-weight: 500; opacity: .9; font-size: 1.0625rem; }
+    .final .btn { position: relative; background: var(--surface); color: var(--accent-text); }
 
-    footer { padding: 40px 0 56px; color: var(--on-surface-variant); font-size: .875rem; font-weight: 600; }
+    footer { padding: 40px 0 56px; color: var(--on-surface-variant); font-size: .875rem; font-weight: 500; }
     footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; }
     footer a { text-decoration: underline; text-underline-offset: 3px; }
 
@@ -506,7 +475,6 @@
     /* ---------- 반응형 ---------- */
     @media (max-width: 960px) {
       .hero-card { grid-template-columns: 1fr; padding: 48px 32px 32px; }
-      .mock-stage { min-height: 420px; }
       .step-list { grid-template-columns: repeat(2, 1fr); }
     }
     @media (max-width: 720px) {
@@ -519,11 +487,11 @@
       .topnav { display: none; }
       .brand strong { font-size: 1.3125rem; }
       .hero-card { padding: 40px 20px 24px; border-radius: 36px; }
-      .cta-row .btn { flex: 1 1 100%; }
+      .lead { margin-bottom: 24px; }
+      .cta-row .btn { flex: 1 1 100%; min-height: 54px; font-size: 1rem; }
       .step-list { grid-template-columns: 1fr; }
       .connected { width: 100%; }
       .connected button { flex: 1; padding: 0 12px; }
-      .sticker-ship { width: 104px; height: 104px; right: -8px; }
       .final { padding: 64px 20px; border-radius: 32px; }
     }
     @media (prefers-reduced-motion: reduce) {
@@ -569,48 +537,20 @@
     <div class="hero">
       <div class="wrap">
         <div class="hero-card">
-          <svg class="deco deco-a" viewBox="0 0 100 100" aria-hidden="true"><use href="#s-cookie9" /></svg>
-          <svg class="deco deco-b" viewBox="0 0 100 100" aria-hidden="true"><use href="#s-flower" /></svg>
-
           <div class="hero-copy">
             <span class="chip"><svg aria-hidden="true"><use href="#i-ship" /></svg>중고 가구 + 배송을 한 번에</span>
             <h1>중고 가구를 고르는 순간,<br /><em>배송까지</em> 생각합니다.</h1>
-            <p class="lead">마음에 드는 가구를 찾으면 예상 배송비와 총 결제 금액을 바로 보여드려요. 가구값과 배송비는 한 번에 결제하고, 배송은 SETTY가 이어서 맡아요.</p>
+            <p class="lead">마음에 드는 가구를 찾으면 예상 배송비와 총 결제 금액을 바로 보여드려요. 가구값과 배송비를 한 번에 테스트 결제하고, 주문에서 배송 상태가 어떻게 바뀌는지 볼 수 있어요.</p>
             <div class="cta-row">
               <a class="btn btn-filled btn-large" href="https://www.setty.cloud">시작하기<svg aria-hidden="true"><use href="#i-chevron" /></svg></a>
               <a class="btn btn-outlined btn-large" href="#howto">사용법 보기</a>
             </div>
+            <p class="hero-note">누구나 가입해 둘러볼 수 있어요. 결제는 테스트 결제라 실제 금액이 청구되지 않아요.</p>
           </div>
 
-          <div class="mock-stage" aria-hidden="true">
-            <div class="sticker sticker-ship">
-              <svg viewBox="0 0 100 100"><use href="#s-burst" /></svg>
-              <div class="sticker-inner"><svg><use href="#i-ship" /></svg>배송비<br />포함</div>
-            </div>
-            <div class="mock">
-              <div class="mock-photo">
-                <span class="mock-badge">판매 중</span>
-                <svg class="sofa" viewBox="0 0 200 120">
-                  <rect x="30" y="18" width="140" height="58" rx="22" fill="var(--primary)" opacity=".55" />
-                  <rect x="10" y="48" width="44" height="50" rx="20" fill="var(--primary)" />
-                  <rect x="146" y="48" width="44" height="50" rx="20" fill="var(--primary)" />
-                  <rect x="40" y="62" width="120" height="34" rx="14" fill="var(--primary)" opacity=".8" />
-                  <rect x="26" y="96" width="10" height="16" rx="4" fill="var(--on-primary-container)" />
-                  <rect x="164" y="96" width="10" height="16" rx="4" fill="var(--on-primary-container)" />
-                </svg>
-              </div>
-              <div class="mock-body">
-                <div class="mock-meta">소파 · A급 · 예시</div>
-                <div class="mock-title">3인용 패브릭 소파</div>
-                <div class="mock-rows">
-                  <div class="mock-row"><span>가구 가격</span><b>120,000원</b></div>
-                  <div class="mock-row"><span>예상 배송비</span><b>30,000원</b></div>
-                  <div class="mock-row total"><span>총 결제 금액</span><b>150,000원</b></div>
-                </div>
-                <div class="mock-buy">구매하기</div>
-              </div>
-            </div>
-          </div>
+          <figure class="hero-shot">
+            <img src="assets/screenshots/hero.jpg" width="1200" height="825" fetchpriority="high" alt="중고 가구 상세의 가격 카드와 주문 상세의 배차 완료 화면" />
+          </figure>
         </div>
       </div>
     </div>
@@ -626,17 +566,17 @@
           <article class="who reveal">
             <div class="who-icon"><svg viewBox="0 0 100 100"><use href="#s-cookie9" /></svg><svg viewBox="0 0 24 24"><use href="#i-search" /></svg></div>
             <h3>차 없이 가구를 사려는 사람</h3>
-            <p>매물 상세에서 배송비까지 더한 총액을 보고, 결제 한 번으로 배송까지 맡겨요.</p>
+            <p>매물 상세에서 배송비까지 더한 총액을 보고, 테스트 결제부터 배송 상태 확인까지 해 볼 수 있어요.</p>
           </article>
           <article class="who reveal">
             <div class="who-icon"><svg viewBox="0 0 100 100"><use href="#s-cookie6" /></svg><svg viewBox="0 0 24 24"><use href="#i-sell" /></svg></div>
             <h3>쓰던 가구를 팔려는 사람</h3>
-            <p>사진과 크기만 올리면 배송비가 자동으로 계산돼서, 운송 문의에 일일이 답하지 않아도 돼요.</p>
+            <p>가구를 등록하면 입력한 크기와 출발·도착 우편번호 구역 사이 도로 거리로 계산한 예상 배송비를 구매자에게 보여줘요.</p>
           </article>
           <article class="who reveal">
             <div class="who-icon"><svg viewBox="0 0 100 100"><use href="#s-burst" /></svg><svg viewBox="0 0 24 24"><use href="#i-ship" /></svg></div>
             <h3>가구를 옮기는 배송 기사</h3>
-            <p>결제가 끝난 주문만 배송 요청으로 들어와요. 요청을 수락하고 배송을 마치면 돼요.</p>
+            <p>테스트 결제를 마친 주문은 배송 요청으로 들어와요. 요청 수락부터 배송 완료까지 상태를 바꿔 볼 수 있어요.</p>
           </article>
         </div>
 
@@ -657,88 +597,119 @@
           </div>
           <div class="flow flow-after reveal">
             <h3>SETTY에서의 가구 거래</h3>
-            <p class="flow-sub">하나의 흐름 안에서 끝나요</p>
+            <p class="flow-sub">가상 시나리오로 구매부터 배송까지 따라가요</p>
             <ol class="steps-mini">
               <li><span class="who-tag tag-setty">SETTY</span>매물 탐색</li>
               <li><span class="who-tag tag-setty">SETTY</span>예상 배송비·총액 확인</li>
-              <li><span class="who-tag tag-setty">SETTY</span>가구·배송비 함께 결제</li>
+              <li><span class="who-tag tag-setty">SETTY</span>가구·배송비 함께 테스트 결제</li>
               <li><span class="who-tag tag-setty">SETTY</span>배송 요청 생성</li>
-              <li><span class="who-tag tag-setty">SETTY</span>배송</li>
+              <li><span class="who-tag tag-setty">SETTY</span>배송 상태 확인</li>
             </ol>
-            <div class="flow-count"><b>1곳</b>에서 끝나는 5단계</div>
+            <div class="flow-count"><b>1곳</b>에서 확인하는 5단계</div>
           </div>
         </div>
+        <p class="flow-scope reveal">실제 결제와 가구 운송을 하는 실서비스 운영은 보류했어요. 테스트 결제와 가상 시나리오로 구매부터 배송 완료까지 확인했어요.</p>
       </div>
     </section>
 
     <!-- 사용법 -->
     <section id="howto" class="wrap howto">
       <div style="padding-inline: clamp(4px, 3vw, 40px);">
-        <div class="howto-head">
-          <div>
-            <p class="eyebrow reveal">사용법</p>
-            <h2 class="reveal">이 순서대로 쓰면 돼요</h2>
-            <p class="section-lead reveal">사는 사람과 파는 사람, 각자의 순서를 확인해 보세요.</p>
+        <div class="howto-guide">
+          <div class="howto-head">
+            <div>
+              <p class="eyebrow reveal">사용법</p>
+              <h2 class="reveal">이 순서대로 쓰면 돼요</h2>
+              <p class="section-lead reveal">사는 사람, 파는 사람, 옮기는 사람. 각자의 순서를 확인해 보세요.</p>
+            </div>
+            <div class="connected reveal" role="tablist" aria-label="사용자 유형">
+              <button type="button" role="tab" id="tab-howto-buyer" aria-selected="true" aria-controls="steps-buyer">구매자</button>
+              <button type="button" role="tab" id="tab-howto-seller" aria-selected="false" aria-controls="steps-seller" tabindex="-1">판매자</button>
+              <button type="button" role="tab" id="tab-howto-driver" aria-selected="false" aria-controls="steps-driver" tabindex="-1">배송원</button>
+            </div>
           </div>
-          <div class="connected reveal" role="tablist" aria-label="사용자 유형">
-            <button type="button" role="tab" id="tab-buyer" aria-selected="true" aria-controls="steps-buyer">구매자</button>
-            <button type="button" role="tab" id="tab-seller" aria-selected="false" aria-controls="steps-seller" tabindex="-1">판매자</button>
-          </div>
+
+          <ol class="step-list" id="steps-buyer" role="tabpanel" aria-labelledby="tab-howto-buyer">
+            <li class="step reveal">
+              <div class="step-badge"><svg viewBox="0 0 100 100" aria-hidden="true"><use href="#s-cookie9" /></svg><span>1</span></div>
+              <p class="step-label">발견</p>
+              <h3>가구 둘러보기</h3>
+              <p>카테고리를 고르거나 검색해서 중고 가구 매물을 둘러보고, 마음에 드는 가구는 찜해 두세요.</p>
+            </li>
+            <li class="step reveal">
+              <div class="step-badge"><svg viewBox="0 0 100 100" aria-hidden="true"><use href="#s-burst" /></svg><span>2</span></div>
+              <p class="step-label">확인</p>
+              <h3>총액 확인하기</h3>
+              <p>상세 화면에서 가구 가격, 예상 배송비, 총 결제 금액을 한눈에 확인해요.</p>
+            </li>
+            <li class="step reveal">
+              <div class="step-badge"><svg viewBox="0 0 100 100" aria-hidden="true"><use href="#s-cookie6" /></svg><span>3</span></div>
+              <p class="step-label">결제</p>
+              <h3>한 번에 결제하기</h3>
+              <p>배송 받을 연락처와 주소를 확인하고, 가구값과 배송비를 한 번에 테스트 결제해요.</p>
+            </li>
+            <li class="step reveal">
+              <div class="step-badge"><svg viewBox="0 0 100 100" aria-hidden="true"><use href="#s-flower" /></svg><span>4</span></div>
+              <p class="step-label">배송</p>
+              <h3>배송 상태 확인하기</h3>
+              <p>테스트 결제를 마치면 배송 요청이 만들어져요. 주문 내역에서 배차와 배송 상태를 볼 수 있어요.</p>
+            </li>
+          </ol>
+
+          <ol class="step-list" id="steps-seller" role="tabpanel" aria-labelledby="tab-howto-seller" hidden>
+            <li class="step">
+              <div class="step-badge"><svg viewBox="0 0 100 100" aria-hidden="true"><use href="#s-cookie9" /></svg><span>1</span></div>
+              <p class="step-label">가입</p>
+              <h3>계정 만들기</h3>
+              <p>아이디와 비밀번호, 거래에 쓰일 연락처와 주소를 입력해 SETTY 계정을 만들어요.</p>
+            </li>
+            <li class="step">
+              <div class="step-badge"><svg viewBox="0 0 100 100" aria-hidden="true"><use href="#s-burst" /></svg><span>2</span></div>
+              <p class="step-label">등록</p>
+              <h3>가구 올리기</h3>
+              <p>사진, 상태 등급, 가격과 함께 가로·세로·높이를 입력해 가구를 등록해요.</p>
+            </li>
+            <li class="step">
+              <div class="step-badge"><svg viewBox="0 0 100 100" aria-hidden="true"><use href="#s-cookie6" /></svg><span>3</span></div>
+              <p class="step-label">자동 계산</p>
+              <h3>배송비는 알아서</h3>
+              <p>가구 크기와 출발·도착 우편번호 구역 사이 도로 거리로 계산한 예상 배송비가 총액과 함께 보여요.</p>
+            </li>
+            <li class="step">
+              <div class="step-badge"><svg viewBox="0 0 100 100" aria-hidden="true"><use href="#s-flower" /></svg><span>4</span></div>
+              <p class="step-label">판매</p>
+              <h3>구매 신청 확인하기</h3>
+              <p>내 판매 가구에서 구매 신청을 확인하세요. 테스트 결제가 끝난 주문은 배송원 화면에 배송 요청으로 보여요.</p>
+            </li>
+          </ol>
+
+          <ol class="step-list" id="steps-driver" role="tabpanel" aria-labelledby="tab-howto-driver" hidden>
+            <li class="step">
+              <div class="step-badge"><svg viewBox="0 0 100 100" aria-hidden="true"><use href="#s-cookie9" /></svg><span>1</span></div>
+              <p class="step-label">확인</p>
+              <h3>배차 요청 보기</h3>
+              <p>요청을 열어 출발지와 도착지, 예상 거리와 배송비를 확인해요.</p>
+            </li>
+            <li class="step">
+              <div class="step-badge"><svg viewBox="0 0 100 100" aria-hidden="true"><use href="#s-burst" /></svg><span>2</span></div>
+              <p class="step-label">수락</p>
+              <h3>배차 수락하기</h3>
+              <p>배차 요청을 수락하면 배차가 확정돼요. 수락한 요청은 내 배차에서 볼 수 있어요.</p>
+            </li>
+            <li class="step">
+              <div class="step-badge"><svg viewBox="0 0 100 100" aria-hidden="true"><use href="#s-cookie6" /></svg><span>3</span></div>
+              <p class="step-label">픽업</p>
+              <h3>픽업 완료 누르기</h3>
+              <p>내 배차에서 출발지와 도착지를 확인해요. 가구를 인수한 뒤 ‘픽업 완료’를 누르는 단계예요.</p>
+            </li>
+            <li class="step">
+              <div class="step-badge"><svg viewBox="0 0 100 100" aria-hidden="true"><use href="#s-flower" /></svg><span>4</span></div>
+              <p class="step-label">완료</p>
+              <h3>배송 완료 누르기</h3>
+              <p>도착지에 가구를 전달한 뒤 ‘배송 완료’를 누르면 배송이 완료 상태로 바뀌어요.</p>
+            </li>
+          </ol>
         </div>
-
-        <ol class="step-list" id="steps-buyer" role="tabpanel" aria-labelledby="tab-buyer">
-          <li class="step reveal">
-            <div class="step-badge"><svg viewBox="0 0 100 100" aria-hidden="true"><use href="#s-cookie9" /></svg><span>1</span></div>
-            <p class="step-label">발견</p>
-            <h3>가구 둘러보기</h3>
-            <p>카테고리를 고르거나 검색해서 중고 가구 매물을 둘러보고, 마음에 드는 가구는 찜해 두세요.</p>
-          </li>
-          <li class="step reveal">
-            <div class="step-badge"><svg viewBox="0 0 100 100" aria-hidden="true"><use href="#s-burst" /></svg><span>2</span></div>
-            <p class="step-label">확인</p>
-            <h3>총액 확인하기</h3>
-            <p>상세 화면에서 가구 가격, 예상 배송비, 총 결제 금액을 한눈에 확인해요.</p>
-          </li>
-          <li class="step reveal">
-            <div class="step-badge"><svg viewBox="0 0 100 100" aria-hidden="true"><use href="#s-cookie6" /></svg><span>3</span></div>
-            <p class="step-label">결제</p>
-            <h3>한 번에 결제하기</h3>
-            <p>배송 받을 연락처와 주소를 확인하고, 가구값과 배송비를 한 번에 결제해요.</p>
-          </li>
-          <li class="step reveal">
-            <div class="step-badge"><svg viewBox="0 0 100 100" aria-hidden="true"><use href="#s-flower" /></svg><span>4</span></div>
-            <p class="step-label">배송</p>
-            <h3>배송 받기</h3>
-            <p>결제가 확정되면 배송 요청이 만들어지고, 기사가 수락해 배송해요. 주문 내역에서 진행 상황을 볼 수 있어요.</p>
-          </li>
-        </ol>
-
-        <ol class="step-list" id="steps-seller" role="tabpanel" aria-labelledby="tab-seller" hidden>
-          <li class="step">
-            <div class="step-badge"><svg viewBox="0 0 100 100" aria-hidden="true"><use href="#s-cookie9" /></svg><span>1</span></div>
-            <p class="step-label">가입</p>
-            <h3>계정 만들기</h3>
-            <p>아이디와 비밀번호, 거래에 쓰일 연락처와 주소를 입력해 SETTY 계정을 만들어요.</p>
-          </li>
-          <li class="step">
-            <div class="step-badge"><svg viewBox="0 0 100 100" aria-hidden="true"><use href="#s-burst" /></svg><span>2</span></div>
-            <p class="step-label">등록</p>
-            <h3>가구 올리기</h3>
-            <p>사진, 상태 등급, 가격과 함께 가로·세로·높이를 입력해 가구를 등록해요.</p>
-          </li>
-          <li class="step">
-            <div class="step-badge"><svg viewBox="0 0 100 100" aria-hidden="true"><use href="#s-cookie6" /></svg><span>3</span></div>
-            <p class="step-label">자동 계산</p>
-            <h3>배송비는 알아서</h3>
-            <p>입력한 크기로 예상 배송비가 자동 계산돼 구매자에게 총액과 함께 보여요.</p>
-          </li>
-          <li class="step">
-            <div class="step-badge"><svg viewBox="0 0 100 100" aria-hidden="true"><use href="#s-flower" /></svg><span>4</span></div>
-            <p class="step-label">판매</p>
-            <h3>구매 신청 확인하기</h3>
-            <p>내 판매 가구에서 구매 신청을 확인하세요. 결제가 확정되면 배송은 기사가 이어서 맡아요.</p>
-          </li>
-        </ol>
 
         <div class="demo reveal">
           <div class="demo-phone">
@@ -775,7 +746,7 @@
             <figcaption><b>2. 총액 확인 후 주문하기</b>사진과 크기를 확인한 뒤 ‘결제하고 주문하기’로 이어가요. 결제에는 로그인이 필요해요.</figcaption>
           </figure>
         </div>
-        <p class="capture-note">2026.10.15 운영 웹 서비스 화면 · 매물과 금액은 촬영 시점의 예시예요. 화면을 누르면 크게 볼 수 있어요.</p>
+        <p class="capture-note">2026.10.15 SETTY 웹 화면 · 매물과 금액은 촬영 시점의 예시예요. 화면을 누르면 크게 볼 수 있어요.</p>
         <div class="note reveal">
           <svg aria-hidden="true"><use href="#i-bell" /></svg>
           <span><b>Android 키워드 알림</b><br />찾는 가구의 키워드를 등록하면, 해당 키워드가 제목에 들어간 새 매물을 알려드려요. 구독자가 많아도 등록이 느려지지 않게 만든 방법은 <a href="#tech">기술 소개</a>에 있어요.</span>
@@ -788,8 +759,9 @@
       <div class="wrap">
         <p class="eyebrow reveal">배송비 안내</p>
         <h2 class="reveal">결제 전에,<br />배송비까지 확인해요</h2>
-        <p class="section-lead reveal">배송비는 가구 부피와 출발·도착 동 사이 도로 거리로 정해요. 기본 10,000원에 부피 단계와 거리 단계마다 5,000원을 더하고, 목록과 상세 화면에서 상품값에 배송비를 더한 총액을 먼저 보여드려요.</p>
-        <p class="fee-basis reveal">출발·도착 동 사이 거리가 3km 이내일 때</p>
+        <p class="section-lead reveal">예상 배송비는 가구 부피와 출발·도착 우편번호 구역 사이 도로 거리로 계산해요. 기본 10,000원에 부피 구간이 한 단계 커질 때마다 10,000원을, 거리 단계마다 5,000원을 더해요. 목록과 상세 화면에서 상품값에 예상 배송비를 더한 총액을 먼저 보여드려요.</p>
+        <p class="fee-method reveal">길찾기 서버(OSRM)는 상시로 띄우지 않고, 미리 만든 서울 우편번호 5,634개 구역 거리표를 메모리에 매핑해 씁니다. 무중단 배포로 앱이 둘 떠도 거리표는 한 벌만 차지합니다(126.5MB → 63.2MB).</p>
+        <p class="fee-basis reveal">출발·도착 우편번호 구역 사이 도로 거리가 3km 이내일 때</p>
         <div class="fee-grid">
           <div class="fee reveal">
             <svg class="fee-shape" viewBox="0 0 100 100" aria-hidden="true"><use href="#s-cookie6" /></svg>
@@ -801,7 +773,7 @@
             <svg class="fee-shape" viewBox="0 0 100 100" aria-hidden="true"><use href="#s-burst" /></svg>
             <p class="fee-size">중간 가구</p>
             <p class="fee-price">20,000원</p>
-            <p class="fee-desc">부피 1㎥ 이하<br />책상, 서랍장, 1인 소파</p>
+            <p class="fee-desc">부피 0.3㎥ 초과~1㎥ 이하<br />책상, 서랍장, 1인 소파</p>
           </div>
           <div class="fee reveal">
             <svg class="fee-shape" viewBox="0 0 100 100" aria-hidden="true"><use href="#s-cookie9" /></svg>
@@ -811,8 +783,8 @@
           </div>
         </div>
         <div class="upcoming reveal">
-          <h3>거리가 멀면 · 3km를 넘을 때마다 5,000원</h3>
-          <p>서울 출발·도착 동 사이 도로 거리가 3km를 넘으면 3km마다 5,000원을 더해요. 동 단위의 예상 거리라 개별 주소 사이의 정확한 운송 견적과는 차이가 있어요. 목록에서는 배송비 예산을 정해 그 안에서 배송되는 가구만 볼 수 있어요.</p>
+          <h3>거리 추가요금 · 처음 3km 이후 구간당 5,000원</h3>
+          <p>서울 출발·도착 우편번호 구역 사이 도로 거리가 3km를 넘으면, 초과 거리를 3km 단위로 올림해 구간마다 5,000원을 더해요. 우편번호 구역 사이의 예상 거리라 개별 주소 사이의 실제 도로 거리와는 차이가 있어요. 목록에서는 배송비 예산을 정해 그 안에서 배송되는 가구만 볼 수 있어요.</p>
         </div>
       </div>
     </section>
@@ -839,16 +811,16 @@
               <div class="tech-head"><span class="tech-tag">주력 · 배송비 예산 필터</span><span class="tech-where">앱 홈 · 매물 목록</span></div>
               <h3>"배송비 3만 원 안에서 배송되는 가구만" 한 번의 조회로</h3>
               <ol class="pfr">
-                <li><span class="pfr-label">문제</span><p>배송비는 구매자마다 달라요. 출발·도착 동 사이 거리와 가구 부피로 정해지니, <b>매물마다 배송비를 계산해 거르면</b> 목록 조회가 수천 번의 계산이 되고 목표 부하에서 p95(요청 100건 중 느린 쪽 5번째)가 1.8초까지 늘어났어요.</p></li>
-                <li><span class="pfr-label">풀이</span><p>서울 전체의 동 사이 거리를 미리 재서 <b>거리표 한 장</b>으로 두고, 구매자 행 한 줄만 읽어 예산을 통과하는 구역을 찾아요. 통과 구역은 번호가 이어지니 <b>범위로 묶어 한 쿼리</b>에 넣어요. DB는 <b>id만 먼저 골라</b> 본문은 보여 줄 21개만 읽고, 커넥션은 요청당 한 번만 빌려요. 거리표는 파일을 메모리에 매핑해 두 앱이 함께 쓰니 무중단 배포 중에도 한 벌이에요. 구역은 행정동에서 <b>우편번호 구역</b>으로 더 촘촘하게 바꿨어요.</p></li>
-                <li><span class="pfr-label">결과</span><p>실제 앱에서 같은 부하로 잰 전후예요. 최대 처리량은 1.9배가 됐고, 요금 구간이 실제 도로 거리와 어긋나는 비율은 22.1%에서 7.1%로 줄었어요. 거리표가 쓰는 앱 서버 메모리는 약 48MB예요.</p></li>
+                <li><span class="pfr-label">문제</span><p>배송비는 구매자마다 달라요. 출발·도착 우편번호 구역 사이 도로 거리와 가구 부피로 정해지니, <b>매물마다 배송비를 계산해 거르면</b> 목록 조회가 수천 번의 계산이 되고 목표 부하에서 p95(요청 100건 중 느린 쪽 5번째)가 1.8초까지 늘어났어요.</p></li>
+                <li><span class="pfr-label">풀이</span><p>서울 전체의 우편번호 구역 사이 도로 거리를 미리 재서 <b>거리표 한 장</b>으로 두고, 구매자 행 한 줄만 읽어 예산을 통과하는 구역을 찾아요. 통과 구역은 번호가 이어지니 <b>범위로 묶어 한 쿼리</b>에 넣어요. DB는 <b>id만 먼저 골라</b> 본문은 보여 줄 21개만 읽고, 커넥션은 요청당 한 번만 빌려요. 거리표는 파일을 메모리에 매핑해 두 앱이 함께 쓰니 무중단 배포 중에도 한 벌이에요. 구역은 행정동에서 <b>우편번호 구역</b>으로 더 촘촘하게 바꿨어요.</p></li>
+                <li><span class="pfr-label">결과</span><p>실제 앱에서 같은 부하로 잰 최대 처리량은 1.9배가 됐어요. 무작위 쌍의 요금 구간 불일치율은 직선 거리 79.6%에서 우편번호 구역 거리표 7.1%로 줄었어요. 우편번호 구역 거리표는 63.2MB예요.</p></li>
               </ol>
             </div>
             <div class="stats">
               <div class="stat hi"><p class="stat-label">p95 응답 · 목표 부하</p><p class="stat-value">4.9<small>ms</small></p><p class="stat-before">바꾸기 전 1.8초</p></div>
               <div class="stat"><p class="stat-label">최대 처리량</p><p class="stat-value">1,777<small>건/초</small></p><p class="stat-before">바꾸기 전 917건/초 · 1.9배</p></div>
-              <div class="stat"><p class="stat-label">요금 구간 불일치</p><p class="stat-value">7.1<small>%</small></p><p class="stat-before">행정동 표 22.1% → 우편번호 표</p></div>
-              <div class="stat"><p class="stat-label">앱 서버 메모리</p><p class="stat-value">48<small>MB</small></p><p class="stat-before">거리표 매핑 · 배포 중에도 한 벌</p></div>
+              <div class="stat"><p class="stat-label">요금 구간 불일치</p><p class="stat-value">7.1<small>%</small></p><p class="stat-before">직선 거리 79.6% → 우편번호 표</p></div>
+              <div class="stat"><p class="stat-label">거리표 크기</p><p class="stat-value">63.2<small>MB</small></p><p class="stat-before">거리표 매핑 · 배포 중에도 한 벌</p></div>
             </div>
             <div class="figs">
       <details class="fold">
@@ -866,8 +838,8 @@
         </div>
         <p class="chart-note">매물·구매자 무작위 쌍, 직선 20km 이내. 요금 구간은 3km마다 한 단계예요. 행정동 표도 합격선엔 못 미쳐서 더 촘촘한 구역은 ④에서 다뤄요.</p>
       </div>
-      <div class="chart" role="img" aria-label="서버에 계속 올려 두는 메모리: 길찾기 엔진 약 156MB, 결과 캐시 10.63MB, 통과 목록 7.21MB, 행정동 거리표 0.73MB">
-        <p class="chart-title">서버에 계속 올려 두는 메모리</p>
+      <div class="chart" role="img" aria-label="초기 방식 비교 · 서버에 상주하는 메모리: 길찾기 엔진 약 156MB, 결과 캐시 10.63MB, 통과 목록 7.21MB, 행정동 거리표 0.73MB">
+        <p class="chart-title">초기 방식 비교 · 서버에 상주하는 메모리</p>
         <div class="chart-rows">
         <span class="l">길찾기 엔진</span><div class="track"><div class="fill out" style="width:97.50%"></div></div><span class="v">약 156MB</span>
         <span class="l">결과 캐시</span><div class="track"><div class="fill " style="width:6.64%"></div></div><span class="v">10.63MB</span>
@@ -875,11 +847,11 @@
         <span class="l">행정동 거리표</span><div class="track"><div class="fill pick" style="width:0.46%"></div></div><span class="v">0.73MB</span>
         <span></span><div class="axis"><span style="left:0.00%">0</span><span style="left:31.25%">50</span><span style="left:62.50%">100</span><span style="left:93.75%">150MB</span></div><span></span>
         </div>
-        <p class="chart-note">거리표는 427 × 427칸 × 4바이트 = 0.73MB로 엔진의 0.47%예요.</p>
+        <p class="chart-note">당시 행정동 거리표는 427 × 427칸 × 4바이트 = 0.73MB로 엔진의 0.47%예요.</p>
       </div>
       <figure class="fig wide diagram" data-svg="assets/sketch/d1-overview.svg">
-        <div class="fig-scroll"><img src="assets/sketch/d1-overview.svg" width="900" height="175" loading="lazy" alt="구현 한눈에. 서버가 켜질 때 거리표 0.73MB를 메모리에 올리고, 요청이 오면 메모리에서 통과하는 판매자 동네 목록을 계산하고, DB는 그 목록을 조건으로 색인에서 최신순 21개만 읽는다." /></div>
-        <figcaption><b>배송비 계산은 서버 메모리에서 끝나고, DB는 필터 색인만 읽어요.</b>서버가 켜질 때 거리표를 올려 두고, 요청이 오면 통과하는 판매자 구역 목록을 메모리에서 구해 DB에 조건으로 넘겨요.</figcaption>
+        <div class="fig-scroll"><img src="assets/sketch/d1-overview.svg" width="900" height="175" loading="lazy" alt="구현 한눈에. 서버가 켜질 때 우편번호 구역 거리표 63.2MB를 메모리에 매핑하고, 요청이 오면 예산을 통과하는 판매자 구역을 범위로 묶고, DB는 그 범위를 조건으로 색인에서 최신순 21개만 읽는다." /></div>
+        <figcaption><b>배송비 계산은 서버 메모리에서 끝나고, DB는 필터 색인만 읽어요.</b>서버가 켜질 때 우편번호 구역 거리표를 메모리에 매핑하고, 요청이 오면 예산을 통과하는 판매자 구역을 범위로 묶어 DB에 조건으로 넘겨요.</figcaption>
       </figure>
         </div>
       </details>
@@ -992,7 +964,7 @@
 <circle class="tp" cx="113.7" cy="208.3" r="6"/>
 <circle class="tpp" cx="241.1" cy="267.8" r="8"/>
 <circle class="tp" cx="485.7" cy="283.1" r="6"/>
-<text class="tn" x="117.1" y="60.3" text-anchor="start">행정동 (지금)</text>
+<text class="tn" x="117.1" y="60.3" text-anchor="start">행정동 (이전)</text>
 <text class="tv" x="117.1" y="79.3" text-anchor="start">0.73MB · 18.1%</text>
 <text class="tn" x="129.7" y="111.3" text-anchor="start">1km 격자</text>
 <text class="tv" x="129.7" y="130.3" text-anchor="start">1.1MB · 17.1%</text>
@@ -1069,7 +1041,7 @@
       </details>
             </div>
             <div class="tech-foot">
-              <p class="tech-note">노트북에서 같은 조건으로 전후를 잰 값이에요. 운영은 행정동 표로 동작하고, 우편번호 구역은 적용을 준비하고 있어요.</p>
+              <p class="tech-note">노트북에서 같은 조건으로 전후를 잰 값이에요. 현재 배송비 계산은 우편번호 구역 거리표를 기준으로 해요.</p>
               <button type="button" class="btn btn-tonal btn-small" data-scene="21">영상 0:21 장면 보기<svg aria-hidden="true"><use href="#i-chevron" /></svg></button>
             </div>
           </article>
@@ -1139,8 +1111,8 @@
         <summary>한 것과 구상 · 그림과 계산값</summary>
         <div class="figs">
       <figure class="fig wide" data-svg="assets/sketch/s8-domain.svg">
-        <div class="fig-scroll"><img src="assets/sketch/s8-domain.svg" width="1400" height="800" loading="lazy" alt="위치가 움직이느냐로 갈린다. 고정된 집은 주소 글자를 표준 주소로 해석해 우편번호 구역으로, 지금 운영은 회원이 고른 행정동으로, 움직이는 배송원은 GPS 좌표를 격자 칸 번호로 바꿔 칸 캐시의 콜을 본다." /></div>
-        <figcaption><b>고정된 집은 우편번호, 지금 운영은 행정동, 움직이는 배송원은 좌표 → 격자 칸이에요.</b>왼쪽 열은 코드가 머지됐지만 운영은 아직 꺼져 있고, 오른쪽 열은 확정 전 구상이에요. 거리는 어느 표현이든 배송비 계산 모듈의 거리표에서만 재요.</figcaption>
+        <div class="fig-scroll"><img src="assets/sketch/s8-domain.svg" width="1400" height="800" loading="lazy" alt="현재 배송비는 주소에서 정한 우편번호 구역을 기준으로 계산한다. 이전 방식은 회원이 고른 행정동을 썼다. 배송원 위치를 GPS 좌표에서 격자 칸으로 바꿔 콜을 찾는 방법은 구상이다." /></div>
+        <figcaption><b>현재 배송비는 우편번호 구역을 기준으로 계산해요.</b>가운데 열은 이전 행정동 방식이고, 오른쪽 열은 움직이는 배송원을 좌표로 나타내는 구상이에요. 거리는 어느 표현이든 배송비 계산 모듈의 거리표에서만 재요.</figcaption>
       </figure>
       <figure class="fig wide" data-svg="assets/sketch/s12-note-bottom.svg">
         <div class="fig-scroll"><img src="assets/sketch/s12-note-bottom.svg" width="1400" height="940" loading="lazy" alt="칸마다 그 칸에서 다른 칸으로 가는 콜을 약 3개씩 매핑해 두고, 기사가 E를 밟으면 목적지 칸으로 가는 콜을 폰에 띄운다. 목적지가 C인 기사와 A인 기사는 각자 다른 줄을 받는다." /></div>
@@ -1181,7 +1153,7 @@
           <svg class="deco deco-c" viewBox="0 0 100 100" aria-hidden="true"><use href="#s-burst" /></svg>
           <svg class="deco deco-d" viewBox="0 0 100 100" aria-hidden="true"><use href="#s-cookie9" /></svg>
           <h2>무거운 중고 가구,<br />이제 가볍게 들여요</h2>
-          <p>둘러보는 건 로그인 없이도 할 수 있어요. 마음에 드는 가구를 찾으면 배송비까지 확인하고 바로 결제하세요.</p>
+          <p>둘러보는 건 로그인 없이도 할 수 있어요. 마음에 드는 가구를 찾으면 예상 배송비를 확인하고 테스트 결제를 해 보세요.</p>
           <a class="btn btn-large" href="https://www.setty.cloud">SETTY 시작하기<svg aria-hidden="true"><use href="#i-chevron" /></svg></a>
         </div>
       </div>
@@ -1261,7 +1233,7 @@
       video.scrollIntoView({ behavior: "smooth", block: "center" });
     }));
 
-    // 사용법(구매자/판매자)과 기술 소개(배송비 예산 필터/키워드 알림) 탭. 화살표 키는 같은 묶음 안에서만 돈다.
+    // 사용법과 기술 소개 탭. 화살표 키는 같은 묶음 안에서만 돈다.
     document.querySelectorAll('[role="tablist"]').forEach((tablist) => {
       const tabs = [...tablist.querySelectorAll('[role="tab"]')];
       const select = (tab) => {
