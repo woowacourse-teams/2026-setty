@@ -434,7 +434,7 @@ function PriceRangeSheet({ initialRange, onDismiss, onSelect }: { initialRange: 
                     />
                 </div>
                 <p className="type-label-medium" style={{ margin: '8px 0 0', color: orderError ? 'var(--error)' : 'var(--on-surface-variant)' }}>
-                    {orderError ? '최소가 최대보다 커요' : '1억 원까지'}
+                    {orderError ? '최소가 최대보다 커요' : '500만 원까지'}
                 </p>
                 <div className={styles['sheet-actions']}>
                     <Button onClick={() => onSelect(null)} size="medium" variant="outlined">필터 해제</Button>

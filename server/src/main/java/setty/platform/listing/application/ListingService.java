@@ -57,7 +57,7 @@ public class ListingService {
     private static final int MAXIMUM_PAGE_SIZE = 100;
     private static final int SIMILAR_LISTING_LIMIT = 6;
     private static final int SIMILAR_CANDIDATE_LIMIT = 100;
-    private static final int MAXIMUM_PRICE = 100_000_000;
+    private static final int MAXIMUM_PRICE = 5_000_000;
 
     private static final List<OrderStatus> CLOSED_ORDER_STATUSES = List.of(OrderStatus.EXPIRED, OrderStatus.CANCELLED);
     private static final List<OrderStatus> OPEN_ORDER_STATUSES =
@@ -167,7 +167,7 @@ public class ListingService {
         });
     }
 
-    // 가격은 등록 상한(1억)과 같은 범위만 받는다
+    // 가격은 등록 상한(500만 원)과 같은 범위만 받는다
     private static void validatePriceRange(Integer minPrice, Integer maxPrice) {
         if ((minPrice != null && (minPrice < 0 || minPrice > MAXIMUM_PRICE))
                 || (maxPrice != null && (maxPrice < 0 || maxPrice > MAXIMUM_PRICE))

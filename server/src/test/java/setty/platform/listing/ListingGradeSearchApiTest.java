@@ -213,13 +213,13 @@ class ListingGradeSearchApiTest extends MySqlIntegrationTestSupport {
 
     @Test
     void 가격_범위가_어긋나거나_등록_상한을_넘으면_거절한다() throws Exception {
-        for (String[] params : List.of(new String[]{"minPrice", "-1"}, new String[]{"maxPrice", "100000001"},
+        for (String[] params : List.of(new String[]{"minPrice", "-1"}, new String[]{"maxPrice", "5000001"},
                 new String[]{"minPrice", "abc"})) {
             mockMvc.perform(get("/api/listings").param(params[0], params[1])).andExpect(status().isBadRequest());
         }
         mockMvc.perform(get("/api/listings").param("minPrice", "200000").param("maxPrice", "100000"))
                 .andExpect(status().isBadRequest());
-        mockMvc.perform(get("/api/listings").param("minPrice", "0").param("maxPrice", "100000000"))
+        mockMvc.perform(get("/api/listings").param("minPrice", "0").param("maxPrice", "5000000"))
                 .andExpect(status().isOk());
     }
 

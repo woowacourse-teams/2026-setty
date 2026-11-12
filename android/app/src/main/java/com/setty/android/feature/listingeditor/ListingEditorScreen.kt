@@ -263,7 +263,7 @@ private fun ListingEditorForm(
                 suffix = { Text("원") },
                 isError = uiState.priceError,
                 supportingText = if (uiState.priceError) {
-                    { Text("가격은 1억 원 이하로 입력해 주세요") }
+                    { Text("가격은 500만 원 이하로 입력해 주세요") }
                 } else {
                     null
                 },

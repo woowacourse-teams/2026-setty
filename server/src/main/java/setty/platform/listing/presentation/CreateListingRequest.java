@@ -12,7 +12,7 @@ import setty.platform.listing.domain.ListingCategory;
 public record CreateListingRequest(
         @NotBlank @Size(max = 100) String title,
         @NotBlank @Size(max = 1_000) String description,
-        @NotNull @PositiveOrZero @Max(100_000_000) Integer price,
+        @NotNull @PositiveOrZero @Max(5_000_000) Integer price,
         @NotNull ListingCategory category,
         @NotNull ConditionGrade conditionGrade,
         @NotNull @Valid DimensionsRequest dimensions

@@ -23,7 +23,7 @@ public class Listing {
 
     private static final int MAXIMUM_TITLE_LENGTH = 100;
     private static final int MAXIMUM_DESCRIPTION_LENGTH = 1_000;
-    private static final int MAXIMUM_PRICE = 100_000_000;
+    private static final int MAXIMUM_PRICE = 5_000_000;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
