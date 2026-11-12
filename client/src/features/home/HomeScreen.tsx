@@ -65,6 +65,7 @@ import styles from './home.module.css';
 import { useListingSearch } from './useListingSearch';
 
 const SEARCH_PARAM = 'search';
+const LOGIN_THEN_HOME = { state: loginStateFrom({ pathname: routes.home, search: '', state: null }) };
 
 export function HomeScreen() {
     const navigate = useNavigate();
@@ -77,7 +78,7 @@ export function HomeScreen() {
         // 배송비 필터는 내 행정동이 있어야 하므로, 로그인 전이면 로그인부터 하게 한다
         enterHome(() => (tokenStore.get()
             ? navigate(routes.profileEdit)
-            : navigate(routes.login, { state: loginStateFrom({ pathname: routes.home, search: '', state: null }) })),
+            : navigate(routes.login, LOGIN_THEN_HOME)),
         () => {
             showSnackbar('로그인이 만료됐어요. 다시 로그인해 주세요.', { keepOnNextScreen: true });
             navigateToLogin();
@@ -107,7 +108,11 @@ export function HomeScreen() {
                             {/* 검색창은 기록에 남겨 브라우저 뒤로 가기로도 닫히게 한다 */}
                             <IconButton icon="search" label="가구 검색" onClick={() => navigate(`?${SEARCH_PARAM}=1`)} />
                             <NotificationsButton onClick={() => navigate(routes.notifications)} />
-                            <ProfileButton onClick={() => navigate(routes.myPage)} profileInitial={home.profileInitial} />
+                            <ProfileButton
+                                // 로그인 전이면 마이페이지를 거치지 않고 로그인한 뒤 목록으로 돌아오게 한다
+                                onClick={() => (isLoggedIn ? navigate(routes.myPage) : navigate(routes.login, LOGIN_THEN_HOME))}
+                                profileInitial={home.profileInitial}
+                            />
                         </>
                     )}
                     height={72}
