@@ -13,6 +13,7 @@ public enum OrderNotificationKind {
     ORDER_CONFIRMED(Change.CONFIRMED, List.of(BUYER), "결제가 끝났어요. 기사를 찾고 있어요"),
     LISTING_SOLD(Change.CONFIRMED, List.of(SELLER), "내 물건이 팔렸어요"),
     DELIVERY_ACCEPTED(Change.DELIVERY_ACCEPTED, List.of(BUYER, SELLER), "기사가 배정됐어요"),
+    DELIVERY_ASSIGNMENT_CANCELLED(Change.DELIVERY_ASSIGNMENT_CANCELLED, List.of(BUYER, SELLER), "기사가 배차를 취소해 다시 기사를 찾고 있어요"),
     DELIVERY_PICKED_UP(Change.DELIVERY_PICKED_UP, List.of(BUYER), "기사가 물건을 실었어요"),
     DELIVERY_DELIVERED(Change.DELIVERY_DELIVERED, List.of(BUYER, SELLER), "배송이 끝났어요"),
     PURCHASE_COMPLETED(Change.COMPLETED, List.of(BUYER), "구매가 확정됐어요"),
