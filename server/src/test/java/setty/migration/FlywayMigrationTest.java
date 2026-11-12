@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.DriverManager;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -34,8 +35,9 @@ class FlywayMigrationTest {
             "delivery_address_mgmt_no");
     private static final List<String> DELIVERY_ZONE_COLUMNS = List.of("pickup_dong_code", "pickup_zip_code",
             "delivery_dong_code", "delivery_zip_code");
+    private static final List<String> DELIVERY_CELL_COLUMNS = List.of("pickup_cell", "delivery_cell");
     private static final List<String> KEYWORD_CONDITION_COLUMNS = List.of("max_delivery_fee", "max_total_price");
-    private static final int MIGRATION_COUNT = 14;
+    private static final int MIGRATION_COUNT = 26;
 
     @Container
     static final MySQLContainer MYSQL = new MySQLContainer("mysql:8.4.11");
@@ -97,6 +99,7 @@ class FlywayMigrationTest {
         assertThat(flyway(true).migrate().migrationsExecuted).isEqualTo(MIGRATION_COUNT);
 
         assertCurrentSchema();
+        assertThat(jdbc.queryForObject("SELECT created_at FROM orders WHERE id=1", Object.class)).isNull();
         assertThat(jdbc.queryForObject("SELECT title FROM listings WHERE id=1", String.class))
                 .isEqualTo("migration fixture");
         assertThat(jdbc.queryForObject("SELECT dong_code FROM listings WHERE id=1", String.class)).isNull();
@@ -163,11 +166,66 @@ class FlywayMigrationTest {
         seedExistingRows();
         var deliveryBefore = jdbc.queryForMap("SELECT * FROM delivery WHERE id=1");
 
-        assertThat(flyway(false).migrate().migrationsExecuted).isEqualTo(5);
+        assertThat(flyway(false).migrate().migrationsExecuted).isEqualTo(MIGRATION_COUNT - 9);
 
         assertCurrentSchema();
-        assertThat(jdbc.queryForMap("SELECT * FROM delivery WHERE id=1")).isEqualTo(deliveryBefore);
+        // 기존 배송 행은 그대로이고, 나중에 더한 칸 번호만 NULL로 생긴다.
+        var deliveryAfter = new HashMap<>(jdbc.queryForMap("SELECT * FROM delivery WHERE id=1"));
+        assertThat(deliveryAfter.remove("pickup_cell")).isNull();
+        assertThat(deliveryAfter.remove("delivery_cell")).isNull();
+        assertThat(deliveryAfter).isEqualTo(new HashMap<>(deliveryBefore));
         assertThat(flyway(false).migrate().migrationsExecuted).isZero();
+    }
+
+    @Test
+    void loginTokenExpiryGivesExistingTokensThirtyDaysAndLeavesTokenlessRowsEmpty() {
+        Flyway.configure().dataSource(dataSource).locations("classpath:db/migration")
+                .target("18").cleanDisabled(true).load().migrate();
+        jdbc.update("""
+                INSERT INTO members(id,login_id,password,role,phone_number,address,token)
+                VALUES (1,'logged-in','encoded-password','MEMBER','010-0000-0000','synthetic address','member-token'),
+                       (2,'logged-out','encoded-password','MEMBER','010-0000-0000','synthetic address',NULL)
+                """);
+        jdbc.update("""
+                INSERT INTO delivery_member(id,login_id,password,phone_number,license_plate_number,car_type,
+                    business_registration_number,token)
+                VALUES (1,'driver-in','encoded-password','010-0000-0000','12가3456','다마스','000-00-00000','driver-token'),
+                       (2,'driver-out','encoded-password','010-0000-0000','12가3457','다마스','000-00-00001',NULL)
+                """);
+
+        flyway(false).migrate();
+
+        final String remainingDays = "SELECT TIMESTAMPDIFF(HOUR, UTC_TIMESTAMP(6), token_expires_at) FROM %s WHERE id=1";
+        assertThat(jdbc.queryForObject(remainingDays.formatted("members"), Integer.class)).isBetween(719, 720);
+        assertThat(jdbc.queryForObject(remainingDays.formatted("delivery_member"), Integer.class)).isBetween(719, 720);
+        assertThat(count("SELECT COUNT(*) FROM members WHERE id=2 AND token_expires_at IS NULL")).isOne();
+        assertThat(count("SELECT COUNT(*) FROM delivery_member WHERE id=2 AND token_expires_at IS NULL")).isOne();
+    }
+
+    @Test
+    void notificationOwnerTypeMarksExistingRowsAsMembersAndAcceptsDriverIds() {
+        Flyway.configure().dataSource(dataSource).locations("classpath:db/migration")
+                .target("25").cleanDisabled(true).load().migrate();
+        jdbc.update("""
+                INSERT INTO members(id,login_id,password,role,phone_number,address,token)
+                VALUES (1,'member','encoded-password','MEMBER','010-0000-0000','synthetic address','member-token')
+                """);
+        jdbc.update("INSERT INTO device_tokens(member_id,token,platform,updated_at) VALUES (1,'member-device','ANDROID',NOW(6))");
+        jdbc.update("""
+                INSERT INTO order_notifications(order_id,listing_id,member_id,recipient,kind,status,occurred_at,created_at)
+                VALUES (10,20,1,'BUYER','ORDER_CONFIRMED','SENT',NOW(6),NOW(6))
+                """);
+
+        flyway(false).migrate();
+
+        assertThat(count("SELECT COUNT(*) FROM device_tokens WHERE owner_type='MEMBER' AND member_id=1")).isOne();
+        assertThat(count("SELECT COUNT(*) FROM order_notifications WHERE owner_type='MEMBER' AND member_id=1")).isOne();
+        jdbc.update("INSERT INTO device_tokens(owner_type,member_id,token,platform,updated_at) VALUES ('DRIVER',999,'driver-device','WEB',NOW(6))");
+        jdbc.update("""
+                INSERT INTO order_notifications(order_id,listing_id,owner_type,member_id,recipient,kind,status,occurred_at,created_at)
+                VALUES (10,NULL,'DRIVER',1,'DRIVER','DRIVER_SETTLEMENT_CONFIRMED','PENDING',NOW(6),NOW(6))
+                """);
+        assertThat(count("SELECT COUNT(*) FROM order_notifications WHERE order_id=10")).isEqualTo(2);
     }
 
     @Test
@@ -228,6 +286,13 @@ class FlywayMigrationTest {
     }
 
     private void assertCurrentSchema() {
+        assertThat(indexColumns("ai_support_conversation", "idx_ai_support_member"))
+                .isEqualTo("member_id,last_activity_at,id");
+        assertThat(jdbc.queryForObject("SELECT collation_name FROM information_schema.columns "
+                + "WHERE table_schema=DATABASE() AND table_name='ai_support_turn' AND column_name='client_request_id'",
+                String.class)).isEqualTo("ascii_bin");
+        assertThat(columnCount("orders", "created_at")).isOne();
+        assertThat(indexColumns("orders", "idx_orders_buyer_created_at")).isEqualTo("buyer_id,created_at,id");
         assertThat(columnCount("members", "dong_code")).isOne();
         for (var column : STANDARD_ADDRESS_COLUMNS) {
             assertThat(columnCount("members", column)).as("members.%s", column).isOne();
@@ -252,8 +317,27 @@ class FlywayMigrationTest {
         }
         assertThat(columnCount("listing_notifications", "read_at")).isOne();
         assertThat(columnCount("members", "withdrawn_at")).isOne();
+        assertThat(columnCount("payments", "attempted_at")).isOne();
+        assertThat(indexColumns("payments", "idx_payments_unknown")).isEqualTo("status,attempted_at");
+        assertThat(indexColumns("payment_refunds", "uk_payment_refunds_payment")).isEqualTo("payment_id");
+        assertThat(indexColumns("order_notifications", "uk_order_notifications_owner_event"))
+                .isEqualTo("order_id,owner_type,member_id,kind,occurred_at");
+        assertThat(indexColumns("order_notifications", "idx_order_notifications_owner"))
+                .isEqualTo("owner_type,member_id,created_at,id");
+        assertThat(indexColumns("device_tokens", "idx_device_tokens_owner")).isEqualTo("owner_type,member_id");
+        assertThat(count("""
+                SELECT COUNT(*) FROM information_schema.key_column_usage WHERE table_schema=DATABASE()
+                AND table_name='device_tokens' AND referenced_table_name='members'
+                """)).isZero();
         assertThat(indexColumns("delivery", "idx_delivery_requests"))
                 .isEqualTo("status,driver_id,requested_at,id");
+        assertThat(indexColumns("delivery", "idx_delivery_shipments"))
+                .isEqualTo("driver_id,accepted_at,id");
+        for (var column : DELIVERY_CELL_COLUMNS) {
+            assertThat(columnCount("delivery", column)).as("delivery.%s", column).isOne();
+        }
+        assertThat(indexColumns("delivery", "idx_delivery_cells"))
+                .isEqualTo("pickup_cell,delivery_cell,status");
         assertThat(indexColumns("listings", "idx_listings_delivery_filter"))
                 .isEqualTo("deleted_at,sale_status,created_at,id,dong_code,volume_tier");
         assertThat(columnCount("listings", "zip_zone")).isOne();
@@ -264,7 +348,8 @@ class FlywayMigrationTest {
                 AND table_name='listings' AND index_name='idx_listings_public'
                 """)).isZero();
         for (var table : List.of("keyword_subscriptions", "keyword_exclusions", "listing_notifications", "device_tokens",
-                "delivery_order_decision", "settlements", "settlement_order", "EVENT_PUBLICATION")) {
+                "delivery_order_decision", "settlements", "settlement_order", "EVENT_PUBLICATION",
+                "ai_support_conversation", "ai_support_turn")) {
             assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM information_schema.tables "
                     + "WHERE table_schema=DATABASE() AND table_name=?", Integer.class, table)).as(table).isOne();
         }
@@ -285,14 +370,22 @@ class FlywayMigrationTest {
         var table = (String) column.get("table_name");
         var name = (String) column.get("column_name");
         return table.equals("address_reference")
+                || table.startsWith("ai_support_")
+                || table.equals("orders") && name.equals("created_at")
                 || table.equals("members") && STANDARD_ADDRESS_COLUMNS.contains(name)
                 || table.equals("listings") && name.equals("zip_zone")
                 || table.equals("orders") && ORDER_PICKUP_SNAPSHOT_COLUMNS.contains(name)
                 || table.equals("delivery") && DELIVERY_ZONE_COLUMNS.contains(name)
+                || table.equals("delivery") && DELIVERY_CELL_COLUMNS.contains(name)
                 || table.equals("keyword_subscriptions") && KEYWORD_CONDITION_COLUMNS.contains(name)
                 || table.equals("keyword_exclusions")
+                || table.equals("order_notifications")
+                || table.equals("payment_refunds")
+                || table.equals("payments") && name.equals("attempted_at")
                 || table.equals("listing_notifications") && name.equals("read_at")
-                || table.equals("members") && name.equals("withdrawn_at");
+                || table.equals("members") && name.equals("withdrawn_at")
+                || table.equals("device_tokens") && name.equals("owner_type")
+                || List.of("members", "delivery_member").contains(table) && name.equals("token_expires_at");
     }
 
     private int count(final String sql) {

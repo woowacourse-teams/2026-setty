@@ -8,14 +8,22 @@ import static setty.global.event.EventPublicationTestSupport.awaitEventsHandled;
 
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
+import com.zaxxer.hikari.HikariDataSource;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import javax.sql.DataSource;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -33,9 +41,12 @@ import org.springframework.test.context.event.ApplicationEvents;
 import org.springframework.test.context.event.RecordApplicationEvents;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
-import setty.common.PaymentCompleted;
+import setty.platform.order.service.OrderPaid;
 import setty.common.PaymentFailed;
+import setty.payment.application.PaymentApprovalRecorder;
+import setty.payment.application.UnknownPaymentResolver;
 import setty.platform.listing.storage.ListingImageStorage;
+import setty.platform.order.service.PendingOrderExpirationService;
 import setty.support.MySqlIntegrationTestSupport;
 
 @SpringBootTest
@@ -52,9 +63,10 @@ class PaymentConfirmRecoveryTest extends MySqlIntegrationTestSupport {
     private static final int AMOUNT = PRICE + DELIVERY_FEE;
     private static final String PAYMENT_KEY = "pk-recovery";
     private static final String TOSS_ORDER_ID = ORDER_ID + "_recovery";
+    private static final String OTHER_PAYMENT_KEY = "pk-second";
     private static final String CONFIRM_BODY = """
             {"paymentKey":"%s","orderId":"%s","amount":%d}
-            """.formatted(PAYMENT_KEY, TOSS_ORDER_ID, AMOUNT);
+            """;
 
     private static final AtomicInteger confirmRequests = new AtomicInteger();
     private static final AtomicInteger lookupRequests = new AtomicInteger();
@@ -70,7 +82,19 @@ class PaymentConfirmRecoveryTest extends MySqlIntegrationTestSupport {
     private JdbcTemplate jdbcTemplate;
 
     @Autowired
+    private DataSource dataSource;
+
+    @Autowired
     private ApplicationEvents events;
+
+    @Autowired
+    private UnknownPaymentResolver unknownPaymentResolver;
+
+    @Autowired
+    private PaymentApprovalRecorder paymentApprovalRecorder;
+
+    @Autowired
+    private PendingOrderExpirationService expirationService;
 
     @MockitoBean
     private ListingImageStorage listingImageStorage;
@@ -111,6 +135,7 @@ class PaymentConfirmRecoveryTest extends MySqlIntegrationTestSupport {
     void cleanUp() {
         awaitEventsHandled(jdbcTemplate);
         jdbcTemplate.update("DELETE FROM EVENT_PUBLICATION");
+        jdbcTemplate.update("DELETE FROM payment_refunds");
         jdbcTemplate.update("DELETE FROM payments");
         jdbcTemplate.update("DELETE FROM delivery");
         jdbcTemplate.update("DELETE FROM delivery_order_decision");
@@ -135,7 +160,7 @@ class PaymentConfirmRecoveryTest extends MySqlIntegrationTestSupport {
     @Test
     void 제한_시간에_걸린_뒤_다시_승인하면_이미_처리된_결제를_조회로_확인해_기록한다() throws Exception {
         toss(Confirm.LATE_DONE, Lookup.FAIL);
-        confirm().andExpect(status().isBadRequest());
+        confirm().andExpect(status().isConflict());
 
         toss(Confirm.ALREADY_PROCESSED, Lookup.DONE);
         confirm().andExpect(status().isOk());
@@ -154,28 +179,84 @@ class PaymentConfirmRecoveryTest extends MySqlIntegrationTestSupport {
     }
 
     @Test
-    void 조회한_결제_금액이_다르면_승인_실패를_유지한다() throws Exception {
+    void 조회한_결제_금액이_다르면_결과_확인_중으로_답하고_시도는_결과를_모르는_채로_남긴다() throws Exception {
         toss(Confirm.ALREADY_PROCESSED, Lookup.WRONG_AMOUNT);
 
-        confirm().andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("PAYMENT_CONFIRM_FAILED"));
+        confirm().andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("PAYMENT_IN_PROGRESS"));
 
-        assertNotRecorded();
+        assertLeftUnknown();
     }
 
     @Test
-    void 승인_응답이_제한_시간을_넘기고_조회도_실패하면_400이고_결제와_주문은_그대로다() throws Exception {
+    void 승인_응답의_금액이_다르면_승인으로_기록하지_않고_결과_확인_중으로_남긴다() throws Exception {
+        toss(Confirm.WRONG_AMOUNT, Lookup.WRONG_AMOUNT);
+
+        confirm().andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("PAYMENT_IN_PROGRESS"));
+
+        assertThat(lookupRequests).hasValue(1);
+        assertLeftUnknown();
+    }
+
+    @Test
+    void 승인_응답이_승인_완료가_아니면_조회로_확인해_기록한다() throws Exception {
+        toss(Confirm.IN_PROGRESS, Lookup.DONE);
+
+        confirm().andExpect(status().isOk());
+
+        assertThat(lookupRequests).hasValue(1);
+        assertRecordedOnce();
+    }
+
+    @Test
+    void 승인_응답_본문이_없으면_조회로_확인해_기록한다() throws Exception {
+        toss(Confirm.EMPTY, Lookup.DONE);
+
+        confirm().andExpect(status().isOk());
+
+        assertThat(lookupRequests).hasValue(1);
+        assertRecordedOnce();
+    }
+
+    @Test
+    void 승인_응답이_승인_완료가_아니고_조회로도_확인하지_못하면_결과_확인_중으로_남긴다() throws Exception {
+        toss(Confirm.IN_PROGRESS, Lookup.IN_PROGRESS);
+
+        confirm().andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("PAYMENT_IN_PROGRESS"));
+
+        assertLeftUnknown();
+    }
+
+    @Test
+    void 승인_응답이_제한_시간을_넘기고_조회도_실패하면_409_결과_확인_중이고_시도는_결과를_모르는_채로_남는다() throws Exception {
         toss(Confirm.LATE_DONE, Lookup.FAIL);
         final long startedAt = System.nanoTime();
 
-        confirm().andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("PAYMENT_CONFIRM_FAILED"));
+        confirm().andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("PAYMENT_IN_PROGRESS"));
 
         assertThat((System.nanoTime() - startedAt) / 1_000_000).isLessThan(2_500);
         assertThat(lookupRequests).hasValue(1);
-        assertNotRecorded();
+        assertLeftUnknown();
         assertThat(listingPurchaseRequested()).isTrue();
+
+        // 클라이언트는 승인 오류를 받으면 실패 정리를 부른다. 결과를 모르는 결제는 실패가 아니므로 이벤트를 내지 않는다.
+        fail().andExpect(status().isNoContent());
         assertThat(events.stream(PaymentFailed.class)).isEmpty();
+        assertLeftUnknown();
+    }
+
+    @Test
+    void 승인_응답이_제한_시간을_넘기고_조회가_경로_오류_404면_시도를_지우지_않는다() throws Exception {
+        toss(Confirm.LATE_DONE, Lookup.PATH_NOT_FOUND);
+
+        confirm().andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("PAYMENT_IN_PROGRESS"));
+
+        assertThat(lookupRequests).hasValue(1);
+        assertLeftUnknown();
     }
 
     @Test
@@ -200,24 +281,226 @@ class PaymentConfirmRecoveryTest extends MySqlIntegrationTestSupport {
         assertThat(confirmRequests).hasValue(1);
     }
 
+    @Test
+    void 결과를_모르는_시도가_남아_있으면_다른_결제_키의_재결제는_토스를_부르지_않고_막는다() throws Exception {
+        toss(Confirm.LATE_DONE, Lookup.FAIL);
+        confirm().andExpect(status().isConflict());
+
+        confirm(OTHER_PAYMENT_KEY).andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("PAYMENT_IN_PROGRESS"));
+
+        assertThat(confirmRequests).hasValue(1);
+        assertLeftUnknown();
+    }
+
+    @Test
+    void 토스가_명확히_거절하면_시도를_지워_같은_주문으로_다시_결제할_수_있다() throws Exception {
+        toss(Confirm.REJECTED, Lookup.DONE);
+        confirm().andExpect(status().isBadRequest());
+        assertThat(paymentCount()).isZero();
+
+        toss(Confirm.DONE, Lookup.DONE);
+        confirm(OTHER_PAYMENT_KEY).andExpect(status().isOk());
+
+        assertRecordedOnce();
+    }
+
+    @Test
+    void 정리_배치는_오래된_시도를_토스에_다시_물어_승인됐으면_주문을_확정한다() throws Exception {
+        leaveUnknownAttempt();
+        toss(Confirm.DONE, Lookup.DONE);
+
+        unknownPaymentResolver.resolveStale();
+
+        assertRecordedOnce();
+        assertThat(paymentStatus()).isEqualTo("DONE");
+    }
+
+    @Test
+    void 정리_배치가_찾은_승인이_만료된_주문의_것이면_주문은_그대로_두고_환불_대상으로_기록한다() throws Exception {
+        leaveUnknownAttempt();
+        expireOrder();
+        toss(Confirm.DONE, Lookup.DONE);
+
+        unknownPaymentResolver.resolveStale();
+        awaitEventsHandled(jdbcTemplate);
+
+        assertThat(paymentStatus()).isEqualTo("DONE");
+        assertThat(orderStatus()).isEqualTo("EXPIRED");
+        assertThat(jdbcTemplate.queryForList("SELECT CONCAT(reason, '/', status) FROM payment_refunds", String.class))
+                .containsExactly("ORDER_EXPIRED/REQUESTED");
+    }
+
+    @Test
+    void 정리_배치는_토스에_없는_결제의_시도를_지운다() throws Exception {
+        leaveUnknownAttempt();
+        toss(Confirm.DONE, Lookup.NOT_FOUND);
+
+        unknownPaymentResolver.resolveStale();
+
+        assertThat(paymentCount()).isZero();
+        assertThat(events.stream(OrderPaid.class)).isEmpty();
+    }
+
+    @Test
+    void 정리_배치는_경로_오류_404를_받으면_시도를_남겨_다음에_다시_묻는다() throws Exception {
+        leaveUnknownAttempt();
+        toss(Confirm.DONE, Lookup.PATH_NOT_FOUND);
+
+        unknownPaymentResolver.resolveStale();
+
+        assertLeftUnknown();
+    }
+
+    @Test
+    void 정리_배치는_토스가_아직_처리_중이라고_하면_시도를_남겨_다음에_다시_묻는다() throws Exception {
+        leaveUnknownAttempt();
+        toss(Confirm.DONE, Lookup.IN_PROGRESS);
+
+        unknownPaymentResolver.resolveStale();
+
+        assertLeftUnknown();
+    }
+
+    // 토스 응답을 기다리는 동안 DB 커넥션을 쥐고 있으면, 토스가 느려질 때 승인 요청만으로 커넥션 풀이 바닥난다.
+    @Test
+    void 토스_승인_응답을_기다리는_동안_DB_커넥션을_쓰지_않는다() throws Exception {
+        toss(Confirm.LATE_DONE, Lookup.FAIL);
+        final HikariDataSource pool = dataSource.unwrap(HikariDataSource.class);
+        final ExecutorService executor = Executors.newSingleThreadExecutor();
+        try {
+            final Future<Integer> confirmed = executor.submit(() -> confirm().andReturn().getResponse().getStatus());
+            while (confirmRequests.get() == 0 && !confirmed.isDone()) {
+                Thread.sleep(10);
+            }
+            Thread.sleep(200);
+
+            assertThat(pool.getHikariPoolMXBean().getActiveConnections()).isZero();
+            assertThat(confirmed.get(10, TimeUnit.SECONDS)).isEqualTo(409);
+        } finally {
+            executor.shutdownNow();
+        }
+    }
+
+    @Test
+    void 정리_배치는_만든_지_얼마_안_된_시도를_조회하지_않는다() throws Exception {
+        toss(Confirm.LATE_DONE, Lookup.FAIL);
+        confirm().andExpect(status().isConflict());
+        lookupRequests.set(0);
+
+        unknownPaymentResolver.resolveStale();
+
+        assertThat(lookupRequests).hasValue(0);
+        assertLeftUnknown();
+    }
+
+    @Test
+    void 같은_주문을_다른_결제_키로_동시에_승인하면_토스_승인은_한_번만_호출된다() throws Exception {
+        toss(Confirm.SLOW_DONE, Lookup.DONE);
+        final CountDownLatch start = new CountDownLatch(1);
+        final ExecutorService executor = Executors.newFixedThreadPool(2);
+        try {
+            final Future<Integer> first = executor.submit(() -> {
+                start.await();
+                return confirm(PAYMENT_KEY).andReturn().getResponse().getStatus();
+            });
+            final Future<Integer> second = executor.submit(() -> {
+                start.await();
+                return confirm(OTHER_PAYMENT_KEY).andReturn().getResponse().getStatus();
+            });
+            start.countDown();
+
+            assertThat(List.of(first.get(10, TimeUnit.SECONDS), second.get(10, TimeUnit.SECONDS)))
+                    .containsExactlyInAnyOrder(200, 409);
+        } finally {
+            executor.shutdownNow();
+        }
+
+        assertThat(confirmRequests).hasValue(1);
+        assertRecordedOnce();
+    }
+
+    @Test
+    void 늦은_승인_응답과_정리_배치가_같은_결제를_동시에_기록해도_주문_확정은_한_번이다() throws Exception {
+        leaveUnknownAttempt();
+        final CountDownLatch start = new CountDownLatch(1);
+        final ExecutorService executor = Executors.newFixedThreadPool(2);
+        try {
+            final List<Future<?>> recorded = List.of(
+                    executor.submit(() -> recordCompletedAfter(start)),
+                    executor.submit(() -> recordCompletedAfter(start)));
+            start.countDown();
+            for (final Future<?> future : recorded) {
+                future.get(10, TimeUnit.SECONDS);
+            }
+        } finally {
+            executor.shutdownNow();
+        }
+
+        assertRecordedOnce();
+    }
+
+    private Void recordCompletedAfter(final CountDownLatch start) throws InterruptedException {
+        start.await();
+        paymentApprovalRecorder.record(ORDER_ID, TOSS_ORDER_ID, PAYMENT_KEY, AMOUNT, LocalDateTime.now());
+        return null;
+    }
+
+    // 승인 응답이 늦고 조회도 실패해 결과를 모르는 시도가 남은 뒤, 정리 대상이 될 만큼 시간이 흐른 상황.
+    private void leaveUnknownAttempt() throws Exception {
+        toss(Confirm.LATE_DONE, Lookup.FAIL);
+        confirm().andExpect(status().isConflict());
+        jdbcTemplate.update("UPDATE payments SET attempted_at = DATE_SUB(NOW(6), INTERVAL 11 MINUTE)");
+    }
+
+    private void expireOrder() {
+        jdbcTemplate.update(
+                "UPDATE orders SET pending_expires_at = DATE_SUB(NOW(6), INTERVAL 1 MINUTE) WHERE id = ?", ORDER_ID);
+        assertThat(expirationService.expire(ORDER_ID, Instant.now())).isTrue();
+    }
+
+    private void assertLeftUnknown() {
+        assertThat(paymentCount()).isOne();
+        assertThat(paymentStatus()).isEqualTo("UNKNOWN");
+        assertThat(orderStatus()).isEqualTo("PENDING");
+        assertThat(events.stream(OrderPaid.class)).isEmpty();
+    }
+
+    private String paymentStatus() {
+        return jdbcTemplate.queryForObject("SELECT status FROM payments WHERE order_id = ?", String.class, ORDER_ID);
+    }
+
     private void assertRecordedOnce() {
         awaitEventsHandled(jdbcTemplate);
         assertThat(paymentCount()).isOne();
-        assertThat(events.stream(PaymentCompleted.class)).hasSize(1);
+        // 동시 기록은 다른 스레드에서 일어나 이벤트 기록으로 셀 수 없다. 확정마다 배송 요청이 하나 생기므로 그 수로 센다.
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM delivery WHERE order_id = ?", Integer.class, ORDER_ID)).isOne();
         assertThat(orderStatus()).isEqualTo("CONFIRMED");
     }
 
     private void assertNotRecorded() {
         assertThat(paymentCount()).isZero();
         assertThat(orderStatus()).isEqualTo("PENDING");
-        assertThat(events.stream(PaymentCompleted.class)).isEmpty();
+        assertThat(events.stream(OrderPaid.class)).isEmpty();
     }
 
     private ResultActions confirm() throws Exception {
+        return confirm(PAYMENT_KEY);
+    }
+
+    private ResultActions fail() throws Exception {
+        return mockMvc.perform(post("/api/payments/fail")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer token-" + BUYER_ID)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"orderId\":\"%s\"}".formatted(TOSS_ORDER_ID)));
+    }
+
+    private ResultActions confirm(final String paymentKey) throws Exception {
         return mockMvc.perform(post("/api/payments/confirm")
                 .header(HttpHeaders.AUTHORIZATION, "Bearer token-" + BUYER_ID)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(CONFIRM_BODY));
+                .content(CONFIRM_BODY.formatted(paymentKey, TOSS_ORDER_ID, AMOUNT)));
     }
 
     private int paymentCount() {
@@ -235,8 +518,8 @@ class PaymentConfirmRecoveryTest extends MySqlIntegrationTestSupport {
 
     private void insertMember(final long memberId) {
         jdbcTemplate.update("""
-                INSERT INTO members (id, login_id, password, role, phone_number, address, token)
-                VALUES (?, ?, 'encoded-password', 'MEMBER', '010-0000-0000', '가상 주소', ?)
+                INSERT INTO members (id, login_id, password, role, phone_number, address, token, token_expires_at)
+                VALUES (?, ?, 'encoded-password', 'MEMBER', '010-0000-0000', '가상 주소', ?, TIMESTAMPADD(DAY, 1, UTC_TIMESTAMP(6)))
                 """, memberId, "member" + memberId, "token-" + memberId);
     }
 
@@ -246,9 +529,9 @@ class PaymentConfirmRecoveryTest extends MySqlIntegrationTestSupport {
     }
 
     // 가짜 토스: 승인은 confirmMode, 조회(GET /v1/payments/{paymentKey})는 lookupMode대로 응답한다.
-    private enum Confirm { LATE_DONE, ALREADY_PROCESSED, SERVER_ERROR, REJECTED }
+    private enum Confirm { DONE, SLOW_DONE, LATE_DONE, WRONG_AMOUNT, IN_PROGRESS, EMPTY, ALREADY_PROCESSED, SERVER_ERROR, REJECTED }
 
-    private enum Lookup { DONE, WRONG_AMOUNT, FAIL }
+    private enum Lookup { DONE, WRONG_AMOUNT, IN_PROGRESS, NOT_FOUND, PATH_NOT_FOUND, FAIL }
 
     private static HttpServer startToss() {
         try {
@@ -259,10 +542,18 @@ class PaymentConfirmRecoveryTest extends MySqlIntegrationTestSupport {
                 confirmRequests.incrementAndGet();
                 idempotencyKeys.add(exchange.getRequestHeaders().getFirst("Idempotency-Key"));
                 switch (confirmMode) {
+                    case DONE -> respond(exchange, 200, payment(AMOUNT));
+                    case SLOW_DONE -> {
+                        sleep(300);
+                        respond(exchange, 200, payment(AMOUNT));
+                    }
                     case LATE_DONE -> {
                         sleep(3_000);
                         respond(exchange, 200, payment(AMOUNT));
                     }
+                    case WRONG_AMOUNT -> respond(exchange, 200, payment(AMOUNT - 1));
+                    case IN_PROGRESS -> respond(exchange, 200, payment("IN_PROGRESS", AMOUNT));
+                    case EMPTY -> respond(exchange, 200, "");
                     case ALREADY_PROCESSED -> respond(exchange, 400, error("ALREADY_PROCESSED_PAYMENT"));
                     case SERVER_ERROR -> respond(exchange, 500, error("FAILED_INTERNAL_SYSTEM_PROCESSING"));
                     case REJECTED -> respond(exchange, 400, error("REJECT_CARD_PAYMENT"));
@@ -273,6 +564,9 @@ class PaymentConfirmRecoveryTest extends MySqlIntegrationTestSupport {
                 switch (lookupMode) {
                     case DONE -> respond(exchange, 200, payment(AMOUNT));
                     case WRONG_AMOUNT -> respond(exchange, 200, payment(AMOUNT - 1));
+                    case IN_PROGRESS -> respond(exchange, 200, payment("IN_PROGRESS", AMOUNT));
+                    case NOT_FOUND -> respond(exchange, 404, error("NOT_FOUND_PAYMENT"));
+                    case PATH_NOT_FOUND -> respond(exchange, 404, error("NOT_FOUND"));
                     case FAIL -> respond(exchange, 500, error("FAILED_PAYMENT_INTERNAL_SYSTEM_PROCESSING"));
                 }
             });
@@ -284,9 +578,13 @@ class PaymentConfirmRecoveryTest extends MySqlIntegrationTestSupport {
     }
 
     private static String payment(final int totalAmount) {
+        return payment("DONE", totalAmount);
+    }
+
+    private static String payment(final String status, final int totalAmount) {
         return """
-                {"paymentKey":"%s","orderId":"%s","status":"DONE","totalAmount":%d,"approvedAt":"2026-10-14T12:00:00+09:00"}
-                """.formatted(PAYMENT_KEY, TOSS_ORDER_ID, totalAmount);
+                {"paymentKey":"%s","orderId":"%s","status":"%s","totalAmount":%d,"approvedAt":"2026-10-14T12:00:00+09:00"}
+                """.formatted(PAYMENT_KEY, TOSS_ORDER_ID, status, totalAmount);
     }
 
     private static String error(final String code) {

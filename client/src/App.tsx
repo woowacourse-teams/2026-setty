@@ -5,6 +5,7 @@ import { DemoScreen } from './features/demo/DemoScreen';
 import { DriverRequestDetailScreen } from './features/driver/DriverRequestDetailScreen';
 import { DriverRequestsScreen } from './features/driver/DriverRequestsScreen';
 import { DriverMyPageScreen } from './features/driver/DriverMyPageScreen';
+import { DriverNotificationsScreen } from './features/driver/DriverNotificationsScreen';
 import { DriverShipmentDetailScreen } from './features/driver/DriverShipmentDetailScreen';
 import { DriverShipmentsScreen } from './features/driver/DriverShipmentsScreen';
 import { FavoritesScreen } from './features/favorites/FavoritesScreen';
@@ -23,6 +24,7 @@ import { PaymentCompleteScreen } from './features/payment/PaymentCompleteScreen'
 import { PaymentReturnScreen } from './features/payment/PaymentReturnScreen';
 import { PaymentScreen } from './features/payment/PaymentScreen';
 import { ProfileEditScreen } from './features/profile/ProfileEditScreen';
+import { SupportScreen } from './features/support/SupportScreen';
 import { SignUpScreen } from './features/signup/SignUpScreen';
 import { loginStateFrom, routes } from './navigation';
 import { onScreenChanged } from './ui/snackbar';
@@ -65,6 +67,8 @@ export const router = createBrowserRouter([
             // 매물 목록·상세는 로그인 없이 둘러볼 수 있게 열고, 찜·구매처럼 로그인이 필요할 때 로그인으로 보낸다
             { index: true, Component: HomeScreen },
             { path: '/listings/:listingId', Component: FurnitureDetailScreen },
+            { path: routes.support, element: <RequireLogin><SupportScreen /></RequireLogin> },
+            { path: '/support/:conversationId', element: <RequireLogin><SupportScreen /></RequireLogin> },
             { path: routes.myPage, element: <RequireLogin><MyPageScreen /></RequireLogin> },
             { path: routes.profileEdit, element: <RequireLogin><ProfileEditScreen /></RequireLogin> },
             { path: routes.myListings, element: <RequireLogin><MyListingsScreen /></RequireLogin> },
@@ -85,6 +89,7 @@ export const router = createBrowserRouter([
             { path: routes.driverShipments, element: <RequireDriverLogin><DriverShipmentsScreen /></RequireDriverLogin> },
             { path: '/driver/shipments/:deliveryId', element: <RequireDriverLogin><DriverShipmentDetailScreen /></RequireDriverLogin> },
             { path: routes.driverMyPage, element: <RequireDriverLogin><DriverMyPageScreen /></RequireDriverLogin> },
+            { path: routes.driverNotifications, element: <RequireDriverLogin><DriverNotificationsScreen /></RequireDriverLogin> },
             { path: '*', element: <Navigate replace to={routes.home} /> }
         ]
     }

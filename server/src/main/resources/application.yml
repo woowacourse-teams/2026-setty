@@ -8,6 +8,9 @@ spring:
     password: setty
 
   jpa:
+    # 요청이 끝날 때까지 영속성 컨텍스트와 DB 커넥션을 붙잡지 않는다. 켜 두면 토스 승인처럼 외부 응답을 기다리는
+    # 요청이 그동안 커넥션을 쥐고 있어 풀이 바닥날 수 있다. 엔티티는 트랜잭션 안에서만 읽고 고친다.
+    open-in-view: false
     hibernate:
       # Flyway가 스키마를 변경하고, JPA는 엔티티와의 일치 여부만 검사한다.
       ddl-auto: validate
@@ -69,6 +72,9 @@ management:
         enabled: false
 
 setty:
+  auth:
+    # 로그인 토큰 수명. 로그인 시각부터 이만큼 지나면 다시 로그인해야 한다.
+    token-ttl: ${SETTY_AUTH_TOKEN_TTL:P30D}
   events:
     resubmission-interval: ${SETTY_EVENT_RESUBMISSION_INTERVAL:PT1M}
   delivery:
@@ -81,6 +87,10 @@ setty:
       scan-interval: ${PENDING_ORDER_EXPIRATION_SCAN_INTERVAL:PT1M}
     completion:
       scan-interval: ${ORDER_COMPLETION_SCAN_INTERVAL:PT1M}
+    paid-confirmation:
+      # 결제 만료 시각에서 이만큼 지난 PAID 주문을 다시 확정한다. 이벤트 재시도(1분 간격 5회)와 staleness(5분)보다 길게 둔다.
+      stuck-after: ${PAID_ORDER_STUCK_AFTER:PT15M}
+      scan-interval: ${PAID_ORDER_CONFIRMATION_SCAN_INTERVAL:PT5M}
   storage:
     listing-images:
       region: ${AWS_REGION:ap-northeast-2}
@@ -92,6 +102,19 @@ setty:
       enabled: ${SETTY_ADDRESS_BACKFILL_ENABLED:false}
       batch-size: ${SETTY_ADDRESS_BACKFILL_BATCH_SIZE:500}
       pause: ${SETTY_ADDRESS_BACKFILL_PAUSE:PT0.1S}
+    reference:
+      load:
+        # 주소 기준표가 rows보다 적으면 앱이 뜬 뒤 백그라운드에서 bucket/key의 gzip TSV를 받아 이어 넣는다.
+        # 레포가 공개라 자료는 비공개 버킷에만 둔다. 해시가 다르거나 받지 못하면 경고만 남긴다. 절차는 server/scripts/address/README.md.
+        enabled: ${SETTY_ADDRESS_REFERENCE_LOAD_ENABLED:false}
+        region: ${AWS_REGION:ap-northeast-2}
+        bucket: ${SETTY_ADDRESS_REFERENCE_LOAD_BUCKET:}
+        key: ${SETTY_ADDRESS_REFERENCE_LOAD_KEY:}
+        sha256: ${SETTY_ADDRESS_REFERENCE_LOAD_SHA256:}
+        rows: ${SETTY_ADDRESS_REFERENCE_LOAD_ROWS:0}
+        # 두 번 받기(해시 확인 + 적재)와 DB 넣기 전체에 거는 제한
+        timeout: ${SETTY_ADDRESS_REFERENCE_LOAD_TIMEOUT:PT10M}
+        batch-size: ${SETTY_ADDRESS_REFERENCE_LOAD_BATCH_SIZE:2000}
   listing:
     zip-zone-backfill:
       # 우편번호 구역이 빈 기존 매물을 시작할 때 한 번 채운다. 회원 주소 채우기가 끝난 뒤 켠다.
@@ -128,3 +151,25 @@ setty:
       # 클라이언트 키의 gck를 gsk로 바꾸어 시크릿 키를 만들 수 없다. 공식 키 쌍을 사용한다.
       secret-key: ${TOSS_SECRET_KEY:test_gsk_docs_OaPz8L5KdmQXkzRz3y47BMw6}
       base-url: ${TOSS_BASE_URL:https://api.tosspayments.com}
+    # 토스 승인 호출 한도(토큰 버킷). 최악(토스 60초 지연)에도 대기 승인이 capacity + 초당 보충 × 60건을 넘지 않는다.
+    confirm-limit:
+      capacity: ${PAYMENT_CONFIRM_LIMIT_CAPACITY:20}
+      refill-per-second: ${PAYMENT_CONFIRM_LIMIT_REFILL_PER_SECOND:2}
+    # 결과를 모르는 승인 정리와 환불 배치. 결제 전용 스레드 하나에서 돈다.
+    recovery:
+      interval: ${PAYMENT_RECOVERY_INTERVAL:PT5M}
+      # 주문 만료(6분)와 토스 읽기 제한(60초)이 지난 시도만 토스에 다시 묻는다.
+      stale-after: ${PAYMENT_RECOVERY_STALE_AFTER:PT10M}
+      batch-size: ${PAYMENT_RECOVERY_BATCH_SIZE:20}
+      max-refund-attempts: ${PAYMENT_REFUND_MAX_ATTEMPTS:5}
+  ai-support:
+    # Disabled until the team account, permissions and paid-call budget have been verified.
+    enabled: ${SETTY_AI_SUPPORT_ENABLED:false}
+    region: ${SETTY_AI_SUPPORT_REGION:ap-northeast-2}
+    provider: ${SETTY_AI_SUPPORT_PROVIDER:bedrock}
+    # Blank chooses the provider default; API keys are server environment variables only.
+    model-id: ${SETTY_AI_SUPPORT_MODEL_ID:}
+    max-concurrent: ${SETTY_AI_SUPPORT_MAX_CONCURRENT:4}
+    slot-wait-ms: ${SETTY_AI_SUPPORT_SLOT_WAIT_MS:2000}
+    daily-text-limit: ${SETTY_AI_SUPPORT_DAILY_TEXT_LIMIT:50}
+    monthly-text-limit: ${SETTY_AI_SUPPORT_MONTHLY_TEXT_LIMIT:12000}

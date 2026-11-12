@@ -32,15 +32,28 @@ class AuthMatrixTest extends MySqlIntegrationTestSupport {
     @BeforeEach
     void setUp() {
         cleanUp();
+        insertMember(1, "member-token", "TIMESTAMPADD(DAY, 1, UTC_TIMESTAMP(6))");
+        insertMember(3, "expired-member-token", "TIMESTAMPADD(SECOND, -1, UTC_TIMESTAMP(6))");
+        insertMember(4, "no-expiry-member-token", "NULL");
+        insertDriver(2, "driver-token", "TIMESTAMPADD(DAY, 1, UTC_TIMESTAMP(6))");
+        insertDriver(5, "expired-driver-token", "TIMESTAMPADD(SECOND, -1, UTC_TIMESTAMP(6))");
+        insertDriver(6, "no-expiry-driver-token", "NULL");
+    }
+
+    private void insertMember(final long id, final String token, final String expiresAt) {
         jdbcTemplate.update("""
-                INSERT INTO members (id, login_id, password, role, phone_number, address, dong_code, token)
-                VALUES (1, 'member1', 'encoded-password', 'MEMBER', '010-0000-0000', '가상 주소', '1111053000', 'member-token')
-                """);
+                INSERT INTO members (id, login_id, password, role, phone_number, address, dong_code, token,
+                                     token_expires_at)
+                VALUES (?, ?, 'encoded-password', 'MEMBER', '010-0000-0000', '가상 주소', '1111053000', ?, %s)
+                """.formatted(expiresAt), id, "member" + id, token);
+    }
+
+    private void insertDriver(final long id, final String token, final String expiresAt) {
         jdbcTemplate.update("""
                 INSERT INTO delivery_member (id, login_id, password, phone_number, license_plate_number, car_type,
-                                             business_registration_number, token)
-                VALUES (2, 'driver2', 'encoded-password', '010-0000-0000', '12가3456', '다마스', '000-00-00000', 'driver-token')
-                """);
+                                             business_registration_number, token, token_expires_at)
+                VALUES (?, ?, 'encoded-password', '010-0000-0000', '12가3456', '다마스', '000-00-00000', ?, %s)
+                """.formatted(expiresAt), id, "driver" + id, token);
     }
 
     @AfterEach
@@ -58,6 +71,8 @@ class AuthMatrixTest extends MySqlIntegrationTestSupport {
             "GET,    /api/auth/me,                       member-token,         401, INVALID_TOKEN",
             "GET,    /api/auth/me,                       -,                    401, INVALID_TOKEN",
             "GET,    /api/auth/me,                       'Bearer ',            401, INVALID_TOKEN",
+            "GET,    /api/auth/me,                       Bearer expired-member-token,   401, INVALID_TOKEN",
+            "GET,    /api/auth/me,                       Bearer no-expiry-member-token, 401, INVALID_TOKEN",
             "DELETE, /api/auth/me,                       Bearer member-token,  204, -",
             "DELETE, /api/auth/me,                       Bearer driver-token,  401, INVALID_TOKEN",
             "DELETE, /api/auth/me,                       -,                    401, INVALID_TOKEN",
@@ -67,6 +82,8 @@ class AuthMatrixTest extends MySqlIntegrationTestSupport {
             "GET,    /api/delivery/shipments,            Bearer no-such-token, 401, INVALID_TOKEN",
             "GET,    /api/delivery/shipments,            member-token,         401, INVALID_TOKEN",
             "GET,    /api/delivery/shipments,            -,                    401, INVALID_TOKEN",
+            "GET,    /api/delivery/shipments,            Bearer expired-driver-token,   401, INVALID_TOKEN",
+            "GET,    /api/delivery/shipments,            Bearer no-expiry-driver-token, 401, INVALID_TOKEN",
 
             "POST,   /api/delivery/shipments/999999/cancellation, Bearer member-token, 401, INVALID_TOKEN",
             "POST,   /api/delivery/shipments/999999/cancellation, -,                   401, INVALID_TOKEN",
@@ -76,6 +93,7 @@ class AuthMatrixTest extends MySqlIntegrationTestSupport {
             "GET,    /api/listings,                      Bearer driver-token,  200, -",
             "GET,    /api/listings,                      Bearer no-such-token, 200, -",
             "GET,    /api/listings,                      member-token,         200, -",
+            "GET,    /api/listings,                      Bearer expired-member-token, 200, -",
 
             "GET,    /api/listings/999999,               Bearer member-token,  404, LISTING_NOT_FOUND",
             "GET,    /api/listings/999999,               Bearer driver-token,  404, LISTING_NOT_FOUND",
@@ -87,6 +105,8 @@ class AuthMatrixTest extends MySqlIntegrationTestSupport {
             "GET,    /api/listings?maxDeliveryFee=20000, Bearer member-token,  200, -",
             "GET,    /api/listings?maxDeliveryFee=20000, Bearer no-such-token, 401, INVALID_TOKEN",
             "GET,    /api/listings?maxDeliveryFee=20000, member-token,         401, INVALID_TOKEN",
+            "GET,    /api/listings?maxDeliveryFee=20000, Bearer expired-member-token,   401, INVALID_TOKEN",
+            "GET,    /api/listings?maxDeliveryFee=20000, Bearer no-expiry-member-token, 401, INVALID_TOKEN",
 
             "GET,    /api/delivery/no-such-path,         Bearer member-token,  401, INVALID_TOKEN",
             "GET,    /api/no-such-path,                  Bearer driver-token,  401, INVALID_TOKEN",

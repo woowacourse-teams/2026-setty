@@ -9,9 +9,9 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static setty.global.event.EventPublicationTestSupport.awaitEventsHandled;
-import static setty.global.event.EventPublicationTestSupport.incompletePublicationCount;
 
 import java.time.Instant;
+import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -21,15 +21,17 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.event.ApplicationEvents;
 import org.springframework.test.context.event.RecordApplicationEvents;
-import setty.common.PaymentCompleted;
 import setty.common.PaymentFailed;
 import setty.global.exception.BusinessException;
 import setty.global.exception.ErrorCode;
 import setty.payment.application.PaymentService;
 import setty.payment.domain.Payment;
+import setty.payment.application.PaymentConfirmLimiter;
 import setty.payment.infrastructure.TossConfirmResult;
+import setty.payment.infrastructure.TossPaymentStatus;
 import setty.payment.infrastructure.TossPaymentClient;
 import setty.platform.listing.storage.ListingImageStorage;
+import setty.platform.order.service.OrderPaid;
 import setty.platform.order.service.PendingOrderExpirationService;
 import setty.support.MySqlIntegrationTestSupport;
 
@@ -66,8 +68,12 @@ class PaymentServiceIntegrationTest extends MySqlIntegrationTestSupport {
     @MockitoBean
     private ListingImageStorage listingImageStorage;
 
+    @MockitoBean
+    private PaymentConfirmLimiter paymentConfirmLimiter;
+
     @BeforeEach
     void setUp() {
+        when(paymentConfirmLimiter.tryAcquire()).thenReturn(true);
         cleanUp();
         insertMember(SELLER_ID);
         insertMember(BUYER_ID);
@@ -79,6 +85,7 @@ class PaymentServiceIntegrationTest extends MySqlIntegrationTestSupport {
     void cleanUp() {
         awaitEventsHandled(jdbcTemplate);
         jdbcTemplate.update("DELETE FROM EVENT_PUBLICATION");
+        jdbcTemplate.update("DELETE FROM payment_refunds");
         jdbcTemplate.update("DELETE FROM payments");
         jdbcTemplate.update("DELETE FROM delivery");
         jdbcTemplate.update("DELETE FROM delivery_order_decision");
@@ -89,7 +96,7 @@ class PaymentServiceIntegrationTest extends MySqlIntegrationTestSupport {
     }
 
     @Test
-    void 결제_승인에_성공하면_결제가_저장되고_PaymentCompleted가_발행된다() {
+    void 결제_승인에_성공하면_주문이_결제를_받아들이고_결제가_저장된_뒤_확정된다() {
         stubTossSuccess();
 
         final Payment payment = paymentService.confirm(TOSS_ORDER_ID,PAYMENT_KEY, TOTAL_PRICE);
@@ -98,14 +105,17 @@ class PaymentServiceIntegrationTest extends MySqlIntegrationTestSupport {
         assertThat(payment.getStatus().name()).isEqualTo("DONE");
         assertThat(payment.getOrderId()).isEqualTo(ORDER_ID);
         assertThat(paymentCount()).isEqualTo(1);
-        // payment는 주문·배차를 만들지 않는다 — 결과만 이벤트로 알린다.
-        assertThat(events.stream(PaymentCompleted.class).map(PaymentCompleted::orderId))
-                .containsExactly(ORDER_ID);
+        // 결제가 응답한 시점에 주문은 이미 결제 대기가 아니다. 확정은 커밋 뒤 따로 이어진다.
+        assertThat(orderStatus()).isIn("PAID", "CONFIRMED");
+        assertThat(events.stream(OrderPaid.class).map(OrderPaid::orderId)).containsExactly(ORDER_ID);
+        awaitEventsHandled(jdbcTemplate);
+        assertThat(orderStatus()).isEqualTo("CONFIRMED");
+        assertThat(refunds()).isEmpty();
     }
 
     @Test
-    void 결제_뒤_주문_처리가_실패해도_결제는_유지된다() {
-        // 토스 승인을 기다리는 사이 주문이 먼저 취소되어 주문 확정이 실패하는 상황
+    void 결제_중_판매자가_주문을_취소하면_주문은_되살리지_않고_결제를_환불_대상으로_기록한다() {
+        // 토스 승인을 기다리는 사이 판매자가 매물을 내려 주문이 먼저 취소된 상황.
         stubTossSuccessAfter(() ->
                 jdbcTemplate.update("UPDATE orders SET order_status = 'CANCELLED' WHERE id = ?", ORDER_ID));
 
@@ -114,8 +124,23 @@ class PaymentServiceIntegrationTest extends MySqlIntegrationTestSupport {
 
         assertThat(payment.getStatus().name()).isEqualTo("DONE");
         assertThat(paymentCount()).isEqualTo(1);
-        // 주문 처리 실패는 발행 기록에 미완료로 남아 재발행 대상이 된다.
-        assertThat(incompletePublicationCount(jdbcTemplate, PaymentCompleted.class)).isEqualTo(1);
+        assertThat(jdbcTemplate.queryForObject("SELECT order_status FROM orders WHERE id = ?", String.class, ORDER_ID))
+                .isEqualTo("CANCELLED");
+        assertThat(events.stream(OrderPaid.class)).isEmpty();
+        assertThat(refunds()).containsExactly("ORDER_CANCELLED/REQUESTED");
+    }
+
+    @Test
+    void 승인_한도를_넘으면_토스를_호출하지_않고_시도도_남기지_않는다() {
+        when(paymentConfirmLimiter.tryAcquire()).thenReturn(false);
+
+        assertThatThrownBy(() -> paymentService.confirm(TOSS_ORDER_ID, PAYMENT_KEY, TOTAL_PRICE))
+                .isInstanceOf(BusinessException.class)
+                .extracting(e -> ((BusinessException) e).getErrorCode())
+                .isEqualTo(ErrorCode.PAYMENT_TOO_MANY_REQUESTS);
+
+        verify(tossPaymentClient, never()).confirm(anyString(), anyString(), anyInt());
+        assertThat(paymentCount()).isZero();
     }
 
     @Test
@@ -127,7 +152,7 @@ class PaymentServiceIntegrationTest extends MySqlIntegrationTestSupport {
 
         verify(tossPaymentClient, never()).confirm(anyString(), anyString(), anyInt());
         assertThat(paymentCount()).isZero();
-        assertThat(events.stream(PaymentCompleted.class).count()).isZero();
+        assertThat(events.stream(OrderPaid.class).count()).isZero();
     }
 
     @Test
@@ -183,7 +208,7 @@ class PaymentServiceIntegrationTest extends MySqlIntegrationTestSupport {
     }
 
     @Test
-    void 승인_응답을_기다리는_중에_만료되면_결제와_EXPIRED_주문을_보존한다() {
+    void 승인_응답을_기다리는_중에_만료되면_결제와_EXPIRED_주문을_보존하고_환불_대상으로_기록한다() {
         stubTossSuccessAfter(this::expireOrder);
 
         final Payment payment = paymentService.confirm(TOSS_ORDER_ID, PAYMENT_KEY, TOTAL_PRICE);
@@ -193,7 +218,28 @@ class PaymentServiceIntegrationTest extends MySqlIntegrationTestSupport {
         assertThat(orderStatus()).isEqualTo("EXPIRED");
         assertThat(jdbcTemplate.queryForObject(
                 "SELECT delivery_status FROM orders WHERE id = ?", String.class, ORDER_ID)).isEqualTo("PENDING");
-        assertThat(incompletePublicationCount(jdbcTemplate, PaymentCompleted.class)).isZero();
+        assertThat(events.stream(OrderPaid.class)).isEmpty();
+        assertThat(refunds()).containsExactly("ORDER_EXPIRED/REQUESTED");
+    }
+
+    @Test
+    void 만료_스캔_전이라도_만료_시각이_지난_뒤_확인된_승인은_만료하고_선점을_풀고_환불_대상으로_기록한다() {
+        markListingPurchaseRequested(LISTING_ID);
+        stubTossSuccessAfter(() -> jdbcTemplate.update(
+                "UPDATE orders SET pending_expires_at = DATE_SUB(NOW(6), INTERVAL 5 SECOND) WHERE id = ?", ORDER_ID));
+
+        final Payment payment = paymentService.confirm(TOSS_ORDER_ID, PAYMENT_KEY, TOTAL_PRICE);
+        awaitEventsHandled(jdbcTemplate);
+
+        assertThat(payment.getStatus().name()).isEqualTo("DONE");
+        assertThat(orderStatus()).isEqualTo("EXPIRED");
+        assertThat(listingPurchaseRequested(LISTING_ID)).isFalse();
+        assertThat(events.stream(OrderPaid.class)).isEmpty();
+        assertThat(refunds()).containsExactly("ORDER_EXPIRED/REQUESTED");
+    }
+
+    private List<String> refunds() {
+        return jdbcTemplate.queryForList("SELECT CONCAT(reason, '/', status) FROM payment_refunds", String.class);
     }
 
     private String orderStatus() {
@@ -224,7 +270,7 @@ class PaymentServiceIntegrationTest extends MySqlIntegrationTestSupport {
         assertThat(retried.getPaymentKey()).isEqualTo(PAYMENT_KEY);
         // 실패는 무기록이므로 재승인 시 DONE 1행이 새로 저장된다.
         assertThat(paymentCount()).isEqualTo(1);
-        assertThat(events.stream(PaymentCompleted.class).count()).isEqualTo(1);
+        assertThat(events.stream(OrderPaid.class).count()).isEqualTo(1);
     }
 
     @Test
@@ -235,6 +281,8 @@ class PaymentServiceIntegrationTest extends MySqlIntegrationTestSupport {
 
         assertThat(payment.getStatus().name()).isEqualTo("DONE");
         assertThat(paymentCount()).isEqualTo(1);
+        awaitEventsHandled(jdbcTemplate);
+        assertThat(refunds()).isEmpty();
     }
 
     @Test
@@ -276,7 +324,7 @@ class PaymentServiceIntegrationTest extends MySqlIntegrationTestSupport {
     private void stubTossSuccess() {
         when(tossPaymentClient.confirm(eq(PAYMENT_KEY), eq(TOSS_ORDER_ID), eq(TOTAL_PRICE)))
                 .thenReturn(new TossConfirmResult(
-                        PAYMENT_KEY, TOSS_ORDER_ID, "DONE", TOTAL_PRICE, "2026-08-31T12:00:00+09:00"));
+                        PAYMENT_KEY, TOSS_ORDER_ID, TossPaymentStatus.DONE, TOTAL_PRICE, "2026-08-31T12:00:00+09:00"));
     }
 
     private void stubTossSuccessAfter(final Runnable duringApproval) {
@@ -284,7 +332,7 @@ class PaymentServiceIntegrationTest extends MySqlIntegrationTestSupport {
                 .thenAnswer(invocation -> {
                     duringApproval.run();
                     return new TossConfirmResult(
-                            PAYMENT_KEY, TOSS_ORDER_ID, "DONE", TOTAL_PRICE, "2026-08-31T12:00:00+09:00");
+                            PAYMENT_KEY, TOSS_ORDER_ID, TossPaymentStatus.DONE, TOTAL_PRICE, "2026-08-31T12:00:00+09:00");
                 });
     }
 

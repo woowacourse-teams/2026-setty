@@ -9,15 +9,16 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import setty.common.OrderCancellationRequested;
+import setty.common.OrderCancellationDeclined;
+import setty.common.CancellationRejectionReasons;
 import setty.common.OrderCancelled;
 import setty.common.OrderConfirmed;
+import setty.common.OrderStatusNotified;
 import setty.global.exception.BusinessException;
 import setty.global.exception.ErrorCode;
 import setty.platform.listing.application.ListingService;
@@ -38,8 +39,6 @@ import setty.platform.order.repository.OrderRepository;
 @Service
 public class OrderService {
 
-    private static final Logger log = LoggerFactory.getLogger(OrderService.class);
-
     private final OrderRepository orderRepository;
     private final ListingService listingService;
     private final ListingRepository listingRepository;
@@ -47,6 +46,7 @@ public class OrderService {
     private final ApplicationEventPublisher eventPublisher;
     private final Clock clock;
     private final PendingOrderExpirationProperties pendingOrderExpirationProperties;
+    private final OrderStatusNotifier orderStatusNotifier;
 
     public OrderService(
             final OrderRepository orderRepository,
@@ -55,7 +55,8 @@ public class OrderService {
             final MemberRepository memberRepository,
             final ApplicationEventPublisher eventPublisher,
             final Clock clock,
-            final PendingOrderExpirationProperties pendingOrderExpirationProperties
+            final PendingOrderExpirationProperties pendingOrderExpirationProperties,
+            final OrderStatusNotifier orderStatusNotifier
     ) {
         this.orderRepository = orderRepository;
         this.listingService = listingService;
@@ -64,6 +65,7 @@ public class OrderService {
         this.eventPublisher = eventPublisher;
         this.clock = clock;
         this.pendingOrderExpirationProperties = pendingOrderExpirationProperties;
+        this.orderStatusNotifier = orderStatusNotifier;
     }
 
     // 결제 대기 주문 생성 — 결제 전이므로 OrderConfirmed(배차 요청)를 발행하지 않는다.
@@ -109,7 +111,8 @@ public class OrderService {
                     new OrderPlace(seller.getAddress(), seller.getPhoneNumber(), purchase.dongCode(),
                             purchase.zipCode(), managementNumberOf(seller)),
                     new OrderPlace(buyer.getAddress(), buyer.getPhoneNumber(), buyer.getDongCode(),
-                            buyer.getZipCode(), managementNumberOf(buyer))
+                            buyer.getZipCode(), managementNumberOf(buyer)),
+                    now
             ));
         } catch (final DataIntegrityViolationException e) {
             throw new BusinessException(ErrorCode.ALREADY_ORDERED);
@@ -121,18 +124,15 @@ public class OrderService {
         return member.getResolvedAddress() == null ? null : member.getResolvedAddress().getManagementNumber();
     }
 
+    // 승인을 받아들인(PAID) 주문을 확정하고 배송 요청 이벤트를 발행한다. 이미 확정 이후면 아무것도 하지 않는다(멱등).
     @Transactional
-    public void publishOrderConfirmed(final Long orderId) {
+    public void confirmPaid(final Long orderId) {
         if (orderId == null || orderId <= 0) {
             throw new BusinessException(ErrorCode.INVALID_REQUEST);
         }
 
         final Order order = orderRepository.findByIdForUpdate(orderId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
-        if (order.getOrderStatus() == OrderStatus.EXPIRED) {
-            log.error("만료된 주문에 결제 완료가 도착했습니다. 수동 환불 확인이 필요합니다. orderId={}", orderId);
-            return;
-        }
         if (!order.requestDelivery()) {
             return;
         }
@@ -158,8 +158,11 @@ public class OrderService {
                 destination.dongCode(),
                 pickup.dongCode(),
                 pickup.zipCode(),
-                destination.zipCode()
+                destination.zipCode(),
+                pickup.managementNumber(),
+                destination.managementNumber()
         ));
+        orderStatusNotifier.notify(order, OrderStatusNotified.Change.CONFIRMED, clock.instant());
     }
 
     private OrderPlace currentPickup(final Listing listing) {
@@ -215,6 +218,7 @@ public class OrderService {
                 cancellationRequestId,
                 clock.instant()
         ));
+        orderStatusNotifier.notify(order, OrderStatusNotified.Change.CANCELLED_BY_BUYER, decidedAt);
     }
 
     @Transactional
@@ -223,11 +227,28 @@ public class OrderService {
             final String cancellationRequestId,
             final Instant decidedAt
     ) {
+        rejectCancellation(orderId, cancellationRequestId, decidedAt,
+                CancellationRejectionReasons.DRIVER_ACCEPTED_OR_LATER);
+    }
+
+    @Transactional
+    public void rejectCancellation(
+            final Long orderId,
+            final String cancellationRequestId,
+            final Instant decidedAt,
+            final String reasonCode
+    ) {
         validateCancellationResult(orderId, cancellationRequestId, decidedAt);
 
         final Order order = orderRepository.findByIdForUpdate(orderId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
-        order.rejectCancellation(cancellationRequestId);
+        if (order.rejectCancellation(cancellationRequestId)) {
+            final String reason = reasonCode == null
+                    ? CancellationRejectionReasons.DRIVER_ACCEPTED_OR_LATER : reasonCode;
+            eventPublisher.publishEvent(new OrderCancellationDeclined(
+                    orderId, cancellationRequestId, decidedAt, reason));
+            orderStatusNotifier.notify(order, OrderStatusNotified.Change.CANCELLATION_REJECTED, decidedAt);
+        }
     }
 
     private void validateCancellationResult(

@@ -9,6 +9,7 @@ import static setty.global.exception.ErrorCode.MEMBER_DONG_REQUIRED;
 
 import java.time.Instant;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -37,6 +38,7 @@ import setty.platform.listing.domain.Listing;
 import setty.platform.listing.domain.ListingCategory;
 import setty.platform.listing.domain.ListingImage;
 import setty.platform.listing.domain.ListingSearchTerms;
+import setty.platform.listing.domain.ListingText;
 import setty.platform.listing.domain.SaleStatus;
 import setty.platform.listing.repository.ListingImageRepository;
 import setty.platform.listing.repository.ListingQueryRepository;
@@ -45,6 +47,7 @@ import setty.platform.listing.storage.ListingImageStorage;
 import setty.platform.order.domain.Order;
 import setty.platform.order.domain.OrderStatus;
 import setty.platform.order.repository.OrderRepository;
+import setty.platform.order.service.SellerOrderCancellation;
 
 @Service
 public class ListingService {
@@ -52,13 +55,15 @@ public class ListingService {
     private static final Logger log = LoggerFactory.getLogger(ListingService.class);
     public static final int DEFAULT_PAGE_SIZE = 20;
     private static final int MAXIMUM_PAGE_SIZE = 100;
-    private static final int MAXIMUM_PRICE = 100_000_000;
+    private static final int SIMILAR_LISTING_LIMIT = 6;
+    private static final int SIMILAR_CANDIDATE_LIMIT = 100;
+    private static final int MAXIMUM_PRICE = 5_000_000;
 
     private static final List<OrderStatus> CLOSED_ORDER_STATUSES = List.of(OrderStatus.EXPIRED, OrderStatus.CANCELLED);
     private static final List<OrderStatus> OPEN_ORDER_STATUSES =
-            List.of(OrderStatus.PENDING, OrderStatus.CONFIRMED, OrderStatus.CANCEL_PENDING);
+            List.of(OrderStatus.PENDING, OrderStatus.PAID, OrderStatus.CONFIRMED, OrderStatus.CANCEL_PENDING);
     private static final List<OrderStatus> TRADING_ORDER_STATUSES =
-            List.of(OrderStatus.CONFIRMED, OrderStatus.CANCEL_PENDING);
+            List.of(OrderStatus.PAID, OrderStatus.CONFIRMED, OrderStatus.CANCEL_PENDING);
 
     private final ListingRepository listingRepository;
     private final ListingImageRepository listingImageRepository;
@@ -68,6 +73,7 @@ public class ListingService {
     private final OrderRepository orderRepository;
     private final FavoriteRepository favoriteRepository;
     private final DeliveryFeeService deliveryFeeService;
+    private final SellerOrderCancellation sellerOrderCancellation;
 
     public ListingService(
             ListingRepository listingRepository,
@@ -77,7 +83,8 @@ public class ListingService {
             ListingRecorder listingRecorder,
             OrderRepository orderRepository,
             FavoriteRepository favoriteRepository,
-            DeliveryFeeService deliveryFeeService
+            DeliveryFeeService deliveryFeeService,
+            SellerOrderCancellation sellerOrderCancellation
     ) {
         this.listingRepository = listingRepository;
         this.listingImageRepository = listingImageRepository;
@@ -87,6 +94,7 @@ public class ListingService {
         this.orderRepository = orderRepository;
         this.favoriteRepository = favoriteRepository;
         this.deliveryFeeService = deliveryFeeService;
+        this.sellerOrderCancellation = sellerOrderCancellation;
     }
 
     // 판매자 우편번호 구역은 표준 주소가 맞춰진 서울 주소일 때만 있다. 없어도 등록은 막지 않고 행정동으로 계산한다.
@@ -159,7 +167,7 @@ public class ListingService {
         });
     }
 
-    // 가격은 등록 상한(1억)과 같은 범위만 받는다
+    // 가격은 등록 상한(500만 원)과 같은 범위만 받는다
     private static void validatePriceRange(Integer minPrice, Integer maxPrice) {
         if ((minPrice != null && (minPrice < 0 || minPrice > MAXIMUM_PRICE))
                 || (maxPrice != null && (maxPrice < 0 || maxPrice > MAXIMUM_PRICE))
@@ -176,8 +184,7 @@ public class ListingService {
         static final ListingFilter NONE = new ListingFilter(null, null, null, null, null);
     }
 
-    // 매물 조회는 비로그인도 허용해 인터셉터가 회원을 읽지 않는다. JPA로 회원을 읽으면 OSIV 아래에서
-    // 응답이 끝날 때까지 커넥션을 붙잡으므로, 토큰으로 행정동만 JDBC로 한 번 읽는다.
+    // 매물 조회는 비로그인도 허용해 인터셉터가 회원을 읽지 않는다. 회원 엔티티 전체 대신 토큰으로 행정동만 JDBC로 한 번 읽는다.
     private Buyer buyerOf(ListingQueryRepository reader, String token) {
         if (token == null) {
             return Buyer.ANONYMOUS;
@@ -240,7 +247,16 @@ public class ListingService {
         boolean hasNext = size != null && rows.size() > size;
         List<ListingQueryRepository.Row> page = hasNext ? rows.subList(0, size) : rows;
         ListingRequestTiming.count("listing_count", page.size());
+        List<ListingView.Summary> summaries = toSummaries(reader, page, buyer);
 
+        ListingQueryRepository.Row last = hasNext ? page.get(page.size() - 1) : null;
+        String nextCursor = last == null ? null : new ListingCursor(last.createdAt(), last.id()).encode();
+        return new ListingView.SummaryPage(summaries, nextCursor);
+    }
+
+    private List<ListingView.Summary> toSummaries(
+            ListingQueryRepository reader, List<ListingQueryRepository.Row> page, Buyer buyer
+    ) {
         List<Long> listingIds = page.stream().map(ListingQueryRepository.Row::id).toList();
         Map<Long, String> thumbnails = ListingRequestTiming.measure("images", () -> listingIds.isEmpty()
                 ? Map.<Long, String>of()
@@ -260,10 +276,36 @@ public class ListingService {
                         favoriteCounts.getOrDefault(row.id(), 0)))
                 .toList());
         ListingRequestTiming.count("summary_count", summaries.size());
+        return summaries;
+    }
 
-        ListingQueryRepository.Row last = hasNext ? page.get(page.size() - 1) : null;
-        String nextCursor = last == null ? null : new ListingCursor(last.createdAt(), last.id()).encode();
-        return new ListingView.SummaryPage(summaries, nextCursor);
+    // 트랜잭션 없이 JDBC로 읽는다. 후보가 많아야 100개라 요청마다 점수를 계산한다.
+    public List<ListingView.Summary> findSimilar(Long listingId, String buyerToken) {
+        return listingQueryRepository.inOneConnection(reader -> {
+            ListingQueryRepository.TextRow target = reader.findActiveText(listingId)
+                    .orElseThrow(() -> new BusinessException(LISTING_NOT_FOUND));
+            // 기타는 조명·소품·거울처럼 묶음이 넓어 같은 카테고리라는 것만으로 비슷하다고 보기 어렵다
+            if (target.category() == ListingCategory.ETC) {
+                return List.of();
+            }
+            Buyer buyer = buyerOf(reader, buyerToken);
+            ListingText targetText = ListingText.of(target.title(), target.description());
+            List<ListingQueryRepository.Row> ranked = reader
+                    .findSimilarCandidates(target.category(), listingId, buyer.memberId(), SIMILAR_CANDIDATE_LIMIT)
+                    .stream()
+                    .map(candidate -> new ScoredCandidate(candidate.row(),
+                            targetText.similarityTo(ListingText.of(candidate.row().title(), candidate.description())),
+                            Math.abs(candidate.row().price() - target.price())))
+                    .sorted(Comparator.comparingDouble(ScoredCandidate::score).reversed()
+                            .thenComparingInt(ScoredCandidate::priceGap))
+                    .limit(SIMILAR_LISTING_LIMIT)
+                    .map(ScoredCandidate::row)
+                    .toList();
+            return toSummaries(reader, ranked, buyer);
+        });
+    }
+
+    private record ScoredCandidate(ListingQueryRepository.Row row, double score, int priceGap) {
     }
 
     @Transactional(readOnly = true)
@@ -284,9 +326,11 @@ public class ListingService {
         List<Listing> listings = listingRepository
                 .findAllBySellerIdAndDeletedAtIsNullOrderByCreatedAtDescIdDesc(sellerId);
         Map<Long, ListingImage> thumbnails = findThumbnails(listings);
+        Map<Long, List<OrderStatus>> openOrderStatuses = findOpenOrderStatuses(listings.stream().map(Listing::getId).toList());
 
         return listings.stream()
-                .map(listing -> toMine(listing, thumbnails.get(listing.getId())))
+                .map(listing -> toMine(listing, thumbnails.get(listing.getId()),
+                        openOrderStatuses.getOrDefault(listing.getId(), List.of())))
                 .toList();
     }
 
@@ -337,8 +381,20 @@ public class ListingService {
                 .map(ListingImage::getObjectKey)
                 .toList();
 
+        cancelPendingOrdersForDeletion(listing);
         listing.softDelete();
         deleteImagesAfterCommit(objectKeys);
+    }
+
+    // 결제 대기 주문만 걸려 있으면 그 주문을 취소하고 선점을 푼다. 결제가 끝난 주문이 남으면 선점이 남아 삭제가 거절된다.
+    private void cancelPendingOrdersForDeletion(Listing listing) {
+        if (!listing.hasPurchaseRequest() || !listing.canDeleteCancellingPendingOrder()) {
+            return;
+        }
+        sellerOrderCancellation.cancelPendingOrdersOf(listing.getId(), Instant.now());
+        if (!hasActiveOrder(listing.getId())) {
+            listing.releasePurchaseRequest();
+        }
     }
 
     // 탈퇴 검사 동안 주문 생성이 끼어들지 못하게 판매자의 매물을 모두 잠근다. 주문 생성도 매물을 먼저 잠그므로 둘은 줄을 선다.
@@ -545,6 +601,7 @@ public class ListingService {
                 listing.getSaleStatus(),
                 listing.hasPurchaseRequest(),
                 purchaseRequestedBy(listing, myOrder),
+                buyer.memberId() != null && listing.isOwnedBy(buyer.memberId()),
                 orderStateOf(listing.getSaleStatus(), listing.hasPurchaseRequest(),
                         findOpenOrderStatuses(List.of(listing.getId())).getOrDefault(listing.getId(), List.of())),
                 myOrder == null ? null : myOrder.getId(),
@@ -628,7 +685,7 @@ public class ListingService {
                 .orElse(null);
     }
 
-    private ListingView.Mine toMine(Listing listing, ListingImage thumbnail) {
+    private ListingView.Mine toMine(Listing listing, ListingImage thumbnail, List<OrderStatus> openOrderStatuses) {
         return new ListingView.Mine(
                 listing.getId(),
                 listing.getTitle(),
@@ -642,10 +699,15 @@ public class ListingService {
                 listing.getSaleStatus(),
                 listing.hasPurchaseRequest(),
                 listing.canUpdate(),
-                listing.canDelete(),
+                canDeleteBySeller(listing, openOrderStatuses),
                 listing.getCreatedAt(),
                 dongOf(listing.getDongCode())
         );
+    }
+
+    private boolean canDeleteBySeller(Listing listing, List<OrderStatus> openOrderStatuses) {
+        return listing.canDelete() || (listing.canDeleteCancellingPendingOrder()
+                && openOrderStatuses.stream().noneMatch(TRADING_ORDER_STATUSES::contains));
     }
 
     private ListingView.Dimensions dimensionsOf(Listing listing) {

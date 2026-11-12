@@ -34,6 +34,7 @@ class OrderCompletionIntegrationTest extends MySqlIntegrationTestSupport {
     private static final long OTHER_LISTING_ID = 12L;
     private static final long ORDER_ID = 1L;
     private static final long OTHER_ORDER_ID = 2L;
+    private static final long DRIVER_ID = 301L;
 
     @Autowired
     private OrderCompletionService orderCompletionService;
@@ -69,6 +70,7 @@ class OrderCompletionIntegrationTest extends MySqlIntegrationTestSupport {
     void cleanUp() {
         awaitEventsHandled(jdbcTemplate);
         jdbcTemplate.update("DELETE FROM EVENT_PUBLICATION");
+        jdbcTemplate.update("DELETE FROM order_notifications");
         jdbcTemplate.update("DELETE FROM settlements");
         jdbcTemplate.update("DELETE FROM settlement_order");
         jdbcTemplate.update("DELETE FROM orders");
@@ -110,6 +112,44 @@ class OrderCompletionIntegrationTest extends MySqlIntegrationTestSupport {
         orderCompletionService.confirmByBuyer(ORDER_ID, BUYER_ID);
 
         assertThat(column(ORDER_ID, "order_status")).isEqualTo("COMPLETED");
+    }
+
+    // 판매자에게는 판매 확정 대신 정산 확정을 금액과 함께 알린다.
+    @Test
+    void 구매_확정은_구매자에게_구매_확정을_판매자에게_정산_확정을_한_번씩_알린다() {
+        deliver(ORDER_ID, Instant.now());
+        insertPendingSellerSettlement(ORDER_ID, LISTING_ID);
+
+        orderCompletionService.confirmByBuyer(ORDER_ID, BUYER_ID);
+        orderCompletionService.confirmByBuyer(ORDER_ID, BUYER_ID);
+        awaitEventsHandled(jdbcTemplate);
+
+        assertThat(jdbcTemplate.queryForList(
+                """
+                SELECT CONCAT(kind, ':', member_id, ':', IFNULL(amount, '-')) FROM order_notifications
+                WHERE order_id = ? AND kind IN ('PURCHASE_COMPLETED', 'SALE_COMPLETED', 'SETTLEMENT_CONFIRMED')
+                """, String.class, ORDER_ID))
+                .containsExactlyInAnyOrder("PURCHASE_COMPLETED:" + BUYER_ID + ":-",
+                        "SETTLEMENT_CONFIRMED:" + SELLER_ID + ":150000");
+    }
+
+    @Test
+    void 구매_확정은_배송한_기사에게_배송비_정산_확정을_한_번_알린다() {
+        deliver(ORDER_ID, Instant.now());
+        insertPendingSellerSettlement(ORDER_ID, LISTING_ID);
+        insertPendingDriverSettlement(ORDER_ID);
+
+        orderCompletionService.confirmByBuyer(ORDER_ID, BUYER_ID);
+        orderCompletionService.confirmByBuyer(ORDER_ID, BUYER_ID);
+        awaitEventsHandled(jdbcTemplate);
+
+        assertThat(jdbcTemplate.queryForList(
+                """
+                SELECT CONCAT(kind, ':', owner_type, ':', member_id, ':', amount) FROM order_notifications
+                WHERE order_id = ? AND kind IN ('SETTLEMENT_CONFIRMED', 'DRIVER_SETTLEMENT_CONFIRMED')
+                """, String.class, ORDER_ID))
+                .containsExactlyInAnyOrder("SETTLEMENT_CONFIRMED:MEMBER:" + SELLER_ID + ":150000",
+                        "DRIVER_SETTLEMENT_CONFIRMED:DRIVER:" + DRIVER_ID + ":10000");
     }
 
     @Test
@@ -193,6 +233,29 @@ class OrderCompletionIntegrationTest extends MySqlIntegrationTestSupport {
                 """,
                 listingId,
                 SELLER_ID
+        );
+    }
+
+    private void insertPendingSellerSettlement(final long orderId, final long listingId) {
+        jdbcTemplate.update(
+                """
+                INSERT INTO settlements (order_id, payee_type, payee_id, listing_id, amount, status, created_at)
+                VALUES (?, 'SELLER', ?, ?, 150000, 'PENDING', NOW(6))
+                """,
+                orderId,
+                SELLER_ID,
+                listingId
+        );
+    }
+
+    private void insertPendingDriverSettlement(final long orderId) {
+        jdbcTemplate.update(
+                """
+                INSERT INTO settlements (order_id, payee_type, payee_id, listing_id, amount, status, created_at)
+                VALUES (?, 'DRIVER', ?, NULL, 10000, 'PENDING', NOW(6))
+                """,
+                orderId,
+                DRIVER_ID
         );
     }
 

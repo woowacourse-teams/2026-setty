@@ -49,7 +49,7 @@ class OrderTest {
     }
 
     @ParameterizedTest
-    @EnumSource(value = OrderStatus.class, names = {"CONFIRMED", "CANCEL_PENDING", "CANCELLED", "EXPIRED"})
+    @EnumSource(value = OrderStatus.class, names = {"PAID", "CONFIRMED", "CANCEL_PENDING", "CANCELLED", "EXPIRED"})
     void PENDING이_아닌_주문은_만료_시각이_지나도_만료할_수_없다(final OrderStatus orderStatus) {
         final Instant pendingExpiresAt = Instant.parse("2026-09-02T05:10:00Z");
         final Order order = Order.pending(1L, 2L, pendingExpiresAt);
@@ -68,7 +68,7 @@ class OrderTest {
     }
 
     @ParameterizedTest
-    @EnumSource(value = OrderStatus.class, names = {"CONFIRMED", "CANCEL_PENDING", "CANCELLED", "EXPIRED"})
+    @EnumSource(value = OrderStatus.class, names = {"PAID", "CONFIRMED", "CANCEL_PENDING", "CANCELLED", "EXPIRED"})
     void PENDING이_아닌_주문은_만료_시각_전이어도_결제할_수_없다(final OrderStatus orderStatus) {
         final Instant pendingExpiresAt = Instant.parse("2026-09-02T05:10:00Z");
         final Order order = Order.pending(1L, 2L, pendingExpiresAt);
@@ -114,11 +114,35 @@ class OrderTest {
     @Test
     void 같은_상태_중복_이벤트는_무시된다() {
         final Order order = new Order(1L, 2L);
-        order.syncDeliveryStatus(DeliveryStatus.ACCEPTED, CHANGED_AT);
+        assertThat(order.syncDeliveryStatus(DeliveryStatus.ACCEPTED, CHANGED_AT)).isTrue();
 
-        order.syncDeliveryStatus(DeliveryStatus.ACCEPTED, CHANGED_AT);
+        assertThat(order.syncDeliveryStatus(DeliveryStatus.ACCEPTED, CHANGED_AT)).isFalse();
 
         assertThat(order.getDeliveryStatus()).isEqualTo(DeliveryStatus.ACCEPTED);
+    }
+
+    @Test
+    void 수락_시각이_다른_수락은_새_배차로_반영한다() {
+        final Order order = new Order(1L, 2L);
+        order.syncDeliveryStatus(DeliveryStatus.ACCEPTED, CHANGED_AT);
+
+        assertThat(order.syncDeliveryStatus(DeliveryStatus.ACCEPTED, CHANGED_AT.plusSeconds(60))).isTrue();
+    }
+
+    @Test
+    void 판매자는_만료_전_결제_대기_주문만_취소한다() {
+        final Instant expiresAt = CHANGED_AT.plusSeconds(360);
+        final Order payable = Order.pending(1L, 2L, expiresAt);
+        final Order expired = Order.pending(1L, 2L, expiresAt);
+        final Order confirmed = new Order(1L, 2L);
+
+        assertThat(payable.cancelBySeller(CHANGED_AT)).isTrue();
+        assertThat(expired.cancelBySeller(expiresAt)).isFalse();
+        assertThat(confirmed.cancelBySeller(CHANGED_AT)).isFalse();
+
+        assertThat(payable.getOrderStatus()).isEqualTo(OrderStatus.CANCELLED);
+        assertThat(expired.getOrderStatus()).isEqualTo(OrderStatus.PENDING);
+        assertThat(confirmed.getOrderStatus()).isEqualTo(OrderStatus.CONFIRMED);
     }
 
     @Test
@@ -181,8 +205,77 @@ class OrderTest {
     }
 
     @Test
-    void 결제대기_주문은_배송요청으로_전환된다() {
+    void 만료_시각_전의_결제_대기_주문은_승인을_받아들여_PAID가_된다() {
+        final Instant pendingExpiresAt = Instant.parse("2026-09-02T05:10:00Z");
+        final Order order = Order.pending(1L, 2L, pendingExpiresAt);
+
+        assertThat(order.acceptPayment(pendingExpiresAt.minusSeconds(1))).isTrue();
+        assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.PAID);
+        assertThat(order.getDeliveryStatus()).isEqualTo(DeliveryStatus.PENDING);
+        assertThat(order.hasAcceptedPayment()).isTrue();
+        // 같은 승인이 다시 와도 상태를 바꾸지 않는다
+        assertThat(order.acceptPayment(pendingExpiresAt.minusSeconds(1))).isFalse();
+    }
+
+    @Test
+    void 만료_시각이_지난_결제_대기_주문은_승인을_받아들이지_않는다() {
+        final Instant pendingExpiresAt = Instant.parse("2026-09-02T05:10:00Z");
+        final Order order = Order.pending(1L, 2L, pendingExpiresAt);
+
+        assertThat(order.acceptPayment(pendingExpiresAt)).isFalse();
+        assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.PENDING);
+        assertThat(order.hasAcceptedPayment()).isFalse();
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = OrderStatus.class, names = {"CANCELLED", "EXPIRED"})
+    void 끝난_주문은_승인을_받아들이지_않는다(final OrderStatus orderStatus) {
+        final Instant pendingExpiresAt = Instant.parse("2026-09-02T05:10:00Z");
+        final Order order = Order.pending(1L, 2L, pendingExpiresAt);
+        ReflectionTestUtils.setField(order, "orderStatus", orderStatus);
+
+        assertThat(order.acceptPayment(pendingExpiresAt.minusSeconds(1))).isFalse();
+        assertThat(order.hasAcceptedPayment()).isFalse();
+    }
+
+    @Test
+    void 받아들인_뒤_구매자_취소로_끝난_주문은_결제를_받아들였던_주문이다() {
+        final Order order = new Order(1L, 2L);
+        order.requestCancellation("cancel-1");
+        order.confirmCancellation("cancel-1");
+
+        assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.CANCELLED);
+        assertThat(order.hasAcceptedPayment()).isTrue();
+    }
+
+    @Test
+    void PAID_주문은_판매자_취소와_구매자_취소를_받지_않는다() {
+        final Instant pendingExpiresAt = Instant.parse("2026-09-02T05:10:00Z");
+        final Order order = Order.pending(1L, 2L, pendingExpiresAt);
+        order.acceptPayment(pendingExpiresAt.minusSeconds(1));
+
+        assertThat(order.cancelBySeller(pendingExpiresAt.minusSeconds(1))).isFalse();
+        assertThatThrownBy(() -> order.requestCancellation("cancel-1"))
+                .isInstanceOf(BusinessException.class)
+                .extracting(e -> ((BusinessException) e).getErrorCode())
+                .isEqualTo(ErrorCode.INVALID_ORDER_STATUS_TRANSITION);
+        assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.PAID);
+    }
+
+    @Test
+    void 결제_대기_주문은_승인을_받아들이기_전에_확정할_수_없다() {
         final Order order = Order.pending(1L, 2L);
+
+        assertThatThrownBy(order::requestDelivery)
+                .isInstanceOf(BusinessException.class)
+                .extracting(e -> ((BusinessException) e).getErrorCode())
+                .isEqualTo(ErrorCode.INVALID_ORDER_STATUS_TRANSITION);
+    }
+
+    @Test
+    void PAID_주문은_배송요청으로_전환된다() {
+        final Order order = Order.pending(1L, 2L);
+        order.acceptPayment(Instant.now());
 
         assertThat(order.requestDelivery()).isTrue();
         assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.CONFIRMED);
@@ -193,6 +286,7 @@ class OrderTest {
     @Test
     void 배송이_진행된_결제완료_주문도_중복_배송요청을_무시한다() {
         final Order order = Order.pending(1L, 2L);
+        order.acceptPayment(Instant.now());
         order.requestDelivery();
         order.syncDeliveryStatus(DeliveryStatus.ACCEPTED, CHANGED_AT);
 

@@ -22,7 +22,7 @@ import setty.platform.order.repository.OrderRepository;
 public class MemberWithdrawalService {
 
     private static final List<OrderStatus> ACTIVE_TRADE_STATUSES =
-            List.of(OrderStatus.PENDING, OrderStatus.CONFIRMED, OrderStatus.CANCEL_PENDING);
+            List.of(OrderStatus.PENDING, OrderStatus.PAID, OrderStatus.CONFIRMED, OrderStatus.CANCEL_PENDING);
 
     private final MemberRepository memberRepository;
     private final ListingService listingService;

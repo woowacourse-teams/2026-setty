@@ -10,6 +10,8 @@ export const routes = {
     home: '/',
     furnitureDetail: (furnitureId: number) => `/listings/${furnitureId}`,
     myPage: '/me',
+    support: '/support',
+    supportConversation: (id: number) => `/support/${id}`,
     profileEdit: '/me/profile',
     myListings: '/me/listings',
     listingCreate: '/me/listings/new',
@@ -29,6 +31,7 @@ export const routes = {
     driverShipments: '/driver/shipments',
     driverShipmentDetail: (deliveryId: number) => `/driver/shipments/${deliveryId}`,
     driverMyPage: '/driver/me',
+    driverNotifications: '/driver/notifications',
     demo: '/demo'
 } as const;
 

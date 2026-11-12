@@ -18,6 +18,7 @@ class OrderTest {
     fun `결제가 끝난 주문만 취소할 수 있다`() {
         assertTrue(order.canCancel)
         assertFalse(order.copy(orderStatus = OrderStatus.PENDING).canCancel)
+        assertFalse(order.copy(orderStatus = OrderStatus.PAID, deliveryStatus = DeliveryStatus.PENDING).canCancel)
         assertFalse(order.copy(orderStatus = OrderStatus.CANCEL_PENDING).canCancel)
         assertFalse(order.copy(orderStatus = OrderStatus.CANCELLED).canCancel)
     }
@@ -32,6 +33,14 @@ class OrderTest {
     fun `취소 흐름의 주문은 주문 상태를, 아니면 배송 상태를 보여준다`() {
         assertEquals("취소 대기", order.copy(orderStatus = OrderStatus.CANCEL_PENDING).statusLabel)
         assertEquals("배차 완료", order.copy(deliveryStatus = DeliveryStatus.ACCEPTED).statusLabel)
+    }
+
+    @Test
+    fun `승인을 받아들이고 확정 중인 주문은 결제 완료로 보여준다`() {
+        val paid = order.copy(orderStatus = OrderStatus.PAID, deliveryStatus = DeliveryStatus.PENDING)
+
+        assertEquals("결제 완료", paid.statusLabel)
+        assertEquals(OrderStatus.PAID, orderStatusOrNull("PAID"))
     }
 
     @Test

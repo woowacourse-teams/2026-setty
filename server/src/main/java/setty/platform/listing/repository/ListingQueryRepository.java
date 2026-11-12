@@ -21,8 +21,7 @@ import setty.platform.listing.domain.ConditionGrade;
 import setty.platform.listing.domain.ListingCategory;
 import setty.platform.listing.domain.ListingSearchTerms;
 
-// 목록은 JPA 엔티티 대신 JDBC로 읽는다. OSIV 아래에서 JPA로 조회하면 응답이 끝날 때까지 커넥션을 붙잡지만,
-// 트랜잭션 밖의 JdbcTemplate은 쿼리가 끝나면 바로 반납한다.
+// 목록은 JPA 엔티티 대신 JDBC로 읽는다. 트랜잭션 밖의 JdbcTemplate은 쿼리가 끝나면 커넥션을 바로 반납한다.
 @Repository
 public class ListingQueryRepository {
 
@@ -156,8 +155,40 @@ public class ListingQueryRepository {
         return String.join(" OR ", parts);
     }
 
+    public Optional<TextRow> findActiveText(Long listingId) {
+        return jdbcTemplate.query(
+                "SELECT category, title, description, price FROM listings WHERE id = ? AND deleted_at IS NULL",
+                (resultSet, rowNum) -> new TextRow(
+                        ListingCategory.valueOf(resultSet.getString("category")),
+                        resultSet.getString("title"),
+                        resultSet.getString("description"),
+                        resultSet.getInt("price")),
+                listingId)
+                .stream().findFirst();
+    }
+
+    // 지금 살 수 있는 같은 카테고리 매물을 최신순으로 읽는다. 비교할 매물과 조회자 본인 매물은 뺀다.
+    public List<SimilarCandidate> findSimilarCandidates(
+            ListingCategory category, Long excludedListingId, Long excludedSellerId, int limit
+    ) {
+        StringBuilder where = new StringBuilder(
+                " WHERE deleted_at IS NULL AND sale_status = 'AVAILABLE' AND has_purchase_request = FALSE"
+                        + " AND category = ? AND id <> ?");
+        List<Object> args = new ArrayList<>(List.of(category.name(), excludedListingId));
+        if (excludedSellerId != null) {
+            where.append(" AND seller_id <> ?");
+            args.add(excludedSellerId);
+        }
+        args.add(limit);
+        return jdbcTemplate.query(
+                SELECT_COLUMNS + ", description FROM listings" + where + ORDER_BY_LATEST + " LIMIT ?",
+                (resultSet, rowNum) -> new SimilarCandidate(mapRow(resultSet, rowNum), resultSet.getString("description")),
+                args.toArray());
+    }
+
     public Optional<MemberArea> findMemberAreaByToken(String token) {
-        return jdbcTemplate.query("SELECT id, dong_code, zip_code FROM members WHERE token = ?",
+        return jdbcTemplate.query(
+                "SELECT id, dong_code, zip_code FROM members WHERE token = ? AND token_expires_at > UTC_TIMESTAMP(6)",
                 (resultSet, rowNum) -> new MemberArea(resultSet.getLong("id"), resultSet.getString("dong_code"),
                         resultSet.getString("zip_code")),
                 token)
@@ -197,7 +228,7 @@ public class ListingQueryRepository {
         String placeholders = String.join(",", Collections.nCopies(listingIds.size(), "?"));
         Map<Long, List<String>> statuses = new HashMap<>();
         jdbcTemplate.query(
-                "SELECT listing_id, order_status FROM orders WHERE order_status IN ('PENDING', 'CONFIRMED', 'CANCEL_PENDING')"
+                "SELECT listing_id, order_status FROM orders WHERE order_status IN ('PENDING', 'PAID', 'CONFIRMED', 'CANCEL_PENDING')"
                         + " AND listing_id IN (" + placeholders + ")",
                 (ResultSet resultSet) -> {
                     statuses.computeIfAbsent(resultSet.getLong("listing_id"), id -> new ArrayList<>())
@@ -246,5 +277,11 @@ public class ListingQueryRepository {
     }
 
     public record MemberArea(Long id, String dongCode, String zipCode) {
+    }
+
+    public record TextRow(ListingCategory category, String title, String description, Integer price) {
+    }
+
+    public record SimilarCandidate(Row row, String description) {
     }
 }

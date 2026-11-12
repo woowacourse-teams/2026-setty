@@ -1,28 +1,44 @@
 import { categoryLabel, furnitureCategories, type FurnitureCategory } from './furniture';
 
-// 배송원 배차 계약. 서버 `/api/delivery/**` 응답을 그대로 옮긴다. (apps/driver/src/model/delivery.ts와 같은 계약)
+// 배송원 웹의 배차 계약. 서버 `/api/delivery/**` 응답을 그대로 옮긴다.
 
 export type DeliveryStatus = 'REQUESTED' | 'ACCEPTED' | 'PICKED_UP' | 'DELIVERED';
+
+export type ShipmentGroup = 'IN_PROGRESS' | 'DELIVERED';
+
+export type DeliveryPage = {
+    items: DeliverySummary[];
+    nextCursor: string | null;
+};
 
 /** 배차 요청 목록과 내 배차 목록의 카드 하나. */
 export type DeliverySummary = {
     deliveryId: number;
     itemName: string;
     category: string;
+    thumbnailUrl: string | null;
     pickupAddress: string;
     deliveryAddress: string;
     deliveryFee: number;
+    estimatedDistanceMeters: number | null;
     status: DeliveryStatus;
+};
+
+/** 지금 칸에서 출발해 내 진행 중 배차의 도착 칸 근처로 가는 대기 요청. 서버가 내 칸을 모르면 cell이 null이다. */
+export type BundleCandidates = {
+    cell: number | null;
+    items: DeliverySummary[];
 };
 
 /** 아직 수락하지 않은 배차 요청 상세. 전화번호는 수락한 뒤에만 볼 수 있다. */
 export type DeliveryRequestDetail = {
     deliveryId: number;
     orderId: number;
-    furniture: { itemName: string; category: string };
+    furniture: { itemName: string; category: string; thumbnailUrl: string | null };
     pickupAddress: string;
     destinationAddress: string;
     deliveryFee: number;
+    estimatedDistanceMeters: number | null;
     status: DeliveryStatus;
     requestedAt: string;
 };
@@ -36,10 +52,11 @@ export type DeliveryPoint = {
 export type ShipmentDetail = {
     deliveryId: number;
     orderId: number;
-    furniture: { itemName: string; category: string };
+    furniture: { itemName: string; category: string; thumbnailUrl: string | null };
     pickup: DeliveryPoint;
     destination: DeliveryPoint;
     deliveryFee: number;
+    estimatedDistanceMeters: number | null;
     status: DeliveryStatus;
     requestedAt: string;
     acceptedAt: string | null;
@@ -86,10 +103,6 @@ export function shipmentProgress(status: DeliveryStatus): number {
     return (shipmentSteps.indexOf(status) + 1) / shipmentSteps.length;
 }
 
-export function isShipmentInProgress(status: DeliveryStatus): boolean {
-    return status === 'ACCEPTED' || status === 'PICKED_UP';
-}
-
 /** "서울 성동구 성수동 123" → "성수동 123"처럼 구 다음부터 보여준다. 짧은 주소는 그대로 둔다. */
 export function shortAddress(address: string): string {
     const parts = address.trim().split(/\s+/);
@@ -102,6 +115,13 @@ export function formatTime(iso: string | null): string {
     const date = new Date(iso);
     if (Number.isNaN(date.getTime())) return '';
     return new Intl.DateTimeFormat('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Seoul' }).format(date);
+}
+
+/** 판매자 수령지에서 구매자 목적지까지의 행정동 대표점 기준 추정 거리. */
+export function formatEstimatedDistance(meters: number | null | undefined): string {
+    if (meters == null) return '거리 정보 없음';
+    const kilometers = (meters / 1000).toLocaleString('ko-KR', { maximumFractionDigits: 1 });
+    return `예상 거리 ${kilometers}km (지역 기준)`;
 }
 
 /** 서버가 카테고리 코드(SOFA 등)를 내려주면 한글로 바꾸고, 이미 표시용 문자열이면 그대로 보여준다. */

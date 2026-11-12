@@ -96,7 +96,7 @@ data class ListingEditorUiState(
         const val MAX_IMAGE_COUNT = 5
         const val TITLE_MAX_LENGTH = 100
         const val DESCRIPTION_MAX_LENGTH = 1_000
-        const val PRICE_MAX = 100_000_000L
+        const val PRICE_MAX = 5_000_000L
         val DIMENSION_RANGE = 1..1_000
     }
 }
@@ -287,8 +287,8 @@ class ListingEditorViewModel(
     private fun String.digits(maxLength: Int): String = filter(Char::isDigit).take(maxLength)
 
     companion object {
-        // 최대 금액(1억)보다 한 자리 더 받아 범위 초과를 알려준다
-        private const val PRICE_MAX_DIGITS = 10
+        // 최대 금액(500만 원)보다 한 자리 더 받아 범위 초과를 알려준다
+        private const val PRICE_MAX_DIGITS = 8
         private const val DIMENSION_MAX_DIGITS = 5
 
         private const val KEY_STARTED = "listing_editor_started"

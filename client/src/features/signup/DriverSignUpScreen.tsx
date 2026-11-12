@@ -7,6 +7,7 @@ import {
     formatBusinessNumber,
     LICENSE_PLATE_REGEX
 } from '../../model/delivery';
+import { randomDemoDriver } from '../../model/demoContact';
 import { digitsOnly, formatPhoneNumber, isPhoneNumberValid, PHONE_NUMBER_MAX_DIGITS } from '../../model/member';
 import { routes } from '../../navigation';
 import { BottomBar, Button, LoadingIndicator, Scaffold, TextField } from '../../ui/components';
@@ -17,6 +18,7 @@ import {
     LOGIN_ID_REGEX,
     PASSWORD_MAX_LENGTH,
     PASSWORD_MIN_LENGTH,
+    RandomFillButton,
     signUpErrorMessage,
     SignUpSection
 } from './SignUpScreen';
@@ -74,6 +76,12 @@ export function DriverSignUpScreen() {
         && Object.values(errors).every((error) => error === null);
 
     const update = (patch: Partial<DriverSignUpForm>) => setForm((current) => ({ ...current, ...patch }));
+
+    // 부스 시연에서 가입을 빨리 끝내도록 아이디·비밀번호 밖의 칸을 채운다
+    const fillDemoDriver = () => {
+        update(randomDemoDriver());
+        return true;
+    };
 
     const signUp = async () => {
         if (!canSubmit) return;
@@ -141,7 +149,10 @@ export function DriverSignUpScreen() {
                     />
                     <div style={{ height: 16 }} />
                 </SignUpSection>
-                <SignUpSection title="배송 정보">
+                <SignUpSection
+                    action={<RandomFillButton disabled={isLoading} onFill={fillDemoDriver} />}
+                    title="배송 정보"
+                >
                     <TextField
                         autoComplete="tel"
                         enterKeyHint="next"

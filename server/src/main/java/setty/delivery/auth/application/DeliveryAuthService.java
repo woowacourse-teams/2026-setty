@@ -8,6 +8,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import setty.delivery.auth.domain.DeliveryMember;
+import setty.global.auth.LoginTokenLifetime;
 import setty.global.exception.BusinessException;
 import setty.global.exception.ErrorCode;
 
@@ -16,6 +17,7 @@ import setty.global.exception.ErrorCode;
 public class DeliveryAuthService {
 
     private final DeliveryMemberRepository deliveryMemberRepository;
+    private final LoginTokenLifetime loginTokenLifetime;
     private final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     @Transactional
@@ -49,7 +51,14 @@ public class DeliveryAuthService {
         }
 
         final String token = UUID.randomUUID().toString();
-        member.rotateToken(token);
+        member.rotateToken(token, loginTokenLifetime.expiresAt());
         return new LoginResult(token);
+    }
+
+    @Transactional
+    public void extendTokenInUse(final String token) {
+        deliveryMemberRepository.findByToken(token)
+                .filter(member -> loginTokenLifetime.isPastHalf(member.getTokenExpiresAt()))
+                .ifPresent(member -> member.extendToken(loginTokenLifetime.expiresAt()));
     }
 }

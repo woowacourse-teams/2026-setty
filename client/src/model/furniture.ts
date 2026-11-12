@@ -104,6 +104,7 @@ export type FurnitureDetail = {
     hasPurchaseRequest: boolean;
     // 선점한 결제 대기 주문이 내 것인지. 결제창을 닫고 돌아온 구매자가 결제를 이어서 할 수 있다
     purchaseRequestedByMe: boolean;
+    ownedByMe: boolean;
     orderState: OrderState;
     // 내가 이 매물에 가진 진행 중 주문 id. 결제가 끝난 구매자를 주문 상세로 보낸다
     myOrderId: number | null;
@@ -128,6 +129,11 @@ export function canResumePayment(listing: FurnitureDetail): boolean {
 /** 내가 결제를 끝낸 매물인지. 상세에서 내 주문으로 바로 갈 수 있다. */
 export function hasMyOrder(listing: FurnitureDetail): boolean {
     return listing.myOrderId !== null && !canResumePayment(listing);
+}
+
+/** 내가 올린 매물을 지금 고칠 수 있는지. 서버 Listing.canUpdate와 같은 조건이다. */
+export function canEditOwnListing(listing: FurnitureDetail): boolean {
+    return listing.ownedByMe && listing.saleStatus === 'AVAILABLE' && !listing.hasPurchaseRequest;
 }
 
 export function isPurchasable(listing: FurnitureDetail): boolean {

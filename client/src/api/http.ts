@@ -1,5 +1,15 @@
 function createTokenStore(key: string) {
     return {
+        /** 현재 탭과 다른 탭의 인증 변경을 구독해 개인 정보 화면을 즉시 교체한다. */
+        subscribe(listener: () => void) {
+            const onStorage = (event: StorageEvent) => { if (event.key === key || event.key === null) listener(); };
+            window.addEventListener('storage', onStorage);
+            window.addEventListener('setty:token-changed', listener);
+            return () => {
+                window.removeEventListener('storage', onStorage);
+                window.removeEventListener('setty:token-changed', listener);
+            };
+        },
         get(): string {
             try {
                 return window.localStorage.getItem(key) ?? '';
@@ -10,6 +20,7 @@ function createTokenStore(key: string) {
         set(token: string) {
             try {
                 window.localStorage.setItem(key, token);
+                window.dispatchEvent(new Event('setty:token-changed'));
             } catch {
                 // 저장소를 쓸 수 없으면 이번 화면에서만 로그인한 것으로 본다
             }
@@ -17,6 +28,7 @@ function createTokenStore(key: string) {
         clear() {
             try {
                 window.localStorage.removeItem(key);
+                window.dispatchEvent(new Event('setty:token-changed'));
             } catch {
                 // 저장소를 쓸 수 없으면 지울 토큰도 없다
             }
@@ -29,6 +41,27 @@ export const tokenStore = createTokenStore('setty:credential-token');
 
 /** 배송원 로그인 토큰. 회원 토큰과 따로 두어 한 브라우저에서 구매자와 배송원으로 함께 로그인할 수 있다. */
 export const deliveryTokenStore = createTokenStore('setty:delivery-token');
+
+/**
+ * 시연 시뮬레이터가 위치를 대신 보내는 탭인지. 그 탭에서는 폰 GPS를 보내지 않는다.
+ * 탭을 닫으면 잊도록 sessionStorage에 둔다(같은 폰으로 실제 운행할 때 GPS가 꺼져 있지 않게).
+ */
+export const deliverySimulatorStore = {
+    get(): boolean {
+        try {
+            return window.sessionStorage.getItem('setty:delivery-simulator') === '1';
+        } catch {
+            return false;
+        }
+    },
+    set() {
+        try {
+            window.sessionStorage.setItem('setty:delivery-simulator', '1');
+        } catch {
+            // 저장소를 쓸 수 없으면 이 탭에서 GPS를 보내게 된다
+        }
+    }
+};
 
 /** 배송원 로그인 아이디. 배송원 내 정보 API가 없어 프로필 앞글자를 보여 주려고 로그인할 때 함께 남긴다. */
 export const deliveryLoginIdStore = createTokenStore('setty:delivery-login-id');

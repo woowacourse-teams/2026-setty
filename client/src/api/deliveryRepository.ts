@@ -1,8 +1,12 @@
+import type { DriverNotification } from '../model/notification';
 import type {
+    BundleCandidates,
     DeliveryRequestDetail,
+    DeliveryPage,
     DeliverySignUpForm,
     DeliverySummary,
-    ShipmentDetail
+    ShipmentDetail,
+    ShipmentGroup
 } from '../model/delivery';
 import { apiCall, deliveryLoginIdStore, deliveryTokenStore } from './http';
 
@@ -15,12 +19,34 @@ export const deliveryRepository = {
         deliveryLoginIdStore.set(loginId);
     },
 
+    /** 브라우저가 받은 FCM 토큰을 기사 기기로 등록한다. 같은 토큰을 회원이 쓰고 있었다면 주인이 기사로 바뀐다. */
+    async registerDeviceToken(token: string) {
+        await apiCall('/api/delivery/device-token', { ...delivery, method: 'PUT', body: { token, platform: 'WEB' } });
+    },
+
+    async unregisterDeviceToken(token: string) {
+        await apiCall('/api/delivery/device-token', { ...delivery, method: 'DELETE', body: { token } });
+    },
+
+    async getNotifications(): Promise<DriverNotification[]> {
+        const result = await apiCall<{ items: DriverNotification[] }>('/api/delivery/notifications', { ...delivery, query: { size: 50 } });
+        return result.items;
+    },
+
+    async readAllNotifications() {
+        await apiCall('/api/delivery/notifications/read', { ...delivery, method: 'POST' });
+    },
+
+    async readNotification(notificationId: number) {
+        await apiCall(`/api/delivery/notifications/${notificationId}/read`, { ...delivery, method: 'POST' });
+    },
+
     async signUp(form: DeliverySignUpForm) {
         await apiCall('/api/delivery/auth/signup', { method: 'POST', body: form });
     },
 
-    getRequests(): Promise<DeliverySummary[]> {
-        return apiCall('/api/delivery/requests', delivery);
+    getRequestPage(cursor: string | null = null): Promise<DeliveryPage> {
+        return apiCall('/api/delivery/requests', { ...delivery, query: { size: 20, cursor } });
     },
 
     getRequest(deliveryId: number): Promise<DeliveryRequestDetail> {
@@ -33,6 +59,10 @@ export const deliveryRepository = {
 
     getShipments(): Promise<DeliverySummary[]> {
         return apiCall('/api/delivery/shipments', delivery);
+    },
+
+    getShipmentPage(group: ShipmentGroup, cursor: string | null = null): Promise<DeliveryPage> {
+        return apiCall('/api/delivery/shipments', { ...delivery, query: { size: 20, cursor, group } });
     },
 
     getShipment(deliveryId: number): Promise<ShipmentDetail> {
@@ -50,10 +80,20 @@ export const deliveryRepository = {
 
     async complete(deliveryId: number) {
         await apiCall(`/api/delivery/shipments/${deliveryId}/completion`, { ...delivery, method: 'POST' });
+    },
+
+    /** 서버는 칸 번호만 메모리에 두고 좌표는 저장하지 않는다. */
+    async sendLocation(latitude: number, longitude: number) {
+        await apiCall('/api/delivery/location', { ...delivery, method: 'PUT', body: { lat: latitude, lng: longitude } });
+    },
+
+    getBundleCandidates(): Promise<BundleCandidates> {
+        return apiCall('/api/delivery/requests/bundle', delivery);
     }
 };
 
 const REQUESTS_CHANGED_EVENT = 'delivery-requests-changed';
+const BUNDLE_CANDIDATES_CHANGED_EVENT = 'bundle-candidates-changed';
 const INITIAL_RECONNECT_DELAY_MILLIS = 1_000;
 const MAX_RECONNECT_DELAY_MILLIS = 30_000;
 
@@ -62,11 +102,13 @@ const MAX_RECONNECT_DELAY_MILLIS = 30_000;
  * EventSource는 인증 헤더를 붙일 수 없어 fetch 응답 본문을 직접 읽는다.
  * 연결할 때마다 한 번 알려 끊긴 사이의 변경도 다시 불러오게 한다.
  * 서버는 배송원 한 명당 연결 수를 제한하므로(초과하면 429) 연결되지 않은 동안은 [onLiveChange]로 알려 화면이 대신 주기적으로 불러오게 한다.
+ * 묶음 후보가 바뀌면 이 배송원 연결에만 [onBundleChanged]가 온다.
  */
 export function subscribeRequestEvents(
     onChanged: () => void,
     onUnauthorized: () => void,
-    onLiveChange: (isLive: boolean) => void
+    onLiveChange: (isLive: boolean) => void,
+    onBundleChanged: () => void = () => {}
 ): () => void {
     let closed = false;
     let controller: AbortController | null = null;
@@ -113,6 +155,7 @@ export function subscribeRequestEvents(
             onChanged();
             await readEvents(response.body, (eventName) => {
                 if (eventName === REQUESTS_CHANGED_EVENT) onChanged();
+                if (eventName === BUNDLE_CANDIDATES_CHANGED_EVENT) onBundleChanged();
             });
         } catch {
             // 화면을 떠나거나 숨겨 연결을 끊은 경우도 여기로 온다

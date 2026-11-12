@@ -18,6 +18,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.time.Clock;
 import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
@@ -49,6 +50,8 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.DispatcherServlet;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+import setty.global.auth.LoginTokenLifetime;
+import setty.global.auth.LoginTokenProperties;
 import setty.global.exception.BusinessException;
 import setty.global.exception.ErrorCode;
 import setty.global.exception.GlobalExceptionHandler;
@@ -266,6 +269,11 @@ class RequestIdHttpIntegrationTest {
         @Bean
         MemberRepository memberRepository() {
             return mock(MemberRepository.class);
+        }
+
+        @Bean
+        LoginTokenLifetime loginTokenLifetime() {
+            return new LoginTokenLifetime(new LoginTokenProperties(Duration.ofDays(30)), Clock.systemUTC());
         }
 
         @Bean

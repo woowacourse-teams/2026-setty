@@ -12,6 +12,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Objects;
 import setty.common.DeliveryStatus;
 import setty.global.exception.BusinessException;
 import setty.global.exception.ErrorCode;
@@ -49,6 +50,10 @@ public class Order {
 
     @Column(name = "pending_expires_at")
     private Instant pendingExpiresAt;
+
+    // 도입 전 주문은 날짜를 추정하지 않고 NULL로 남긴다.
+    @Column(name = "created_at", updatable = false)
+    private Instant createdAt;
 
     // 배송 모듈의 이벤트로 동기화된 시각. DELIVERED는 마지막 배송 상태라 배송 완료 후에는 배송 완료 시각으로 고정된다.
     @Column(name = "delivery_status_changed_at")
@@ -94,12 +99,35 @@ public class Order {
         this.orderStatus = OrderStatus.CONFIRMED;
     }
 
-    public boolean requestDelivery() {
-        if (this.orderStatus == OrderStatus.CONFIRMED) {
+    /**
+     * 승인을 받아들일 수 있는 결제 대기 주문이면 PAID로 바꾼다. 바꿨으면 true.
+     * 만료 시각이 지났거나 이미 결제 대기가 아니면 바꾸지 않는다. 그 판단은 호출하는 쪽이 상태를 보고 한다.
+     */
+    public boolean acceptPayment(final Instant referenceTime) {
+        if (!isPayable(referenceTime)) {
             return false;
         }
-        if (this.orderStatus != OrderStatus.PENDING) {
-            throw new BusinessException(ErrorCode.INVALID_ORDER_STATUS_TRANSITION);
+        this.orderStatus = OrderStatus.PAID;
+        return true;
+    }
+
+    // 결제를 받아들인 뒤의 상태인가. 같은 승인이 다시 와도 처음과 같은 결과를 돌려주는 데 쓴다.
+    // 구매자 취소는 확정 뒤에만 시작되므로, 구매자 취소로 끝난 주문도 결제를 받아들였던 주문이다. 판매자 취소는 결제 전이다.
+    public boolean hasAcceptedPayment() {
+        return orderStatus == OrderStatus.PAID
+                || orderStatus == OrderStatus.CONFIRMED
+                || orderStatus == OrderStatus.CANCEL_PENDING
+                || orderStatus == OrderStatus.COMPLETED
+                || (orderStatus == OrderStatus.CANCELLED && cancellationRequestId != null);
+    }
+
+    // PAID 주문만 확정한다. 이미 확정 이후로 넘어간 주문에 같은 확정이 다시 오면 false로 넘긴다.
+    public boolean requestDelivery() {
+        if (this.orderStatus != OrderStatus.PAID) {
+            if (this.orderStatus == OrderStatus.PENDING) {
+                throw new BusinessException(ErrorCode.INVALID_ORDER_STATUS_TRANSITION);
+            }
+            return false;
         }
         if (this.deliveryStatus != DeliveryStatus.PENDING) {
             throw new BusinessException(ErrorCode.ORDER_DELIVERY_STATUS_MISMATCH);
@@ -175,6 +203,24 @@ public class Order {
         return order;
     }
 
+    public static Order pending(
+            final Long listingId,
+            final Long buyerId,
+            final Instant pendingExpiresAt,
+            final int deliveryFee,
+            final OrderPlace pickup,
+            final OrderPlace destination,
+            final Instant createdAt
+    ) {
+        final Order order = pending(listingId, buyerId, pendingExpiresAt, deliveryFee, pickup, destination);
+        order.createdAt = Objects.requireNonNull(createdAt);
+        return order;
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
+
     public boolean canExpire(final Instant referenceTime) {
         return orderStatus == OrderStatus.PENDING
                 && pendingExpiresAt != null
@@ -184,6 +230,15 @@ public class Order {
 
     public boolean isPayable(final Instant referenceTime) {
         return orderStatus == OrderStatus.PENDING && !canExpire(referenceTime);
+    }
+
+    // 판매자는 결제가 끝나기 전(만료 전 결제 대기) 주문만 취소할 수 있다.
+    public boolean cancelBySeller(final Instant referenceTime) {
+        if (!isPayable(referenceTime)) {
+            return false;
+        }
+        orderStatus = OrderStatus.CANCELLED;
+        return true;
     }
 
     public boolean expire(final Instant referenceTime) {
@@ -196,13 +251,15 @@ public class Order {
 
     // 직전 상태에서 한 단계 전진만 허용,
     // 같은 상태 중복 이벤트는 무시(멱등), 그 외 불일치는 예외 — 버그를 조용히 삼키지 않는다.
-    public void syncDeliveryStatus(final DeliveryStatus newStatus, final Instant changedAt) {
+    // 새로 반영했으면 true. 같은 상태라도 수락 시각이 다르면 새 배차라 true다.
+    public boolean syncDeliveryStatus(final DeliveryStatus newStatus, final Instant changedAt) {
         if (this.deliveryStatus == newStatus) {
             // 배차 취소 뒤 새 기사의 수락이 취소보다 먼저 도착한 경우다. 수락 시각을 새 배차로 바꿔 늦게 온 취소가 되돌리지 못하게 한다.
-            if (newStatus == DeliveryStatus.ACCEPTED && changedAt != null) {
+            if (newStatus == DeliveryStatus.ACCEPTED && changedAt != null && !changedAt.equals(deliveryStatusChangedAt)) {
                 this.deliveryStatusChangedAt = changedAt;
+                return true;
             }
-            return;
+            return false;
         }
         if (this.deliveryStatus != expectedPreviousStatusOf(newStatus)) {
             throw new BusinessException(ErrorCode.ORDER_DELIVERY_STATUS_MISMATCH);
@@ -212,6 +269,7 @@ public class Order {
         }
         this.deliveryStatus = newStatus;
         this.deliveryStatusChangedAt = changedAt;
+        return true;
     }
 
     // 이벤트는 순서가 바뀌어 도착할 수 있어 시각 크기가 아니라 같은 배차인지로 판단한다. 다르면 이미 새 배차가 반영된 것이다.

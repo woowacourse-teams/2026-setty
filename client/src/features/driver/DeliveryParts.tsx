@@ -1,11 +1,10 @@
 import { useCallback } from 'react';
 import { isUnauthorized, toUserMessage } from '../../api/errors';
 import { formatWon } from '../../model/furniture';
-import { categoryText, shipmentStatusLabel, shortAddress, type DeliveryStatus, type DeliverySummary } from '../../model/delivery';
+import { categoryText, formatEstimatedDistance, shipmentStatusLabel, shortAddress, type DeliveryStatus, type DeliverySummary } from '../../model/delivery';
 import { useNavigateToDriverLogin } from '../../navigation';
-import { SegmentedListItem, StatusBadge } from '../../ui/components';
+import { FurnitureThumbnail, SegmentedListItem, StatusBadge } from '../../ui/components';
 import { Icon } from '../../ui/Icon';
-import { shapeStyle } from '../../ui/shapes';
 import { showSnackbar } from '../../ui/snackbar';
 import styles from './driver.module.css';
 
@@ -32,6 +31,10 @@ export function ShipmentStatusBadge({ status }: { status: DeliveryStatus }) {
     return <StatusBadge containerColor={containerColor} contentColor={contentColor} text={shipmentStatusLabel(status)} />;
 }
 
+export function DeliveryDistance({ meters }: { meters: number | null | undefined }) {
+    return <span className={`${styles.route} type-label-medium`}>{formatEstimatedDistance(meters)}</span>;
+}
+
 type DeliveryListItemProps = {
     delivery: DeliverySummary;
     index: number;
@@ -42,16 +45,18 @@ type DeliveryListItemProps = {
 
 /** 배차 요청·내 배차 목록의 항목. 출발 동네 → 도착 동네와 배송비를 보여준다. */
 export function DeliveryListItem({ delivery, index, count, showStatus = false, onClick }: DeliveryListItemProps) {
-    const isDone = delivery.status === 'DELIVERED';
     return (
         <SegmentedListItem
             count={count}
             headline={<span className="type-title-medium">{delivery.itemName}</span>}
             index={index}
             leading={(
-                <div className={`${styles['leading-shape']} ${isDone ? styles['leading-shape--done'] : ''}`} style={shapeStyle('cookie9')}>
-                    <Icon name={isDone ? 'check' : 'localShipping'} />
-                </div>
+                <FurnitureThumbnail
+                    alt={delivery.itemName}
+                    imageUrl={delivery.thumbnailUrl}
+                    key={delivery.thumbnailUrl}
+                    placeholder={categoryText(delivery.category)}
+                />
             )}
             onClick={onClick}
             overline={categoryText(delivery.category)}
@@ -60,6 +65,7 @@ export function DeliveryListItem({ delivery, index, count, showStatus = false, o
                     <span className={`${styles.route} type-body-medium`}>
                         {shortAddress(delivery.pickupAddress)} → {shortAddress(delivery.deliveryAddress)}
                     </span>
+                    <DeliveryDistance meters={delivery.estimatedDistanceMeters} />
                     <span className={`${styles.fee} type-body-large-em`}>{formatWon(delivery.deliveryFee)}</span>
                 </span>
             )}

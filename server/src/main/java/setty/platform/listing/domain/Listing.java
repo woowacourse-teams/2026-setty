@@ -23,7 +23,7 @@ public class Listing {
 
     private static final int MAXIMUM_TITLE_LENGTH = 100;
     private static final int MAXIMUM_DESCRIPTION_LENGTH = 1_000;
-    private static final int MAXIMUM_PRICE = 100_000_000;
+    private static final int MAXIMUM_PRICE = 5_000_000;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -223,6 +223,11 @@ public class Listing {
 
     public boolean canDelete() {
         return canUpdate();
+    }
+
+    // 구매 신청이 걸려 있어도 결제 전이면 판매자가 그 주문을 취소하며 내릴 수 있다. 결제가 끝난 주문은 주문 쪽에서 막는다.
+    public boolean canDeleteCancellingPendingOrder() {
+        return !isDeleted() && saleStatus == SaleStatus.AVAILABLE;
     }
 
     public boolean isDeleted() {

@@ -17,6 +17,7 @@ import {
     SettyMessage,
     StatusBadge
 } from '../../ui/components';
+import { OrderSupportWidget } from '../support/SupportScreen';
 import { useLoad } from '../useLoad';
 import { usePolling } from '../usePolling';
 import screenStyles from '../screens.module.css';
@@ -29,7 +30,7 @@ export function OrdersScreen() {
     usePolling(() => void fetch(), state.status === 'success' && state.data.some(isDeliveryInProgress));
 
     return (
-        <Scaffold topBar={<FlexibleTopAppBar navigation={<BackIconButton onBack={navigateBack} />} title="주문 내역" />}>
+        <Scaffold floatingActionButton={state.status === 'success' ? <OrderSupportWidget /> : undefined} topBar={<FlexibleTopAppBar navigation={<BackIconButton onBack={navigateBack} />} title="주문 내역" />}>
             {state.status === 'loading' && <LoadingContent />}
             {state.status === 'error' && (
                 <ErrorContent isUnauthorized={state.isUnauthorized} message={state.message} onRequireLogin={navigateToLogin} onRetry={load} />

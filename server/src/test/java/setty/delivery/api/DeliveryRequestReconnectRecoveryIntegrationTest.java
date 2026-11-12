@@ -70,8 +70,8 @@ class DeliveryRequestReconnectRecoveryIntegrationTest extends MySqlIntegrationTe
                 """
                 INSERT INTO delivery_member (
                     login_id, password, phone_number, license_plate_number,
-                    car_type, business_registration_number, token
-                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                    car_type, business_registration_number, token, token_expires_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, TIMESTAMPADD(DAY, 1, UTC_TIMESTAMP(6)))
                 """,
                 "sse_recovery",
                 "test-password-hash",
@@ -153,7 +153,7 @@ class DeliveryRequestReconnectRecoveryIntegrationTest extends MySqlIntegrationTe
                 10L,
                 1L,
                 150_000,
-                null, null, null, null
+                null, null, null, null, null, null
         );
     }
 }

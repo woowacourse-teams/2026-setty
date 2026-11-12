@@ -1,0 +1,44 @@
+{
+  "turnId" : 1,
+  "clientRequestId" : "contract-request",
+  "input" : {
+    "type" : "TEXT",
+    "text" : "아니요",
+    "sourceTurnId" : null,
+    "orderId" : null
+  },
+  "status" : "SUCCEEDED",
+  "createdAt" : "2026-11-06T00:00:00Z",
+  "processingDeadlineAt" : "2026-11-06T00:01:00Z",
+  "answer" : "말씀하신 조건의 다른 주문이에요. 취소하려는 주문을 선택해 주세요.",
+  "cards" : [ {
+    "type" : "ORDERS",
+    "orders" : [ {
+      "title" : "책상",
+      "orderId" : 101,
+      "createdAt" : "2026-11-06T00:00:00Z",
+      "totalPrice" : null,
+      "orderStatus" : "CONFIRMED",
+      "thumbnailUrl" : null,
+      "createdDateKst" : "2026-11-06",
+      "deliveryStatus" : null
+    } ],
+    "search" : {
+      "title" : "책상",
+      "toDate" : null,
+      "orderId" : null,
+      "fromDate" : null,
+      "pageSize" : 5,
+      "datePreset" : null,
+      "excludedOrderId" : 101,
+      "cancellationTargets" : true
+    },
+    "purpose" : "CANCEL_CHECK",
+    "ordering" : "ORDER_ID_DESC",
+    "pageSize" : 5,
+    "nextCursor" : null,
+    "hasUndatedOrders" : false,
+    "excludedUndatedCount" : 0
+  } ],
+  "errorCode" : null
+}

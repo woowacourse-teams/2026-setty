@@ -23,6 +23,7 @@ public class TossPaymentConfiguration {
                 .requestFactory(requestFactory)
                 .baseUrl(properties.baseUrl().trim())
                 .defaultHeader(HttpHeaders.AUTHORIZATION, basicAuth(properties.secretKey().trim()))
+                .requestInterceptor(new TossRetryAfterInterceptor())
                 .build();
     }
 

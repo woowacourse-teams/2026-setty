@@ -7,6 +7,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
@@ -26,10 +27,13 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.test.util.ReflectionTestUtils;
 import setty.address.AddressResolution;
 import setty.address.StandardAddress;
+import setty.common.CancellationRejectionReasons;
 import setty.common.DeliveryStatus;
+import setty.common.OrderCancellationDeclined;
 import setty.common.OrderCancellationRequested;
 import setty.common.OrderCancelled;
 import setty.common.OrderConfirmed;
+import setty.common.OrderStatusNotified;
 import setty.global.exception.BusinessException;
 import setty.global.exception.ErrorCode;
 import setty.platform.listing.application.ListingService;
@@ -79,6 +83,9 @@ class OrderServiceTest {
     @Mock
     private PendingOrderExpirationProperties pendingOrderExpirationProperties;
 
+    @Mock
+    private OrderStatusNotifier orderStatusNotifier;
+
     @InjectMocks
     private OrderService orderService;
 
@@ -86,6 +93,23 @@ class OrderServiceTest {
     @BeforeEach
     void buyerIsActive() {
         lenient().when(memberRepository.lockActiveIdForShare(BUYER_ID)).thenReturn(Optional.of(BUYER_ID));
+    }
+
+    @Test
+    void 결제_대기_주문_재사용은_기존_생성일을_보존한다() {
+        final Instant original = Instant.parse("2026-09-02T05:00:00Z");
+        final Instant now = original.plusSeconds(30);
+        final Order existing = Order.pending(LISTING_ID, BUYER_ID, original.plusSeconds(180),
+                10000, null, null, original);
+        final Member buyer = mock(Member.class);
+        when(buyer.getId()).thenReturn(BUYER_ID);
+        when(clock.instant()).thenReturn(now);
+        when(orderRepository.findPayableByListingIdAndBuyerId(LISTING_ID, BUYER_ID, now))
+                .thenReturn(Optional.of(existing));
+
+        assertThat(orderService.pending(new OrderCreateRequest(LISTING_ID), buyer)).isSameAs(existing);
+        assertThat(existing.getCreatedAt()).isEqualTo(original);
+        verify(orderRepository, never()).saveAndFlush(any());
     }
 
     @Test
@@ -107,6 +131,7 @@ class OrderServiceTest {
         assertThat(order.getDeliveryStatus()).isEqualTo(DeliveryStatus.PENDING);
         assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.PENDING);
         assertThat(order.getPendingExpiresAt()).isEqualTo(createdAt.plus(timeout));
+        assertThat(order.getCreatedAt()).isEqualTo(createdAt);
         verify(listingService).registerPurchaseRequest(LISTING_ID, BUYER_ID, null, null);
     }
 
@@ -169,6 +194,7 @@ class OrderServiceTest {
                 new OrderPlace("주문 때 판매자 주소", "010-3333-4444", "1111060000", "04524", "SELLER-MGMT"),
                 new OrderPlace("주문 때 주소", "010-1111-2222", "1111053000", "06236", "BUYER-MGMT"));
         ReflectionTestUtils.setField(order, "id", ORDER_ID);
+        order.acceptPayment(Instant.now());
         final Listing listing = mock(Listing.class);
         when(listing.getId()).thenReturn(LISTING_ID);
         when(listing.getSellerId()).thenReturn(SELLER_ID);
@@ -178,21 +204,21 @@ class OrderServiceTest {
         when(orderRepository.findByIdForUpdate(ORDER_ID)).thenReturn(Optional.of(order));
         when(listingRepository.findById(LISTING_ID)).thenReturn(Optional.of(listing));
 
-        orderService.publishOrderConfirmed(ORDER_ID);
+        orderService.confirmPaid(ORDER_ID);
 
         final ArgumentCaptor<OrderConfirmed> eventCaptor = ArgumentCaptor.forClass(OrderConfirmed.class);
         verify(eventPublisher).publishEvent(eventCaptor.capture());
         assertThat(eventCaptor.getValue()).isEqualTo(new OrderConfirmed(
                 ORDER_ID, "가상 책상", ListingCategory.DESK.name(), "주문 때 판매자 주소", "주문 때 주소",
                 25_000, "010-3333-4444", "010-1111-2222", LISTING_ID, SELLER_ID, 150_000,
-                "1111053000", "1111060000", "04524", "06236"));
+                "1111053000", "1111060000", "04524", "06236", "SELLER-MGMT", "BUYER-MGMT"));
         // 결제 뒤 판매자·구매자가 주소를 바꿨어도 회원 정보를 읽지 않는다
         verifyNoInteractions(memberRepository);
     }
 
     @Test
     void 출발지_저장_전_주문은_지금_판매자_정보와_매물_동으로_배송을_요청한다() {
-        final Order order = order();
+        final Order order = paidOrder();
         final Listing listing = listing();
         when(listing.getDongCode()).thenReturn("1111060000");
         final Member seller = member("판매자 주소", "010-0000-0001");
@@ -202,7 +228,7 @@ class OrderServiceTest {
         when(memberRepository.findById(SELLER_ID)).thenReturn(Optional.of(seller));
         when(memberRepository.findById(BUYER_ID)).thenReturn(Optional.of(buyer));
 
-        orderService.publishOrderConfirmed(ORDER_ID);
+        orderService.confirmPaid(ORDER_ID);
 
         final ArgumentCaptor<OrderConfirmed> eventCaptor = ArgumentCaptor.forClass(OrderConfirmed.class);
         verify(eventPublisher).publishEvent(eventCaptor.capture());
@@ -223,6 +249,8 @@ class OrderServiceTest {
                 null,
                 "1111060000",
                 null,
+                null,
+                null,
                 null
         ));
         verify(orderRepository).findByIdForUpdate(ORDER_ID);
@@ -234,23 +262,52 @@ class OrderServiceTest {
         ReflectionTestUtils.setField(order, "id", ORDER_ID);
         when(orderRepository.findByIdForUpdate(ORDER_ID)).thenReturn(Optional.of(order));
 
-        orderService.publishOrderConfirmed(ORDER_ID);
+        orderService.confirmPaid(ORDER_ID);
 
-        verifyNoInteractions(listingRepository, memberRepository, eventPublisher);
+        verifyNoInteractions(listingRepository, memberRepository, eventPublisher, orderStatusNotifier);
     }
 
     @Test
-    void 만료된_주문에_늦게_온_결제_완료는_배송을_요청하지_않는다() {
+    void 결제를_받아들이지_않은_만료_주문은_확정하지_않는다() {
         final Order order = Order.pending(LISTING_ID, BUYER_ID, Instant.parse("2026-09-02T05:00:00Z"));
         ReflectionTestUtils.setField(order, "id", ORDER_ID);
         order.expire(Instant.parse("2026-09-02T05:00:00Z"));
         when(orderRepository.findByIdForUpdate(ORDER_ID)).thenReturn(Optional.of(order));
 
-        orderService.publishOrderConfirmed(ORDER_ID);
+        orderService.confirmPaid(ORDER_ID);
 
         assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.EXPIRED);
         assertThat(order.getDeliveryStatus()).isEqualTo(DeliveryStatus.PENDING);
-        verifyNoInteractions(listingRepository, memberRepository, eventPublisher);
+        verifyNoInteractions(eventPublisher, listingRepository, memberRepository, orderStatusNotifier);
+    }
+
+    @Test
+    void 결제_대기_주문의_확정은_버그라_예외로_알린다() {
+        when(orderRepository.findByIdForUpdate(ORDER_ID)).thenReturn(Optional.of(order()));
+
+        assertThatThrownBy(() -> orderService.confirmPaid(ORDER_ID))
+                .isInstanceOf(BusinessException.class)
+                .extracting(e -> ((BusinessException) e).getErrorCode())
+                .isEqualTo(ErrorCode.INVALID_ORDER_STATUS_TRANSITION);
+        verifyNoInteractions(eventPublisher);
+    }
+
+    @Test
+    void 결제_확정은_구매자와_판매자에게_알릴_이벤트를_낸다() {
+        final Instant confirmedAt = Instant.parse("2026-11-06T01:00:00Z");
+        final Order order = paidOrder();
+        final Listing listing = listing();
+        final Member seller = member("판매자 주소", "010-0000-0001");
+        final Member buyer = member("구매자 주소", "010-0000-0002");
+        when(orderRepository.findByIdForUpdate(ORDER_ID)).thenReturn(Optional.of(order));
+        when(listingRepository.findById(LISTING_ID)).thenReturn(Optional.of(listing));
+        when(memberRepository.findById(SELLER_ID)).thenReturn(Optional.of(seller));
+        when(memberRepository.findById(BUYER_ID)).thenReturn(Optional.of(buyer));
+        when(clock.instant()).thenReturn(confirmedAt);
+
+        orderService.confirmPaid(ORDER_ID);
+
+        verify(orderStatusNotifier).notify(order, OrderStatusNotified.Change.CONFIRMED, confirmedAt);
     }
 
     @Test
@@ -315,6 +372,7 @@ class OrderServiceTest {
         orderService.confirmCancellation(ORDER_ID, "cancel-request-1", decidedAt);
 
         verify(eventPublisher).publishEvent(any(OrderCancelled.class));
+        verify(orderStatusNotifier).notify(order, OrderStatusNotified.Change.CANCELLED_BY_BUYER, decidedAt);
     }
 
     @Test
@@ -325,9 +383,14 @@ class OrderServiceTest {
         when(orderRepository.findByIdForUpdate(ORDER_ID)).thenReturn(Optional.of(order));
 
         orderService.rejectCancellation(ORDER_ID, "cancel-request-1", decidedAt);
+        orderService.rejectCancellation(ORDER_ID, "cancel-request-1", decidedAt);
 
         assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.CONFIRMED);
-        verifyNoInteractions(eventPublisher);
+        verify(eventPublisher).publishEvent(new OrderCancellationDeclined(
+                ORDER_ID, "cancel-request-1", decidedAt, CancellationRejectionReasons.DRIVER_ACCEPTED_OR_LATER));
+        verifyNoMoreInteractions(eventPublisher);
+        verify(orderStatusNotifier).notify(order, OrderStatusNotified.Change.CANCELLATION_REJECTED, decidedAt);
+        verifyNoMoreInteractions(orderStatusNotifier);
     }
 
     @Test
@@ -343,7 +406,7 @@ class OrderServiceTest {
 
         assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.CANCEL_PENDING);
         assertThat(order.getCancellationRequestId()).isEqualTo("cancel-request-2");
-        verifyNoInteractions(eventPublisher);
+        verifyNoInteractions(eventPublisher, orderStatusNotifier);
     }
 
     @Test
@@ -436,6 +499,12 @@ class OrderServiceTest {
     private static Order order() {
         final Order order = Order.pending(LISTING_ID, BUYER_ID);
         ReflectionTestUtils.setField(order, "id", ORDER_ID);
+        return order;
+    }
+
+    private static Order paidOrder() {
+        final Order order = order();
+        order.acceptPayment(Instant.now());
         return order;
     }
 

@@ -9,6 +9,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import setty.common.DeliveryAccepted;
+import setty.common.CancellationRejectionReasons;
 import setty.common.DeliveryAssignmentCancelled;
 import setty.common.DeliveryCancellationRejected;
 import setty.common.DeliveryCancelled;
@@ -39,7 +40,7 @@ public class DeliveryLifecycleService {
         delivery.accept(driverId, acceptedAt);
         deliveryRepository.save(delivery);
         eventPublisher.publishEvent(new DeliveryAccepted(deliveryId.value(), orderIdOf(delivery), acceptedAt));
-        eventPublisher.publishEvent(new DeliveryRequestsChanged());
+        eventPublisher.publishEvent(DeliveryRequestsChanged.of(delivery));
     }
 
     public void pickUp(final DeliveryId deliveryId, final DriverId driverId, final Instant pickedUpAt) {
@@ -67,7 +68,7 @@ public class DeliveryLifecycleService {
         eventPublisher.publishEvent(new DeliveryAssignmentCancelled(
                 deliveryId.value(), orderIdOf(delivery), driverId.value(), acceptedAt, cancelledAt
         ));
-        eventPublisher.publishEvent(new DeliveryRequestsChanged());
+        eventPublisher.publishEvent(DeliveryRequestsChanged.of(delivery));
     }
 
     public void complete(final DeliveryId deliveryId, final DriverId driverId, final Instant deliveredAt) {
@@ -112,7 +113,13 @@ public class DeliveryLifecycleService {
         }
         if (!delivery.isCancellable()) {
             eventPublisher.publishEvent(new DeliveryCancellationRejected(
-                    delivery.getId().value(), orderId.value(), cancellationRequestId, decidedAt
+                    delivery.getId().value(), orderId.value(), cancellationRequestId, decidedAt,
+                    switch (delivery.getStatus()) {
+                        case ACCEPTED -> CancellationRejectionReasons.DRIVER_ACCEPTED;
+                        case PICKED_UP -> CancellationRejectionReasons.ALREADY_PICKED_UP;
+                        case DELIVERED -> CancellationRejectionReasons.ALREADY_DELIVERED;
+                        default -> CancellationRejectionReasons.STATE_NOT_SYNCHRONIZED;
+                    }
             ));
             return;
         }
@@ -120,7 +127,7 @@ public class DeliveryLifecycleService {
         delivery.cancel();
         deliveryRepository.save(delivery);
         publishCancelled(delivery.getId(), orderId, cancellationRequestId, decidedAt);
-        eventPublisher.publishEvent(new DeliveryRequestsChanged());
+        eventPublisher.publishEvent(DeliveryRequestsChanged.of(delivery));
     }
 
     private Delivery findDelivery(final DeliveryId deliveryId) {

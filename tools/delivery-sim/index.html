@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="ko">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>배송 시뮬레이터</title>
+    <link rel="stylesheet" href="/src/style.css">
+</head>
+<body>
+<div id="map"></div>
+<aside id="panel">
+    <header class="panel-head">
+        <div class="brand">SETTY <span>배송 시뮬레이터</span></div>
+        <div class="badges">
+            <span id="badge-login" class="badge">로그인 전</span>
+            <span id="badge-send" class="badge">위치 전송 대기</span>
+        </div>
+    </header>
+
+    <section class="card">
+        <h2><span class="step">1</span>배송원 연결</h2>
+        <form id="login-form">
+            <input name="loginId" placeholder="배송원 아이디" autocomplete="off" required>
+            <input name="password" type="password" placeholder="비밀번호" required>
+            <button class="button button--filled">로그인</button>
+        </form>
+        <div id="logged-in" hidden>
+            <div class="qr-row">
+                <canvas id="qr"></canvas>
+                <div>
+                    <p class="who"><b id="login-id"></b><button id="logout" type="button" class="button--text">지우기</button></p>
+                    <p class="hint">폰 기본 카메라로 찍으면 같은 계정으로 배송원 화면이 열립니다. 폰에서 다시 로그인하지 않습니다.</p>
+                    <a id="qr-link" target="_blank" rel="noopener"></a>
+                </div>
+            </div>
+        </div>
+        <p id="auth-error" class="error"></p>
+    </section>
+
+    <section class="card">
+        <h2><span class="step">2</span>경로 정하기</h2>
+        <div class="segmented" role="radiogroup">
+            <label><input type="radio" name="mode" value="start" checked><span>출발지 찍기</span></label>
+            <label><input type="radio" name="mode" value="dest"><span>목적지 찍기</span></label>
+        </div>
+        <button id="to-arrival" type="button" class="button button--tonal" disabled>진행 중 배차 도착 주소 보기</button>
+        <ul id="arrivals" class="hint"></ul>
+        <p id="move-msg" class="hint"></p>
+    </section>
+
+    <section class="card">
+        <h2><span class="step">3</span>주행</h2>
+        <div class="drive-row">
+            <div class="segmented segmented--speed" role="radiogroup" aria-label="속도">
+                <label><input type="radio" name="speed" value="1"><span>1배</span></label>
+                <label><input type="radio" name="speed" value="2"><span>2배</span></label>
+                <label><input type="radio" name="speed" value="4" checked><span>4배</span></label>
+                <label><input type="radio" name="speed" value="8"><span>8배</span></label>
+            </div>
+            <button id="toggle" type="button" class="button button--filled" disabled>출발</button>
+        </div>
+        <div class="stats">
+            <div class="stat">
+                <span class="stat-label">지금 칸</span>
+                <span id="cell-big" class="stat-value">-</span>
+            </div>
+            <div class="stat stat--accent">
+                <span class="stat-label">묶음 후보</span>
+                <span id="bundle-big" class="stat-value">-</span>
+            </div>
+        </div>
+        <p id="range-note" class="hint"></p>
+        <ul id="candidates" class="candidates"></ul>
+        <details>
+            <summary>자세히</summary>
+            <dl class="details">
+                <dt>위도·경도</dt><dd><span id="lat">-</span>, <span id="lng">-</span></dd>
+                <dt>칸 번호</dt><dd id="cell">-</dd>
+                <dt>서버 칸</dt><dd id="server-cell">-</dd>
+                <dt>묶음 후보</dt><dd id="bundle">-</dd>
+                <dt>남은 거리</dt><dd id="remain">-</dd>
+                <dt>위치 전송</dt><dd id="send">로그인 전</dd>
+            </dl>
+        </details>
+    </section>
+
+    <footer id="target"></footer>
+</aside>
+<script type="module" src="/src/main.js"></script>
+</body>
+</html>

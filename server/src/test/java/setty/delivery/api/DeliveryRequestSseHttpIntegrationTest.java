@@ -110,8 +110,8 @@ class DeliveryRequestSseHttpIntegrationTest extends MySqlIntegrationTestSupport 
                     """
                     INSERT INTO delivery_member (
                         login_id, password, phone_number, license_plate_number,
-                        car_type, business_registration_number, token
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                        car_type, business_registration_number, token, token_expires_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, TIMESTAMPADD(DAY, 1, UTC_TIMESTAMP(6)))
                     """,
                     loginId, "test-password-hash", "010-0000-000" + driver, "00가000" + driver,
                     "다마스", "000-00-00000", token(driver)
@@ -209,8 +209,9 @@ class DeliveryRequestSseHttpIntegrationTest extends MySqlIntegrationTestSupport 
     @Test
     void memberTokenIsRejectedWithJsonBeforeSse() throws Exception {
         jdbcTemplate.update("""
-                INSERT INTO members (login_id, password, role, phone_number, address, token)
-                VALUES ('sse_http_member', 'test-password-hash', 'MEMBER', '010-0000-0000', '가상 주소', ?)
+                INSERT INTO members (login_id, password, role, phone_number, address, token, token_expires_at)
+                VALUES ('sse_http_member', 'test-password-hash', 'MEMBER', '010-0000-0000', '가상 주소', ?,
+                        TIMESTAMPADD(DAY, 1, UTC_TIMESTAMP(6)))
                 """, MEMBER_TOKEN);
 
         assertRejected(MEMBER_TOKEN, 401, "INVALID_TOKEN");
@@ -293,7 +294,7 @@ class DeliveryRequestSseHttpIntegrationTest extends MySqlIntegrationTestSupport 
 
     private void publishChange() {
         new TransactionTemplate(transactionManager).executeWithoutResult(status ->
-                eventPublisher.publishEvent(new DeliveryRequestsChanged()));
+                eventPublisher.publishEvent(new DeliveryRequestsChanged(null, null)));
     }
 
     private long registerRequest(final long orderId) {
@@ -301,8 +302,8 @@ class DeliveryRequestSseHttpIntegrationTest extends MySqlIntegrationTestSupport 
                 OrderId.from(orderId),
                 FurnitureInfo.of("HTTP 재접속 후 조회할 요청", "CHAIR"),
                 DeliveryRoute.of(
-                        DeliveryPoint.pickup("서울시 가상구 출발로 1", "010-0000-0001", null, null),
-                        DeliveryPoint.destination("서울시 가상구 도착로 2", "010-0000-0002", null, null)
+                        DeliveryPoint.pickup("서울시 가상구 출발로 1", "010-0000-0001", null, null, null),
+                        DeliveryPoint.destination("서울시 가상구 도착로 2", "010-0000-0002", null, null, null)
                 ),
                 EstimatedDeliveryFee.from(10_000),
                 Instant.now()

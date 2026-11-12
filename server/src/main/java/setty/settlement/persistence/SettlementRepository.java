@@ -10,4 +10,6 @@ public interface SettlementRepository extends JpaRepository<Settlement, Long> {
     boolean existsByOrderIdAndPayeeType(Long orderId, PayeeType payeeType);
 
     List<Settlement> findAllByOrderId(Long orderId);
+
+    List<Settlement> findAllByPayeeTypeAndPayeeIdOrderByIdDesc(PayeeType payeeType, Long payeeId);
 }

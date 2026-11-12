@@ -37,12 +37,14 @@ export function LoginScreen() {
         try {
             if (isDriver) {
                 await deliveryRepository.login(username, password);
+                // 알림을 이미 허용한 브라우저면 이 기사로 토큰을 다시 올린다
+                void syncPushToken('driver');
                 navigate(routes.driverRequests, { replace: true });
                 return;
             }
             await userRepository.login(username, password);
             // 알림을 이미 허용한 브라우저면 새 로그인 회원으로 토큰을 다시 올린다
-            void syncPushToken();
+            void syncPushToken('member');
             identifyUser(username);
             // 다른 계정으로 다시 로그인했을 수 있으므로 이전 홈 목록을 버린다
             resetHomeStore();

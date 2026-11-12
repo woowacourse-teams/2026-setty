@@ -24,6 +24,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 import setty.platform.listing.application.ListingService;
+import setty.platform.listing.repository.ListingRepository;
 import setty.platform.order.domain.Order;
 import setty.platform.order.domain.OrderStatus;
 import setty.platform.order.repository.OrderRepository;
@@ -40,6 +41,9 @@ class PendingOrderExpirationServiceTest {
     private OrderRepository orderRepository;
 
     @Mock
+    private ListingRepository listingRepository;
+
+    @Mock
     private ListingService listingService;
 
     @InjectMocks
@@ -48,13 +52,15 @@ class PendingOrderExpirationServiceTest {
     @Test
     void 만료된_PENDING_주문은_EXPIRED로_보존하고_매물_선점을_해제한다() {
         final Order order = pendingOrder();
+        when(orderRepository.findListingIdById(ORDER_ID)).thenReturn(Optional.of(LISTING_ID));
         when(orderRepository.findByIdForUpdate(ORDER_ID)).thenReturn(Optional.of(order));
 
         final boolean expired = expirationService.expire(ORDER_ID, EXPIRES_AT);
 
         assertThat(expired).isTrue();
         assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.EXPIRED);
-        final InOrder inOrder = inOrder(orderRepository, listingService);
+        final InOrder inOrder = inOrder(orderRepository, listingRepository, listingService);
+        inOrder.verify(listingRepository).findByIdForUpdate(LISTING_ID);
         inOrder.verify(orderRepository).findByIdForUpdate(ORDER_ID);
         inOrder.verify(listingService).releasePurchaseRequestForExpiredPendingOrder(LISTING_ID);
         verify(orderRepository, never()).delete(order);
@@ -63,6 +69,7 @@ class PendingOrderExpirationServiceTest {
     @Test
     void 아직_만료되지_않은_PENDING_주문은_유지한다() {
         final Order order = pendingOrder();
+        when(orderRepository.findListingIdById(ORDER_ID)).thenReturn(Optional.of(LISTING_ID));
         when(orderRepository.findByIdForUpdate(ORDER_ID)).thenReturn(Optional.of(order));
 
         final boolean expired = expirationService.expire(ORDER_ID, EXPIRES_AT.minusNanos(1));
@@ -78,6 +85,7 @@ class PendingOrderExpirationServiceTest {
     void PENDING이_아닌_주문은_유지한다(final OrderStatus status) {
         final Order order = pendingOrder();
         ReflectionTestUtils.setField(order, "orderStatus", status);
+        when(orderRepository.findListingIdById(ORDER_ID)).thenReturn(Optional.of(LISTING_ID));
         when(orderRepository.findByIdForUpdate(ORDER_ID)).thenReturn(Optional.of(order));
 
         final boolean expired = expirationService.expire(ORDER_ID, EXPIRES_AT.plusSeconds(1));
@@ -91,6 +99,7 @@ class PendingOrderExpirationServiceTest {
     void 이미_만료된_주문은_다시_선점을_해제하지_않는다() {
         final Order order = pendingOrder();
         order.expire(EXPIRES_AT);
+        when(orderRepository.findListingIdById(ORDER_ID)).thenReturn(Optional.of(LISTING_ID));
         when(orderRepository.findByIdForUpdate(ORDER_ID)).thenReturn(Optional.of(order));
 
         final boolean expired = expirationService.expire(ORDER_ID, EXPIRES_AT.plusSeconds(1));
@@ -101,10 +110,11 @@ class PendingOrderExpirationServiceTest {
     }
 
     @Test
-    void 잠금_대기_중_CONFIRMED로_전이된_주문은_만료하지_않는다() throws Exception {
+    void 잠금_대기_중_승인을_받아들여_PAID가_된_주문은_만료하지_않는다() throws Exception {
         final Order order = pendingOrder();
         final CountDownLatch expirationLookupStarted = new CountDownLatch(1);
         final CountDownLatch paymentCompleted = new CountDownLatch(1);
+        when(orderRepository.findListingIdById(ORDER_ID)).thenReturn(Optional.of(LISTING_ID));
         when(orderRepository.findByIdForUpdate(ORDER_ID)).thenAnswer(invocation -> {
             expirationLookupStarted.countDown();
             if (!paymentCompleted.await(5, TimeUnit.SECONDS)) {
@@ -119,15 +129,25 @@ class PendingOrderExpirationServiceTest {
             );
             assertThat(expirationLookupStarted.await(5, TimeUnit.SECONDS)).isTrue();
 
-            order.requestDelivery();
+            order.acceptPayment(EXPIRES_AT.minusSeconds(1));
             paymentCompleted.countDown();
 
             assertThat(expiration.get(5, TimeUnit.SECONDS)).isFalse();
         }
 
-        assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.CONFIRMED);
+        assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.PAID);
         verify(orderRepository, never()).delete(order);
         verifyNoInteractions(listingService);
+    }
+
+    @Test
+    void 없는_주문은_아무것도_잠그지_않는다() {
+        when(orderRepository.findListingIdById(ORDER_ID)).thenReturn(Optional.empty());
+
+        assertThat(expirationService.expire(ORDER_ID, EXPIRES_AT)).isFalse();
+
+        verifyNoInteractions(listingRepository, listingService);
+        verify(orderRepository, never()).findByIdForUpdate(ORDER_ID);
     }
 
     private static Order pendingOrder() {

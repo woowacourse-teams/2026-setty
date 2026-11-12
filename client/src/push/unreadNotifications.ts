@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from 'react';
 import { tokenStore } from '../api/http';
 import { notificationRepository } from '../api/repositories';
+import type { NotificationRef } from '../model/notification';
 
 let hasUnread = false;
 const listeners = new Set<() => void>();
@@ -25,8 +26,8 @@ export async function refreshUnreadNotifications(): Promise<void> {
 }
 
 /** 알림 하나를 읽음으로 바꾸고 남은 안 읽은 알림이 있는지 다시 본다. */
-export async function readNotification(notificationId: number): Promise<void> {
-    await notificationRepository.read(notificationId).catch(() => undefined);
+export async function readNotification(ref: NotificationRef): Promise<void> {
+    await notificationRepository.read(ref).catch(() => undefined);
     await refreshUnreadNotifications();
 }
 

@@ -1,6 +1,4 @@
 import { useNavigate } from 'react-router';
-import { deliveryRepository } from '../../api/deliveryRepository';
-import { isShipmentInProgress, type DeliverySummary } from '../../model/delivery';
 import { routes, useNavigateBack, useNavigateToDriverLogin } from '../../navigation';
 import {
     BackIconButton,
@@ -8,32 +6,38 @@ import {
     ErrorContent,
     FlexibleTopAppBar,
     LoadingContent,
+    LoadingIndicator,
     PullToRefresh,
     Scaffold,
     SectionTitle,
     SegmentedList,
     SettyMessage
 } from '../../ui/components';
-import { useLoad } from '../useLoad';
 import screenStyles from '../screens.module.css';
 import { DeliveryListItem } from './DeliveryParts';
+import { DeliveryLoadMore } from './DeliveryLoadMore';
+import { deliveredPageStore, inProgressPageStore } from './deliveryPageStore';
+import { useDeliveryPage } from './useDeliveryPage';
 import styles from './driver.module.css';
 
 export function DriverShipmentsScreen() {
     const navigateBack = useNavigateBack(routes.driverRequests);
-    const navigateToDriverLogin = useNavigateToDriverLogin();
-    const { state, isRefreshing, load, refresh } = useLoad(deliveryRepository.getShipments, 'driver');
+    const progress = useDeliveryPage(inProgressPageStore);
+    const delivered = useDeliveryPage(deliveredPageStore);
+    const isLoading = progress.state.status === 'loading' && delivered.state.status === 'loading';
+    const isEmpty = progress.state.status === 'success' && progress.state.data.length === 0
+        && delivered.state.status === 'success' && delivered.state.data.length === 0;
 
     return (
         <Scaffold topBar={<FlexibleTopAppBar navigation={<BackIconButton onBack={navigateBack} />} title="내 배차" />}>
-            {state.status === 'loading' && <LoadingContent />}
-            {state.status === 'error' && (
-                <ErrorContent isUnauthorized={state.isUnauthorized} message={state.message} onRequireLogin={navigateToDriverLogin} onRetry={load} />
-            )}
-            {state.status === 'success' && (
-                <PullToRefresh isRefreshing={isRefreshing} onRefresh={refresh}>
+            {isLoading && <LoadingContent />}
+            {!isLoading && (
+                <PullToRefresh isRefreshing={progress.isRefreshing || delivered.isRefreshing} onRefresh={() => {
+                    void progress.refresh();
+                    void delivered.refresh();
+                }}>
                     <div className={`${screenStyles['list-padding']} ${styles.stack}`}>
-                        {state.data.length === 0 ? (
+                        {isEmpty ? (
                             <CenterFill>
                                 <SettyMessage
                                     description="배차 요청에서 마음에 드는 배송을 수락해 보세요."
@@ -42,8 +46,8 @@ export function DriverShipmentsScreen() {
                             </CenterFill>
                         ) : (
                             <>
-                                <ShipmentSection shipments={state.data.filter((item) => isShipmentInProgress(item.status))} title="진행 중" />
-                                <ShipmentSection shipments={state.data.filter((item) => item.status === 'DELIVERED')} title="배송 완료" />
+                                <ShipmentSection page={progress} title="진행 중" />
+                                <ShipmentSection page={delivered} title="배송 완료" />
                             </>
                         )}
                     </div>
@@ -53,24 +57,40 @@ export function DriverShipmentsScreen() {
     );
 }
 
-function ShipmentSection({ title, shipments }: { title: string; shipments: DeliverySummary[] }) {
+function ShipmentSection({ title, page }: { title: string; page: ReturnType<typeof useDeliveryPage> }) {
     const navigate = useNavigate();
-    if (shipments.length === 0) return null;
+    const navigateToDriverLogin = useNavigateToDriverLogin();
+    const { state, nextCursor, isLoadingMore, isRefreshing, hasLoadMoreError, load, loadMore } = page;
+    if (state.status === 'success' && state.data.length === 0) return null;
     return (
         <section className={styles.section}>
             <SectionTitle>{title}</SectionTitle>
-            <SegmentedList>
-                {shipments.map((shipment, index) => (
-                    <DeliveryListItem
-                        count={shipments.length}
-                        delivery={shipment}
-                        index={index}
-                        key={shipment.deliveryId}
-                        onClick={() => navigate(routes.driverShipmentDetail(shipment.deliveryId))}
-                        showStatus
+            {state.status === 'loading' && <LoadingIndicator />}
+            {state.status === 'error' && (
+                <ErrorContent isUnauthorized={state.isUnauthorized} message={state.message} onRequireLogin={navigateToDriverLogin} onRetry={load} />
+            )}
+            {state.status === 'success' && (
+                <>
+                    <SegmentedList>
+                        {state.data.map((shipment, index) => (
+                            <DeliveryListItem
+                                count={state.data.length}
+                                delivery={shipment}
+                                index={index}
+                                key={shipment.deliveryId}
+                                onClick={() => navigate(routes.driverShipmentDetail(shipment.deliveryId))}
+                                showStatus
+                            />
+                        ))}
+                    </SegmentedList>
+                    <DeliveryLoadMore
+                        hasError={hasLoadMoreError}
+                        hasMore={nextCursor !== null}
+                        isLoading={isLoadingMore || isRefreshing}
+                        onLoad={loadMore}
                     />
-                ))}
-            </SegmentedList>
+                </>
+            )}
         </section>
     );
 }

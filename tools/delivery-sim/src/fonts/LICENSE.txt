@@ -1,0 +1,2 @@
+Paperlogy © 2024 PT&, SIL OFL 1.1 (https://scripts.sil.org/OFL)
+이 폴더의 woff2는 client/public/fonts의 Paperlogy 700·900에서 시뮬레이터 화면에 쓰는 글자만 남긴 서브셋입니다.

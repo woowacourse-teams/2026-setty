@@ -7,6 +7,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import setty.deliveryfee.DeliveryFeeService;
+import setty.global.auth.LoginTokenLifetime;
 import setty.global.exception.BusinessException;
 import setty.global.exception.ErrorCode;
 import setty.platform.member.controller.dto.LoginRequest;
@@ -25,16 +26,19 @@ public class AuthService {
     private final MemberRepository memberRepository;
     private final DeliveryFeeService deliveryFeeService;
     private final MemberAddressResolver memberAddressResolver;
+    private final LoginTokenLifetime loginTokenLifetime;
     private final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     public AuthService(
             final MemberRepository memberRepository,
             final DeliveryFeeService deliveryFeeService,
-            final MemberAddressResolver memberAddressResolver
+            final MemberAddressResolver memberAddressResolver,
+            final LoginTokenLifetime loginTokenLifetime
     ) {
         this.memberRepository = memberRepository;
         this.deliveryFeeService = deliveryFeeService;
         this.memberAddressResolver = memberAddressResolver;
+        this.loginTokenLifetime = loginTokenLifetime;
     }
 
     @Transactional
@@ -76,14 +80,8 @@ public class AuthService {
         }
 
         final String token = UUID.randomUUID().toString();
-        member.rotateToken(token);
+        member.rotateToken(token, loginTokenLifetime.expiresAt());
         return new LoginResponse(token, member.getRole().name());
-    }
-
-    @Transactional(readOnly = true)
-    public Member findByToken(final String token) {
-        return memberRepository.findByToken(token)
-                .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_TOKEN));
     }
 
     @Transactional

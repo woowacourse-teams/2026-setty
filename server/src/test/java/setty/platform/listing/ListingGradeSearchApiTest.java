@@ -213,13 +213,13 @@ class ListingGradeSearchApiTest extends MySqlIntegrationTestSupport {
 
     @Test
     void 가격_범위가_어긋나거나_등록_상한을_넘으면_거절한다() throws Exception {
-        for (String[] params : List.of(new String[]{"minPrice", "-1"}, new String[]{"maxPrice", "100000001"},
+        for (String[] params : List.of(new String[]{"minPrice", "-1"}, new String[]{"maxPrice", "5000001"},
                 new String[]{"minPrice", "abc"})) {
             mockMvc.perform(get("/api/listings").param(params[0], params[1])).andExpect(status().isBadRequest());
         }
         mockMvc.perform(get("/api/listings").param("minPrice", "200000").param("maxPrice", "100000"))
                 .andExpect(status().isBadRequest());
-        mockMvc.perform(get("/api/listings").param("minPrice", "0").param("maxPrice", "100000000"))
+        mockMvc.perform(get("/api/listings").param("minPrice", "0").param("maxPrice", "5000000"))
                 .andExpect(status().isOk());
     }
 
@@ -243,8 +243,10 @@ class ListingGradeSearchApiTest extends MySqlIntegrationTestSupport {
 
     private void insertMember(long id) {
         jdbcTemplate.update("""
-                INSERT INTO members (id, login_id, password, role, phone_number, address, dong_code, token)
-                VALUES (?, ?, 'encoded-password', 'MEMBER', '010-0000-0000', '가상 주소', ?, ?)
+                INSERT INTO members (id, login_id, password, role, phone_number, address, dong_code, token,
+                                     token_expires_at)
+                VALUES (?, ?, 'encoded-password', 'MEMBER', '010-0000-0000', '가상 주소', ?, ?,
+                        TIMESTAMPADD(DAY, 1, UTC_TIMESTAMP(6)))
                 """, id, "member" + id, DONG, "token-" + id);
     }
 

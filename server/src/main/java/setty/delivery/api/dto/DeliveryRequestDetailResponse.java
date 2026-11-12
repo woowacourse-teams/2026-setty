@@ -11,18 +11,21 @@ public record DeliveryRequestDetailResponse(
         String pickupAddress,
         String destinationAddress,
         long deliveryFee,
+        Integer estimatedDistanceMeters,
         DeliveryStatus status,
         Instant requestedAt
 ) {
 
-    public static DeliveryRequestDetailResponse from(final DeliveryRequest.Detail detail) {
+    public static DeliveryRequestDetailResponse from(final DeliveryRequest.Detail detail, final String thumbnailUrl,
+                                                     final Integer estimatedDistanceMeters) {
         return new DeliveryRequestDetailResponse(
                 detail.deliveryId(),
                 detail.orderId(),
-                new FurnitureResponse(detail.itemName(), detail.category()),
+                new FurnitureResponse(detail.itemName(), detail.category(), thumbnailUrl),
                 detail.pickupAddress(),
                 detail.deliveryAddress(),
                 detail.deliveryFee(),
+                estimatedDistanceMeters,
                 detail.status(),
                 detail.requestedAt()
         );

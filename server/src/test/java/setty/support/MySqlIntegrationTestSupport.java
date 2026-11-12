@@ -15,20 +15,26 @@ import org.testcontainers.mysql.MySQLContainer;
 public abstract class MySqlIntegrationTestSupport {
 
     // 개발 DB(docker-compose.yml)와 같은 버전을 쓴다.
+    // 캐시된 컨텍스트마다 커넥션 풀(기본 10개)이 JVM 종료까지 남는다. 컨텍스트가 15개를 넘으면 MySQL 기본 최대 접속 수(151)를 넘겨
+    // 뒤에 뜬 컨텍스트가 두 번째 커넥션을 못 받고 30초 뒤 "Connection is not available"로 실패하므로 한도를 넉넉히 올린다.
     @ServiceConnection
     static final MySQLContainer MYSQL = new MySQLContainer("mysql:8.4.11")
             .withDatabaseName("setty_test")
             .withUsername("setty_test")
-            .withPassword("setty_test");
+            .withPassword("setty_test")
+            .withCommand("--max-connections=500");
 
     static {
         MYSQL.start();
     }
 
-    // 컨텍스트가 캐시에 남아 공유 DB를 계속 보므로, 남은 컨텍스트의 만료·판매 완료 스케줄러가 다른 테스트의 주문을 건드리지 않게 막는다.
+    // 컨텍스트가 캐시에 남아 공유 DB를 계속 보므로, 남은 컨텍스트의 만료·판매 완료·PAID 재확정·결제 복구 스케줄러가 다른 테스트의 주문·결제를 건드리지 않게 막는다.
     @DynamicPropertySource
     static void disableOrderScans(final DynamicPropertyRegistry registry) {
         registry.add("setty.order.pending-expiration.scan-interval", () -> "PT24H");
         registry.add("setty.order.completion.scan-interval", () -> "PT24H");
+        registry.add("setty.order.paid-confirmation.scan-interval", () -> "PT24H");
+        registry.add("setty.payment.recovery.interval", () -> "PT24H");
+        registry.add("setty.delivery.bundle.reconcile-interval-seconds", () -> "86400");
     }
 }

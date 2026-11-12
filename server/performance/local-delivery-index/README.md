@@ -1,5 +1,7 @@
 # 배송 목록의 단일·복수 복합 인덱스 비교
 
+아래 본 실험은 페이지네이션 도입 전 전체 목록 조회 기준이다. 커서 페이지 도입 뒤 추가한 인덱스의 근거는 [후속 확인](#커서-페이지-도입-후-확인)을 참고한다.
+
 [배송 목록 조회](../../src/main/java/setty/delivery/persistence/JdbcDeliveryQueryRepository.java)에 필요한 인덱스를 고르기 위해 네 가지 사용 경로를 비교한다. [V10](../../src/main/resources/db/migration/V10__add_delivery_query_index.sql)은 `idx_delivery_requests(status, driver_id, requested_at, id)` **하나만 추가**한다.
 
 미배정 인덱스는 요청 범위와 최신순 조회를 지원하고, 기사별 조회도 `status IN (...)`과 `driver_id`를 조합한 범위로 선별한다. 기사별 결과의 정렬은 남지만 아래 50건 조건에서는 두 번째 인덱스의 추가 효과가 작았다. 기사별 전용 인덱스는 보류한다.
@@ -47,5 +49,13 @@ V10 적용 뒤 기사별 후보 `idx_delivery_driver_shipments(driver_id, accept
 - 미배정 전용 인덱스만으로도 기사별 내역을 상태별 세 범위에서 총 50행으로 좁혔다. 50행의 정렬은 남지만, 기사 전용 인덱스의 추가 시간 감소는 약 0.02ms였다.
 
 따라서 **미배정 전용 인덱스 하나를 채택**한다. 기사별 반환 건수가 크게 늘면 기사 전용 인덱스와 페이지 처리를 다시 검토한다. 추가 인덱스의 저장 공간과 쓰기 유지 비용은 별도로 측정하지 않았다. 이번 수치를 dev API나 실제 사용자 화면의 개선율로 해석하지 않는다.
+
+## 커서 페이지 도입 후 확인
+
+[배송 커서 조회](../../src/main/java/setty/delivery/persistence/JdbcDeliveryQueryRepository.java) 도입 후 임시 MySQL 8.4.11에서 가상 배송 10,000건으로 `EXPLAIN ANALYZE`를 확인했다. 매 11번째 행은 미배정 요청이고 나머지 중 매 10번째 행을 같은 기사에게 배정했다. 매 100번째 행은 진행 중이며 나머지 배정 건은 완료 상태다. 시각은 ID 순서로 1초씩 증가시켰다.
+
+페이지 크기는 다음 페이지 판정용 1건을 포함해 21건이며 커서는 7,200번째 시각이다. 요청 페이지는 기존 `idx_delivery_requests`의 범위 조회로 21건을 읽고 정렬을 생략했다. 완료 배차 페이지는 기존 인덱스에서 기사 내역 819건을 읽고 정렬했으나 `(driver_id, accepted_at, id)` 추가 후 수락 시각 범위에서 23건을 읽어 21건을 반환하고 정렬을 생략했다. 진행 중 첫 페이지는 기존 상태별 인덱스로 91건을 좁혀 정렬하는 계획을 유지했다.
+
+이에 [V15](../../src/main/resources/db/migration/V15__add_delivery_shipment_cursor_index.sql)로 기사별 커서 인덱스를 추가한다. 단일 가상 분포의 실행 계획 확인이며 운영 지연 시간의 개선율이나 인덱스 유지 비용을 측정한 결과는 아니다.
 
 `samples.json`은 모든 실행 계획·SQL·인자를, `metadata.json`은 DB 버전과 측정 조건을 보존한다. 분석 도구는 워밍업·본 측정 수, 반환 건수와 반복 번호를 확인하고 `samples.csv`·`comparison.json`을 만든다. 원본 결과는 보고서의 반올림 전 수치를 확인할 때 사용한다.

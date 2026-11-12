@@ -2,6 +2,7 @@ package setty.delivery.api;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.CacheControl;
 import org.springframework.http.MediaType;
@@ -9,15 +10,28 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+import setty.delivery.api.dto.BundleCandidatesResponse;
 import setty.delivery.api.dto.DeliveryRequestDetailResponse;
+import setty.delivery.api.dto.DriverLocationRequest;
+import setty.delivery.api.dto.DriverLocationResponse;
+import setty.delivery.api.dto.DeliveryPageResponse;
 import setty.delivery.api.dto.DeliveryRequestSummaryResponse;
 import setty.delivery.api.dto.ShipmentDetailResponse;
 import setty.delivery.api.dto.ShipmentSummaryResponse;
+import setty.delivery.application.BundleCandidateService;
 import setty.delivery.application.DeliveryLifecycleService;
+import setty.delivery.application.DeliveryCursor;
 import setty.delivery.application.DeliveryQueryService;
+import setty.delivery.application.ShipmentGroup;
+import setty.delivery.application.readmodel.DeliveryPage;
+import setty.delivery.application.readmodel.DeliveryRequest;
+import setty.delivery.application.readmodel.Shipment;
 import setty.delivery.auth.domain.DeliveryMember;
 import setty.delivery.domain.DeliveryId;
 import setty.delivery.domain.DriverId;
@@ -33,16 +47,31 @@ public class DeliveryController {
     private final DeliveryQueryService deliveryQueryService;
     private final DeliveryLifecycleService deliveryLifecycleService;
     private final DeliveryRequestEventStream deliveryRequestEventStream;
+    private final BundleCandidateService bundleCandidateService;
 
     @GetMapping("/requests")
-    public ResponseEntity<List<DeliveryRequestSummaryResponse>> findRequests(
-            @LoginDeliveryMember final DeliveryMember member
+    public ResponseEntity<?> findRequests(
+            @LoginDeliveryMember final DeliveryMember member,
+            @RequestParam(required = false) final String cursor,
+            @RequestParam(required = false) final Integer size
     ) {
         authenticatedDriverId(member);
-        final List<DeliveryRequestSummaryResponse> response = deliveryQueryService.findAvailableRequests().stream()
-                .map(DeliveryRequestSummaryResponse::from)
+        // 웹은 size를 지정해 페이지로 읽는다. 내 정보의 전체 집계 등 기존 배열 조회는 유지한다.
+        if (cursor == null && size == null) {
+            return ResponseEntity.ok(requestResponses(deliveryQueryService.findAvailableRequests()));
+        }
+        final DeliveryPage<DeliveryRequest.Summary> page = deliveryQueryService.findAvailableRequestPage(
+                DeliveryCursor.parse(cursor), size == null ? DeliveryQueryService.DEFAULT_PAGE_SIZE : size);
+        return ResponseEntity.ok(new DeliveryPageResponse<>(requestResponses(page.items()), page.nextCursor()));
+    }
+
+    private List<DeliveryRequestSummaryResponse> requestResponses(final List<DeliveryRequest.Summary> requests) {
+        final Map<Long, String> thumbnails = deliveryQueryService.findThumbnailUrls(
+                requests.stream().map(DeliveryRequest.Summary::orderId).toList());
+        return requests.stream()
+                .map(request -> DeliveryRequestSummaryResponse.from(request, thumbnails.get(request.orderId()),
+                        deliveryQueryService.estimateDistanceMeters(request.pickupDongCode(), request.deliveryDongCode())))
                 .toList();
-        return ResponseEntity.ok(response);
     }
 
     @GetMapping(value = "/requests/events", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
@@ -56,15 +85,39 @@ public class DeliveryController {
                 .body(deliveryRequestEventStream.subscribe(driverId));
     }
 
+    @GetMapping("/requests/bundle")
+    public ResponseEntity<BundleCandidatesResponse> findBundleCandidates(
+            @LoginDeliveryMember final DeliveryMember member
+    ) {
+        final BundleCandidateService.Candidates candidates =
+                bundleCandidateService.findCandidates(authenticatedDriverId(member));
+        return ResponseEntity.ok(new BundleCandidatesResponse(candidates.cell(), requestResponses(candidates.requests())));
+    }
+
+    // 위치는 칸 번호로만 바꿔 메모리에 두고, 좌표는 저장하거나 로그에 남기지 않는다.
+    @PutMapping("/location")
+    public ResponseEntity<DriverLocationResponse> updateLocation(
+            @LoginDeliveryMember final DeliveryMember member,
+            @RequestBody final DriverLocationRequest request
+    ) {
+        final DriverId driverId = authenticatedDriverId(member);
+        if (request == null || request.lat() == null || request.lng() == null) {
+            throw new BusinessException(ErrorCode.INVALID_REQUEST);
+        }
+        return ResponseEntity.ok(new DriverLocationResponse(
+                bundleCandidateService.updateLocation(driverId, request.lat(), request.lng())));
+    }
+
     @GetMapping("/requests/{deliveryId}")
     public ResponseEntity<DeliveryRequestDetailResponse> findRequest(
             @LoginDeliveryMember final DeliveryMember member,
             @PathVariable final long deliveryId
     ) {
         authenticatedDriverId(member);
-        return ResponseEntity.ok(DeliveryRequestDetailResponse.from(
-                deliveryQueryService.findAvailableRequest(new DeliveryId(deliveryId))
-        ));
+        final DeliveryRequest.Detail request = deliveryQueryService.findAvailableRequest(new DeliveryId(deliveryId));
+        final String thumbnail = deliveryQueryService.findThumbnailUrls(List.of(request.orderId())).get(request.orderId());
+        return ResponseEntity.ok(DeliveryRequestDetailResponse.from(request, thumbnail,
+                deliveryQueryService.estimateDistanceMeters(request.pickupDongCode(), request.deliveryDongCode())));
     }
 
     @PostMapping("/requests/{deliveryId}")
@@ -81,14 +134,31 @@ public class DeliveryController {
     }
 
     @GetMapping("/shipments")
-    public ResponseEntity<List<ShipmentSummaryResponse>> findShipments(
-            @LoginDeliveryMember final DeliveryMember member
+    public ResponseEntity<?> findShipments(
+            @LoginDeliveryMember final DeliveryMember member,
+            @RequestParam(required = false) final String cursor,
+            @RequestParam(required = false) final Integer size,
+            @RequestParam(required = false) final ShipmentGroup group
     ) {
-        final List<ShipmentSummaryResponse> response = deliveryQueryService
-                .findShipments(authenticatedDriverId(member)).stream()
-                .map(ShipmentSummaryResponse::from)
+        final DriverId driverId = authenticatedDriverId(member);
+        if (cursor == null && size == null && group == null) {
+            // 내 정보의 전체 합산에는 사진과 거리가 필요하지 않아 조회를 생략한다.
+            return ResponseEntity.ok(deliveryQueryService.findShipments(driverId).stream()
+                    .map(shipment -> ShipmentSummaryResponse.from(shipment, null, null))
+                    .toList());
+        }
+        final DeliveryPage<Shipment.Summary> page = deliveryQueryService.findShipmentPage(driverId, group,
+                DeliveryCursor.parse(cursor), size == null ? DeliveryQueryService.DEFAULT_PAGE_SIZE : size);
+        return ResponseEntity.ok(new DeliveryPageResponse<>(shipmentResponses(page.items()), page.nextCursor()));
+    }
+
+    private List<ShipmentSummaryResponse> shipmentResponses(final List<Shipment.Summary> shipments) {
+        final Map<Long, String> thumbnails = deliveryQueryService.findThumbnailUrls(
+                shipments.stream().map(Shipment.Summary::orderId).toList());
+        return shipments.stream()
+                .map(shipment -> ShipmentSummaryResponse.from(shipment, thumbnails.get(shipment.orderId()),
+                        deliveryQueryService.estimateDistanceMeters(shipment.pickupDongCode(), shipment.deliveryDongCode())))
                 .toList();
-        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/shipments/{deliveryId}")
@@ -96,12 +166,11 @@ public class DeliveryController {
             @LoginDeliveryMember final DeliveryMember member,
             @PathVariable final long deliveryId
     ) {
-        return ResponseEntity.ok(ShipmentDetailResponse.from(
-                deliveryQueryService.findShipment(
-                        new DeliveryId(deliveryId),
-                        authenticatedDriverId(member)
-                )
-        ));
+        final Shipment.Detail shipment = deliveryQueryService.findShipment(
+                new DeliveryId(deliveryId), authenticatedDriverId(member));
+        final String thumbnail = deliveryQueryService.findThumbnailUrls(List.of(shipment.orderId())).get(shipment.orderId());
+        return ResponseEntity.ok(ShipmentDetailResponse.from(shipment, thumbnail,
+                deliveryQueryService.estimateDistanceMeters(shipment.pickupDongCode(), shipment.deliveryDongCode())));
     }
 
     @PostMapping("/shipments/{deliveryId}/pickup")

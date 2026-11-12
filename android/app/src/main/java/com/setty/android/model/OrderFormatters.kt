@@ -3,6 +3,7 @@ package com.setty.android.model
 val OrderStatus.label: String
     get() = when (this) {
         OrderStatus.PENDING -> "결제 대기"
+        OrderStatus.PAID -> "결제 완료"
         OrderStatus.CONFIRMED -> "주문 완료"
         OrderStatus.CANCEL_PENDING -> "취소 대기"
         OrderStatus.CANCELLED -> "주문 취소"
@@ -21,7 +22,7 @@ val DeliveryStatus.label: String
 /** 주문 목록·상세에서 대표로 보여줄 상태. 취소·만료 흐름이면 주문 상태를, 아니면 배송 상태를 보여준다. */
 val Order.statusLabel: String
     get() = when (orderStatus) {
-        OrderStatus.CANCEL_PENDING, OrderStatus.CANCELLED, OrderStatus.EXPIRED, OrderStatus.PENDING ->
+        OrderStatus.CANCEL_PENDING, OrderStatus.CANCELLED, OrderStatus.EXPIRED, OrderStatus.PENDING, OrderStatus.PAID ->
             orderStatus.label
 
         else -> deliveryStatus.label
@@ -43,6 +44,7 @@ val Order.isCancelFlow: Boolean
 val Order.statusDescription: String
     get() = when (orderStatus) {
         OrderStatus.PENDING -> "결제가 완료되지 않은 주문이에요"
+        OrderStatus.PAID -> "결제가 완료됐고 주문을 확정하고 있어요. 확정된 뒤 취소할 수 있어요"
         OrderStatus.CANCEL_PENDING -> "취소 요청을 처리하고 있어요"
         OrderStatus.CANCELLED -> "주문이 취소됐어요"
         OrderStatus.EXPIRED -> "결제 시간이 지나 주문이 만료됐어요"

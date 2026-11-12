@@ -45,7 +45,12 @@ public enum ErrorCode {
     // ===== 결제 (payment) =====
     PAYMENT_AMOUNT_MISMATCH(400, "결제 금액이 주문 금액과 일치하지 않습니다"),
     PAYMENT_CONFIRM_FAILED(400, "결제 승인에 실패했습니다"),
+    PAYMENT_METHOD_REJECTED(400, "결제 수단이 승인되지 않았습니다. 한도·잔액을 확인하거나 다른 결제 수단으로 다시 결제해 주세요"),
+    PAYMENT_SESSION_EXPIRED(400, "결제 가능 시간이 지났습니다. 처음부터 다시 결제해 주세요"),
+    PAYMENT_TEMPORARILY_UNAVAILABLE(400, "결제사에 일시적인 문제가 있습니다. 잠시 뒤 다시 결제해 주세요"),
     ALREADY_PAID(400, "이미 결제된 주문입니다"),
+    PAYMENT_TOO_MANY_REQUESTS(429, "결제 요청이 몰려 처리하지 못했습니다. 잠시 뒤 다시 결제해 주세요"),
+    PAYMENT_IN_PROGRESS(409, "결제 결과를 확인하고 있는 주문입니다. 잠시 뒤 주문 내역을 확인해 주세요"),
 
     // ===== 배송 (배송 팀) =====
     DELIVERY_NOT_FOUND(404, "존재하지 않는 배송 요청입니다"),

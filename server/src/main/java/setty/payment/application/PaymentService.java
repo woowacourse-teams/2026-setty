@@ -10,6 +10,7 @@ import setty.global.exception.ErrorCode;
 import setty.payment.domain.Payment;
 import setty.payment.infrastructure.TossConfirmResult;
 import setty.payment.infrastructure.TossPaymentClient;
+import setty.payment.infrastructure.TossPaymentUncertainException;
 import setty.payment.repository.PaymentRepository;
 import setty.platform.PaymentOrderReader;
 
@@ -17,10 +18,10 @@ import setty.platform.PaymentOrderReader;
  * 결제 승인·실패 흐름을 조율한다.
  *
  * <p>주문은 결제 이전에 PENDING으로 먼저 존재한다(order 팀). payment는 주문을 만들지 않고,
- * {@code orderId}를 앵커로 주문·매물을 <b>읽기만</b> 해서 검증한 뒤 결과를 이벤트로 알린다.
+ * {@code orderId}를 앵커로 주문·매물을 읽어 검증하고, 승인을 확인하면 주문 쪽 경계에 결과를 먼저 정하게 한다.
  *
  * <p>순서가 중요하다. 토스 승인(외부 HTTP)은 트랜잭션 밖에서 호출하고,
- * 승인이 확정된 뒤에야 {@link PaymentRecorder}가 결제 저장 + 이벤트 발행을 한 트랜잭션으로 처리한다.
+ * 승인이 확인된 뒤 {@link PaymentApprovalRecorder}가 주문 결정 → 결제 저장 순서로 따로 커밋한다.
  *
  * <p>매물 상태·주문 만료/선점 판정은 읽지 않는다. 실패 복귀 후 주문은 원래 만료 시각까지
  * PENDING으로 유지하며, 만료 전이는 플랫폼(주문) 팀이 담당한다.
@@ -33,11 +34,16 @@ public class PaymentService {
     private final PaymentRepository paymentRepository;
     private final TossPaymentClient tossPaymentClient;
     private final PaymentRecorder paymentRecorder;
+    private final PaymentApprovalRecorder paymentApprovalRecorder;
+    private final PaymentConfirmLimiter paymentConfirmLimiter;
     private final ApplicationEventPublisher eventPublisher;
 
     /**
      * 결제 성공 복귀 처리. 만료 전 PENDING 주문인지와 금액을 검증한 뒤 토스 승인을 호출하고 결제를 저장한다.
      * 같은 주문이 이미 승인 완료면 재승인 없이 기존 결제를 그대로 돌려준다(멱등).
+     *
+     * <p>토스를 부르기 전에 시도를 UNKNOWN으로 남겨 둔다. 토스가 명확히 거절하면 시도를 지우고,
+     * 승인 여부를 끝내 확인하지 못하면 남겨 두어 정리 배치가 paymentKey로 다시 조회한다.
      */
     public Payment confirm(final String tossOrderId, final String paymentKey, final int amount) {
         final Long orderId = extractOrderId(tossOrderId);
@@ -47,28 +53,65 @@ public class PaymentService {
             return alreadyPaid;
         }
 
-        final int payableAmount = paymentOrderReader.payableAmount(orderId);
+        final int payableAmount = payableAmount(orderId, alreadyPaid);
         if (payableAmount != amount) {
             throw new BusinessException(ErrorCode.PAYMENT_AMOUNT_MISMATCH);
         }
 
+        // 토스를 부를 승인만 한도를 쓴다. 한도를 넘으면 시도를 남기지 않아 토스를 부르지 않은 것이 분명하다.
+        if (!paymentConfirmLimiter.tryAcquire()) {
+            throw new BusinessException(ErrorCode.PAYMENT_TOO_MANY_REQUESTS);
+        }
         // 클라가 토스에 넘긴 orderId 문자열을 그대로 승인에 사용한다(재구성하면 값이 어긋난다).
-        final TossConfirmResult result = tossPaymentClient.confirm(paymentKey, tossOrderId, amount);
+        final Payment attempt = paymentRecorder.recordAttempt(orderId, tossOrderId, paymentKey, amount);
+        if (attempt.isDone()) {
+            return attempt;
+        }
+        final TossConfirmResult result = confirmWithToss(orderId, tossOrderId, paymentKey, amount);
 
-        return paymentRecorder.recordCompleted(orderId, tossOrderId, paymentKey, amount, result.approvedAtAsLocalDateTime());
+        return paymentApprovalRecorder.record(orderId, tossOrderId, paymentKey, amount, result.approvedAtAsLocalDateTime());
+    }
+
+    // 결과를 아직 기록하지 못한 시도가 있는데 주문이 결제 대기가 아니면, 승인은 됐을 수 있으므로 실패가 아니라 결과 확인 중으로 답한다.
+    private int payableAmount(final Long orderId, final Payment attempt) {
+        try {
+            return paymentOrderReader.payableAmount(orderId);
+        } catch (final BusinessException e) {
+            if (attempt != null && attempt.isUnknown() && e.getErrorCode() == ErrorCode.ORDER_NOT_PAYABLE) {
+                throw new BusinessException(ErrorCode.PAYMENT_IN_PROGRESS);
+            }
+            throw e;
+        }
+    }
+
+    private TossConfirmResult confirmWithToss(
+            final Long orderId,
+            final String tossOrderId,
+            final String paymentKey,
+            final int amount
+    ) {
+        try {
+            return tossPaymentClient.confirm(paymentKey, tossOrderId, amount);
+        } catch (final TossPaymentUncertainException e) {
+            throw e;
+        } catch (final BusinessException e) {
+            paymentRecorder.discardAttempt(orderId, paymentKey);
+            throw e;
+        }
     }
 
     /**
      * 결제 실패·취소 복귀 처리. 실패는 기록하지 않고 {@code PaymentFailed}만 발행한다.
      * PENDING 주문과 매물 선점은 원래 만료 시각까지 유지한다.
-     * 이미 승인 완료(DONE)된 주문이면 뒤늦게 도착한 실패 복귀이므로 무시한다(주문 보호).
+     * 이미 승인된 주문이면 뒤늦게 도착한 실패 복귀이므로 무시한다(주문 보호).
+     * 결과를 모르는(UNKNOWN) 결제도 실패가 아니므로 내지 않는다. 클라이언트는 승인 오류를 받으면 늘 실패 정리를 부른다.
      * 모듈 간 이벤트는 커밋 이후에 전달되므로 트랜잭션 안에서 발행한다.
      */
     @Transactional
     public void fail(final String tossOrderId) {
         final Long orderId = extractOrderId(tossOrderId);
         final Payment existing = paymentRepository.findByOrderId(orderId).orElse(null);
-        if (existing != null && existing.isDone()) {
+        if (existing != null && (existing.isApproved() || existing.isUnknown())) {
             return;
         }
         eventPublisher.publishEvent(new PaymentFailed(orderId));

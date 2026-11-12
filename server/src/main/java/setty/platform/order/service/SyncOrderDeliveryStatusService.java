@@ -6,6 +6,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import setty.common.DeliveryStatus;
+import setty.common.OrderStatusNotified;
 import setty.global.exception.BusinessException;
 import setty.global.exception.ErrorCode;
 import setty.platform.order.domain.Order;
@@ -17,9 +18,14 @@ public class SyncOrderDeliveryStatusService {
     private static final Logger LOGGER = LoggerFactory.getLogger(SyncOrderDeliveryStatusService.class);
 
     private final OrderRepository orderRepository;
+    private final OrderStatusNotifier orderStatusNotifier;
 
-    public SyncOrderDeliveryStatusService(final OrderRepository orderRepository) {
+    public SyncOrderDeliveryStatusService(
+            final OrderRepository orderRepository,
+            final OrderStatusNotifier orderStatusNotifier
+    ) {
         this.orderRepository = orderRepository;
+        this.orderStatusNotifier = orderStatusNotifier;
     }
 
     @Transactional
@@ -32,7 +38,18 @@ public class SyncOrderDeliveryStatusService {
         validateEvent(deliveryId, orderId, changedAt, newStatus);
         final Order order = orderRepository.findByIdForUpdate(orderId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
-        order.syncDeliveryStatus(newStatus, changedAt);
+        if (order.syncDeliveryStatus(newStatus, changedAt)) {
+            orderStatusNotifier.notify(order, changeOf(newStatus), changedAt);
+        }
+    }
+
+    private static OrderStatusNotified.Change changeOf(final DeliveryStatus status) {
+        return switch (status) {
+            case ACCEPTED -> OrderStatusNotified.Change.DELIVERY_ACCEPTED;
+            case PICKED_UP -> OrderStatusNotified.Change.DELIVERY_PICKED_UP;
+            case DELIVERED -> OrderStatusNotified.Change.DELIVERY_DELIVERED;
+            case PENDING, REQUESTED -> throw new BusinessException(ErrorCode.INVALID_REQUEST);
+        };
     }
 
     @Transactional
@@ -45,10 +62,12 @@ public class SyncOrderDeliveryStatusService {
         validateEvent(deliveryId, orderId, changedAt, DeliveryStatus.REQUESTED);
         final Order order = orderRepository.findByIdForUpdate(orderId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
-        if (!order.reopenDelivery(cancelledAcceptedAt, changedAt)) {
-            LOGGER.info("이미 다른 배차가 반영돼 배차 취소를 주문에 반영하지 않습니다. deliveryId={}, orderId={}, deliveryStatus={}",
-                    deliveryId, orderId, order.getDeliveryStatus());
+        if (order.reopenDelivery(cancelledAcceptedAt, changedAt)) {
+            orderStatusNotifier.notify(order, OrderStatusNotified.Change.DELIVERY_ASSIGNMENT_CANCELLED, changedAt);
+            return;
         }
+        LOGGER.info("이미 다른 배차가 반영돼 배차 취소를 주문에 반영하지 않습니다. deliveryId={}, orderId={}, deliveryStatus={}",
+                deliveryId, orderId, order.getDeliveryStatus());
     }
 
     private void validateEvent(

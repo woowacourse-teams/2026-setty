@@ -72,6 +72,7 @@ export type FurnitureDetailResponse = {
     dong?: ListingDongResponse | null;
     hasPurchaseRequest?: boolean;
     purchaseRequestedByMe?: boolean;
+    ownedByMe?: boolean;
     orderState?: string;
     // 조회한 회원이 이 매물에 가진 진행 중 주문 id. 없으면 null
     myOrderId?: number | null;
@@ -165,7 +166,7 @@ export type KeywordConditionsRequest = {
 
 export type NotificationResponse = {
     id: number;
-    // KEYWORD. 뒤에 주문 취소 알림 등이 더해진다
+    // KEYWORD 또는 ORDER(include=ORDER로 받을 때만)
     type: string;
     listingId: number;
     title?: string | null;
@@ -178,6 +179,15 @@ export type NotificationResponse = {
     // 알림함에서 눌러 봤는지
     read: boolean;
     createdAt: string;
+    // 주문 알림만. ORDER_CONFIRMED·LISTING_SOLD 등
+    kind?: string | null;
+    orderId?: number | null;
+    // BUYER·SELLER. 누르면 갈 화면을 고른다
+    recipient?: string | null;
+    // 상태 문구. 예: 기사가 배정됐어요
+    headline?: string | null;
+    // 정산 확정 알림의 정산 금액. 그 밖에는 null
+    amount?: number | null;
 };
 
 export type DeviceTokenRequest = {

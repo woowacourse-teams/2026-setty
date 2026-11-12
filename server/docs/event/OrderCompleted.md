@@ -11,8 +11,10 @@
 | 수신자 | 처리 |
 | --- | --- |
 | [`ListingDeliveryEventListener#onOrderCompleted`](../../src/main/java/setty/platform/listing/application/ListingDeliveryEventListener.java) | 발행 트랜잭션 커밋 후 별도 트랜잭션에서 주문에 연결된 매물을 판매 완료(`SOLD`)로 전이한다. 이미 `SOLD`이면 건너뛴다. |
-| [`SettlementEventListener#handle`](../../src/main/java/setty/settlement/event/SettlementEventListener.java) | 발행 트랜잭션 커밋 후 별도 트랜잭션에서 주문의 정산 결론을 판매 완료로 기록하고 `PENDING` 정산을 `CONFIRMED`로 바꾼다. 이후 기록되는 정산도 바로 확정한다. 이미 결론 난 주문이면 건너뛴다. |
+| [`SettlementEventListener#handle`](../../src/main/java/setty/settlement/event/SettlementEventListener.java) | 발행 트랜잭션 커밋 후 별도 트랜잭션에서 주문의 정산 결론을 판매 완료로 기록하고 `PENDING` 정산을 `CONFIRMED`로 바꾼다. 판매자 정산이 확정되면 `SettlementConfirmed`를, 기사 정산이 확정되면 `DriverSettlementConfirmed`를 발행한다. 이후 기록되는 정산도 바로 확정한다. 이미 결론 난 주문이면 건너뛴다. |
 
 ## 다음 확인할 이벤트 문서
 
-- 현재 코드에서 확인한 후속 이벤트 문서 없음.
+- [OrderStatusNotified.md](OrderStatusNotified.md): 판매 완료로 전이할 때 함께 발행한다(`COMPLETED`).
+- [SettlementConfirmed.md](SettlementConfirmed.md): 정산 수신자가 판매자 정산을 `CONFIRMED`로 바꿀 때 발행한다.
+- [DriverSettlementConfirmed.md](DriverSettlementConfirmed.md): 정산 수신자가 기사 정산을 `CONFIRMED`로 바꿀 때 발행한다.

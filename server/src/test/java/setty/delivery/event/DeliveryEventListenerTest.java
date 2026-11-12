@@ -7,9 +7,12 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.lang.reflect.Method;
+import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -19,6 +22,8 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
+import setty.address.AddressService;
+import setty.address.StandardAddress;
 import setty.common.OrderCancellationRequested;
 import setty.common.OrderConfirmed;
 import setty.delivery.application.DeliveryLifecycleService;
@@ -33,11 +38,15 @@ class DeliveryEventListenerTest {
 
     private final RegisterDeliveryService registerDeliveryService = mock(RegisterDeliveryService.class);
     private final DeliveryLifecycleService deliveryLifecycleService = mock(DeliveryLifecycleService.class);
+    private final AddressService addressService = mock(AddressService.class);
     private final DeliveryEventListener listener =
-            new DeliveryEventListener(registerDeliveryService, deliveryLifecycleService);
+            new DeliveryEventListener(registerDeliveryService, deliveryLifecycleService, addressService);
 
     @Test
     void translatesOrderConfirmedIntoDomainValuesAndDelegates() {
+        when(addressService.findByManagementNumber("SELLER-MGMT")).thenReturn(Optional.of(building(37.4985, 126.9520)));
+        when(addressService.findByManagementNumber("BUYER-MGMT")).thenReturn(Optional.of(building(37.5665, 126.9780)));
+
         listener.handle(new OrderConfirmed(
                 101L,
                 "가상 원목 의자",
@@ -53,15 +62,16 @@ class DeliveryEventListenerTest {
                 "1111053000",
                 "1111060000",
                 "04524",
-                "06236"
+                "06236", "SELLER-MGMT", "BUYER-MGMT"
         ));
 
         verify(registerDeliveryService).register(
                 eq(OrderId.from(101L)),
                 eq(FurnitureInfo.of("가상 원목 의자", "CHAIR")),
                 eq(DeliveryRoute.of(
-                        DeliveryPoint.pickup("서울시 가상구 출발로 1", "010-0000-0001", "1111060000", "04524"),
-                        DeliveryPoint.destination("서울시 가상구 도착로 2", "010-0000-0002", "1111053000", "06236")
+                        DeliveryPoint.pickup("서울시 가상구 출발로 1", "010-0000-0001", "1111060000", "04524", 1_468_580_097),
+                        DeliveryPoint.destination("서울시 가상구 도착로 2", "010-0000-0002", "1111053000", "06236",
+                                1_468_875_040)
                 )),
                 eq(EstimatedDeliveryFee.from(10_000)),
                 any(Instant.class)
@@ -69,16 +79,36 @@ class DeliveryEventListenerTest {
     }
 
     @Test
-    void 구역이_없는_주문도_배송_요청으로_번역한다() {
+    void 건물_좌표가_없으면_칸을_비운다() {
+        when(addressService.findByManagementNumber("SELLER-MGMT"))
+                .thenReturn(Optional.of(new StandardAddress("SELLER-MGMT", "도로명 주소", null, "04524", null, null, null)));
+
         listener.handle(new OrderConfirmed(101L, "가상 원목 의자", "CHAIR", "출발 주소", "도착 주소", 10_000,
-                "010-0000-0001", "010-0000-0002", 10L, 1L, 150_000, null, null, null, null));
+                "010-0000-0001", "010-0000-0002", 10L, 1L, 150_000, null, null, null, null, "SELLER-MGMT", null));
 
         verify(registerDeliveryService).register(
                 eq(OrderId.from(101L)),
                 any(),
                 eq(DeliveryRoute.of(
-                        DeliveryPoint.pickup("출발 주소", "010-0000-0001", null, null),
-                        DeliveryPoint.destination("도착 주소", "010-0000-0002", null, null)
+                        DeliveryPoint.pickup("출발 주소", "010-0000-0001", null, null, null),
+                        DeliveryPoint.destination("도착 주소", "010-0000-0002", null, null, null)
+                )),
+                any(),
+                any(Instant.class)
+        );
+    }
+
+    @Test
+    void 구역이_없는_주문도_배송_요청으로_번역한다() {
+        listener.handle(new OrderConfirmed(101L, "가상 원목 의자", "CHAIR", "출발 주소", "도착 주소", 10_000,
+                "010-0000-0001", "010-0000-0002", 10L, 1L, 150_000, null, null, null, null, null, null));
+
+        verify(registerDeliveryService).register(
+                eq(OrderId.from(101L)),
+                any(),
+                eq(DeliveryRoute.of(
+                        DeliveryPoint.pickup("출발 주소", "010-0000-0001", null, null, null),
+                        DeliveryPoint.destination("도착 주소", "010-0000-0002", null, null, null)
                 )),
                 any(),
                 any(Instant.class)
@@ -111,7 +141,7 @@ class DeliveryEventListenerTest {
         assertThatThrownBy(() -> listener.handle(new OrderConfirmed(
                 0L, "가상 원목 의자", "CHAIR", "서울시 가상구 출발로 1", "서울시 가상구 도착로 2",
                 10_000, "010-0000-0001", "010-0000-0002", 10L, 1L, 150_000,
-                null, null, null, null
+                null, null, null, null, null, null
         ))).isInstanceOf(RuntimeException.class);
     }
 
@@ -128,5 +158,10 @@ class DeliveryEventListenerTest {
         assertThat(listenerAnnotation.phase()).isEqualTo(TransactionPhase.AFTER_COMMIT);
         assertThat(listenerAnnotation.fallbackExecution()).isFalse();
         assertThat(transactional.propagation()).isEqualTo(Propagation.REQUIRES_NEW);
+    }
+
+    private static StandardAddress building(final double latitude, final double longitude) {
+        return new StandardAddress("MGMT", "도로명 주소", null, "00000", null,
+                BigDecimal.valueOf(latitude), BigDecimal.valueOf(longitude));
     }
 }

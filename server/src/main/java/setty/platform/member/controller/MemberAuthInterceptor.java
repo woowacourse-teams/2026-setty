@@ -7,6 +7,7 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 import setty.global.auth.InvalidTokenResponse;
+import setty.global.auth.LoginTokenLifetime;
 import setty.platform.member.domain.Member;
 import setty.platform.member.repository.MemberRepository;
 
@@ -16,13 +17,16 @@ public class MemberAuthInterceptor implements HandlerInterceptor {
     static final String LOGIN_MEMBER = "loginMember";
 
     private final MemberRepository memberRepository;
+    private final LoginTokenLifetime loginTokenLifetime;
     private final MeterRegistry meterRegistry;
 
     public MemberAuthInterceptor(
             final MemberRepository memberRepository,
+            final LoginTokenLifetime loginTokenLifetime,
             final ObjectProvider<MeterRegistry> meterRegistries
     ) {
         this.memberRepository = memberRepository;
+        this.loginTokenLifetime = loginTokenLifetime;
         this.meterRegistry = meterRegistries.getIfAvailable();
     }
 
@@ -48,7 +52,7 @@ public class MemberAuthInterceptor implements HandlerInterceptor {
                 : meterRegistry.timer("setty.auth.repository.lookup", "repository", "member",
                         "dispatcher", request.getDispatcherType().name())
                         .record(() -> memberRepository.findByToken(token).orElse(null));
-        if (member == null) {
+        if (member == null || loginTokenLifetime.isExpired(member.getTokenExpiresAt())) {
             InvalidTokenResponse.write(response);
             return false;
         }

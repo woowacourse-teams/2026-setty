@@ -41,7 +41,7 @@ class DeliveryValueObjectTest {
 
     @Test
     void routeRequiresPickupAndDestination() {
-        final DeliveryPoint point = DeliveryPoint.destination("가상 도착지", "010-0000-0002", null, null);
+        final DeliveryPoint point = DeliveryPoint.destination("가상 도착지", "010-0000-0002", null, null, null);
 
         assertInvalid(() -> DeliveryRoute.of(null, point));
         assertInvalid(() -> DeliveryRoute.of(point, null));
@@ -49,8 +49,8 @@ class DeliveryValueObjectTest {
 
     @Test
     void pointRequiresAddressAndPhoneNumber() {
-        assertInvalid(() -> DeliveryPoint.pickup(null, "010-0000-0001", null, null));
-        assertInvalid(() -> DeliveryPoint.pickup("가상 출발지", " ", null, null));
+        assertInvalid(() -> DeliveryPoint.pickup(null, "010-0000-0001", null, null, null));
+        assertInvalid(() -> DeliveryPoint.pickup("가상 출발지", " ", null, null, null));
     }
 
     @Test

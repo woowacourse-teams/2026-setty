@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { notificationRepository } from '../../api/repositories';
 import { formatWon } from '../../model/furniture';
-import { formatNotifiedAt, isNotifiedListingClosed, type Notification } from '../../model/notification';
-import { routes, useNavigateBack, useNavigateToLogin } from '../../navigation';
+import { formatNotifiedAt, isNotifiedListingClosed, notificationPath, type Notification } from '../../model/notification';
+import { useNavigateBack, useNavigateToLogin } from '../../navigation';
 import { readAllNotifications, readNotification } from '../../push/unreadNotifications';
 import {
     BackIconButton,
@@ -29,21 +29,21 @@ export function NotificationsScreen() {
     const navigateToLogin = useNavigateToLogin();
     const { state, isRefreshing, load, refresh } = useLoad(notificationRepository.getMine);
 
-    // 서버 응답을 다시 받기 전에도 누른 알림이 바로 읽음으로 보이게 한다
-    const [readIds, setReadIds] = useState<ReadonlySet<number>>(new Set());
-    const isRead = (notification: Notification) => notification.read || readIds.has(notification.id);
+    // 서버 응답을 다시 받기 전에도 누른 알림이 바로 읽음으로 보이게 한다. 두 종류의 id가 겹칠 수 있어 종류를 붙여 센다.
+    const [readKeys, setReadKeys] = useState<ReadonlySet<string>>(new Set());
+    const isRead = (notification: Notification) => notification.read || readKeys.has(keyOf(notification));
     const hasUnread = state.status === 'success' && state.data.some((notification) => !isRead(notification));
 
     /** 읽음 표시는 실패해도 화면 이동을 막지 않는다. */
     const open = (notification: Notification) => {
-        void notificationRepository.ack(notification.id).catch(() => undefined);
-        if (!isRead(notification)) void readNotification(notification.id);
-        navigate(routes.furnitureDetail(notification.listingId));
+        void notificationRepository.ack(notification).catch(() => undefined);
+        if (!isRead(notification)) void readNotification(notification);
+        navigate(notificationPath(notification.listingId, notification.order));
     };
 
     const readAll = () => {
         if (state.status !== 'success') return;
-        setReadIds(new Set(state.data.map((notification) => notification.id)));
+        setReadKeys(new Set(state.data.map(keyOf)));
         void readAllNotifications();
     };
 
@@ -67,7 +67,7 @@ export function NotificationsScreen() {
                         {state.data.length === 0 && (
                             <CenterFill>
                                 <SettyMessage
-                                    description="키워드를 등록해 두면 새 매물이 올라올 때 여기에 쌓여요."
+                                    description="관심 키워드의 새 매물과 주문·배송 소식이 여기에 쌓여요."
                                     title="아직 받은 알림이 없어요"
                                 />
                             </CenterFill>
@@ -76,18 +76,24 @@ export function NotificationsScreen() {
                             {state.data.map((notification, index) => (
                                 <SegmentedListItem
                                     count={state.data.length}
-                                    headline={(
-                                        <span className={closedClass(notification)}>
-                                            <span className="type-title-medium">{notification.title ?? '삭제된 가구'}</span>
-                                        </span>
-                                    )}
+                                    headline={notification.order
+                                        ? <span className="type-title-medium">{notification.order.headline}</span>
+                                        : (
+                                            <span className={closedClass(notification)}>
+                                                <span className="type-title-medium">{notification.title ?? '삭제된 가구'}</span>
+                                            </span>
+                                        )}
                                     index={index}
-                                    key={notification.id}
+                                    key={keyOf(notification)}
                                     leading={!isRead(notification) && <span aria-label="안 읽음" className={styles['unread-dot']} role="img" />}
                                     onClick={() => open(notification)}
-                                    overline={<span className={closedClass(notification)}>{`관심 키워드의 새 매물 · ${formatNotifiedAt(notification.createdAt)}`}</span>}
+                                    overline={notification.order
+                                        ? `${notification.order.recipient === 'BUYER' ? '내 주문' : '내 판매 가구'} · ${formatNotifiedAt(notification.createdAt)}`
+                                        : <span className={closedClass(notification)}>{`관심 키워드의 새 매물 · ${formatNotifiedAt(notification.createdAt)}`}</span>}
                                     style={isRead(notification) ? undefined : { background: 'color-mix(in srgb, var(--primary) 10%, var(--surface-container))' }}
-                                    supporting={<NotifiedListingSummary notification={notification} />}
+                                    supporting={notification.order
+                                        ? <span className="type-label-medium">{orderSupportingOf(notification)}</span>
+                                        : <NotifiedListingSummary notification={notification} />}
                                 />
                             ))}
                         </SegmentedList>
@@ -96,6 +102,17 @@ export function NotificationsScreen() {
             )}
         </Scaffold>
     );
+}
+
+function keyOf(notification: Notification): string {
+    return `${notification.type}-${notification.id}`;
+}
+
+/** 정산 확정 알림은 매물 제목 뒤에 정산 금액을 붙인다. */
+function orderSupportingOf(notification: Notification): string {
+    const title = notification.title ?? '삭제된 가구';
+    const amount = notification.order?.amount;
+    return amount == null ? title : `${title} · ${formatWon(amount)}`;
 }
 
 function closedClass(notification: Notification): string | undefined {

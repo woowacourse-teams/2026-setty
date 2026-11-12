@@ -50,7 +50,7 @@ class TossPaymentClientTimeoutTest {
     }
 
     @Test
-    void 응답이_제한_시간보다_늦으면_승인_실패다() {
+    void 응답이_제한_시간보다_늦으면_결과_확인_중으로_끝난다() {
         respondAfter(Duration.ofSeconds(3));
 
         assertConfirmFailsWithinTimeout();
@@ -58,10 +58,30 @@ class TossPaymentClientTimeoutTest {
     }
 
     @Test
-    void 응답이_오지_않아도_제한_시간에_승인_실패로_끝난다() {
+    void 응답이_오지_않아도_제한_시간에_결과_확인_중으로_끝난다() {
         server.createContext("/v1/payments/confirm", exchange -> {
             confirmRequests.incrementAndGet();
             exchange.getRequestBody().readAllBytes();
+            await(release);
+            exchange.close();
+        });
+
+        assertConfirmFailsWithinTimeout();
+        assertThat(confirmRequests).hasValue(1);
+    }
+
+    // 헤더는 곧바로 오고 본문이 멈추는 경우. JDK HttpClient 자체 timeout은 헤더까지만 잰다(JDK-8258397).
+    // JdkClientHttpRequestFactory의 읽기 제한이 본문 읽기까지 끊어 주는지 확인한다.
+    @Test
+    void 헤더만_오고_본문이_멈춰도_제한_시간에_결과_확인_중으로_끝난다() {
+        server.createContext("/v1/payments/confirm", exchange -> {
+            confirmRequests.incrementAndGet();
+            exchange.getRequestBody().readAllBytes();
+            final byte[] bytes = DONE_BODY.getBytes(StandardCharsets.UTF_8);
+            exchange.getResponseHeaders().add("Content-Type", "application/json");
+            exchange.sendResponseHeaders(200, bytes.length);
+            exchange.getResponseBody().write(bytes, 0, bytes.length / 2);
+            exchange.getResponseBody().flush();
             await(release);
             exchange.close();
         });
@@ -74,7 +94,7 @@ class TossPaymentClientTimeoutTest {
     void 제한_시간_안에_온_응답은_승인된다() {
         respondAfter(Duration.ofMillis(100));
 
-        assertThat(client().confirm("pk", "1_a", 1000).status()).isEqualTo("DONE");
+        assertThat(client().confirm("pk", "1_a", 1000).status()).isEqualTo(TossPaymentStatus.DONE);
     }
 
     @Test
@@ -94,7 +114,7 @@ class TossPaymentClientTimeoutTest {
 
         assertThatThrownBy(() -> client().confirm("pk", "1_a", 1000))
                 .isInstanceOfSatisfying(BusinessException.class,
-                        e -> assertThat(e.getErrorCode()).isEqualTo(ErrorCode.PAYMENT_CONFIRM_FAILED));
+                        e -> assertThat(e.getErrorCode()).isEqualTo(ErrorCode.PAYMENT_IN_PROGRESS));
         assertThat(Duration.ofNanos(System.nanoTime() - startedAt)).isLessThan(Duration.ofSeconds(2));
     }
 

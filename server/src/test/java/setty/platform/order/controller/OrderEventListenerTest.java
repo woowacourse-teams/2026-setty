@@ -10,7 +10,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import setty.common.DeliveryCancelled;
 import setty.common.DeliveryCancellationRejected;
-import setty.common.PaymentCompleted;
 import setty.platform.order.service.OrderService;
 import setty.platform.order.service.SyncOrderDeliveryStatusService;
 
@@ -25,13 +24,6 @@ class OrderEventListenerTest {
 
     @InjectMocks
     private OrderEventListener listener;
-
-    @Test
-    void 결제완료_이벤트를_배송요청_이벤트_발행으로_위임한다() {
-        listener.onPaymentCompleted(new PaymentCompleted(101L));
-
-        verify(orderService).publishOrderConfirmed(101L);
-    }
 
     @Test
     void 배송_취소_성공_응답을_주문_취소_확정으로_위임한다() {
@@ -51,6 +43,6 @@ class OrderEventListenerTest {
 
         listener.onDeliveryCancellationRejected(event);
 
-        verify(orderService).rejectCancellation(101L, "cancel-1", decidedAt);
+        verify(orderService).rejectCancellation(101L, "cancel-1", decidedAt,"DRIVER_ACCEPTED_OR_LATER");
     }
 }

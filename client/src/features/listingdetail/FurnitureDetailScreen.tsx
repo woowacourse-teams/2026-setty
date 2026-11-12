@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router';
+import { Link, useNavigate, useParams } from 'react-router';
+import { listingViewProperties } from '../../analytics/listingViewProperties';
 import { trackEvent } from '../../analytics/posthog';
 import { getPriceVariant } from '../../analytics/priceScenario';
 import { isUnauthorized, toUserMessage } from '../../api/errors';
 import { ApiError, NetworkError } from '../../api/http';
-import { favoriteRepository, furnitureRepository, notificationRepository } from '../../api/repositories';
+import { favoriteRepository, furnitureRepository } from '../../api/repositories';
 import {
+    canEditOwnListing,
     canResumePayment,
     categoryLabel,
     formatWon,
@@ -13,10 +15,11 @@ import {
     isPaymentInProgress,
     isPurchasable,
     isTrading,
-    type FurnitureDetail
+    type FurnitureDetail,
+    type FurnitureSummary
 } from '../../model/furniture';
 import { routes, useNavigateBack, useNavigateToLogin, useNavigateToLoginFromHere } from '../../navigation';
-import { readNotification } from '../../push/unreadNotifications';
+import { useNotificationOpenedFromUrl } from '../../push/openedNotification';
 import {
     BackIconButton,
     BottomBar,
@@ -30,6 +33,7 @@ import {
     SectionTitle,
     SettyMessage
 } from '../../ui/components';
+import { Icon } from '../../ui/Icon';
 import { shapeStyle } from '../../ui/shapes';
 import { showSnackbar } from '../../ui/snackbar';
 import screenStyles from '../screens.module.css';
@@ -62,6 +66,7 @@ const detailErrorMessages: Record<DetailError, string> = {
 };
 
 function purchaseButtonLabel(listing: FurnitureDetail): string {
+    if (listing.ownedByMe) return canEditOwnListing(listing) ? '내 매물 수정하기' : '거래가 진행 중인 내 매물이에요';
     if (isPurchasable(listing)) return '결제하고 주문하기';
     if (canResumePayment(listing)) return '결제 이어서 하기';
     if (hasMyOrder(listing)) return '내 주문 보기';
@@ -78,24 +83,12 @@ export function FurnitureDetailScreen() {
     const navigateBack = useNavigateBack();
     const navigateToLogin = useNavigateToLogin();
     const navigateToLoginFromHere = useNavigateToLoginFromHere();
-    const [searchParams, setSearchParams] = useSearchParams();
     const [state, setState] = useState<DetailState>({ status: 'loading' });
     const [favorite, setFavorite] = useState<FavoriteState>({ isFavorited: null, isUpdating: false, requiresLogin: false });
     // 찜 수는 상세 응답에서 받고, 찜을 누르면 서버 응답을 기다리지 않고 먼저 바꾼다
     const [favoriteCount, setFavoriteCount] = useState(0);
 
-    // 푸시 알림을 눌러 들어오면 주소의 notificationId로 확인 처리하고 주소에서 지운다
-    useEffect(() => {
-        const notificationId = Number(searchParams.get('notificationId'));
-        if (!searchParams.has('notificationId')) return;
-        if (Number.isSafeInteger(notificationId)) {
-            void notificationRepository.ack(notificationId).catch(() => undefined);
-            void readNotification(notificationId);
-        }
-        const next = new URLSearchParams(searchParams);
-        next.delete('notificationId');
-        setSearchParams(next, { replace: true });
-    }, [searchParams, setSearchParams]);
+    useNotificationOpenedFromUrl();
     const favoriteRef = useRef(favorite);
     favoriteRef.current = favorite;
 
@@ -110,17 +103,25 @@ export function FurnitureDetailScreen() {
     }, [furnitureId]);
 
     useEffect(() => {
+        let active = true;
         load();
+        // 비슷한 매물로 다른 상세에 오면 같은 화면이 유지되므로 이전 매물의 찜 상태를 비우고, 늦게 온 이전 매물의 응답은 버린다
+        setFavorite({ isFavorited: null, isUpdating: false, requiresLogin: false });
         // 찜 여부는 부가 정보라 실패해도 알리지 않는다. 비로그인(401)은 빈 하트로 두고, 그 밖의 실패는 토글만 막는다
         favoriteRepository.isFavorited(furnitureId)
-            .then((isFavorited) => setFavorite((current) => ({ ...current, isFavorited })))
+            .then((isFavorited) => {
+                if (active) setFavorite((current) => ({ ...current, isFavorited }));
+            })
             .catch((error: unknown) => {
-                if (isUnauthorized(error)) setFavorite((current) => ({ ...current, isFavorited: false, requiresLogin: true }));
+                if (active && isUnauthorized(error)) setFavorite((current) => ({ ...current, isFavorited: false, requiresLogin: true }));
             });
+        return () => {
+            active = false;
+        };
     }, [furnitureId, load]);
 
     useEffect(() => {
-        if (state.status === 'success') trackEvent('product_viewed', { listing_id: state.listing.id });
+        if (state.status === 'success') trackEvent('product_viewed', listingViewProperties(state.listing));
     }, [state]);
 
     const toggleFavorite = async () => {
@@ -169,9 +170,13 @@ export function FurnitureDetailScreen() {
             bottomBar={listing && (
                 <BottomBar>
                     <Button
-                        disabled={!isPurchasable(listing) && !canResumePayment(listing) && !hasMyOrder(listing)}
+                        disabled={listing.ownedByMe
+                            ? !canEditOwnListing(listing)
+                            : !isPurchasable(listing) && !canResumePayment(listing) && !hasMyOrder(listing)}
                         fullWidth
-                        onClick={() => (hasMyOrder(listing) && listing.myOrderId !== null
+                        onClick={() => (listing.ownedByMe
+                            ? navigate(routes.listingEdit(listing.id))
+                            : hasMyOrder(listing) && listing.myOrderId !== null
                             ? navigate(routes.orderDetail(listing.myOrderId))
                             : navigate(routes.payment(listing.id), { state: { orderName: listing.title, amount: listing.totalPrice, resuming: canResumePayment(listing) } }))}
                         size="medium"
@@ -184,7 +189,8 @@ export function FurnitureDetailScreen() {
                 <FlexibleTopAppBar
                     actions={listing && (
                         <span className={styles['favorite-action']}>
-                            <IconButton
+                            {listing.ownedByMe && <Icon className={styles['favorite-action__icon']} name="favorite" size={20} />}
+                            {!listing.ownedByMe && <IconButton
                                 aria-busy={favorite.isUpdating}
                                 aria-pressed={favorite.isFavorited === true}
                                 // 요청 중 연속 클릭은 toggleFavorite가 막는다. 비활성으로 바꾸면 아이콘이 잠깐 흐려져 깜빡인다
@@ -193,7 +199,7 @@ export function FurnitureDetailScreen() {
                                 label={favorite.isFavorited ? '찜 해제' : '찜하기'}
                                 onClick={() => void toggleFavorite()}
                                 variant={favorite.isFavorited ? 'tonal' : 'tonal-off'}
-                            />
+                            />}
                             <span aria-label={`찜 ${favoriteCount}개`} className={`${styles['favorite-action__count']} type-label-large`}>
                                 {favoriteCount}
                             </span>
@@ -264,7 +270,54 @@ function ListingDetailBody({ listing }: { listing: FurnitureDetail }) {
                 <SectionTitle>상세 설명</SectionTitle>
                 <p className={`${styles.description} type-body-large-em`}>{listing.description}</p>
             </section>
+            <SimilarListings listingId={listing.id} showDeliveryCosts={showDeliveryCosts} />
         </div>
+    );
+}
+
+// 추천은 부가 정보라 실패하거나 비어 있으면 영역을 감춘다
+function SimilarListings({ listingId, showDeliveryCosts }: { listingId: number; showDeliveryCosts: boolean }) {
+    const [items, setItems] = useState<FurnitureSummary[]>([]);
+
+    useEffect(() => {
+        let active = true;
+        setItems([]);
+        furnitureRepository.getSimilarFurniture(listingId)
+            .then((similar) => {
+                if (!active) return;
+                setItems(similar);
+                if (similar.length > 0) trackEvent('similar_listings_shown', { listing_id: listingId, count: similar.length });
+            })
+            .catch(() => undefined);
+        return () => {
+            active = false;
+        };
+    }, [listingId]);
+
+    if (items.length === 0) return null;
+    return (
+        <section className={styles.section}>
+            <SectionTitle>비슷한 매물</SectionTitle>
+            <ul className={styles['similar-listings']}>
+                {items.map((item, index) => (
+                    <li key={item.id}>
+                        <Link
+                            className={styles['similar-listing']}
+                            onClick={() => trackEvent('similar_listing_clicked', { listing_id: listingId, clicked_listing_id: item.id, position: index })}
+                            to={routes.furnitureDetail(item.id)}
+                        >
+                            <div className={styles['similar-listing__image']}>
+                                {item.thumbnailUrl
+                                    ? <img alt="" loading="lazy" src={item.thumbnailUrl} />
+                                    : <span className="type-body-medium-em">사진 없음</span>}
+                            </div>
+                            <span className={`${styles['similar-listing__title']} type-body-medium-em`}>{item.title}</span>
+                            <span className="type-title-small-em">{formatWon(showDeliveryCosts ? item.totalPrice : item.price)}</span>
+                        </Link>
+                    </li>
+                ))}
+            </ul>
+        </section>
     );
 }
 
