@@ -57,11 +57,17 @@ test('기사 수락으로 취소할 수 없으면 사유 아래에 주문 상태
     });
     assert.match(html, /배송원이 배차를 수락했어요\.<\/p><p class="meta">이번 상담으로 주문 상태는 바뀌지 않았어요\./);
 });
-
 test('취소 가능한 주문에는 주문 상태가 바뀌지 않았다는 문구를 표시하지 않는다', () => {
     assert.doesNotMatch(render(), /이번 상담으로 주문 상태는 바뀌지 않았어요\./);
 });
-
+test('취소 요청 처리 중에는 주문 상태가 바뀌지 않았다는 문구를 표시하지 않는다', () => {
+    const html = render({
+        eligibility: 'INELIGIBLE',
+        reasonCode: 'CANCELLATION_PENDING',
+        cancellationOffer: false,
+    });
+    assert.doesNotMatch(html, /이번 상담으로 주문 상태는 바뀌지 않았어요\./);
+});
 test('과거 턴에는 재확인 버튼이 없고 마지막 만료 턴에만 한 개 있다', () => {
     const expired = { confirmationExpiresAt: '2020-01-01T00:00:00Z' };
     const old = render(expired, false);
