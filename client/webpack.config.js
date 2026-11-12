@@ -9,6 +9,8 @@ const apiProxyTarget = process.env.SETTY_API_URL ?? 'http://localhost:8080';
 const tossClientKey = process.env.SETTY_TOSS_CLIENT_KEY ?? 'test_gck_docs_Ovk5rk1EwkEbP0W43n07xlzm';
 const enableSoldListingScenario = process.env.ENABLE_SOLD_LISTING_SCENARIO === 'true';
 const enablePriceScenario = process.env.SETTY_ENABLE_PRICE_SCENARIO === 'true';
+// 부스 시연용 빌드에서 회원가입의 거래 정보를 시연 값으로 채우는 버튼을 보여준다.
+const enableDemoFill = process.env.SETTY_ENABLE_DEMO_FILL === 'true';
 // PostHog 프로젝트 API 키(phc_…). 비어 있으면 행동 데이터를 수집하지 않는다. buildspec이 SETTY_* 변수를 빌드 해시에 포함한다.
 const posthogKey = process.env.SETTY_POSTHOG_KEY ?? '';
 const posthogHost = process.env.SETTY_POSTHOG_HOST ?? 'https://us.i.posthog.com';
@@ -87,6 +89,7 @@ function appConfig(isProduction) {
                 __TOSS_CLIENT_KEY__: JSON.stringify(tossClientKey),
                 __ENABLE_SOLD_LISTING_SCENARIO__: JSON.stringify(enableSoldListingScenario),
                 __ENABLE_PRICE_SCENARIO__: JSON.stringify(enablePriceScenario),
+                __ENABLE_DEMO_FILL__: JSON.stringify(enableDemoFill),
                 __POSTHOG_KEY__: JSON.stringify(posthogKey),
                 __POSTHOG_HOST__: JSON.stringify(posthogHost),
                 __FIREBASE_CONFIG__: JSON.stringify(firebaseConfig),
