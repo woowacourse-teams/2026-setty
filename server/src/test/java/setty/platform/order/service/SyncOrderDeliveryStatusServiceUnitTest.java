@@ -1,8 +1,12 @@
 package setty.platform.order.service;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.time.Instant;
@@ -76,6 +80,35 @@ class SyncOrderDeliveryStatusServiceUnitTest {
 
         verify(orderStatusNotifier).notify(order, OrderStatusNotified.Change.DELIVERY_ACCEPTED, CHANGED_AT);
         verify(orderStatusNotifier).notify(order, OrderStatusNotified.Change.DELIVERY_ACCEPTED, reacceptedAt);
+    }
+
+    @Test
+    void 배차_취소로_되돌리면_취소_시각으로_알린다() {
+        final Order order = new Order(10L, 20L);
+        when(orderRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(order));
+        final Instant cancelledAt = CHANGED_AT.plusSeconds(60);
+
+        service.sync(1L, 1L, CHANGED_AT, DeliveryStatus.ACCEPTED);
+        service.reopen(1L, 1L, CHANGED_AT, cancelledAt);
+        service.reopen(1L, 1L, CHANGED_AT, cancelledAt.plusSeconds(1));
+
+        verify(orderStatusNotifier).notify(order, OrderStatusNotified.Change.DELIVERY_ACCEPTED, CHANGED_AT);
+        verify(orderStatusNotifier).notify(order, OrderStatusNotified.Change.DELIVERY_ASSIGNMENT_CANCELLED, cancelledAt);
+        verifyNoMoreInteractions(orderStatusNotifier);
+    }
+
+    @Test
+    void 다른_배차가_먼저_반영된_뒤_늦게_온_취소는_알리지_않는다() {
+        final Order order = new Order(10L, 20L);
+        when(orderRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(order));
+        final Instant reacceptedAt = CHANGED_AT.plusSeconds(120);
+
+        service.sync(1L, 1L, CHANGED_AT, DeliveryStatus.ACCEPTED);
+        service.sync(2L, 1L, reacceptedAt, DeliveryStatus.ACCEPTED);
+        service.reopen(1L, 1L, CHANGED_AT, reacceptedAt.plusSeconds(1));
+
+        verify(orderStatusNotifier, never())
+                .notify(eq(order), eq(OrderStatusNotified.Change.DELIVERY_ASSIGNMENT_CANCELLED), any());
     }
 
     @Test

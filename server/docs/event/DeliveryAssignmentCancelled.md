@@ -10,10 +10,11 @@
 
 | 수신자 | 처리 |
 | --- | --- |
-| [`OrderEventListener#onDeliveryAssignmentCancelled`](../../src/main/java/setty/platform/order/controller/OrderEventListener.java) | 주문의 배송 상태가 `ACCEPTED`이고 기록된 수락 시각이 `acceptedAt`과 같을 때만 `REQUESTED`로 되돌린다. 이미 다른 기사의 수락이 반영됐거나, `PICKED_UP` 이후이거나, 같은 취소가 다시 와서 이미 `REQUESTED`인 경우(중복)는 건너뛰고 로그를 남긴다. 리스너가 비동기라 이벤트 순서가 바뀌어 도착할 수 있어 시각 크기가 아니라 같은 배차인지로 판단한다. |
+| [`OrderEventListener#onDeliveryAssignmentCancelled`](../../src/main/java/setty/platform/order/controller/OrderEventListener.java) | 주문의 배송 상태가 `ACCEPTED`이고 기록된 수락 시각이 `acceptedAt`과 같을 때만 `REQUESTED`로 되돌린다. 되돌렸으면 [`OrderStatusNotified`](OrderStatusNotified.md)(`DELIVERY_ASSIGNMENT_CANCELLED`)를 발행해 구매자·판매자에게 알린다. 이미 다른 기사의 수락이 반영됐거나, `PICKED_UP` 이후이거나, 같은 취소가 다시 와서 이미 `REQUESTED`인 경우(중복)는 건너뛰고 로그를 남긴다. 리스너가 비동기라 이벤트 순서가 바뀌어 도착할 수 있어 시각 크기가 아니라 같은 배차인지로 판단한다. |
 
 매물은 수신하지 않는다. 예약(`RESERVED`)은 유지하고, 이후 구매자 취소가 확정되면 [OrderCancelled.md](OrderCancelled.md)에서 해제한다.
 
 ## 다음 확인할 이벤트 문서
 
+- [OrderStatusNotified.md](OrderStatusNotified.md): 주문 수신자가 배송 상태를 `REQUESTED`로 되돌렸을 때 발행한다. 되돌리지 않은 경우는 발행하지 않는다.
 - [DeliveryRequestsChanged.md](DeliveryRequestsChanged.md): `cancelAssignment` 처리에서 배차 취소 이벤트와 함께 발행한다.

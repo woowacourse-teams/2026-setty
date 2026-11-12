@@ -62,10 +62,12 @@ public class SyncOrderDeliveryStatusService {
         validateEvent(deliveryId, orderId, changedAt, DeliveryStatus.REQUESTED);
         final Order order = orderRepository.findByIdForUpdate(orderId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
-        if (!order.reopenDelivery(cancelledAcceptedAt, changedAt)) {
-            LOGGER.info("이미 다른 배차가 반영돼 배차 취소를 주문에 반영하지 않습니다. deliveryId={}, orderId={}, deliveryStatus={}",
-                    deliveryId, orderId, order.getDeliveryStatus());
+        if (order.reopenDelivery(cancelledAcceptedAt, changedAt)) {
+            orderStatusNotifier.notify(order, OrderStatusNotified.Change.DELIVERY_ASSIGNMENT_CANCELLED, changedAt);
+            return;
         }
+        LOGGER.info("이미 다른 배차가 반영돼 배차 취소를 주문에 반영하지 않습니다. deliveryId={}, orderId={}, deliveryStatus={}",
+                deliveryId, orderId, order.getDeliveryStatus());
     }
 
     private void validateEvent(

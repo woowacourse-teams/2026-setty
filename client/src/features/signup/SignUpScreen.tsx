@@ -2,6 +2,7 @@ import { useState, type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router';
 import { ApiError, NetworkError } from '../../api/http';
 import { userRepository } from '../../api/repositories';
+import { randomDemoContact } from '../../model/demoContact';
 import {
     ADDRESS_MAX_LENGTH,
     digitsOnly,
@@ -11,6 +12,7 @@ import {
 } from '../../model/member';
 import { accountRoleOf, routes } from '../../navigation';
 import { BottomBar, Button, LoadingIndicator, Scaffold, TextField } from '../../ui/components';
+import { Icon } from '../../ui/Icon';
 import { showSnackbar } from '../../ui/snackbar';
 import { DongField, useDongCatalog } from '../dong/DongField';
 import { AccountRoleToggle } from '../login/AccountRoleToggle';
@@ -93,6 +95,18 @@ function MemberSignUpScreen() {
 
     const update = (patch: Partial<SignUpForm>) => setForm((current) => ({ ...current, ...patch }));
 
+    // 부스 시연에서 가입을 빨리 끝내도록 아이디·비밀번호 밖의 칸을 채운다
+    const fillDemoContact = (): boolean => {
+        if (catalog.status !== 'success') return false;
+        const contact = randomDemoContact((code) => catalog.data.find(code) !== null);
+        if (contact === null) {
+            showSnackbar('채울 수 있는 시연 주소가 없습니다');
+            return false;
+        }
+        update(contact);
+        return true;
+    };
+
     const signUp = async () => {
         if (!canSubmit || form.dongCode === null) return;
         setIsLoading(true);
@@ -164,7 +178,15 @@ function MemberSignUpScreen() {
                     />
                     <div style={{ height: 16 }} />
                 </SignUpSection>
-                <SignUpSection title="거래 정보">
+                <SignUpSection
+                    action={(
+                        <RandomFillButton
+                            disabled={isLoading || catalog.status !== 'success'}
+                            onFill={fillDemoContact}
+                        />
+                    )}
+                    title="거래 정보"
+                >
                     <TextField
                         autoComplete="tel"
                         enterKeyHint="next"
@@ -199,11 +221,34 @@ function MemberSignUpScreen() {
     );
 }
 
-export function SignUpSection({ title, children }: { title: string; children: ReactNode }) {
+export function SignUpSection({ title, action, children }: { title: string; action?: ReactNode; children: ReactNode }) {
+    const heading = <h2 className={`${styles['form-section__title']} type-title-medium-em`}>{title}</h2>;
     return (
         <section className={styles['form-section']}>
-            <h2 className={`${styles['form-section__title']} type-title-medium-em`}>{title}</h2>
+            {action ? <div className={styles['form-section__header']}>{heading}{action}</div> : heading}
             {children}
         </section>
+    );
+}
+
+/**
+ * 부스 시연 빌드에서만 보이는 랜덤 값 채우기. 한 번 채우기 전까지 링으로 눌러 보게 한다.
+ * [onFill]은 값을 채웠으면 true를 돌려준다.
+ */
+export function RandomFillButton({ disabled, onFill }: { disabled?: boolean; onFill: () => boolean }) {
+    const [hasFilled, setHasFilled] = useState(false);
+    if (!__ENABLE_DEMO_FILL__) return null;
+    return (
+        <Button
+            className={`${styles['random-fill-button']} ${hasFilled ? '' : styles['random-fill-button--attention']}`}
+            disabled={disabled}
+            onClick={() => {
+                if (onFill()) setHasFilled(true);
+            }}
+            variant="text"
+        >
+            <Icon name="refresh" size={18} />
+            랜덤 값 채우기
+        </Button>
     );
 }

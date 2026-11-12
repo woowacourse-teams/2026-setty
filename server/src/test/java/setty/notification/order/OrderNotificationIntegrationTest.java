@@ -117,6 +117,21 @@ class OrderNotificationIntegrationTest extends MySqlIntegrationTestSupport {
     }
 
     @Test
+    void 배차_취소는_구매자와_판매자에게_같은_문구로_알린다() {
+        publish(event(Change.DELIVERY_ASSIGNMENT_CANCELLED, OCCURRED_AT));
+
+        assertThat(rows()).containsExactlyInAnyOrder(
+                "DELIVERY_ASSIGNMENT_CANCELLED:" + BUYER_ID + ":BUYER:SENT",
+                "DELIVERY_ASSIGNMENT_CANCELLED:" + SELLER_ID + ":SELLER:SENT");
+        final ArgumentCaptor<List<NotificationMessage>> captor = messagesCaptor();
+        verify(notificationSender).send(captor.capture());
+        assertThat(captor.getValue()).allSatisfy(message -> {
+            assertThat(message.order().headline()).isEqualTo("기사가 배차를 취소해 다시 기사를 찾고 있어요");
+            assertThat(message.order().body()).isEqualTo("원목 4인 식탁");
+        });
+    }
+
+    @Test
     void 같은_이벤트가_다시_와도_알림은_한_번만_만들고_보낸다() {
         dispatcher.dispatch(event(Change.DELIVERY_ACCEPTED, OCCURRED_AT));
         dispatcher.dispatch(event(Change.DELIVERY_ACCEPTED, OCCURRED_AT));
