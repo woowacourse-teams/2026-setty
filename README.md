@@ -30,13 +30,13 @@ SETTY는 구매자가 판매자와 운송 서비스를 오가며 직접 조율�
 4. **배송** — 결제 확정 후 배송 요청이 생성되고, 기사가 요청을 수락해 배송을 진행합니다.
 
 > [!NOTE]
-> **현재 구현 범위**: 예상 배송비는 주소 기반 용달 견적이 아니라 **가구의 크기(부피)에 따른 정액 정책**으로 계산합니다. 결제 후 배송 요청과 기사 수락 흐름은 구현되어 있습니다. 주소 기반 견적과 자동 차량 매칭은 아직 구현되지 않았습니다.
+> **현재 구현 범위**: 예상 배송비는 실제 용달 견적이 아니라 **가구 부피와 판매자·구매자 동네 사이의 도로 거리**로 계산합니다. 기본 10,000원에 부피 구간이 오를 때마다 10,000원, 거리가 3km를 넘으면 3km마다 5,000원을 더합니다. 거리는 서울 행정동 사이를 기준으로 하며, 개별 주소 기준 견적과 자동 차량 매칭은 구현되지 않았습니다. 결제 후 배송 요청과 기사 수락 흐름은 구현되어 있습니다.
 
 ## 🗂️ 저장소 둘러보기
 
 | 경로 | 역할 | 기술 |
 | :-- | :-- | :-- |
-| [`client/`](client/) | 구매자·판매자 모바일 웹, 매물 탐색과 결제 | React · TypeScript · Webpack |
+| [`client/`](client/) | 구매자·판매자·배송원 모바일 웹, 매물 탐색과 결제, 배차 수락과 배송 처리 | React · TypeScript · Webpack |
 | [`android/`](android/) | Android 앱, 매물 탐색과 판매자 화면 | Kotlin · Jetpack Compose |
 | [`apps/driver/`](apps/driver/) | 기사 앱, 요청 수락부터 배송 완료까지 | Expo · React Native · TypeScript |
 | [`server/`](server/) | 회원·매물·주문·결제·배송 API | Java 21 · Spring Boot · MySQL |
@@ -44,7 +44,7 @@ SETTY는 구매자가 판매자와 운송 서비스를 오가며 직접 조율�
 
 ### 코드에서 확인하는 핵심 흐름
 
-- [배송비 정책](server/src/main/java/setty/platform/listing/domain/DeliveryFeePolicy.java): 가구 부피에 따라 예상 배송비를 계산합니다.
+- [배송비 계산](server/src/main/java/setty/deliveryfee/DeliveryFeeService.java): 가구 부피 구간과 동네 사이 거리로 예상 배송비를 계산합니다. 부피 구간은 [배송비 정책](server/src/main/java/setty/platform/listing/domain/DeliveryFeePolicy.java)이 정합니다.
 - [매물 상세](client/src/features/listingdetail/FurnitureDetailScreen.tsx): 매물 가격, 배송비, 총액을 함께 표시합니다.
 - [결제 화면](client/src/features/payment/PaymentScreen.tsx): 주문을 생성하고 결제 위젯을 엽니다.
 - [배송 정책](docs/policy/delivery.md): 결제 확정 이후 배송 요청과 상태 전이를 정의합니다.
