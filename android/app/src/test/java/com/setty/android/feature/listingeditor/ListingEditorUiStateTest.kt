@@ -33,8 +33,8 @@ class ListingEditorUiStateTest {
     }
 
     @Test
-    fun `가격이 1억 원을 넘으면 오류다`() {
-        val state = validState.copy(price = "100000001")
+    fun `가격이 500만 원을 넘으면 오류다`() {
+        val state = validState.copy(price = "5000001")
 
         assertTrue(state.priceError)
         assertFalse(state.canSubmit)

@@ -7,8 +7,8 @@ export const PriceFilter = {
     // 시트에서 바로 고르는 상한
     PRESETS: [50_000, 100_000, 200_000],
     // 등록 상한과 같다
-    MAX: 100_000_000,
-    MAX_DIGITS: 9,
+    MAX: 5_000_000,
+    MAX_DIGITS: 8,
 
     /** "5만 원 이하", "5만 원 이상", "5만~20만 원", "5,000~20만 원" */
     label(range: PriceRange): string {
