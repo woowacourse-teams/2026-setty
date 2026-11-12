@@ -1,3 +1,4 @@
+import type { DriverNotification } from '../model/notification';
 import type {
     BundleCandidates,
     DeliveryRequestDetail,
@@ -16,6 +17,28 @@ export const deliveryRepository = {
         const result = await apiCall<{ token: string }>('/api/delivery/auth/login', { method: 'POST', body: { loginId, password } });
         deliveryTokenStore.set(result.token);
         deliveryLoginIdStore.set(loginId);
+    },
+
+    /** 브라우저가 받은 FCM 토큰을 기사 기기로 등록한다. 같은 토큰을 회원이 쓰고 있었다면 주인이 기사로 바뀐다. */
+    async registerDeviceToken(token: string) {
+        await apiCall('/api/delivery/device-token', { ...delivery, method: 'PUT', body: { token, platform: 'WEB' } });
+    },
+
+    async unregisterDeviceToken(token: string) {
+        await apiCall('/api/delivery/device-token', { ...delivery, method: 'DELETE', body: { token } });
+    },
+
+    async getNotifications(): Promise<DriverNotification[]> {
+        const result = await apiCall<{ items: DriverNotification[] }>('/api/delivery/notifications', { ...delivery, query: { size: 50 } });
+        return result.items;
+    },
+
+    async readAllNotifications() {
+        await apiCall('/api/delivery/notifications/read', { ...delivery, method: 'POST' });
+    },
+
+    async readNotification(notificationId: number) {
+        await apiCall(`/api/delivery/notifications/${notificationId}/read`, { ...delivery, method: 'POST' });
     },
 
     async signUp(form: DeliverySignUpForm) {

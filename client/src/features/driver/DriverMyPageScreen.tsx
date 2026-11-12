@@ -1,8 +1,11 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router';
 import { deliveryRepository } from '../../api/deliveryRepository';
 import { shortAddress } from '../../model/delivery';
 import { formatWon } from '../../model/furniture';
 import { routes, useNavigateBack, useNavigateToDriverLogin } from '../../navigation';
+import { PushToggle } from '../../push/PushToggle';
+import { clearPushToken } from '../../push/webPush';
 import {
     AlertDialog,
     BackIconButton,
@@ -24,6 +27,7 @@ import styles from './driver.module.css';
 
 /** 배송원 내 정보. 정산은 전용 API가 없어 배송 완료한 배차의 배송비를 합산한다. (Expo 배송원 앱과 같은 방식) */
 export function DriverMyPageScreen() {
+    const navigate = useNavigate();
     const navigateBack = useNavigateBack(routes.driverRequests);
     const navigateToDriverLogin = useNavigateToDriverLogin();
     const { state, isRefreshing, load, refresh } = useLoad(deliveryRepository.getShipments, 'driver');
@@ -81,6 +85,23 @@ export function DriverMyPageScreen() {
                             )}
                         </section>
                         <section className={styles.section}>
+                            <SectionTitle>알림</SectionTitle>
+                            <PushToggle account="driver" onUnauthorized={navigateToDriverLogin} />
+                            <SegmentedList>
+                                <SegmentedListItem
+                                    count={1}
+                                    headline={<span className="type-title-medium">받은 알림</span>}
+                                    index={0}
+                                    leading={(
+                                        <span className={styles['menu-shape']} style={shapeStyle('cookie6')}>
+                                            <Icon name="notifications" size={20} />
+                                        </span>
+                                    )}
+                                    onClick={() => navigate(routes.driverNotifications)}
+                                />
+                            </SegmentedList>
+                        </section>
+                        <section className={styles.section}>
                             <SectionTitle>계정</SectionTitle>
                             <SegmentedList>
                                 <SegmentedListItem
@@ -103,8 +124,10 @@ export function DriverMyPageScreen() {
                 <AlertDialog
                     confirmLabel="로그아웃"
                     dismissLabel="취소"
-                    onConfirm={() => {
+                    onConfirm={async () => {
                         setIsLogoutDialogVisible(false);
+                        // 서버 등록을 지우려면 로그인 토큰이 남아 있어야 해서 로그아웃 전에 부른다
+                        await clearPushToken('driver');
                         navigateToDriverLogin();
                     }}
                     onDismiss={() => setIsLogoutDialogVisible(false)}

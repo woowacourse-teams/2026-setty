@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import setty.common.DriverSettlementConfirmed;
 import setty.common.SettlementConfirmed;
 import setty.global.exception.BusinessException;
 import setty.global.exception.ErrorCode;
@@ -80,10 +81,21 @@ public class SettlementService {
     }
 
     private void apply(final Settlement settlement, final SettlementDecision decision) {
-        if (settlement.apply(decision) && settlement.isConfirmedSellerSettlement()) {
+        if (!settlement.apply(decision)) {
+            return;
+        }
+        if (settlement.isConfirmedSellerSettlement()) {
             eventPublisher.publishEvent(new SettlementConfirmed(
                     settlement.getOrderId(),
                     settlement.getListingId(),
+                    settlement.getPayeeId(),
+                    settlement.getAmount(),
+                    settlement.getConfirmedAt()
+            ));
+        }
+        if (settlement.isConfirmedDriverSettlement()) {
+            eventPublisher.publishEvent(new DriverSettlementConfirmed(
+                    settlement.getOrderId(),
                     settlement.getPayeeId(),
                     settlement.getAmount(),
                     settlement.getConfirmedAt()

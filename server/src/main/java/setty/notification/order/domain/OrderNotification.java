@@ -10,6 +10,8 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.Instant;
 import setty.notification.listing.domain.NotificationStatus;
+import setty.notification.owner.NotificationOwner;
+import setty.notification.owner.OwnerType;
 
 @Entity
 @Table(name = "order_notifications")
@@ -24,11 +26,16 @@ public class OrderNotification {
     @Column(name = "order_id", nullable = false)
     private Long orderId;
 
-    @Column(name = "listing_id", nullable = false)
+    @Column(name = "listing_id")
     private Long listingId;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "owner_type", nullable = false, length = 10)
+    private OwnerType ownerType;
+
+    // 주인 종류에 따라 회원 ID 또는 기사 ID다. 배포 중 옛 버전과 같이 쓰려고 칸 이름은 member_id 그대로 둔다.
     @Column(name = "member_id", nullable = false)
-    private Long memberId;
+    private Long ownerId;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 10)
@@ -72,8 +79,8 @@ public class OrderNotification {
         return listingId;
     }
 
-    public Long getMemberId() {
-        return memberId;
+    public NotificationOwner getOwner() {
+        return new NotificationOwner(ownerType, ownerId);
     }
 
     public OrderNotificationRecipient getRecipient() {

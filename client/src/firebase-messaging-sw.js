@@ -1,6 +1,7 @@
 // FCM 백그라운드 서비스 워커. webpack이 루트의 firebase-messaging-sw.js로 내보낸다.
 // 서버는 data 메시지만 보내므로 알림 표시는 여기서 한다.
 // 키워드 알림은 notificationId·listingId·title·price·deliveryFee, 주문 알림은 type=ORDER와 orderId·recipient·headline·body를 싣는다.
+// 기사 알림은 type=DRIVER와 notificationId·orderId·kind·headline·body를 싣고 매물이 없다.
 import { initializeApp } from 'firebase/app';
 import { getMessaging, onBackgroundMessage } from 'firebase/messaging/sw';
 
@@ -31,6 +32,19 @@ function orderUrl(data) {
     return `/listings/${encodeURIComponent(data.listingId)}${query}`;
 }
 
+// 기사 알림은 지금 배송비 정산 확정뿐이라 수입 합계가 있는 기사 내 정보로 간다.
+const DRIVER_NOTICE_URL = '/driver/me';
+
+function showDriverNotification(data) {
+    if (!data.headline || !data.notificationId) return undefined;
+    return self.registration.showNotification(data.headline, {
+        body: data.body ?? '',
+        icon: ICON_URL,
+        tag: `driver-${data.notificationId}`,
+        data: { url: DRIVER_NOTICE_URL }
+    });
+}
+
 function showOrderNotification(data) {
     if (!data.orderId || !data.headline || !data.notificationId) return undefined;
     return self.registration.showNotification(data.headline, {
@@ -45,6 +59,7 @@ if (__FIREBASE_CONFIG__) {
     const messaging = getMessaging(initializeApp(__FIREBASE_CONFIG__));
     onBackgroundMessage(messaging, (payload) => {
         const data = payload.data ?? {};
+        if (data.type === 'DRIVER') return showDriverNotification(data);
         if (data.type === 'ORDER') return showOrderNotification(data);
         if (!data.listingId || !data.title) return undefined;
         return self.registration.showNotification(NOTIFICATION_TITLE, {

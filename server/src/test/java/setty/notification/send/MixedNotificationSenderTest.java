@@ -15,6 +15,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import setty.notification.device.application.DeviceTokenService;
 import setty.notification.device.domain.DevicePlatform;
 import setty.notification.device.domain.DeviceToken;
+import setty.notification.owner.NotificationOwner;
 
 @ExtendWith(MockitoExtension.class)
 class MixedNotificationSenderTest {
@@ -24,7 +25,7 @@ class MixedNotificationSenderTest {
 
     @Test
     void 폰_토큰이_있는_회원은_실기기로_없는_회원은_모의_서버로_보낸다() {
-        when(deviceTokenService.findAllByMemberIds(any())).thenReturn(List.of(token(100L)));
+        when(deviceTokenService.findAllByOwners(any())).thenReturn(List.of(token(100L)));
         final RecordingSender device = new RecordingSender(Set.of());
         final RecordingSender load = new RecordingSender(Set.of());
 
@@ -37,7 +38,7 @@ class MixedNotificationSenderTest {
 
     @Test
     void 모의_서버로_먼저_보내고_실기기로_보낸다() {
-        when(deviceTokenService.findAllByMemberIds(any())).thenReturn(List.of(token(100L)));
+        when(deviceTokenService.findAllByOwners(any())).thenReturn(List.of(token(100L)));
         final List<String> order = new ArrayList<>();
         final NotificationSender device = messages -> {
             order.add("device");
@@ -56,7 +57,7 @@ class MixedNotificationSenderTest {
 
     @Test
     void 양쪽의_실패를_합친다() {
-        when(deviceTokenService.findAllByMemberIds(any())).thenReturn(List.of(token(100L)));
+        when(deviceTokenService.findAllByOwners(any())).thenReturn(List.of(token(100L)));
         final RecordingSender device = new RecordingSender(Set.of(1L));
         final RecordingSender load = new RecordingSender(Set.of(3L));
 
@@ -68,7 +69,7 @@ class MixedNotificationSenderTest {
 
     @Test
     void 보낼_대상이_없는_쪽은_부르지_않는다() {
-        when(deviceTokenService.findAllByMemberIds(any())).thenReturn(List.of());
+        when(deviceTokenService.findAllByOwners(any())).thenReturn(List.of());
         final RecordingSender device = new RecordingSender(Set.of());
         final RecordingSender load = new RecordingSender(Set.of());
 
@@ -83,7 +84,7 @@ class MixedNotificationSenderTest {
     }
 
     private static DeviceToken token(final Long memberId) {
-        return new DeviceToken(memberId, "token-" + memberId, DevicePlatform.ANDROID);
+        return new DeviceToken(NotificationOwner.member(memberId), "token-" + memberId, DevicePlatform.ANDROID);
     }
 
     private static final class RecordingSender implements NotificationSender {

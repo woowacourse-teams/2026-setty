@@ -9,6 +9,7 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
+import setty.common.DriverSettlementConfirmed;
 import setty.common.OrderStatusNotified;
 import setty.common.SettlementConfirmed;
 import setty.notification.send.NotificationMessage;
@@ -53,6 +54,12 @@ public class OrderNotificationDispatcher {
         dispatch(event);
     }
 
+    @Async(NotificationSendConfiguration.ORDER_DISPATCH_EXECUTOR)
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void onDriverSettlementConfirmed(final DriverSettlementConfirmed event) {
+        dispatch(event);
+    }
+
     public void dispatch(final OrderStatusNotified event) {
         send(event.orderId(), event.listingId(), orderNotificationService.createFor(event), event.listingTitle());
     }
@@ -63,6 +70,10 @@ public class OrderNotificationDispatcher {
             return;
         }
         send(event.orderId(), event.listingId(), pending, settlementBody(event));
+    }
+
+    public void dispatch(final DriverSettlementConfirmed event) {
+        send(event.orderId(), null, orderNotificationService.createFor(event), won(event.amount()));
     }
 
     private void send(
@@ -102,8 +113,12 @@ public class OrderNotificationDispatcher {
 
     private String settlementBody(final SettlementConfirmed event) {
         final NotifiedListing listing = notificationListingReader.findAll(List.of(event.listingId())).get(event.listingId());
-        final String amount = String.format(Locale.KOREA, "%,d원", event.amount());
+        final String amount = won(event.amount());
         return listing == null ? amount : listing.title() + " · " + amount;
+    }
+
+    private static String won(final int amount) {
+        return String.format(Locale.KOREA, "%,d원", amount);
     }
 
     private static NotificationMessage toMessage(
@@ -114,7 +129,7 @@ public class OrderNotificationDispatcher {
     ) {
         return NotificationMessage.order(
                 notification.id(),
-                notification.memberId(),
+                notification.owner(),
                 listingId,
                 new NotificationMessage.Order(
                         orderId,

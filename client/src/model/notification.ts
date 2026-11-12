@@ -58,6 +58,31 @@ export function orderNoticeOf(
     return { orderId, recipient, headline, amount: typeof amount === 'number' ? amount : null };
 }
 
+/** 기사에게 온 푸시. 지금은 배송비 정산 확정뿐이라 누르면 수입 합계가 있는 기사 내 정보로 간다. */
+export type DriverNotice = {
+    headline: string;
+    body: string;
+    path: string;
+};
+
+export const DRIVER_NOTICE_PATH = '/driver/me';
+
+/** 기사 알림함의 한 줄. 지금은 배송비 정산 확정뿐이라 금액이 있다. */
+export type DriverNotification = {
+    id: number;
+    kind: string;
+    headline: string;
+    amount: number | null;
+    orderId: number;
+    read: boolean;
+    createdAt: string;
+};
+
+export function driverNoticeOf(data: Record<string, string | undefined>): DriverNotice | null {
+    if (data.type !== 'DRIVER' || !data.headline) return null;
+    return { headline: data.headline, body: data.body ?? '', path: DRIVER_NOTICE_PATH };
+}
+
 /** 구매자는 주문 상세로, 판매자와 키워드 알림은 매물 상세로 간다. */
 export function notificationPath(listingId: number, order: OrderNotice | null): string {
     if (order?.recipient === 'BUYER') return `/me/orders/${order.orderId}`;
