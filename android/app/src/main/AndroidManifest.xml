@@ -18,12 +18,24 @@
             android:name=".MainActivity"
             android:exported="true"
             android:label="@string/app_name"
+            android:launchMode="singleTop"
             android:theme="@style/Theme.Setty"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <!-- 알림과 외부 링크로 매물·주문 상세에 들어온다. 도메인 인증이 필요한 App Link는 쓰지 않는다 -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data android:scheme="setty" />
+                <data android:host="listings" />
+                <data android:host="orders" />
             </intent-filter>
         </activity>
         <!-- 토스 결제위젯이 AppCompatActivity를 요구하고, 결제창 복귀 중 재생성되면 결제 결과 콜백을 잃으므로 세로로 고정한다 -->

@@ -27,6 +27,7 @@ internal fun DevToolsScreen(
     modifier: Modifier = Modifier,
     remoteConfigContent: @Composable () -> Unit = {},
     updateScenarioContent: @Composable () -> Unit = {},
+    deepLinkContent: @Composable () -> Unit = {},
 ) {
     Scaffold(
         modifier = modifier,
@@ -54,6 +55,9 @@ internal fun DevToolsScreen(
 
             item { SectionTitle("인앱 업데이트 재현") }
             item { updateScenarioContent() }
+
+            item { SectionTitle("외부 진입점 재현") }
+            item { deepLinkContent() }
 
             item {
                 Button(

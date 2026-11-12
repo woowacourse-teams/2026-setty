@@ -6,7 +6,12 @@ sealed interface LoadUiState<out T> {
 
     data class Success<T>(val data: T) : LoadUiState<T>
 
-    data class Error(val message: String, val isUnauthorized: Boolean) : LoadUiState<Nothing>
+    /** [isNotFound]면 대상이 없거나 삭제돼 다시 시도해도 소용이 없다. */
+    data class Error(
+        val message: String,
+        val isUnauthorized: Boolean,
+        val isNotFound: Boolean = false,
+    ) : LoadUiState<Nothing>
 }
 
-fun Throwable.toLoadError(): LoadUiState.Error = LoadUiState.Error(toUserMessage(), isUnauthorized)
+fun Throwable.toLoadError(): LoadUiState.Error = LoadUiState.Error(toUserMessage(), isUnauthorized, isNotFound)
