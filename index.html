@@ -4,9 +4,9 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>SETTY — 무거운 중고 가구를 더 가볍게</title>
-  <meta name="description" content="SETTY는 중고 가구를 고르는 순간 배송비와 총 결제 금액까지 보여주고, 가구값과 배송비를 한 번에 테스트 결제해 볼 수 있는 중고 가구 거래 서비스입니다." />
+  <meta name="description" content="SETTY는 중고 가구를 고르는 순간 배송비와 총 결제 금액까지 보여주고, 주문에서 배차와 배송 상태를 확인할 수 있는 중고 가구 거래 서비스입니다." />
   <meta property="og:title" content="SETTY — 무거운 중고 가구를 더 가볍게" />
-  <meta property="og:description" content="매물 탐색 · 배송비 확인 · 테스트 결제를 하나의 흐름으로" />
+  <meta property="og:description" content="매물 탐색 · 배송비 확인 · 결제를 하나의 거래 흐름으로" />
   <meta property="og:type" content="website" />
   <meta name="theme-color" content="#3182F6" />
   <link rel="icon" type="image/svg+xml" href="assets/setty-favicon.svg" />
@@ -160,7 +160,6 @@
 
     .hero-shot { margin: 0; min-width: 0; }
     .hero-shot img { display: block; width: 100%; height: auto; border-radius: 20px; }
-    .hero-note { margin: 14px 0 0; color: var(--hero-muted); font-size: .875rem; }
 
     /* ---------- 공통 섹션 ---------- */
     section { padding: 72px 0; }
@@ -203,7 +202,6 @@
     .tag-truck { background: var(--surface-container-highest); color: var(--on-surface-variant); }
     .tag-setty { background: var(--accent-text); color: var(--action-text); }
     .flow-count { margin-top: 20px; display: flex; align-items: baseline; gap: 2px; font-weight: 500; }
-    .flow-scope { margin: 16px 0 0; font-size: .875rem; color: var(--on-surface-variant); }
     .flow-count b { font-size: 2.5rem; font-weight: 800; line-height: 1; }
 
     /* ---------- 사용법 ---------- */
@@ -540,12 +538,11 @@
           <div class="hero-copy">
             <span class="chip"><svg aria-hidden="true"><use href="#i-ship" /></svg>중고 가구 + 배송을 한 번에</span>
             <h1>중고 가구를 고르는 순간,<br /><em>배송까지</em> 생각합니다.</h1>
-            <p class="lead">마음에 드는 가구를 찾으면 예상 배송비와 총 결제 금액을 바로 보여드려요. 가구값과 배송비를 한 번에 테스트 결제하고, 주문에서 배송 상태가 어떻게 바뀌는지 볼 수 있어요.</p>
+            <p class="lead">마음에 드는 가구를 찾으면 예상 배송비와 총 결제 금액을 바로 보여드려요. 가구값과 배송비를 한 번에 결제하고, 주문 내역에서 배차와 배송 상태를 볼 수 있어요.</p>
             <div class="cta-row">
               <a class="btn btn-filled btn-large" href="https://www.setty.cloud">시작하기<svg aria-hidden="true"><use href="#i-chevron" /></svg></a>
               <a class="btn btn-outlined btn-large" href="#howto">사용법 보기</a>
             </div>
-            <p class="hero-note">누구나 가입해 둘러볼 수 있어요. 결제는 테스트 결제라 실제 금액이 청구되지 않아요.</p>
           </div>
 
           <figure class="hero-shot">
@@ -566,7 +563,7 @@
           <article class="who reveal">
             <div class="who-icon"><svg viewBox="0 0 100 100"><use href="#s-cookie9" /></svg><svg viewBox="0 0 24 24"><use href="#i-search" /></svg></div>
             <h3>차 없이 가구를 사려는 사람</h3>
-            <p>매물 상세에서 배송비까지 더한 총액을 보고, 테스트 결제부터 배송 상태 확인까지 해 볼 수 있어요.</p>
+            <p>매물 상세에서 배송비까지 더한 총액을 보고, 주문 내역에서 배송 상태를 확인할 수 있어요.</p>
           </article>
           <article class="who reveal">
             <div class="who-icon"><svg viewBox="0 0 100 100"><use href="#s-cookie6" /></svg><svg viewBox="0 0 24 24"><use href="#i-sell" /></svg></div>
@@ -576,7 +573,7 @@
           <article class="who reveal">
             <div class="who-icon"><svg viewBox="0 0 100 100"><use href="#s-burst" /></svg><svg viewBox="0 0 24 24"><use href="#i-ship" /></svg></div>
             <h3>가구를 옮기는 배송 기사</h3>
-            <p>테스트 결제를 마친 주문은 배송 요청으로 들어와요. 요청 수락부터 배송 완료까지 상태를 바꿔 볼 수 있어요.</p>
+            <p>결제를 마친 주문은 배송 요청으로 들어와요. 배송원 화면에서 요청을 수락하고 배송 상태를 업데이트할 수 있어요.</p>
           </article>
         </div>
 
@@ -597,18 +594,17 @@
           </div>
           <div class="flow flow-after reveal">
             <h3>SETTY에서의 가구 거래</h3>
-            <p class="flow-sub">가상 시나리오로 구매부터 배송까지 따라가요</p>
+            <p class="flow-sub">매물 탐색부터 배송 상태 확인까지 한곳에서 봐요</p>
             <ol class="steps-mini">
               <li><span class="who-tag tag-setty">SETTY</span>매물 탐색</li>
               <li><span class="who-tag tag-setty">SETTY</span>예상 배송비·총액 확인</li>
-              <li><span class="who-tag tag-setty">SETTY</span>가구·배송비 함께 테스트 결제</li>
+              <li><span class="who-tag tag-setty">SETTY</span>가구·배송비 함께 결제</li>
               <li><span class="who-tag tag-setty">SETTY</span>배송 요청 생성</li>
               <li><span class="who-tag tag-setty">SETTY</span>배송 상태 확인</li>
             </ol>
             <div class="flow-count"><b>1곳</b>에서 확인하는 5단계</div>
           </div>
         </div>
-        <p class="flow-scope reveal">실제 결제와 가구 운송을 하는 실서비스 운영은 보류했어요. 테스트 결제와 가상 시나리오로 구매부터 배송 완료까지 확인했어요.</p>
       </div>
     </section>
 
@@ -646,13 +642,13 @@
               <div class="step-badge"><svg viewBox="0 0 100 100" aria-hidden="true"><use href="#s-cookie6" /></svg><span>3</span></div>
               <p class="step-label">결제</p>
               <h3>한 번에 결제하기</h3>
-              <p>배송 받을 연락처와 주소를 확인하고, 가구값과 배송비를 한 번에 테스트 결제해요.</p>
+              <p>배송 받을 연락처와 주소를 확인하고, 가구값과 배송비를 한 번에 결제해요.</p>
             </li>
             <li class="step reveal">
               <div class="step-badge"><svg viewBox="0 0 100 100" aria-hidden="true"><use href="#s-flower" /></svg><span>4</span></div>
               <p class="step-label">배송</p>
               <h3>배송 상태 확인하기</h3>
-              <p>테스트 결제를 마치면 배송 요청이 만들어져요. 주문 내역에서 배차와 배송 상태를 볼 수 있어요.</p>
+              <p>결제가 확정되면 배송 요청이 만들어져요. 주문 내역에서 배차와 배송 상태를 볼 수 있어요.</p>
             </li>
           </ol>
 
@@ -679,7 +675,7 @@
               <div class="step-badge"><svg viewBox="0 0 100 100" aria-hidden="true"><use href="#s-flower" /></svg><span>4</span></div>
               <p class="step-label">판매</p>
               <h3>구매 신청 확인하기</h3>
-              <p>내 판매 가구에서 구매 신청을 확인하세요. 테스트 결제가 끝난 주문은 배송원 화면에 배송 요청으로 보여요.</p>
+              <p>내 판매 가구에서 구매 신청을 확인하세요. 결제가 끝난 주문은 배송원 화면에 배송 요청으로 보여요.</p>
             </li>
           </ol>
 
@@ -1153,7 +1149,7 @@
           <svg class="deco deco-c" viewBox="0 0 100 100" aria-hidden="true"><use href="#s-burst" /></svg>
           <svg class="deco deco-d" viewBox="0 0 100 100" aria-hidden="true"><use href="#s-cookie9" /></svg>
           <h2>무거운 중고 가구,<br />이제 가볍게 들여요</h2>
-          <p>둘러보는 건 로그인 없이도 할 수 있어요. 마음에 드는 가구를 찾으면 예상 배송비를 확인하고 테스트 결제를 해 보세요.</p>
+          <p>둘러보는 건 로그인 없이도 할 수 있어요. 마음에 드는 가구를 찾으면 예상 배송비와 총액을 확인해 보세요.</p>
           <a class="btn btn-large" href="https://www.setty.cloud">SETTY 시작하기<svg aria-hidden="true"><use href="#i-chevron" /></svg></a>
         </div>
       </div>
