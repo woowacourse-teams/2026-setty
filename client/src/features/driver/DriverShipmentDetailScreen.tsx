@@ -1,9 +1,10 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { deliveryRepository } from '../../api/deliveryRepository';
 import {
     categoryText,
     formatTime,
+    shortAddress,
     shipmentProgress,
     shipmentStatusLabel,
     shipmentSteps,
@@ -31,8 +32,39 @@ import {
 import { showSnackbar } from '../../ui/snackbar';
 import { useLoad } from '../useLoad';
 import screenStyles from '../screens.module.css';
+import { ACTION_RESULT_MIN_MILLIS, withMinimumDuration } from './actionResult';
+import { ActionResultScreen, type ActionResultContent } from './ActionResultScreen';
 import { DeliveryDistance, RoutePoint, ShipmentStatusBadge, useDriverErrorHandler } from './DeliveryParts';
 import styles from './driver.module.css';
+
+const now = () => formatTime(new Date().toISOString());
+
+function pickUpResult(shipment: ShipmentDetail): ActionResultContent {
+    return {
+        icon: 'localShipping',
+        workingTitle: '픽업 처리 중이에요',
+        title: '픽업 완료!',
+        description: '이제 구매자에게 배송해 주세요.',
+        rows: [
+            { label: '픽업 시각', value: now() },
+            { label: '다음 목적지', value: shortAddress(shipment.destination.address) }
+        ]
+    };
+}
+
+function completeResult(shipment: ShipmentDetail): ActionResultContent {
+    return {
+        icon: 'payments',
+        workingTitle: '배송 완료 처리 중이에요',
+        title: '배송 완료!',
+        description: '이번 배송비',
+        amount: shipment.deliveryFee,
+        rows: [
+            { label: '배송 완료 시각', value: now() },
+            { label: '배송한 가구', value: shipment.furniture.itemName }
+        ]
+    };
+}
 
 /** 내가 수락한 배차. 픽업 → 배송 완료 순서로 진행하고, 픽업 전에는 취소할 수 있다. */
 export function DriverShipmentDetailScreen() {
@@ -45,19 +77,29 @@ export function DriverShipmentDetailScreen() {
     const { state, isRefreshing, load, refresh, fetch } = useLoad(fetchShipment, 'driver');
     const [isWorking, setIsWorking] = useState(false);
     const [isCancelDialogVisible, setIsCancelDialogVisible] = useState(false);
+    const [result, setResult] = useState<{ content: ActionResultContent; isDone: boolean } | null>(null);
     const shipment = state.status === 'success' ? state.data : null;
 
-    const run = async (action: () => Promise<void>, message: string) => {
+    // 응답이 빨라도 처리 중 화면을 잠깐 보여 준 뒤 결과를 띄운다. 실패하면 결과 화면 없이 오류만 알린다.
+    const run = async (action: () => Promise<void>, buildResult: () => ActionResultContent) => {
         if (isWorking) return;
         setIsWorking(true);
+        setResult({ content: buildResult(), isDone: false });
         try {
-            await action();
-            showSnackbar(message);
-            await fetch();
+            await withMinimumDuration(action(), ACTION_RESULT_MIN_MILLIS);
+            setResult({ content: buildResult(), isDone: true });
         } catch (error) {
+            setResult(null);
             handleError(error);
             await fetch();
+            setIsWorking(false);
         }
+    };
+
+    // 확인을 누른 뒤에 다시 불러와야 바뀐 상태 카드의 반응이 결과 화면에 가려지지 않는다
+    const closeResult = async () => {
+        setResult(null);
+        await fetch();
         setIsWorking(false);
     };
 
@@ -83,13 +125,13 @@ export function DriverShipmentDetailScreen() {
                             {shipment.status === 'ACCEPTED' && (
                                 <>
                                     <Button onClick={() => setIsCancelDialogVisible(true)} size="medium" variant="danger-tonal">배차 취소</Button>
-                                    <Button onClick={() => void run(() => deliveryRepository.pickUp(deliveryId), '가구를 받았어요. 구매자에게 배송해 주세요.')} size="medium">
+                                    <Button onClick={() => void run(() => deliveryRepository.pickUp(deliveryId), () => pickUpResult(shipment))} size="medium">
                                         픽업 완료
                                     </Button>
                                 </>
                             )}
                             {shipment.status === 'PICKED_UP' && (
-                                <Button onClick={() => void run(() => deliveryRepository.complete(deliveryId), '배송을 완료했어요. 수고하셨어요!')} size="medium">
+                                <Button onClick={() => void run(() => deliveryRepository.complete(deliveryId), () => completeResult(shipment))} size="medium">
                                     배송 완료
                                 </Button>
                             )}
@@ -145,6 +187,7 @@ export function DriverShipmentDetailScreen() {
                     title="배차를 취소할까요?"
                 />
             )}
+            {result && <ActionResultScreen content={result.content} isDone={result.isDone} onConfirm={() => void closeResult()} />}
         </Scaffold>
     );
 }
@@ -152,8 +195,17 @@ export function DriverShipmentDetailScreen() {
 function ShipmentStatusCard({ shipment }: { shipment: ShipmentDetail }) {
     const timeOf = { ACCEPTED: shipment.acceptedAt, PICKED_UP: shipment.pickedUpAt, DELIVERED: shipment.deliveredAt, REQUESTED: shipment.requestedAt };
     const currentIndex = shipmentSteps.indexOf(shipment.status);
+    // 화면에 들어온 뒤 상태가 바뀔 때마다 늘려, 카드 링과 단계 강조를 다시 재생한다
+    const [changeCount, setChangeCount] = useState(0);
+    const previousStatus = useRef(shipment.status);
+    useEffect(() => {
+        if (previousStatus.current === shipment.status) return;
+        previousStatus.current = shipment.status;
+        setChangeCount((count) => count + 1);
+    }, [shipment.status]);
     return (
-        <section className={screenStyles.card} style={{ background: 'var(--primary-container)', color: 'var(--on-primary-container)' }}>
+        <section className={`${screenStyles.card} ${styles['status-card']}`} style={{ background: 'var(--primary-container)', color: 'var(--on-primary-container)' }}>
+            {changeCount > 0 && <span aria-hidden className={styles['status-card__ring']} key={changeCount} />}
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
                 <span className="type-label-large">{categoryText(shipment.furniture.category)}</span>
                 <ShipmentStatusBadge status={shipment.status} />
@@ -176,7 +228,11 @@ function ShipmentStatusCard({ shipment }: { shipment: ShipmentDetail }) {
                 <div className={styles['step-row']}>
                     {shipmentSteps.map((step, index) => (
                         <span className={styles.step} key={step} style={{ opacity: index <= currentIndex ? 1 : 0.5 }}>
-                            <span className="type-label-medium" style={{ fontWeight: step === shipment.status ? 900 : 400 }}>
+                            <span
+                                className={`type-label-medium ${changeCount > 0 && step === shipment.status ? styles['step--changed'] : ''}`}
+                                key={step === shipment.status ? `current-${changeCount}` : step}
+                                style={{ fontWeight: step === shipment.status ? 900 : 400 }}
+                            >
                                 {shipmentStatusLabel(step)}
                             </span>
                             <span className="type-label-medium">{formatTime(timeOf[step]) || ' '}</span>

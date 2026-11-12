@@ -155,3 +155,39 @@
 .income-stats__row dd {
     margin: 0;
 }
+
+/* 상태가 바뀌면 카드 테두리에 링이 퍼지고 지금 단계 글자가 한 번 튄다 */
+.status-card {
+    position: relative;
+}
+
+.status-card__ring {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    animation: status-ring 1s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+@keyframes status-ring {
+    from { box-shadow: 0 0 0 0 color-mix(in srgb, var(--primary) 55%, transparent); }
+    to { box-shadow: 0 0 0 14px color-mix(in srgb, var(--primary) 0%, transparent); }
+}
+
+.step--changed {
+    display: inline-block;
+    animation: step-pop 550ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes step-pop {
+    0% { transform: scale(0.7); }
+    60% { transform: scale(1.18); }
+    100% { transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .status-card__ring,
+    .step--changed {
+        animation: none;
+    }
+}
