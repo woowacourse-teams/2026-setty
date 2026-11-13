@@ -58,9 +58,17 @@ test('난수가 끝값이어도 목록 안의 주소와 그 주소의 행정동�
 
 test('받아 주는 행정동의 주소만 고른다', () => {
     const allowed = demo.DEMO_PLACES[3].dongCode;
-    const contact = demo.randomDemoContact((code) => code === allowed, () => 0.7);
-    assert.equal(contact.dongCode, allowed);
-    assert.equal(contact.address, demo.DEMO_PLACES[3].address);
+    const allowedAddresses = demo.DEMO_PLACES.filter((place) => place.dongCode === allowed).map((place) => place.address);
+    [0, 0.7, 0.999999].forEach((value) => {
+        const contact = demo.randomDemoContact((code) => code === allowed, () => value);
+        assert.equal(contact.dongCode, allowed);
+        assert.ok(allowedAddresses.includes(contact.address), contact.address);
+    });
+});
+
+test('여러 사람이 가입해도 흩어지도록 시연 주소는 서로 다르다', () => {
+    const addresses = demo.DEMO_PLACES.map((place) => place.address);
+    assert.equal(new Set(addresses).size, addresses.length);
 });
 
 test('받아 주는 행정동이 없으면 채우지 않는다', () => {
