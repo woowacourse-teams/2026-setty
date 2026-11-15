@@ -22,15 +22,15 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.multipart.MultipartFile;
+import setty.address.SeoulDongs;
 import setty.deliveryfee.DeliveryFeeService;
-import setty.deliveryfee.VolumeTier;
 import setty.deliveryfee.SellersWithinFee;
+import setty.deliveryfee.VolumeTier;
 import setty.global.exception.BusinessException;
 import setty.global.logging.ListingRequestTiming;
 import setty.platform.favorite.repository.FavoriteCount;
 import setty.platform.favorite.repository.FavoriteRepository;
 import setty.platform.listing.domain.ConditionGrade;
-import setty.platform.listing.domain.DeliveryFeePolicy;
 import setty.platform.listing.domain.Dimensions;
 import setty.platform.listing.domain.Listing;
 import setty.platform.listing.domain.ListingCategory;
@@ -71,6 +71,7 @@ public class ListingService {
     private final OrderRepository orderRepository;
     private final FavoriteRepository favoriteRepository;
     private final DeliveryFeeService deliveryFeeService;
+    private final SeoulDongs seoulDongs;
     private final SellerOrderCancellation sellerOrderCancellation;
 
     public ListingService(
@@ -82,6 +83,7 @@ public class ListingService {
             OrderRepository orderRepository,
             FavoriteRepository favoriteRepository,
             DeliveryFeeService deliveryFeeService,
+            SeoulDongs seoulDongs,
             SellerOrderCancellation sellerOrderCancellation
     ) {
         this.listingRepository = listingRepository;
@@ -92,6 +94,7 @@ public class ListingService {
         this.orderRepository = orderRepository;
         this.favoriteRepository = favoriteRepository;
         this.deliveryFeeService = deliveryFeeService;
+        this.seoulDongs = seoulDongs;
         this.sellerOrderCancellation = sellerOrderCancellation;
     }
 
@@ -632,7 +635,7 @@ public class ListingService {
 
     private int deliveryFeeFor(Listing listing, Buyer buyer) {
         return deliveryFeeFor(listing.getDongCode(), listing.getZipZone(),
-                DeliveryFeePolicy.volumeTier(listing.getDimensions()), listing.getDeliveryFee(), buyer);
+                listing.getDimensions().volumeTier(), listing.getDeliveryFee(), buyer);
     }
 
     private int deliveryFeeFor(String sellerDongCode, Integer sellerZipZone, VolumeTier volumeTier, int fixedFee, Buyer buyer) {
@@ -645,7 +648,7 @@ public class ListingService {
         if (dongCode == null) {
             return null;
         }
-        return deliveryFeeService.findDong(dongCode)
+        return seoulDongs.findByCode(dongCode)
                 .map(dong -> new ListingView.Dong(dong.code(), dong.name(), dong.district()))
                 .orElse(null);
     }

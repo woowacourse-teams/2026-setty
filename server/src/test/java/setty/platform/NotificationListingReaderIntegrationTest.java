@@ -18,7 +18,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.annotation.Transactional;
-import setty.platform.listing.domain.DeliveryFeePolicy;
 import setty.platform.listing.domain.Listing;
 import setty.platform.listing.domain.SaleStatus;
 import setty.platform.listing.repository.ListingRepository;
@@ -112,7 +111,7 @@ class NotificationListingReaderIntegrationTest extends MySqlIntegrationTestSuppo
     private Map<Long, NotifiedListing> previousResult(List<Long> ids) {
         return listingRepository.findAllById(ids).stream().map(listing -> new NotifiedListing(
                 listing.getId(), listing.getTitle(), listing.getPrice(), listing.getDongCode(), listing.getZipZone(),
-                DeliveryFeePolicy.volumeTier(listing.getDimensions()), listing.getDeliveryFee(),
+                listing.getDimensions().volumeTier(), listing.getDeliveryFee(),
                 listing.isDeleted() ? "DELETED"
                         : listing.getSaleStatus() == SaleStatus.SOLD ? "SOLD"
                         : listing.getSaleStatus() == SaleStatus.RESERVED || listing.hasPurchaseRequest() ? "TRADING"

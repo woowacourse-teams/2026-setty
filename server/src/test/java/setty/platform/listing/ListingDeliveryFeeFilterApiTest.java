@@ -29,8 +29,9 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import setty.address.Dong;
+import setty.address.SeoulDongs;
 import setty.deliveryfee.DeliveryFeeService;
-import setty.deliveryfee.Dong;
 import setty.deliveryfee.VolumeTier;
 import setty.deliveryfee.region.ZipDistanceTable;
 import setty.platform.PaymentOrderReader;
@@ -63,6 +64,9 @@ class ListingDeliveryFeeFilterApiTest extends MySqlIntegrationTestSupport {
 
     @Autowired
     private DeliveryFeeService deliveryFeeService;
+
+    @Autowired
+    private SeoulDongs seoulDongs;
 
     @Autowired
     private PaymentOrderReader paymentOrderReader;
@@ -386,8 +390,8 @@ class ListingDeliveryFeeFilterApiTest extends MySqlIntegrationTestSupport {
             return FIXED_FEE;
         }
         return deliveryFeeService.fee(
-                deliveryFeeService.findDong(listing.dongCode()).orElseThrow().index(),
-                deliveryFeeService.findDong(BUYER_DONG).orElseThrow().index(),
+                seoulDongs.findByCode(listing.dongCode()).orElseThrow().index(),
+                seoulDongs.findByCode(BUYER_DONG).orElseThrow().index(),
                 listing.volumeTier());
     }
 
@@ -407,11 +411,11 @@ class ListingDeliveryFeeFilterApiTest extends MySqlIntegrationTestSupport {
     }
 
     private List<Long> expectedIds(int maxDeliveryFee) {
-        Dong buyer = deliveryFeeService.findDong(BUYER_DONG).orElseThrow();
+        Dong buyer = seoulDongs.findByCode(BUYER_DONG).orElseThrow();
         return listings.stream()
                 .filter(listing -> listing.dongCode() != null)
                 .filter(listing -> deliveryFeeService.fee(
-                        deliveryFeeService.findDong(listing.dongCode()).orElseThrow().index(),
+                        seoulDongs.findByCode(listing.dongCode()).orElseThrow().index(),
                         buyer.index(),
                         listing.volumeTier()) <= maxDeliveryFee)
                 .sorted(Comparator.comparing(Listing::createdAt).reversed())

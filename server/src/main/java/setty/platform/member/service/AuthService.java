@@ -6,7 +6,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import setty.deliveryfee.DeliveryFeeService;
+import setty.address.SeoulDongs;
 import setty.global.auth.LoginTokenLifetime;
 import setty.global.exception.BusinessException;
 import setty.global.exception.ErrorCode;
@@ -24,19 +24,19 @@ import setty.platform.member.repository.MemberRepository;
 public class AuthService {
 
     private final MemberRepository memberRepository;
-    private final DeliveryFeeService deliveryFeeService;
+    private final SeoulDongs seoulDongs;
     private final MemberAddressResolver memberAddressResolver;
     private final LoginTokenLifetime loginTokenLifetime;
     private final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     public AuthService(
             final MemberRepository memberRepository,
-            final DeliveryFeeService deliveryFeeService,
+            final SeoulDongs seoulDongs,
             final MemberAddressResolver memberAddressResolver,
             final LoginTokenLifetime loginTokenLifetime
     ) {
         this.memberRepository = memberRepository;
-        this.deliveryFeeService = deliveryFeeService;
+        this.seoulDongs = seoulDongs;
         this.memberAddressResolver = memberAddressResolver;
         this.loginTokenLifetime = loginTokenLifetime;
     }
@@ -118,7 +118,7 @@ public class AuthService {
     }
 
     private void validateDong(final String dongCode) {
-        if (deliveryFeeService.findDong(dongCode).isEmpty()) {
+        if (seoulDongs.findByCode(dongCode).isEmpty()) {
             throw new BusinessException(ErrorCode.DELIVERY_AREA_NOT_SUPPORTED);
         }
     }

@@ -39,6 +39,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.web.servlet.DispatcherServlet;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
+import setty.address.SeoulDongs;
 import setty.deliveryfee.DeliveryFeeService;
 import setty.deliveryfee.VolumeTier;
 import setty.global.exception.GlobalExceptionHandler;
@@ -47,9 +48,9 @@ import setty.platform.listing.application.ListingRecorder;
 import setty.platform.listing.application.ListingService;
 import setty.platform.listing.domain.ConditionGrade;
 import setty.platform.listing.domain.ListingCategory;
-import setty.platform.listing.repository.ListingQueryRepository;
 import setty.platform.listing.presentation.ListingController;
 import setty.platform.listing.repository.ListingImageRepository;
+import setty.platform.listing.repository.ListingQueryRepository;
 import setty.platform.listing.repository.ListingRepository;
 import setty.platform.listing.storage.ListingImageStorage;
 import setty.platform.order.repository.OrderRepository;
@@ -183,6 +184,7 @@ class ListingTimingHttpIntegrationTest {
         @Bean OrderRepository orderRepository() { return mock(OrderRepository.class); }
         @Bean FavoriteRepository favoriteRepository() { return mock(FavoriteRepository.class); }
         @Bean DeliveryFeeService deliveryFeeService() { return mock(DeliveryFeeService.class); }
+        @Bean SeoulDongs seoulDongs() { return mock(SeoulDongs.class); }
         @Bean ListingImageStorage imageStorage() { return mock(ListingImageStorage.class); }
         @Bean ListingQueryRepository listingQueryRepository() { return mock(ListingQueryRepository.class); }
         @Bean SellerOrderCancellation sellerOrderCancellation() { return mock(SellerOrderCancellation.class); }

@@ -1,7 +1,6 @@
-package setty.deliveryfee.controller.dto;
+package setty.address;
 
 import java.util.List;
-import setty.deliveryfee.Dong;
 
 public record DongsResponse(List<Item> items) {
 

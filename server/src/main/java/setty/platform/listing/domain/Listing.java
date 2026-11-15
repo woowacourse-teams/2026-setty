@@ -101,7 +101,7 @@ public class Listing {
         this.title = title.trim();
         this.description = description.trim();
         this.price = price;
-        this.deliveryFee = DeliveryFeePolicy.calculate(dimensions);
+        this.deliveryFee = dimensions.volumeTier().fixedFee();
         this.category = category;
         this.conditionGrade = conditionGrade;
         this.dimensions = dimensions;
@@ -138,7 +138,7 @@ public class Listing {
         this.title = title.trim();
         this.description = description.trim();
         this.price = price;
-        this.deliveryFee = DeliveryFeePolicy.calculate(dimensions);
+        this.deliveryFee = dimensions.volumeTier().fixedFee();
         this.category = category;
         this.conditionGrade = conditionGrade;
         this.dimensions = dimensions;

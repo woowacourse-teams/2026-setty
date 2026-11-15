@@ -1,4 +1,4 @@
-package setty.deliveryfee.region;
+package setty.address;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -12,9 +12,9 @@ import java.util.Map;
 import java.util.Optional;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
-import setty.deliveryfee.Dong;
 
-// 행정동 index는 거리표의 행·열 순서와 같아야 한다(두 리소스를 같은 코드순으로 만들었다).
+// 행정동 index는 배송비 모듈 거리표(deliveryfee/seoul-dong-distances.bin)의 행·열 순서와 같아야 한다.
+// 두 리소스를 scripts/deliveryfee/build_data.py가 같은 코드순으로 함께 만들어 같은 폴더에 둔다.
 @Component
 public class SeoulDongs {
 

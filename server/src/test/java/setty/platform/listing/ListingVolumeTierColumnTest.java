@@ -2,7 +2,6 @@ package setty.platform.listing;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.Map;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -10,7 +9,6 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
-import setty.platform.listing.domain.DeliveryFeePolicy;
 import setty.platform.listing.domain.Dimensions;
 import setty.support.MySqlIntegrationTestSupport;
 
@@ -18,7 +16,6 @@ import setty.support.MySqlIntegrationTestSupport;
 class ListingVolumeTierColumnTest extends MySqlIntegrationTestSupport {
 
     private static final long SELLER_ID = 101L;
-    private static final Map<Integer, String> TIER_BY_FEE = Map.of(10_000, "SMALL", 20_000, "MEDIUM", 30_000, "LARGE");
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
@@ -56,6 +53,6 @@ class ListingVolumeTierColumnTest extends MySqlIntegrationTestSupport {
 
         final String volumeTier = jdbcTemplate.queryForObject("SELECT volume_tier FROM listings", String.class);
 
-        assertThat(volumeTier).isEqualTo(TIER_BY_FEE.get(DeliveryFeePolicy.calculate(Dimensions.of(width, depth, height))));
+        assertThat(volumeTier).isEqualTo(Dimensions.of(width, depth, height).volumeTier().name());
     }
 }

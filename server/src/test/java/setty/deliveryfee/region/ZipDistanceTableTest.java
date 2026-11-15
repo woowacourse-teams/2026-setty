@@ -25,6 +25,7 @@ import java.util.function.Supplier;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import setty.address.SeoulDongs;
 import setty.deliveryfee.DeliveryFeeService;
 import setty.deliveryfee.VolumeTier;
 import setty.deliveryfee.config.DeliveryFeeProperties;
