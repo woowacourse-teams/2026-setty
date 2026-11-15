@@ -82,6 +82,23 @@ public class DeliveryFeeService {
         return List.copyOf(dongs);
     }
 
+    // 우편번호 거리표가 켜져 있고 구매자 구역을 알면 구역으로, 아니면 행정동으로 거른다.
+    public SellersWithinFee sellersWithinFee(final String buyerDongCode, final String buyerZipCode, final int maxFee) {
+        final Optional<Integer> buyerZipZone = zipZoneOf(buyerZipCode);
+        if (zipEnabled() && buyerZipZone.isPresent()) {
+            return SellersWithinFee.zipZones(sellerZipZonesWithinFee(buyerZipZone.get(), maxFee));
+        }
+        if (buyerDongCode == null) {
+            throw new BusinessException(ErrorCode.MEMBER_DONG_REQUIRED);
+        }
+        final Dong buyerDong = findDong(buyerDongCode)
+                .orElseThrow(() -> new BusinessException(ErrorCode.DELIVERY_AREA_NOT_SUPPORTED));
+        final Map<VolumeTier, List<String>> dongCodes = new EnumMap<>(VolumeTier.class);
+        sellerDongsWithinFee(buyerDong, maxFee).forEach((volumeTier, dongs) ->
+                dongCodes.put(volumeTier, dongs.stream().map(Dong::code).toList()));
+        return SellersWithinFee.dongs(dongCodes);
+    }
+
     public Map<VolumeTier, List<Dong>> sellerDongsWithinFee(final Dong buyerDong, final int maxFee) {
         final Map<VolumeTier, List<Dong>> result = new EnumMap<>(VolumeTier.class);
         if (maxFee < properties.baseFee()) {
@@ -100,7 +117,8 @@ public class DeliveryFeeService {
         return result;
     }
 
-    // 매물 상세와 같은 규칙. 우편번호 구역을 둘 다 알면 구역 표, 아니면 행정동 표, 구매자 동을 모르면 기본값을 쓴다.
+    // 우편번호 구역을 둘 다 알면 구역 표, 아니면 행정동 표로 계산한다.
+    // 행정동도 모르면 거리를 잴 수 없어 기본값(등록 때 정한 부피 배송비)을 쓴다.
     public int feeOrDefault(
             final String sellerDongCode,
             final Integer sellerZipZone,

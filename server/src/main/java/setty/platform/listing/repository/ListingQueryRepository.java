@@ -15,6 +15,7 @@ import org.springframework.jdbc.core.ConnectionCallback;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.SingleConnectionDataSource;
 import org.springframework.stereotype.Repository;
+import setty.deliveryfee.SellersWithinFee;
 import setty.deliveryfee.VolumeTier;
 import setty.deliveryfee.ZoneRange;
 import setty.platform.listing.domain.ConditionGrade;
@@ -45,8 +46,7 @@ public class ListingQueryRepository {
 
     public List<Row> findAvailable(
             Instant cursorCreatedAt, Long cursorId, Integer limit,
-            Map<VolumeTier, List<String>> sellerDongCodes,
-            Map<VolumeTier, List<ZoneRange>> sellerZipZones,
+            SellersWithinFee sellers,
             ListingSearchTerms search, ListingCategory category, List<ConditionGrade> conditionGrades,
             Integer minPrice, Integer maxPrice
     ) {
@@ -79,9 +79,9 @@ public class ListingQueryRepository {
             args.add(createdAt);
             args.add(cursorId);
         }
-        if (sellerDongCodes != null) {
+        if (sellers != null && sellers.dongCodes() != null) {
             List<String> conditions = new ArrayList<>();
-            sellerDongCodes.forEach((volumeTier, dongCodes) -> {
+            sellers.dongCodes().forEach((volumeTier, dongCodes) -> {
                 conditions.add("(volume_tier = ? AND dong_code IN ("
                         + String.join(",", Collections.nCopies(dongCodes.size(), "?")) + "))");
                 args.add(volumeTier.name());
@@ -89,9 +89,9 @@ public class ListingQueryRepository {
             });
             where.append(" AND (").append(String.join(" OR ", conditions)).append(")");
         }
-        if (sellerZipZones != null) {
+        if (sellers != null && sellers.zipZones() != null) {
             List<String> conditions = new ArrayList<>();
-            sellerZipZones.forEach((volumeTier, ranges) -> {
+            sellers.zipZones().forEach((volumeTier, ranges) -> {
                 conditions.add("(volume_tier = ? AND (" + zipZoneCondition(ranges, args, volumeTier) + "))");
             });
             where.append(" AND (").append(String.join(" OR ", conditions)).append(")");
@@ -101,7 +101,7 @@ public class ListingQueryRepository {
             page += " LIMIT ?";
             args.add(limit);
         }
-        if (sellerDongCodes == null && sellerZipZones == null) {
+        if (sellers == null) {
             return jdbcTemplate.query(SELECT_COLUMNS + " FROM listings" + where + page,
                     ListingQueryRepository::mapRow, args.toArray());
         }

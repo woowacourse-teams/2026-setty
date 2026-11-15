@@ -1,7 +1,6 @@
 package setty.platform.listing.application;
 
 import static setty.global.exception.ErrorCode.CANNOT_ORDER_OWN_LISTING;
-import static setty.global.exception.ErrorCode.DELIVERY_AREA_NOT_SUPPORTED;
 import static setty.global.exception.ErrorCode.INVALID_REQUEST;
 import static setty.global.exception.ErrorCode.INVALID_TOKEN;
 import static setty.global.exception.ErrorCode.LISTING_NOT_FOUND;
@@ -24,9 +23,8 @@ import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.multipart.MultipartFile;
 import setty.deliveryfee.DeliveryFeeService;
-import setty.deliveryfee.Dong;
 import setty.deliveryfee.VolumeTier;
-import setty.deliveryfee.ZoneRange;
+import setty.deliveryfee.SellersWithinFee;
 import setty.global.exception.BusinessException;
 import setty.global.logging.ListingRequestTiming;
 import setty.platform.favorite.repository.FavoriteCount;
@@ -117,7 +115,7 @@ public class ListingService {
     // 트랜잭션을 걸지 않는다. JPA 트랜잭션을 열면 조회 내내 커넥션을 붙잡으므로 쿼리마다 바로 반납하는 JDBC 조회만 쓴다.
     public List<ListingView.Summary> findAvailableListings(String buyerToken) {
         return listingQueryRepository.inOneConnection(reader ->
-                findAvailable(reader, null, null, null, null, buyerOf(reader, buyerToken), ListingFilter.NONE).items());
+                findAvailable(reader, null, null, null, buyerOf(reader, buyerToken), ListingFilter.NONE).items());
     }
 
     public ListingView.SummaryPage findAvailableListings(
@@ -153,17 +151,13 @@ public class ListingService {
         return listingQueryRepository.inOneConnection(reader -> {
             Buyer buyer = buyerOf(reader, buyerToken);
             if (maxDeliveryFee == null) {
-                return findAvailable(reader, cursor, size, null, null, buyer, filter);
+                return findAvailable(reader, cursor, size, null, buyer, filter);
             }
             if (!buyer.member()) {
                 throw new BusinessException(INVALID_TOKEN);
             }
-            // 우편번호 구역이 있는 구매자에게는 구역이 있는 매물만 거른다. 동 필터가 동 없는 매물을 빼는 것과 같은 규칙이다.
-            if (deliveryFeeService.zipEnabled() && buyer.zipZone() != null) {
-                return findAvailable(reader, cursor, size, null,
-                        deliveryFeeService.sellerZipZonesWithinFee(buyer.zipZone(), maxDeliveryFee), buyer, filter);
-            }
-            return findAvailable(reader, cursor, size, sellerDongCodesWithin(buyer, maxDeliveryFee), null, buyer, filter);
+            SellersWithinFee sellers = deliveryFeeService.sellersWithinFee(buyer.dongCode(), buyer.zipCode(), maxDeliveryFee);
+            return findAvailable(reader, cursor, size, sellers, buyer, filter);
         });
     }
 
@@ -199,36 +193,19 @@ public class ListingService {
     }
 
     private Buyer buyerOf(Long memberId, String dongCode, String zipCode) {
-        return new Buyer(true, memberId, dongCode,
-                dongCode == null ? null : deliveryFeeService.findDong(dongCode).orElse(null),
-                deliveryFeeService.zipZoneOf(zipCode).orElse(null));
-    }
-
-    private Map<VolumeTier, List<String>> sellerDongCodesWithin(Buyer buyer, int maxDeliveryFee) {
-        if (buyer.dongCode() == null) {
-            throw new BusinessException(MEMBER_DONG_REQUIRED);
-        }
-        if (buyer.dong() == null) {
-            throw new BusinessException(DELIVERY_AREA_NOT_SUPPORTED);
-        }
-        Map<VolumeTier, List<String>> sellerDongCodes = new LinkedHashMap<>();
-        deliveryFeeService.sellerDongsWithinFee(buyer.dong(), maxDeliveryFee).forEach((volumeTier, dongs) ->
-                sellerDongCodes.put(volumeTier, dongs.stream().map(Dong::code).toList()));
-        return sellerDongCodes;
+        return new Buyer(true, memberId, dongCode, zipCode);
     }
 
     private ListingView.SummaryPage findAvailable(
             ListingQueryRepository reader,
             ListingCursor cursor,
             Integer size,
-            Map<VolumeTier, List<String>> sellerDongCodes,
-            Map<VolumeTier, List<ZoneRange>> sellerZipZones,
+            SellersWithinFee sellers,
             Buyer buyer,
             ListingFilter filter
     ) {
         // 예산 안에 드는 판매자 동·구역이 하나도 없으면 DB에 묻지 않는다
-        if ((sellerDongCodes != null && sellerDongCodes.isEmpty())
-                || (sellerZipZones != null && sellerZipZones.isEmpty())) {
+        if (sellers != null && sellers.isEmpty()) {
             return new ListingView.SummaryPage(List.of(), null);
         }
         // 다음 페이지가 있는지 알려고 한 개를 더 읽는다
@@ -236,8 +213,7 @@ public class ListingService {
                 cursor == null ? null : cursor.createdAt(),
                 cursor == null ? null : cursor.id(),
                 size == null ? null : size + 1,
-                sellerDongCodes,
-                sellerZipZones,
+                sellers,
                 filter.search(),
                 filter.category(),
                 filter.conditionGrades(),
@@ -659,20 +635,9 @@ public class ListingService {
                 DeliveryFeePolicy.volumeTier(listing.getDimensions()), listing.getDeliveryFee(), buyer);
     }
 
-    // 우편번호 구역을 둘 다 알면 우편번호 표, 아니면 행정동 표로 계산한다.
-    // 행정동도 모르면 거리를 잴 수 없어 등록 때 정한 부피 배송비를 그대로 쓴다.
     private int deliveryFeeFor(String sellerDongCode, Integer sellerZipZone, VolumeTier volumeTier, int fixedFee, Buyer buyer) {
-        return deliveryFeeService.zipFee(sellerZipZone, buyer.zipZone(), volumeTier)
-                .orElseGet(() -> dongFee(sellerDongCode, volumeTier, fixedFee, buyer.dong()));
-    }
-
-    private int dongFee(String sellerDongCode, VolumeTier volumeTier, int fixedFee, Dong buyerDong) {
-        if (buyerDong == null || sellerDongCode == null) {
-            return fixedFee;
-        }
-        return deliveryFeeService.findDong(sellerDongCode)
-                .map(seller -> deliveryFeeService.fee(seller.index(), buyerDong.index(), volumeTier))
-                .orElse(fixedFee);
+        return deliveryFeeService.feeOrDefault(
+                sellerDongCode, sellerZipZone, buyer.dongCode(), buyer.zipCode(), volumeTier, fixedFee);
     }
 
     // 행정동 도입 전에 등록된 매물은 dong_code가 없다
@@ -747,8 +712,8 @@ public class ListingService {
         }
     }
 
-    private record Buyer(boolean member, Long memberId, String dongCode, Dong dong, Integer zipZone) {
+    private record Buyer(boolean member, Long memberId, String dongCode, String zipCode) {
 
-        static final Buyer ANONYMOUS = new Buyer(false, null, null, null, null);
+        static final Buyer ANONYMOUS = new Buyer(false, null, null, null);
     }
 }
