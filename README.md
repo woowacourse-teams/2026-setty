@@ -44,7 +44,7 @@ SETTY는 구매자가 판매자와 운송 서비스를 오가며 직접 조율�
 
 ### 코드에서 확인하는 핵심 흐름
 
-- [배송비 계산](server/src/main/java/setty/deliveryfee/DeliveryFeeService.java): 가구 부피 구간과 동네 사이 거리로 예상 배송비를 계산합니다. 부피 구간은 [배송비 정책](server/src/main/java/setty/platform/listing/domain/DeliveryFeePolicy.java)이 정합니다.
+- [배송비 계산](server/src/main/java/setty/deliveryfee/DeliveryFeeService.java): 가구 부피 구간과 동네 사이 거리로 예상 배송비를 계산합니다. 부피 구간과 구간별 고정 요금은 [부피 구간](server/src/main/java/setty/deliveryfee/VolumeTier.java)이 정합니다.
 - [매물 상세](client/src/features/listingdetail/FurnitureDetailScreen.tsx): 매물 가격, 배송비, 총액을 함께 표시합니다.
 - [결제 화면](client/src/features/payment/PaymentScreen.tsx): 주문을 생성하고 결제 위젯을 엽니다.
 - [배송 정책](docs/policy/delivery.md): 결제 확정 이후 배송 요청과 상태 전이를 정의합니다.

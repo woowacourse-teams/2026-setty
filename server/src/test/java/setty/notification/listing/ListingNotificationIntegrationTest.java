@@ -23,17 +23,18 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.support.TransactionTemplate;
+import setty.address.Dong;
+import setty.address.SeoulDongs;
+import setty.deliveryfee.DeliveryFeeService;
+import setty.deliveryfee.VolumeTier;
 import setty.notification.keyword.application.KeywordSubscriptionService;
+import setty.notification.keyword.domain.KeywordConditions;
 import setty.notification.listing.application.ListingNotificationDispatcher;
 import setty.notification.listing.application.ListingNotificationService;
 import setty.notification.listing.application.ListingToNotify;
+import setty.notification.send.NotificationMessage;
 import setty.notification.send.NotificationSender;
 import setty.notification.send.SendResult;
-import setty.deliveryfee.DeliveryFeeService;
-import setty.deliveryfee.Dong;
-import setty.deliveryfee.VolumeTier;
-import setty.notification.keyword.domain.KeywordConditions;
-import setty.notification.send.NotificationMessage;
 import setty.platform.listing.application.ListingCreateCommand;
 import setty.platform.listing.application.ListingService;
 import setty.platform.listing.application.ListingUpdateCommand;
@@ -72,6 +73,9 @@ class ListingNotificationIntegrationTest extends MySqlIntegrationTestSupport {
 
     @Autowired
     private DeliveryFeeService deliveryFeeService;
+
+    @Autowired
+    private SeoulDongs seoulDongs;
 
     @MockitoBean
     private ListingImageStorage listingImageStorage;
@@ -420,11 +424,11 @@ class ListingNotificationIntegrationTest extends MySqlIntegrationTestSupport {
     }
 
     private Dong sellerDong() {
-        return deliveryFeeService.findDong(SELLER_DONG_CODE).orElseThrow();
+        return seoulDongs.findByCode(SELLER_DONG_CODE).orElseThrow();
     }
 
     private Dong farDong(final int nearFee) {
-        return deliveryFeeService.dongs().stream()
+        return seoulDongs.all().stream()
                 .filter(dong -> deliveryFeeService.fee(sellerDong().index(), dong.index(), VolumeTier.SMALL) > nearFee)
                 .findFirst()
                 .orElseThrow();

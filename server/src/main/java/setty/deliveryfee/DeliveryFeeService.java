@@ -6,9 +6,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.springframework.stereotype.Service;
+import setty.address.Dong;
+import setty.address.SeoulDongs;
 import setty.deliveryfee.config.DeliveryFeeProperties;
 import setty.deliveryfee.region.DistanceTable;
-import setty.deliveryfee.region.SeoulDongs;
 import setty.deliveryfee.region.SeoulZipZones;
 import setty.deliveryfee.region.ZipDistanceTable;
 import setty.global.exception.BusinessException;
@@ -42,22 +43,10 @@ public class DeliveryFeeService {
         }
     }
 
-    public List<Dong> dongs() {
-        return seoulDongs.all();
-    }
-
-    public Optional<Dong> findDong(final String code) {
-        return seoulDongs.findByCode(code);
-    }
-
     /** 수령지 행정동에서 목적지 행정동까지 대표점 기준 도로 거리(m). 서울 밖이거나 코드가 없으면 비어 있다. */
     public Optional<Integer> distanceMeters(final String pickupDongCode, final String deliveryDongCode) {
-        return findDong(pickupDongCode).flatMap(pickup -> findDong(deliveryDongCode)
+        return seoulDongs.findByCode(pickupDongCode).flatMap(pickup -> seoulDongs.findByCode(deliveryDongCode)
                 .map(destination -> distanceTable.meters(pickup.index(), destination.index())));
-    }
-
-    public Optional<Dong> locate(final double latitude, final double longitude) {
-        return seoulDongs.locate(latitude, longitude);
     }
 
     public int steps(final int sellerDong, final int buyerDong, final VolumeTier volumeTier) {
@@ -91,7 +80,7 @@ public class DeliveryFeeService {
         if (buyerDongCode == null) {
             throw new BusinessException(ErrorCode.MEMBER_DONG_REQUIRED);
         }
-        final Dong buyerDong = findDong(buyerDongCode)
+        final Dong buyerDong = seoulDongs.findByCode(buyerDongCode)
                 .orElseThrow(() -> new BusinessException(ErrorCode.DELIVERY_AREA_NOT_SUPPORTED));
         final Map<VolumeTier, List<String>> dongCodes = new EnumMap<>(VolumeTier.class);
         sellerDongsWithinFee(buyerDong, maxFee).forEach((volumeTier, dongs) ->
@@ -144,8 +133,8 @@ public class DeliveryFeeService {
         if (sellerDongCode == null || buyerDongCode == null) {
             return defaultFee;
         }
-        final Optional<Dong> seller = findDong(sellerDongCode);
-        final Optional<Dong> buyer = findDong(buyerDongCode);
+        final Optional<Dong> seller = seoulDongs.findByCode(sellerDongCode);
+        final Optional<Dong> buyer = seoulDongs.findByCode(buyerDongCode);
         if (seller.isEmpty() || buyer.isEmpty()) {
             return defaultFee;
         }

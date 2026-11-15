@@ -7,9 +7,10 @@ import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import setty.address.Dong;
+import setty.address.SeoulDongs;
 import setty.deliveryfee.config.DeliveryFeeProperties;
 import setty.deliveryfee.region.DistanceTable;
-import setty.deliveryfee.region.SeoulDongs;
 import setty.deliveryfee.region.SeoulZipZones;
 import setty.global.exception.BusinessException;
 
@@ -131,7 +132,7 @@ class DeliveryFeeServiceTest {
 
     @Test
     void 예산_안에_드는_판매자_동을_부피_구간별로_준다() {
-        final Dong buyer = deliveryFeeService.findDong("1111053000").orElseThrow();
+        final Dong buyer = new SeoulDongs().findByCode("1111053000").orElseThrow();
 
         final var within = deliveryFeeService.sellerDongsWithinFee(buyer, 15_000);
 
@@ -145,7 +146,7 @@ class DeliveryFeeServiceTest {
 
     @Test
     void 기본_배송비보다_작은_예산이면_판매자_동이_없다() {
-        final Dong buyer = deliveryFeeService.findDong("1111053000").orElseThrow();
+        final Dong buyer = new SeoulDongs().findByCode("1111053000").orElseThrow();
 
         assertThat(deliveryFeeService.sellerDongsWithinFee(buyer, 9_999)).isEmpty();
     }

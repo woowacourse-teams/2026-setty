@@ -502,7 +502,7 @@ INSERT INTO members (login_id, password, role, phone_number, address, dong_code,
 VALUES ('s4-fee-buyer', REPEAT('!', 60), 'MEMBER', '000-0000-0000', 'SETTY_DELIVERY_FEE_FILTER_BUYER_FIXTURE_ONLY', '1111053000',
         CONVERT(@fixture_buyer_token USING utf8mb4) COLLATE utf8mb4_unicode_ci);
 
--- 부피 구간별 크기와 배송비는 DeliveryFeePolicy 경계를 따른다(SMALL 28만, MEDIUM 60만, LARGE 160만 cm3).
+-- 부피 구간별 크기와 배송비는 VolumeTier 경계를 따른다(SMALL 28만, MEDIUM 60만, LARGE 160만 cm3).
 INSERT INTO listings
     (seller_id, title, description, price, delivery_fee, category, condition_grade,
      width_cm, depth_cm, height_cm, sale_status, has_purchase_request,

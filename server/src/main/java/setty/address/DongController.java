@@ -1,20 +1,18 @@
-package setty.deliveryfee.controller;
+package setty.address;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
-import setty.deliveryfee.DeliveryFeeService;
-import setty.deliveryfee.controller.dto.DongsResponse;
 
 @RestController
 @RequiredArgsConstructor
 public class DongController {
 
-    private final DeliveryFeeService deliveryFeeService;
+    private final SeoulDongs seoulDongs;
 
     @GetMapping("/api/dongs")
     public ResponseEntity<DongsResponse> dongs() {
-        return ResponseEntity.ok(DongsResponse.from(deliveryFeeService.dongs()));
+        return ResponseEntity.ok(DongsResponse.from(seoulDongs.all()));
     }
 }

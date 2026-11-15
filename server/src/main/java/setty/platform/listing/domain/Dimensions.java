@@ -2,6 +2,7 @@ package setty.platform.listing.domain;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
+import setty.deliveryfee.VolumeTier;
 import setty.global.exception.BusinessException;
 import setty.global.exception.ErrorCode;
 
@@ -38,6 +39,10 @@ public class Dimensions {
 
     public long volumeCubicCentimeters() {
         return (long) widthCm * depthCm * heightCm;
+    }
+
+    public VolumeTier volumeTier() {
+        return VolumeTier.of(volumeCubicCentimeters());
     }
 
     private static void validateCentimeters(final Integer centimeters) {

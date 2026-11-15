@@ -18,7 +18,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import setty.common.ListingCreated;
 import setty.global.exception.BusinessException;
-import setty.platform.listing.domain.DeliveryFeePolicy;
 import setty.platform.listing.domain.Listing;
 import setty.platform.listing.domain.ListingImage;
 import setty.platform.listing.repository.ListingImageRepository;
@@ -87,7 +86,7 @@ public class ListingRecorder {
                 listing.getPrice(),
                 listing.getDongCode(),
                 listing.getZipZone(),
-                DeliveryFeePolicy.volumeTier(listing.getDimensions()),
+                listing.getDimensions().volumeTier(),
                 listing.getDeliveryFee(),
                 listing.getCreatedAt()));
 

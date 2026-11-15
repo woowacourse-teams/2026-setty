@@ -45,6 +45,7 @@ import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import setty.address.SeoulDongs;
 import setty.deliveryfee.DeliveryFeeService;
 import setty.deliveryfee.VolumeTier;
 import setty.platform.listing.application.ListingCreateCommand;
@@ -88,6 +89,9 @@ class ListingZipZoneFilterApiTest extends MySqlIntegrationTestSupport {
 
     @Autowired
     private DeliveryFeeService deliveryFeeService;
+
+    @Autowired
+    private SeoulDongs seoulDongs;
 
     @Autowired
     private ListingService listingService;
@@ -276,8 +280,8 @@ class ListingZipZoneFilterApiTest extends MySqlIntegrationTestSupport {
 
     private int dongFee(Listing listing) {
         return deliveryFeeService.fee(
-                deliveryFeeService.findDong(listing.dongCode()).orElseThrow().index(),
-                deliveryFeeService.findDong(BUYER_DONG).orElseThrow().index(),
+                seoulDongs.findByCode(listing.dongCode()).orElseThrow().index(),
+                seoulDongs.findByCode(BUYER_DONG).orElseThrow().index(),
                 listing.volumeTier());
     }
 
