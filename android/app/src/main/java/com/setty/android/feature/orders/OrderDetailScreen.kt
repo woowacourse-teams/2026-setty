@@ -166,6 +166,7 @@ private fun OrderDetailContent(
                 onRetry = onRetry,
                 onRequireLogin = onRequireLogin,
                 modifier = Modifier.padding(innerPadding),
+                isNotFound = state.isNotFound,
             )
 
             is LoadUiState.Success -> {
